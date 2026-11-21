@@ -2,11 +2,9 @@
 
 Verifies:
 1. ArtifactOutputEmitter produces mandatory artifacts with verified cryptographic manifests.
-2. ExecutiveSummaryRepairEngine applies declarative rules deterministically with audit entries.
-3. ExecutiveSummaryValidator enforces voice policy without regex side effects.
-4. ModularPipelineOrchestrator coordinates section generation, evaluation, release gating, and assembly.
-5. Decomposed domain services maintain strict layer isolation without concrete storage imports.
-6. All decomposed modules adhere to the 600-line file budget.
+2. executive_summary_v2 enforces deterministic X2 voice invariants with zero post-LLM regex mutation.
+3. ModularPipelineOrchestrator coordinates section generation, evaluation, release gating, and assembly.
+4. Decomposed domain services maintain strict layer isolation without concrete storage imports.
 """
 
 from __future__ import annotations
@@ -14,24 +12,15 @@ from __future__ import annotations
 import hashlib
 import inspect
 from pathlib import Path
-import pytest
 
-from apps_rg.runtime.artifact_output import (
-    ArtifactOutputEmitter,
-    MandatoryOutputPolicy,
-)
+from apps_rg.runtime.artifact_output import ArtifactOutputEmitter
 from apps_rg.runtime.pipeline import (
-    ArtifactAssembler,
     EvaluationService,
     ModularPipelineOrchestrator,
     ReleasePolicy,
     SectionGenerationService,
 )
-from apps_rg.runtime.sections.executive_summary import (
-    ExecutiveSummaryRepairEngine,
-    ExecutiveSummaryValidator,
-    VoiceRepairPolicy,
-)
+from apps_rg.runtime.sections.executive_summary_v2 import x2_invariants
 
 
 def test_artifact_output_emitter_and_manifests(tmp_path: Path) -> None:
@@ -54,7 +43,6 @@ def test_artifact_output_emitter_and_manifests(tmp_path: Path) -> None:
         "mandatory_run_output_json",
     }
 
-    # Verify each file and its manifest exist and hashes match
     for res in results:
         file_path = tmp_path / res.filename
         manifest_path = tmp_path / f"{res.filename}.manifest.json"
@@ -67,39 +55,24 @@ def test_artifact_output_emitter_and_manifests(tmp_path: Path) -> None:
         assert res.is_valid is True
 
 
-def test_executive_summary_declarative_repair_engine() -> None:
-    engine = ExecutiveSummaryRepairEngine()
-    raw_text = (
-        "It should be noted that the candidate was basically extremely competent.  "
-        "In order to achieve high performance, they led multiple initiatives, ."
+def test_executive_summary_v2_validator_policy_without_regex_mutation() -> None:
+    inanimate_text = (
+        "Platform ownership covered governed multi-agent orchestration across regulated banking. "
+        "Field delivery scaled cloud modernization across enterprise teams. "
+        "Built deterministic evaluation controls across global accounts."
     )
-
-    result = engine.repair_text(raw_text)
-
-    assert result.is_modified is True
-    assert result.total_modifications > 0
-    assert len(result.applied_rules) > 0
-    # Passive hedging and redundant fillers removed
-    assert "it should be noted that" not in result.repaired_text.lower()
-    assert "extremely" not in result.repaired_text.lower()
-    assert "basically" not in result.repaired_text.lower()
-    assert ", ." not in result.repaired_text
-
-
-def test_executive_summary_validator_policy() -> None:
-    policy = VoiceRepairPolicy(min_word_count=5, max_word_count=20, max_sentence_length=15)
-    validator = ExecutiveSummaryValidator(policy)
-
-    # Valid text
-    valid_outcome = validator.validate("Experienced engineering leader with deep cloud architecture expertise.")
-    assert valid_outcome.is_valid is True
-    assert len(valid_outcome.violations) == 0
-
-    # Violates max word count
-    long_text = "word " * 25
-    invalid_outcome = validator.validate(long_text)
-    assert invalid_outcome.is_valid is False
-    assert any("exceeds maximum allowed" in v for v in invalid_outcome.violations)
+    gates = x2_invariants.evaluate_executive_summary_v2_x2(
+        resume_display_text=inanimate_text,
+        claim_ledger=[],
+        parsed_output={"resume_display_text": inanimate_text},
+        allowed_fact_ids=set(),
+        verified_numbers=frozenset(),
+        verified_corpus_lower="",
+        target_company="Truist",
+        jd_text="",
+    )
+    inanimate_gate = next(g for g in gates if g["gate_id"] == "x2_v2_no_inanimate_subject_openers")
+    assert inanimate_gate["pass"] is False
 
 
 def test_modular_pipeline_orchestration() -> None:
@@ -107,11 +80,8 @@ def test_modular_pipeline_orchestration() -> None:
     eval_service = EvaluationService()
     release_policy = ReleasePolicy(min_average_score=0.80)
 
-    # Custom section handler
     gen_service.register_handler("headline", lambda ctx: "Principal Cloud Architect")
     gen_service.register_handler("executive_summary", lambda ctx: "Executive with 15 years leading engineering teams.")
-
-    # Validation rules
     eval_service.register_validator("headline", lambda content: [] if len(content) > 5 else ["Headline too short"])
 
     orchestrator = ModularPipelineOrchestrator(
@@ -138,7 +108,6 @@ def test_modular_pipeline_rejection_on_failure() -> None:
     release_policy = ReleasePolicy(min_average_score=0.80, require_all_pass=True)
 
     gen_service.register_handler("headline", lambda ctx: "Short")
-    # Validator fails headline
     eval_service.register_validator("headline", lambda content: ["Headline violates quality gate"])
 
     orchestrator = ModularPipelineOrchestrator(
@@ -161,9 +130,9 @@ def test_modular_pipeline_rejection_on_failure() -> None:
 def test_wave5_domain_layer_isolation() -> None:
     import apps_rg.runtime.artifact_output as ao
     import apps_rg.runtime.pipeline as pl
-    import apps_rg.runtime.sections.executive_summary as es
+    from apps_rg.runtime.sections.executive_summary_v2 import contract_emitter as es_v2
 
-    for mod in (ao, pl, es):
+    for mod in (ao, pl, es_v2):
         src = inspect.getsource(mod)
         assert "import sqlite3" not in src
         assert "agents.persistence.sqlite" not in src

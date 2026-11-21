@@ -434,56 +434,48 @@ def test_top_level_run_manifest_aggregates_lane_manifests(tmp_path: Path) -> Non
 
 
 def test_wave2_meta_phrase_subject_preservation_and_cited_judge_remediation() -> None:
-    from apps_rg.runtime.sections.executive_summary_judge_remediation import (
-        evaluate_judge_remediation_trigger,
-    )
-    from apps_rg.runtime.sections.executive_summary_voice_repair import (
-        _repair_forbidden_meta_phrases,
-    )
-    from apps_rg.runtime.validators.executive_summary_x2 import (
-        check_exec_summary_no_sentence_fragment,
+    from apps_rg.runtime.judges.x1d_panel_harness import extract_x1d_diagnostic
+    from apps_rg.runtime.sections.executive_summary_v2.x2_invariants import (
+        evaluate_executive_summary_v2_x2,
     )
 
-    raw_s6 = (
-        "Enterprise technology leader who aligns governed AI platforms. "
-        "This leadership profile positions reusable AI platform architecture and governed delivery patterns to scale enterprise adoption."
+    meta_text = (
+        "Engineering executive who aligns governed AI platforms across regulated enterprises. "
+        "This leader positions reusable AI platform architecture and governed delivery patterns to scale adoption. "
+        "Built deterministic evaluation controls across enterprise programs."
     )
-    repaired, _ = _repair_forbidden_meta_phrases(raw_s6)
-    assert "this leadership profile" not in repaired.lower()
-    assert "positions reusable ai platform architecture" in repaired.lower()
-    ok, reason = check_exec_summary_no_sentence_fragment(repaired)
-    assert ok is True, reason
-
-    bad_fragment = (
-        "Enterprise technology leader who aligns governed AI platforms. "
-        "positions reusable AI platform architecture and governed delivery patterns to scale enterprise adoption."
+    gates = evaluate_executive_summary_v2_x2(
+        resume_display_text=meta_text,
+        claim_ledger=[],
+        parsed_output={"resume_display_text": meta_text},
+        allowed_fact_ids=set(),
+        verified_numbers=frozenset(),
+        verified_corpus_lower="",
+        target_company="Truist",
+        jd_text="",
     )
-    frag_ok, frag_reason = check_exec_summary_no_sentence_fragment(bad_fragment)
-    assert frag_ok is False
-    assert frag_reason and "lowercase_sentence_start" in frag_reason
+    inanimate_gate = next(g for g in gates if g["gate_id"] == "x2_v2_no_inanimate_subject_openers")
+    assert inanimate_gate["pass"] is False
+    assert "this leader" in str(inanimate_gate["failure_reason"]).lower()
 
     judges = [
         {
             "provider_key": "gemini_pro",
             "provider_name": "gemini_pro",
             "evaluator_mode": "MODEL_BACKED",
-            "provider_status": "MODEL_BACKED_PASS",
-            "pass": True,
-            "decisive_failure": False,
+            "provider_status": "MODEL_BACKED_FAIL",
+            "pass": False,
+            "decisive_failure": True,
             "score": 4.15,
             "normalized_score": 0.83,
-            "normalized_threshold": 0.8,
-            "cited_sentence_indexes": [6],
-            "findings": [
-                "Sentence 6 ('positions reusable AI platform architecture...') omits a grammatical subject and starts lowercase."
-            ],
-            "remediation_suggestions": ["Restore a grammatical subject at the start of Sentence 6."],
+            "normalized_threshold": 0.94,
+            "cited_sentence_indexes": [2],
+            "findings": ["Sentence 2 uses robotic third-person meta-label."],
+            "remediation_suggestions": ["Make the human executive the active actor in Sentence 2."],
         }
     ]
-    trig_ok, receipt = evaluate_judge_remediation_trigger(
-        judges, runtime_generation_status="REAL_LLM", x2_passed=True
-    )
-    assert trig_ok is True
-    assert receipt["soft_fail_count"] == 1
+    diag = extract_x1d_diagnostic(judges, "executive_summary")
+    assert diag["repair_needed"] is True
+    assert 2 in diag["cited_sentence_indexes"]
 
 

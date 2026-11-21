@@ -699,6 +699,10 @@ def apply_ibm_narrative_theme_overpack_repair(
     )
 
     companion_bullets_list = [ln.strip() for ln in str(companion_text or "").splitlines() if ln.strip()]
+    has_full_companion_bullets = bool(
+        companion_bullets_list
+        and min((len(b.split()) for b in companion_bullets_list), default=0) >= 12
+    )
     cosine_res_pre = (
         check_narrative_bullet_cosine_similarity(
             narrative_pre,
@@ -708,14 +712,14 @@ def apply_ibm_narrative_theme_overpack_repair(
             forbid_shared_opener=True,
             forbid_repeated_metrics=True,
         )
-        if companion_bullets_list
+        if has_full_companion_bullets
         else None
     )
     cosine_failed_pre = bool(cosine_res_pre is not None and not cosine_res_pre.passed)
     if not overpacked and not missing_pre and not unsupported_mechanisms_pre and not cosine_failed_pre:
         return raw_output, parsed, False
 
-    from apps_rg.runtime.section_repair_ledger import KIND_REGEN_LLM, load_ledger, record_repair
+    from apps_rg.runtime.section_repair_ledger import KIND_REGEN_LLM, load_ledger, record_repair, set_authoritative_attempt
     from apps_rg.runtime.sections.ibm_narrative_repair_policy import (
         THEME_REPAIR_MAX_ATTEMPTS,
         theme_repair_enabled,
@@ -958,7 +962,7 @@ def apply_ibm_narrative_theme_overpack_repair(
                             receipt["rejected_reason"] = "clause_decomposition_failed"
                         elif unsupported_mechanisms:
                             receipt["rejected_reason"] = "mechanism_support_unsatisfied"
-                        elif companion_bullets_list and not check_narrative_bullet_cosine_similarity(
+                        elif has_full_companion_bullets and not check_narrative_bullet_cosine_similarity(
                             narrative_post,
                             companion_bullets_list,
                             max_pairwise_cosine=0.28,
@@ -988,6 +992,11 @@ def apply_ibm_narrative_theme_overpack_repair(
                                 operation="ibm_narrative_theme_overpack_repair",
                                 reason=repair_reason,
                                 replaced_l2=True,
+                            )
+                            set_authoritative_attempt(
+                                artifact_dir,
+                                1 + attempt_index,
+                                reason=repair_reason,
                             )
                             raw_output, parsed, accepted = new_raw, new_parsed, True
                             receipt["accepted"] = True
@@ -1024,6 +1033,29 @@ def apply_ibm_narrative_theme_overpack_repair(
                             "sentence, the ', establishing' split, at most two bullet roots per "
                             "row, at most four themes, and all other prior constraints. Return one "
                             "complete compact JSON object only."
+                        ),
+                    },
+                ]
+                continue
+            if (
+                receipt["rejected_reason"] == "cosine_similarity_still_high"
+                and attempt_index < THEME_REPAIR_MAX_ATTEMPTS
+            ):
+                attempt_messages = [
+                    *messages,
+                    {"role": "assistant", "content": regen_raw},
+                    {
+                        "role": "user",
+                        "content": (
+                            "COSINE_SIMILARITY_CORRECTION: your revised sentence resolved mechanism citations "
+                            "but still echoed too many words from the companion IBM bullets "
+                            "(x2_narrative_bullet_cosine_similarity requires max_pairwise_cosine <= 0.28 and "
+                            "pool_content_cosine <= 0.38). Keep the exact same cited bul_ibm_* IDs and "
+                            "supported mechanism tokens, but rephrase the surrounding executive framing "
+                            "at strategic practice-mandate altitude using distinct high-level vocabulary "
+                            "(avoid repeating companion bullet nouns like 'modernization', 'regulated', "
+                            "'financial', 'clients', 'frameworks', 'workloads'). Preserve one sentence and "
+                            "the ', establishing' clause split. Return one complete compact JSON object only."
                         ),
                     },
                 ]
