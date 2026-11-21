@@ -160,8 +160,11 @@ def evaluate_executive_summary_v2_x2(
     low_text = text.lower()
     vendor_v = [f"unverified_vendor:{v}" for v in _WATCHLIST_VENDORS if re.search(rf"\b{re.escape(v)}\b", low_text) and v not in verified_corpus_lower]
     co_head = (str(target_company or "").strip().lower().split() or [""])[0]
-    if len(co_head) >= 4 and co_head not in {"slalom", "unify", "insurtech", "ernst", "synthetic", "enterprise"} and re.search(rf"\b(?:at|for|joined|employed\s+by)\s+{re.escape(co_head)}\b", low_text):
+    if len(co_head) >= 4 and co_head not in {"slalom", "unify", "insurtech", "ernst", "synthetic", "enterprise"} and re.search(rf"\b(?:at|joined|employed\s+by)\s+{re.escape(co_head)}\b", low_text):
         vendor_v.append(f"target_company_claimed_as_employer:{co_head}")
+    prior_emp_hits = [emp for emp in ("ibm", "slalom", "unify", "ernst") if re.search(rf"\b{emp}\b", low_text) and not re.search(rf"\b{emp}-aws\b", low_text)]
+    if len(prior_emp_hits) >= 2 or any(re.match(r"^at\s+(?:ibm|slalom|unify)\b", s.strip(), re.I) for s in sentences):
+        vendor_v.append(f"chronological_employer_roll_call:{prior_emp_hits}. Synthesize cross-career capabilities without naming employers sentence-by-sentence.")
     if target_role or jd_text or briefing_text:
         from apps_rg.runtime.validators.allocation_jd_alignment_gate import find_off_domain_clutter_hits
 

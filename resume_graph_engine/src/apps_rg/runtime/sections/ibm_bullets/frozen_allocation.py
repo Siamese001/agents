@@ -345,6 +345,10 @@ _IBM_WITHIN_SECTION_DE_ECHO_SWAPS: tuple[tuple[str, str], ...] = (
     ("modernization", "transformation"),
     ("regulated banking and insurance", "financial and carrier"),
     ("banking and insurance", "financial and carrier"),
+    ("decision-support", "executive-analytics"),
+    ("decision support", "scenario intelligence"),
+    ("financial institutions", "enterprise accounts"),
+    ("translating complex", "converting complex"),
     ("enterprise offering", "offering"),
     ("reusable cloud,", "repeatable"),
     ("workloads", "environments"),
@@ -469,15 +473,20 @@ def _materialize_ibm_bullets_from_frozen_allocation(
         allocation = allocation_by_bullet[bullet_id]
         existing_text = str(row.get("bullet_text") or "").strip()
         metric = allocation["metric_text"]
+        existing_max_cos = max(
+            (compute_text_cosine_similarity(existing_text, str(p.get("bullet_text") or ""), content_only=True) for p in ordered),
+            default=0.0,
+        )
+        alloc_max_cos = max(
+            (compute_text_cosine_similarity(allocation["bullet_text"], str(p.get("bullet_text") or ""), content_only=True) for p in ordered),
+            default=0.0,
+        )
         keep_existing = (
             bool(existing_text)
             and check_experience_bullet_evidence_density(bullet_id, existing_text).passed
             and check_bullet_technical_specificity_floor(bullet_id, existing_text).passed
             and metric_phrase_entailed_in_text(metric, existing_text)
-            and all(
-                compute_text_cosine_similarity(existing_text, str(p.get("bullet_text") or ""), content_only=True) <= 0.34
-                for p in ordered
-            )
+            and (existing_max_cos <= 0.35 or existing_max_cos <= alloc_max_cos)
         )
         if not keep_existing:
             row["bullet_text"] = allocation["bullet_text"]

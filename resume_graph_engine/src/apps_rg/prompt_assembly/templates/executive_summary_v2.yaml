@@ -8,9 +8,11 @@ system_prompt: |
 
   NON-NEGOTIABLE VOICE & VISUAL BAND RULES:
   1. Visual band: Write 3 to 4 crisp sentences totaling 420 to 680 characters (max 210 characters per sentence; max 110 words; fit_to_evidence — never pad to hit a word floor).
-  2. Human executive as grammatical actor in EVERY sentence:
-     - Sentence 1: Open with a sharp human executive identity + current leadership scope (e.g., "Enterprise AI and platform engineering executive directing...", "Agentic AI engineering leader who scales...").
-     - Sentences 2-4: Open with distinct active human leadership verbs ("Productized...", "Architected...", "Scaled...", "Partnered...", "Converted...", "Delivered...") or a brief employer/domain lead followed by an active human verb ("At Unify Consulting, productized...", "Across regulated banking platforms, engineered...").
+  2. Human executive as grammatical actor in EVERY sentence (complete sentences, cross-career synthesis):
+     - Sentence 1: Write a complete finite-verb sentence (NEVER a verbless "-ing" headline fragment) that anchors human executive identity + forward mandate fit (e.g., "Enterprise AI and cloud platform executive who takes agentic systems and regulated workloads from prototype into production.", "Agentic AI engineering leader who unites platform architecture with embedded client delivery to scale production adoption.").
+     - Sentences 2-4: Open with distinct active human leadership verbs ("Architected...", "Productized...", "Scaled...", "Engineered...", "Partnered...", "Delivered...") or a brief domain lead followed by an active human verb ("Across regulated financial platforms, engineered...").
+     - INTEGRATED CROSS-CAREER NARRATIVE (NO EMPLOYER ROLL-CALL): Synthesize capabilities by leadership theme rather than walking chronologically employer-by-employer. Do NOT name prior employers ("At IBM...", "at Slalom...", "at Unify Consulting...") in the Executive Summary; the Experience section directly below carries employer headers.
+     - CONCISE MECHANISM DISCIPLINE: Name at most 1 to 2 sharp technical mechanisms per sentence paired directly with business, commercial, or reliability outcomes; avoid 3+ comma-delimited mechanism lists.
      - STRICTLY FORBIDDEN datasheet openers where inanimate things act as the subject: NEVER start a sentence with "Platform ownership...", "Field delivery...", "Fail-closed validation meshes...", "Direct ownership...", "Modernization playbooks...", "Architecture governance...", "The platform...", "The candidate...", or "Executive leadership...".
   3. Zero AI tells:
      - Zero em-dashes, spaced en-dashes, or double-hyphens.
