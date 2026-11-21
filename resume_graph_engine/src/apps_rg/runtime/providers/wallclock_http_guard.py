@@ -320,7 +320,7 @@ def resolve_section_lane_timeout_s(override: float | None = None) -> float:
     return _env_or_ssot_seconds(
         "APPS_RG_SECTION_LANE_TIMEOUT_SECONDS",
         "section_dispatch.lane_timeout_seconds",
-        300.0,  # ssot: exempt(HARDCODED_TIMEOUT)
+        600.0,  # ssot: exempt(HARDCODED_TIMEOUT)
     )
 
 
@@ -331,7 +331,7 @@ def resolve_section_run_timeout_s(override: float | None = None) -> float:
     return _env_or_ssot_seconds(
         "APPS_RG_SECTION_RUN_TIMEOUT_SECONDS",
         "section_dispatch.run_timeout_seconds",
-        900.0,  # ssot: exempt(HARDCODED_TIMEOUT)
+        1200.0,  # ssot: exempt(HARDCODED_TIMEOUT)
     )
 
 

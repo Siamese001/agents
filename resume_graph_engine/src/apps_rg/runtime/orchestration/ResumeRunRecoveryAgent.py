@@ -135,12 +135,19 @@ class ResumeRunRecoveryAgent:
 
     def _call_strategy_re_planner(self, diagnostics: dict[str, Any]) -> dict[str, Any]:
         """Execute Agent B: Strategy Re-Planner producing lane-scoped dispatch overrides."""
+        # Respect per-section recipe temperature ranges (ibm_narrative: 0.30-0.45;
+        # executive_summary, unify_bullets, unify_narrative, ibm_bullets: 0.35-0.55)
+        # so recovery dispatch never crashes with SECTION_SCOPE_RECIPE_FAILED::temperature_range.
         lane_diag = diagnostics.get("failing_lanes_diagnostics") or {}
         lane_overrides: dict[str, dict[str, Any]] = {}
         for lane, diag_msg in lane_diag.items():
             is_x2 = "X2" in str(diag_msg)
+            if lane == "ibm_narrative":
+                temp = 0.35 if is_x2 else 0.45
+            else:
+                temp = 0.40 if is_x2 else 0.50
             lane_overrides[lane] = {
-                "temperature": 0.4 if is_x2 else 0.7,
+                "temperature": temp,
                 "force_new_seed": True,
                 "reasoning_effort": "medium",
                 "diagnostic_focus": str(diag_msg),
