@@ -1,5 +1,6 @@
 ---
 trigger: model_decision
+description: Repository skill contract gates, frontmatter schema, description token budget, and link integrity.
 ---
 
 # Codex Skill-Contract Hardening

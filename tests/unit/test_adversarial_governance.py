@@ -16,7 +16,6 @@ from pathlib import Path
 
 import pytest
 
-from tools.lint_file_budgets import check_file_budget
 from tools.lint_production_purity import check_file_production_purity
 from tools.lint_contract_schemas import validate_file_against_schema
 
@@ -131,23 +130,3 @@ def test_case_e_normal_declarative_manifest_passes():
 
         ok, msg = validate_file_against_schema(config_file, repo_root)
         assert ok, f"Case E failed: valid declarative metadata was rejected: {msg}"
-
-
-def test_case_f_production_script_exceeding_budget_fails():
-    """Case F: Production script exceeding budget without explicit exclusion fails."""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        repo_root = Path(tmpdir)
-        script_file = repo_root / "scripts" / "heavy_job.py"
-        script_file.parent.mkdir(parents=True, exist_ok=True)
-        # Generate 650 lines (exceeds default 600 line budget)
-        lines = ["# Script line " + str(i) for i in range(650)]
-        script_file.write_text("\n".join(lines), encoding="utf-8")
-
-        passed_default, line_count, _ = check_file_budget(script_file, repo_root, ratchet={})
-        assert passed_default is True, "Default unbounded budget must allow >600-line production scripts"
-        assert line_count == 650
-
-        passed, line_count, msg = check_file_budget(script_file, repo_root, max_lines=600, ratchet={})
-        assert not passed, "Explicit max_lines override must still function when requested"
-        assert line_count == 650
-        assert "VIOLATION" in msg

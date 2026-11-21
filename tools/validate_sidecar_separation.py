@@ -22,6 +22,8 @@ from pathlib import Path
 from typing import Any, Sequence
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 DEFAULT_SIDECARS_ROOT = Path.home() / ".gemini" / "config" / "sidecars"
 AGENTS_CANONICAL_ROOT = str(Path.home() / "Git" / "agents")
 NEE_CANONICAL_ROOT = str(Path.home() / "Git" / "decision-intelligence-engine")

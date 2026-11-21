@@ -1,5 +1,6 @@
 ---
 trigger: model_decision
+description: ADG SQLite truth, Redis hot projection, read-only MCP invariants, and non-blocking AST/grep fallback.
 ---
 
 # ADG Canonical Invariants

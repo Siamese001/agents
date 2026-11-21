@@ -35,6 +35,58 @@ REQUIRED_AI_SDLC_POLICY_IDS: tuple[str, ...] = (
 
 SCRIPT_REF_RE = re.compile(r"`(tools/[a-zA-Z0-9_./-]+\.py)`")
 HOOK_FLAG_RE = re.compile(r"--hook\s+([a-zA-Z0-9_-]+)")
+MAX_ALWAYS_ON_BYTES = 36000
+
+
+def _check_always_on_budget(repo_root: Path) -> tuple[list[dict[str, Any]], int]:
+    findings: list[dict[str, Any]] = []
+    total_bytes = 0
+    agents_md = repo_root / "AGENTS.md"
+    if agents_md.is_file():
+        total_bytes += agents_md.stat().st_size
+    rules_dir = repo_root / ".agents" / "rules"
+    if rules_dir.is_dir():
+        for md_path in sorted(rules_dir.glob("*.md")):
+            text = md_path.read_text(encoding="utf-8", errors="ignore")
+            if re.search(r"^trigger:\s*always_on\b", text, re.MULTILINE):
+                total_bytes += md_path.stat().st_size
+    if total_bytes > MAX_ALWAYS_ON_BYTES:
+        findings.append(
+            {
+                "severity": "CRITICAL",
+                "category": "context_budget",
+                "message": (
+                    f"Combined AGENTS.md + always_on rules size ({total_bytes} bytes) "
+                    f"exceeds {MAX_ALWAYS_ON_BYTES}-byte inline budget ceiling."
+                ),
+            }
+        )
+    return findings, total_bytes
+
+
+def _check_model_decision_descriptions(repo_root: Path) -> list[dict[str, Any]]:
+    findings: list[dict[str, Any]] = []
+    rules_dir = repo_root / ".agents" / "rules"
+    if not rules_dir.is_dir():
+        return findings
+    for md_path in sorted(rules_dir.glob("*.md")):
+        text = md_path.read_text(encoding="utf-8", errors="ignore")
+        fm = re.match(r"^---\s*\n(.*?)\n---", text, re.DOTALL)
+        if not fm:
+            continue
+        front = fm.group(1)
+        if re.search(r"^trigger:\s*model_decision\b", front, re.MULTILINE) and not re.search(
+            r"^description:\s*\S+", front, re.MULTILINE
+        ):
+            rel = md_path.relative_to(repo_root).as_posix()
+            findings.append(
+                {
+                    "severity": "CRITICAL",
+                    "category": "context_budget",
+                    "message": f"model_decision rule '{rel}' is missing a non-empty 'description:' frontmatter field.",
+                }
+            )
+    return findings
 
 
 def _check_policy_and_threshold_parity(repo_root: Path) -> list[dict[str, Any]]:
@@ -194,6 +246,9 @@ def audit_governance_harmonization(repo_root: Path) -> dict[str, Any]:
             }
         )
 
+    always_on_findings, always_on_bytes = _check_always_on_budget(root)
+    findings.extend(always_on_findings)
+    findings.extend(_check_model_decision_descriptions(root))
     findings.extend(_check_policy_and_threshold_parity(root))
     ref_findings, broken_refs = _check_broken_script_refs(root)
     findings.extend(ref_findings)
@@ -204,6 +259,7 @@ def audit_governance_harmonization(repo_root: Path) -> dict[str, Any]:
         "schema_version": "agents.governance_harmonization.v1",
         "status": "PASS" if not critical else "FAIL",
         "agents_md_lines": agents_lines,
+        "always_on_bytes": always_on_bytes,
         "skills_tokens": skills_tokens,
         "broken_refs": broken_refs,
         "critical_count": len(critical),

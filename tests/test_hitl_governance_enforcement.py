@@ -444,38 +444,6 @@ class HitlGovernanceEnforcementTests(unittest.TestCase):
             self.assertEqual(rc, 0)
             self.assertEqual(orig_req.read_text(encoding="utf-8"), "Investigate why large files are not modularized.\n")
 
-    def test_dynamic_file_budget_ratchet_clamping(self) -> None:
-        """Dynamic ratchet clamping tightens shrunk ceilings and removes files <= 600 lines."""
-        import json
-        from tools.lint_file_budgets import RATCHET_REL_PATH, clamp_ratchet_to_current_lines
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_root = Path(tmpdir)
-            mod_a = tmp_root / "tools" / "shrunk_monolith.py"
-            mod_b = tmp_root / "tools" / "fully_modularized.py"
-            mod_a.parent.mkdir(parents=True, exist_ok=True)
-            mod_a.write_text("x = 1\n" * 700, encoding="utf-8")
-            mod_b.write_text("x = 1\n" * 400, encoding="utf-8")
-
-            ratchet_path = tmp_root / RATCHET_REL_PATH
-            ratchet_path.parent.mkdir(parents=True, exist_ok=True)
-            ratchet_path.write_text(
-                json.dumps(
-                    {
-                        "tools/shrunk_monolith.py": {"line_limit": 900, "justification": "legacy"},
-                        "tools/fully_modularized.py": {"line_limit": 850, "justification": "legacy"},
-                    }
-                ),
-                encoding="utf-8",
-            )
-
-            clamped = clamp_ratchet_to_current_lines(tmp_root, max_lines=600, write=True)
-            self.assertEqual(clamped["tools/shrunk_monolith.py"]["new_limit"], 700)
-            self.assertEqual(clamped["tools/fully_modularized.py"]["removed"], 1)
-            updated = json.loads(ratchet_path.read_text(encoding="utf-8"))
-            self.assertEqual(updated["tools/shrunk_monolith.py"]["line_limit"], 700)
-            self.assertNotIn("tools/fully_modularized.py", updated)
-
     def test_post_invocation_transcript_and_pre_ask_question_directive(self) -> None:
         """Verify _load_turn_steps_from_payload loads current turn from transcriptPath and pre_ask_question emits anti-plaintext directive."""
         import json

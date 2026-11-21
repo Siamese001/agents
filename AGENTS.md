@@ -2,88 +2,35 @@
 
 ## Plan First. Execute Second.
 
-Root AGENTS.md is the primary agent execution adapter. Repo governance, rules, and skills live under .agents/ and .antigravity/.
+Root `AGENTS.md` is the primary agent execution adapter. Repo governance, rules, and skills live under `.agents/` and `.antigravity/`.
 
 **Bug Fixes, `/boost`, & `/swarm` (Zero Blast-Radius Ceiling, `INV-REFACTOR-EXTENT-UNBOUNDED`, `INV-ZERO-BUGFIX-BLAST-RADIUS-CAP`)**: Whenever a bug is found or `/boost` / `/swarm` is invoked, trace the defect to its root cause and fix all impacted upstream producers, shared domain contracts, consumers, validators, and tests across the repository immediately with zero file-count, file-size, line-count, wave-count, or blast-radius limits (preserving directional inter-subsystem and storage import boundaries).
 
-**Planned Architecture & Refactors**: For open-ended design or multi-wave architectural work, inspect connected upstream/downstream dependencies (see `scope-containment`) and align coupled contracts cohesively. See `.agents/rules/plan-first-enforcement.md`.
+**Planned Architecture & Refactors**: For open-ended design or multi-wave architectural work, inspect connected upstream/downstream dependencies (`.agents/rules/scope-containment.md`) and align coupled contracts cohesively. See `.agents/rules/plan-first-enforcement.md`.
 
 ## Wave Refactoring Protocol
 
-Before performing refactoring work, read and follow:
+Before performing refactoring work, read and follow `docs/refactoring-wave-protocol.md`:
 
-`docs/refactoring-wave-protocol.md`
-
-Required behavior:
-
-- Align all coupled upstream/downstream spine dependencies (`INV-REFACTOR-EXTENT-UNBOUNDED`) across as many files, lines, subsystems, or waves as needed; cohesive submodule decomposition behind a facade and shared domain contracts are explicitly authorized without file-size or line-ratchet caps.
+- Align all coupled upstream/downstream spine dependencies (`INV-REFACTOR-EXTENT-UNBOUNDED`) across as many files, lines, subsystems, or waves as needed; cohesive submodule decomposition behind a facade and shared domain contracts are authorized with zero file-size or line-ratchet caps (`INV-BUDGET-FILE-LINES = 0`).
 - Fix newly discovered root-cause bugs immediately across all impacted components rather than deferring them to a backlog.
-- Preserve behavior not explicitly targeted and avoid unrelated drift in uncoupled code (directly coupled producer/contract/validator alignment and root-cause bug fixes are cohesive refactoring, not drift).
-- Parallel `/boost` and `/swarm` workers may execute concurrently across any number of waves or shards without artificial wave-count, file-count, file-size, or disjoint-file freezes, provided directional inter-subsystem and storage import boundaries hold.
+- Preserve behavior not explicitly targeted and avoid unrelated drift in uncoupled code.
+- Parallel `/boost` and `/swarm` workers may execute concurrently without artificial wave-count, file-count, or disjoint-file freezes, provided directional inter-subsystem and storage import boundaries hold.
 - Validate each wave or shard with concrete runtime and test evidence before claiming completion.
-- Treat `docs/refactoring-wave-protocol.md` as the authoritative protocol.
 
 ## MCP Quick Reference
 
-> Stable IDs are the `mcpServers` keys in root `.mcp.json` (repo MCP SSOT). Live tool prefixes like `mcp0_`, `mcp1_`, and so on can shift when server order changes. Resolve the live prefix from the current tool list in-session.
-
-<!-- MCP-QUICK-REFERENCE:START -->
-
-| Server ID | Use For | Example Tools | Notes | Skill |
-|---|---|---|---|---|
-| `GitKraken` | Git operations, GitLens, pull requests, issues | `git_status, git_add_or_commit, git_log_or_diff, pull_request_create` | Use as the git/PR authority. | [operational-gates](.agents/skills/operational-gates/SKILL.md) |
-| `adg_sqlite` | Dependency graph, blast radius, layer analysis, refactoring hotspots, graph-layer primitives (mv_*, v_p*, semantic edges) | `adg_health, adg_edge_fanout, adg_edge_fanin, adg_nodes_by_file, adg_nodes_by_layer, adg_violations, adg_p0_wave_plan` | Structural deps + T2/T3 plans; §22 graph layer (mv_*, P-views, semantic edges). | [scope-containment](.agents/skills/scope-containment/SKILL.md) |
-| `deepwiki` | External GitHub repository docs and wiki Q&A | `read_wiki_structure, read_wiki_contents, ask_question` | Do not use for this repo's own code. | [agents-governance-hygiene](.agents/skills/agents-governance-hygiene/SKILL.md) |
-| `filesystem` | Filesystem MCP operations and directory traversal | `read_text_file, read_multiple_files, directory_tree, write_file` | Prefer native reads for ordinary file reads when available. | [scope-containment](.agents/skills/scope-containment/SKILL.md) |
-| `memory` | Persistent cross-session knowledge graph | `mem_recall_session_start, create_entities, add_observations, search_nodes` | Read at session start; write back major decisions. | [agents-governance-hygiene](.agents/skills/agents-governance-hygiene/SKILL.md) |
-| `vector_db` | Semantic search and embeddings | `semantic_search, query_collection, vector_stats, list_collections` | Not for structural dependency analysis. | [agents-domain-assurance](.agents/skills/agents-domain-assurance/SKILL.md) |
-| `playwright` | Browser automation, accessibility snapshots, end-to-end UI verification | `browser_navigate, browser_snapshot, browser_click, browser_fill_form, browser_evaluate, browser_take_screenshot` | Live UI/E2E; output in artifacts/mcp/playwright/ (gitignored). Close tabs after use. | [testing-framework](.agents/skills/testing-framework/SKILL.md) |
-| `notion` | Notion pages and project-management databases | `API-query-data-source, API-retrieve-a-page, API-patch-page` | Manual page/DB read+write only; no plan-status enforcement (Notion plan/wave/status governance removed). | [agents-governance-hygiene](.agents/skills/agents-governance-hygiene/SKILL.md) |
-| `context7` | Up-to-date, versioned official documentation for external libraries | `resolve-library-id, get-library-docs` | External package docs; not this repo. CONTEXT7_API_KEY optional. | [agents-governance-hygiene](.agents/skills/agents-governance-hygiene/SKILL.md) |
-
-<!-- MCP-QUICK-REFERENCE:END -->
-
-Server-specific MCP procedures are governed by [mcp-config-ssot.md](.agents/rules/mcp-config-ssot.md) and [agents-governance-hygiene](.agents/skills/agents-governance-hygiene/SKILL.md).
-
-## Notion Workspace Map
-
-<!-- NOTION-MAP:START -->
-
-Bot: **Agentic-Workflow** | Workspace: **Amit Ayer's Space**
-
-| Database | Data Source ID (reads) | Database ID (writes) | Read Trigger | Write Trigger (auto-route) |
-|----------|-----------------------|----------------------|--------------|----------------------------|
-| Backlog Items | `fc7f6bf4-6a73-43cd-a4e8-1ef23267dbe7` | `aa8d2507-101e-4384-81d9-60ea3fe33876` | "plan status", "phase progress", "wave status", "what's blocked" — **but prefer the Backlog Snapshot page for top-N/dashboard queries (see below)** | On wave/phase completion or status change. The DEFERRED_SCOPE/NEXT_STEP auto-post hooks were retired (enforcement-surface-consolidation-d8b3f6 W7); out-of-scope work now surfaces via native spawn_task (constitutional §24 / ADR-096). The deferred_scope_scorer P-Band engine is retained for batch backlog scoring. |
-| Plans | `ac53d31b-3068-4039-9ebe-856c12caab32` | `6aba34d9-4d0b-4f4c-b956-b2bdea541ca9` | "which plans exist", "plan status", "is this plan on disk" — relation target from Backlog Items.Plan | On new plan creation under `plans/<slug>-<6hex>.md` (repo-root SSOT). Historical archive plans are read-only. Create Plans row with Status=Not Started, Exists On Disk=true, Plan File Path set. |
-| SC/AP Violation Backlog | ~~`803834e1-0af8-4c3c-b45a-f513f80a7fef`~~ | ~~`0a3b8072-eabd-4516-9473-3c321bb011ff`~~ | \u274c **ARCHIVED 2026-05-02** | Filesystem SSOT: `artifacts/adg/` violation JSON (when generated). No Notion write. |
-| Constitutional Rules Registry | ~~`9bd2523e-7a6e-434d-89a7-ce4166457069`~~ | ~~`1c1379bc-32ca-4216-898a-3672f0316f69`~~ | \u274c **ARCHIVED 2026-05-02** | Filesystem SSOT: `.agents/rules/*.md`. No Notion write. |
-| MCP Registry | ~~`e7b149b4-0496-4e98-a5dd-074dbe31881b`~~ | ~~`59693bbc-71b1-4c63-bc9f-b31eb8b08a0e`~~ | \u274c **ARCHIVED 2026-05-02** | Filesystem SSOT: root `.mcp.json` only. Deprecated compatibility copies are non-authoritative. |
-| Anti-Pattern Burndown | ~~`4599fe37-8c24-4d89-96af-438b99a967c4`~~ | ~~`80b30bc9-6622-4288-aa4c-6fc526b6a5c5`~~ | ❌ **ARCHIVED 2026-05-11** (404 confirmed — DB not accessible to integration) | Filesystem SSOT: `artifacts/adg/` ratchet files are canonical. No Notion write. |
-| ADR Registry | ~~`e59d7640-dc09-48f9-8bdc-b0c94bf98c2a`~~ | ~~`6ed25e12-bd92-4352-ac7a-3a971311f024`~~ | ❌ **ARCHIVED 2026-05-02** | Filesystem SSOT: `docs/architecture/adr/ADR-NNN-*.md`. No Notion write. |
-| Author-Gate Decision Ledger | ~~`5b60fdde-7259-491e-9f2d-e088f1f741ef`~~ | ~~`18bb9145-1320-4191-8b14-6c309776bcf5`~~ | ❌ **ARCHIVED 2026-05-02** | Filesystem SSOT: `artifacts/governance/hitl_decisions.sqlite`. No Notion write. |
-
-**Query pattern (reads)**: `API-query-data-source` with `data_source_id` from column 2. Add `filter`/`sorts` as needed.
-**Write pattern (creates)**: `API-post-page` with `parent: {type: "database_id", database_id: <column 3>}`. Using data_source_id for writes returns 404.
-
-<!-- NOTION-MAP:END -->
-
-Procedural routing + manual-Notion-use note: [plan-location.md](.agents/rules/plan-location.md). (Notion plan-status / wave / registration enforcement removed — `notion-wave-enforcement-removal`.)
-
-## Memory
-
-At session start, load native file memory from `.agents/rules/MEMORY.md`. For non-trivial work, also consult `.agents/rules/memory_summary.md` when run history or branch workflow memory could affect the task.
-
-The knowledge-graph Memory MCP is optional for graph queries or writeback when its transport is healthy; if it fails, continue from file memory and do not retry-loop on the transport. Treat external global memories as user memory only; do not make them the SSOT for Agentic Workflow project memory.
+Stable server IDs are defined in root `.mcp.json` (the sole MCP SSOT). Optional transports (`adg_sqlite`, `memory`, `vector_db`, `playwright`, `notion`, `deepwiki`, `context7`, `GitKraken`, `filesystem`) never block work when offline; fall back directly to local AST/grep inspection and native tools.
 
 ## Constitutional floor
 
-- Subprocess timeout always required — `subprocess.run(argv, shell=False, timeout=30)`. PowerShell is allowed as the primary Windows shell when commands remain bounded.
-- No `pytest.mark.xfail` without `strict=True` and no `pytest.mark.skip` without explicit `reason=`
-- No bare `except Exception` without guardian
-- Honor explicit `PLAN ONLY` / `NO IMPLEMENT` prompts; otherwise execute root-cause bug fixes, `/boost`, and `/swarm` end-to-end
-- Use ADG (`adg_sqlite`), AST inspection, and `grep_search` freely together across structural and literal lookups; never self-block when `adg_sqlite` is offline
-- Output Brevity & Word Budget Invariant: Target ~150-250 words with a strict ceiling of 450 words (5,000 characters). Focus on direct facts, empirical verification, and actionable results without conversational fluff.
-- Full rules: `AGENTS.md` + `.agents/rules/conformance-map.md` · expanded lists: legacy compatibility notes only
+- Subprocess timeout required: `subprocess.run(argv, shell=False, timeout=30)`.
+- No `pytest.mark.xfail` without `strict=True` and no `pytest.mark.skip` without explicit `reason=`.
+- No bare `except:` or `except Exception` without `# guardian: allow-<type> -- <specific justification>`.
+- Honor explicit `PLAN ONLY` / `NO IMPLEMENT` prompts; otherwise execute root-cause bug fixes, `/boost`, and `/swarm` end-to-end.
+- Use ADG (`adg_sqlite`), AST inspection, and `grep_search` freely together; never self-block when `adg_sqlite` is offline.
+- Output Brevity & Word Budget Invariant: target ~150-250 words, ceiling 450 words (5,000 visible prose characters, excluding `### Evidence & Graph Lineage` footers and link URLs).
+- Full rules: `.agents/rules/constitutional.md` and `.agents/rules/conformance-map.md`.
 
 ## Production Derivation Integrity
 
@@ -91,70 +38,29 @@ The knowledge-graph Memory MCP is optional for graph queries or writeback when i
 
 No production-executable directory may evade applicable architecture governance merely because of directory placement.
 
-### Production Resume & Acronym Clarity Invariant (`INV-RESUME-NO-UNDEFINED-ACRONYMS`)
-
-Specialized insurance and financial industry acronyms (specifically `MGA`/`MGAs` for Managing General Agents) must never appear bare or undefined in executive-facing candidate resumes, narrative lanes, or product outputs. All occurrences must be explicitly defined on first use (e.g. `managing general agents (MGAs)`) or fully written out. Enforced deterministically in cross-section verification (`cross_section_x2.py` gate `x2_cross_section_no_undefined_mga_acronym`).
-
 ## Plans
 
-Lookup: `.agents/rules/codex-config-lookup.md` and `.agents/rules/plan-location.md`. New plans are disk-only under `plans/<name>-<6hex>.md`; historical archive plans are read-only reference, not the write target for new work.
+Plans are disk-only under `plans/<name>-<6hex>.md` (Notion plan/wave/status enforcement is retired). Validate wave plans via `tools/validate_implementation_plan.py`.
 
 ## Pytest
 
-Pytest runs with plugin **autoload ON** (CI default); `addopts` carries `--timeout=180` in `pytest.ini`. **Do NOT** set `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1` for ad-hoc runs — it strips pytest-timeout and `--timeout` aborts collection. Debug and verification runs allow single files, named cases, any number of coupled multi-file producer+contract+consumer test slices, or full subsystem/repository test directories (`pytest tests/ --timeout=60` or `--timeout=180`) with zero batch-size or scope restrictions.
+Pytest runs with plugin **autoload ON** (CI default); `addopts` carries `--timeout=180` in `pytest.ini`. Do **not** set `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`. Debug and verification runs permit single files, named cases, coupled multi-file slices, or full subsystem/repository test suites (`--timeout=60` or `--timeout=180`) without batch-size restrictions.
 
 ## Subsystems vs Infrastructure (summary)
 
-The repository partitions all production code across 11 executable package roots with zero unowned modules:
-- **Autonomous Subsystems (7)**: `agents/` (orchestrators & dispatch), `apps_eval/` (objective multi-judge panel), `apps_model_telemetry/` (pricing & token governor), `apps_research/` (company research & BGE-M3 retrieval), `outreach_engine/` (campaign generation & CRM adapters), `resume_engine/` (candidate modeling & baseline parser), and `resume_graph_engine/` (`apps_rg/` graph allocation & Word docx export).
-- **Shared Infrastructure & Operations (4)**: `infrastructure/` (runtime adapters & config loaders), `ops_scripts/` (smoke runners & operational runbooks), `scripts/` (local model serving), and `tools/` (governance gates, turn validators, PR merge queue).
-Inter-subsystem boundaries and local encapsulation are strictly respected; cross-subsystem direct imports are blocked by `tools/ssot_boundary_auditor.py`.
+Production code is partitioned across 11 executable package roots with zero unowned modules:
+- **Autonomous Subsystems (7)**: `agents/`, `apps_eval/`, `apps_model_telemetry/`, `apps_research/`, `outreach_engine/`, `resume_engine/`, and `resume_graph_engine/`.
+- **Shared Infrastructure & Operations (4)**: `infrastructure/`, `ops_scripts/`, `scripts/`, and `tools/`.
 
-## Rules & Skills SSOT
-
-Procedural MCP / Notion / ledgers: Root `.mcp.json`, `.agents/`, and `tools/` cover active Antigravity execution. Plan location (disk-only): [`plan-location.md`](.agents/rules/plan-location.md).
-
-| Layer | Path | Notes |
-|-------|------|-------|
-| Always-on rules | `AGENTS.md` + `docs/refactoring-wave-protocol.md` | Active Antigravity governance contract and rule floor |
-| On-demand rules | `.agents/rules/*.md` | Load by task surface and file scope |
-| Skills | `.agents/skills/*/SKILL.md` | Reusable procedural adapters and cheatsheets |
-| Lifecycle Hooks | `.agents/hooks.json` | Native Antigravity lifecycle hook registry (pre/post-tool guards) |
-| Turn-Gate Validator | `tools/validate_turn_gates.py` | Mechanical pre-turn & post-turn gate validator |
-| Tier 1 Pre-Commit Gate | `tools/verify_commit.py` | Deterministic hygiene, layer imports, anti-overfitting (`tools/lint_no_jd_overfitting.py`), model neutrality, secrets |
-| Tier 2 AI-SDLC Readiness Gate | `tools/verify_main_readiness.py` | Risk-tiered 9-stage readiness (`tools/change_lane_classifier.py`, eval construct validity, unmocked eval shield, `tools/audit_governance_harmonization.py`) |
-| Governed PR Queue & Trunk Lock | `tools/pr_governance.py` + `tools/rebase_orchestrator.py` | Serialized FIFO PR queue, `.git/governed_merge_queue.lock`, catch-up under lock, and `--no-ff` merge to `main` |
-| Deprecated compatibility shims | `docs/archive/` and `_legacy_*` shims | Non-authoritative compatibility/archive only |
-
-**Dedup:** Do not restate always-on invariants in compatibility stubs or hook reminders. Active procedure lives in `AGENTS.md` and `.agents/rules/*.md`.
-
-Governance inventory: [`governance_tier_inventory.json`](docs/reports/cursor/governance_tier_inventory.json) · dedup audit: [`governance_dedup_audit_20260526.md`](docs/reports/cursor/governance_dedup_audit_20260526.md).
+Cross-subsystem direct imports are blocked by `tools/ssot_boundary_auditor.py` and `tools/lint_architecture_boundaries.py`.
 
 ## Antigravity Execution Adapter
 
-Google Antigravity is the primary execution surface for this repository. Repo-owned governance assets live under `.agents/` and `.antigravity/`:
+Repo-owned governance assets live under `.agents/`, `.antigravity/`, `.githooks/`, `config/governance/`, and `tools/`:
 
-- Active rule sets live in `.agents/rules/*.md`.
-- Active skills live in `.agents/skills/*/SKILL.md`.
-- Native lifecycle hooks live in `.agents/hooks.json`.
-- Mechanical turn gates execute via `python tools/validate_turn_gates.py --mode [pre-turn|post-turn|all]`.
-- Active MCP server configuration is maintained in root `.mcp.json` and `.agents/mcp_config.json`.
-- Workspace runtime boundaries and path containment policies live in `.antigravity/runtime-boundary.json`.
-- Plans are disk-only under `plans/<name>-<6hex>.md`.
-- **On-Demand Assurance Workflows & Mirrored Sidecar Launchers (`INV-REPO-SEPARATION-AGENTS-ONLY`)**: Unattended daily background schedules are disabled (`enabled: false`, `0` active background schedules). All 8 manual launchers are mirrored in `~/.gemini/config/sidecars/agents-*` (`projectId: f3cfd8ed-5fb8-40c7-b562-dbdf15522309`) and `automations/prompts/agents_*_agent.md` (`_shared_governance_contract.md`, `.agents/rules/sidecar-automation-routing.md`, validator: `python tools/validate_sidecar_separation.py`):
-  - Stage I (`agents-storage-worktree-hygiene`): 6-pillar storage, worktree pruning, and SQLite WAL across all 11 roots (`tools/storage_worktree_hygiene.py`).
-  - Stage II (`agents-ssot-boundary-governance`): 10-dimension boundary, layer import, and config sprawl audit across all 11 roots (`tools/ssot_boundary_auditor.py`).
-  - Stage III-A (`agents-core-runtime-orchestration`): 5-pillar core agent runtime, state machine, context budget, and delegation contract (`tools/agent_runtime_auditor.py`).
-  - Stage III-B (`agents-domain-applications-pipeline`): 6-pillar E2E outreach, resume, and docx generation pipeline (`tools/e2e_functionality_auditor.py`).
-  - Stage III-C (`agents-research-retrieval-surface`): Research retrieval, BGE-M3 dense/sparse RRF, and SQLite write proof (`tools/retrieval_surface_auditor.py`).
-  - Stage III-D (`agents-evals-judge-assurance`): Rubric scales, holdout dataset integrity, and cross-family judge isolation (`tools/validate_eval_rubrics.py`).
-  - Stage IV-A (`agents-cost-token-budget`): 8-pillar tokenomics, multi-tier caching, dynamic ROI >= 2.5x (`tools/cost_token_budget_auditor.py`).
-  - Stage IV-B (`agents-testing-gaps-assurance`): 11-root entrypoint coverage, assertion strength, and mock reachability (`tools/testing_gaps_auditor.py`).
-- **Governed PR Queue & Trunk Reservation Lock**: All feature branches merge into local `main` via `python tools/pr_governance.py [start|sync|review|merge|promote|submit|queue|finish]` under `.git/governed_merge_queue.lock` and `.git/governed_merge_queue_waiters.json` (rule: `.agents/rules/pr-governance.md`). Direct commits to `main` are blocked by `.githooks/pre-commit`; queued branches automatically catch up onto `main` under the trunk lock so `local main` is never a moving target.
-- **Worktree & Branch Post-PR Cleanup**: Following any PR merge into local `main`, the associated local worktree and its feature branch must be cleanly pruned (`git worktree remove <path>` and `git branch -d <branch>`) to maintain zero branch drift and prevent stale worktree accumulation.
-
-## Output Brevity & Word Budget Invariant
-
-- **Target Word Count**: Every output must target approximately 150 to 250 words.
-- **Hard Word Ceiling**: Every output must strictly never exceed a maximum of 450 words (5,000 visible prose characters, excluding `### Evidence & Graph Lineage` footers and link URLs).
-- **Information Density**: Deliver direct facts, verifiable code actions, and actionable results. Eliminate conversational preamble, pleasantries, fluff, and unnecessary repetition.
+- **Rules & Skills**: `.agents/rules/*.md` and `.agents/skills/*/SKILL.md`.
+- **Lifecycle Hooks**: `.agents/hooks.json` dispatched via `tools/hook_dispatch.py`.
+- **Turn & Commit Gates**: `tools/validate_turn_gates.py`, Tier 1 `tools/verify_commit.py`, and Tier 2 `tools/verify_main_readiness.py` (9 risk-tiered stages including `tools/audit_governance_harmonization.py`).
+- **MCP & Runtime Boundary**: Root `.mcp.json` and `.antigravity/runtime-boundary.json`.
+- **On-Demand Assurance Workflows (`INV-REPO-SEPARATION-AGENTS-ONLY`)**: Unattended daily background schedules are disabled (`enabled: false`, `0` active schedules). Manual launchers live in `automations/prompts/agents_*_agent.md` (`_shared_governance_contract.md`, `.agents/rules/sidecar-automation-routing.md`, validated by `tools/validate_sidecar_separation.py`).
+- **Governed PR Queue & Worktree Hygiene**: Feature branches merge into local `main` via `tools/pr_governance.py` under `.git/governed_merge_queue.lock` (`.agents/rules/pr-governance.md`). Direct commits to `main` are blocked by `.githooks/pre-commit`. Prune merged worktrees and branches cleanly after merge.

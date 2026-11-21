@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 
 from tools.lint_architecture_boundaries import run_architecture_linter
-from tools.lint_file_budgets import PRODUCTION_DIRECTORIES as BUDGET_PROD_DIRS
 from tools.lint_layer_imports import PRODUCTION_DIRECTORIES as LAYER_PROD_DIRS
 from tools.lint_production_purity import PRODUCTION_DIRECTORIES as PURITY_PROD_DIRS
 from tools.ssot_boundary_auditor import (
@@ -40,7 +39,6 @@ ALL_11_EXECUTABLE_ROOTS = {
 def test_all_11_executable_roots_covered_across_boundary_and_budget_linters() -> None:
     assert set(SUBPROCESS_SCAN_DIRS) == ALL_11_EXECUTABLE_ROOTS
     assert set(SUBSYSTEM_TARGETS) == ALL_11_EXECUTABLE_ROOTS - {"tools"}
-    assert set(BUDGET_PROD_DIRS) == ALL_11_EXECUTABLE_ROOTS
     assert set(LAYER_PROD_DIRS) == ALL_11_EXECUTABLE_ROOTS
     assert set(PURITY_PROD_DIRS) == ALL_11_EXECUTABLE_ROOTS - {"apps_eval"}
 

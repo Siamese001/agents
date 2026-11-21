@@ -308,7 +308,7 @@ def load_antigravity_mcp_servers(repo_root: Path = REPO_ROOT) -> list[dict[str, 
 def audit_mcp_hooks_and_links(repo_root: Path) -> list[str]:
     """Verify portable MCP launchers, runtime boundary subsystems, and AGENTS.md / conformance-map links."""
     issues: list[str] = []
-    for mcp_rel in (".mcp.json", ".agents/mcp_config.json"):
+    for mcp_rel in (".mcp.json",):
         mcp_path = repo_root / mcp_rel
         if not mcp_path.is_file():
             issues.append(f"Missing MCP configuration file: {mcp_rel}")

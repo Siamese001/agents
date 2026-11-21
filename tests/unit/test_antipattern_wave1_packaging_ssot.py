@@ -186,16 +186,3 @@ def test_provider_profiles_ssot_exists_and_valid() -> None:
     assert isinstance(root_data, dict)
     assert "profiles" in root_data
     assert root_data["profiles"] == apps_rg_data["profiles"], "Root SSOT profiles must match apps_rg profiles"
-
-
-def test_ratchet_has_no_dead_duplicate_entries() -> None:
-    """Ensure file_budgets_ratchet.json does not retain dead duplicate subtree paths."""
-    import json
-
-    ratchet_path = REPO_ROOT / "config" / "governance" / "file_budgets_ratchet.json"
-    ratchet = json.loads(ratchet_path.read_text(encoding="utf-8"))
-
-    for key in ratchet.keys():
-        assert not key.startswith("resume_graph_engine/src/apps_research/"), f"Dead key found in ratchet: {key}"
-        assert not key.startswith("resume_graph_engine/src/apps_eval/"), f"Dead key found in ratchet: {key}"
-        assert not key.startswith("resume_graph_engine/src/apps_model_telemetry/"), f"Dead key found in ratchet: {key}"

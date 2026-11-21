@@ -4,7 +4,7 @@ trigger: always_on
 
 # Output Brevity & Word Budget Invariant
 
-> On-demand rule. Applies to all agent responses and outputs within this repository.
+> Always-on rule. Applies to all agent responses and outputs within this repository.
 
 ## Invariant Specification
 

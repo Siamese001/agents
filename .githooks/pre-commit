@@ -1,5 +1,5 @@
 #!/bin/sh
-# Native Pre-Commit Hook for Antigravity Governance
+# Native Pre-Commit Hook for Antigravity Governance (Fast Staged-Only Mode)
 set -e
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
@@ -15,25 +15,27 @@ if [ "$CURRENT_BRANCH" = "main" ] || [ "$CURRENT_BRANCH" = "master" ]; then
     IS_MERGE=1
   fi
   if [ "$IS_MERGE" -ne 1 ] && [ "${GOVERNED_PR_MERGE:-0}" != "1" ]; then
-    echo "⛔ COMMIT REJECTED: Direct commits to '$CURRENT_BRANCH' are strictly prohibited."
-    echo "   All development must occur in an isolated feature worktree (.worktrees/<slug>) and be merged via PR governance."
-    echo "   To start a feature branch: python tools/pr_governance.py start feat/<name>"
+    echo "COMMIT REJECTED: Direct commits to '$CURRENT_BRANCH' are strictly prohibited."
+    echo "All development must occur in an isolated feature worktree and be merged via PR governance."
+    echo "To start a feature branch: python tools/pr_governance.py start feat/<name>"
     exit 1
   fi
 fi
 
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACMR || true)
+
 # 0B. Reject staged worktree directories or gitlinks
-STAGED_WORKTREES=$(git diff --cached --name-only | grep -E '^\.worktrees/' || true)
+STAGED_WORKTREES=$(printf '%s\n' "$STAGED_FILES" | grep -E '^\.worktrees/' || true)
 if [ -n "$STAGED_WORKTREES" ]; then
-  echo "❌ COMMIT REJECTED: Staging worktree files under .worktrees/ is strictly prohibited:"
+  echo "COMMIT REJECTED: Staging worktree files under .worktrees/ is strictly prohibited:"
   echo "$STAGED_WORKTREES"
   exit 1
 fi
 
 # 0C. Reject staged ephemeral receipts
-STAGED_EPHEMERAL=$(git diff --cached --name-only | grep -E '^reports/(pr_review_|pr_merge_)' || true)
+STAGED_EPHEMERAL=$(printf '%s\n' "$STAGED_FILES" | grep -E '^reports/(pr_review_|pr_merge_)' || true)
 if [ -n "$STAGED_EPHEMERAL" ]; then
-  echo "❌ COMMIT REJECTED: Staging ephemeral PR receipts is prohibited on feature branches:"
+  echo "COMMIT REJECTED: Staging ephemeral PR receipts is prohibited on feature branches:"
   echo "$STAGED_EPHEMERAL"
   exit 1
 fi
@@ -50,31 +52,37 @@ else
     PYTEST_BIN="pytest"
 fi
 
-# 1. Pre-turn mechanical gates
+# 1. Pre-turn mechanical gates (skip unrelated repo-wide plans; staged plans checked below)
 echo "-> 1. Validating turn gates..."
-"$PYTHON_BIN" tools/validate_turn_gates.py --mode pre-turn
+"$PYTHON_BIN" tools/validate_turn_gates.py --mode pre-turn --skip-active-plan-check >/dev/null
 
-# 2. Implementation plan & mandatory wave summary table validation
-echo "-> 2. Validating implementation plan & confirming wave summary table..."
+# 2. Staged implementation plan validation
+echo "-> 2. Validating staged implementation plans..."
 "$PYTHON_BIN" tools/validate_implementation_plan.py --staged
 
-# 3. Tier 1 quality check (verify_commit.py)
-echo "-> 3. Verifying commit invariants (Tier 1)..."
-"$PYTHON_BIN" tools/verify_commit.py
+# 3. Tier 1 staged quality check (fast per-shard mode; full scans run in Tier 2 verify_main_readiness)
+echo "-> 3. Verifying staged commit invariants (Tier 1)..."
+"$PYTHON_BIN" tools/verify_commit.py --staged --shard-fast
 
-# 4. Fast governance regression test suite
-echo "-> 4. Running fast governance test suite..."
-POST_MERGE_TEST=""
-if [ -f "tests/test_post_merge_cleanup.py" ]; then
-    POST_MERGE_TEST="tests/test_post_merge_cleanup.py"
+# 4. Run governance pytest suite on commit only when staged files touch governance surfaces
+GOV_TOUCHED=$(printf '%s\n' "$STAGED_FILES" | grep -E '^(AGENTS\.md|\.agents/|\.githooks/|config/governance/|tools/)' || true)
+if [ -n "$GOV_TOUCHED" ]; then
+  echo "-> 4. Governance files staged; running governance regression tests..."
+  POST_MERGE_TEST=""
+  if [ -f "tests/test_post_merge_cleanup.py" ]; then
+      POST_MERGE_TEST="tests/test_post_merge_cleanup.py"
+  fi
+  env -u GOVERNED_PR_MERGE "$PYTEST_BIN" tests/test_turn_gates.py \
+    tests/test_hook_dispatch.py \
+    tests/test_implementation_plan_governance.py \
+    tests/test_hitl_governance_enforcement.py \
+    tests/test_model_neutral_naming.py \
+    tests/test_unified_agent_architecture.py \
+    tests/test_pr_merge_queue_governance.py \
+    $POST_MERGE_TEST \
+    --timeout=60 -q
+else
+  echo "-> 4. Skipping governance pytest suite (no governance files staged; enforced in Tier 2 readiness)."
 fi
-env -u GOVERNED_PR_MERGE "$PYTEST_BIN" tests/test_turn_gates.py \
-  tests/test_implementation_plan_governance.py \
-  tests/test_hitl_governance_enforcement.py \
-  tests/test_model_neutral_naming.py \
-  tests/test_unified_agent_architecture.py \
-  tests/test_pr_merge_queue_governance.py \
-  $POST_MERGE_TEST \
-  --timeout=60 -q
 
 echo "=== [Git Hook] All Pre-Commit Checks PASSED ==="

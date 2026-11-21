@@ -1,5 +1,6 @@
 ---
 trigger: model_decision
+description: SSOT folder routing for tools, operational scripts, serving helpers, and subsystem packages.
 ---
 
 # SSOT Folder Routing

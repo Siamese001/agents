@@ -12,7 +12,6 @@ from pathlib import Path
 
 from tools.agent_runtime_auditor import audit_pillar_1_delegation_contracts
 from tools.check_config_ssot_drift import analyze_drift
-from tools.governance_swarm_council import ConfigSSOTAuditor, CouncilMember, GovernanceSwarmCouncil
 from tools.lint_secrets import SCANNABLE_TEXT_EXTENSIONS, check_file_for_secrets
 from tools.ssot_boundary_auditor import audit_mcp_hooks_and_links, run_ssot_boundary_audit
 from tools.ssot_hardcoding_scanner import scan_policy_registry_sync, scan_prompt_code_parity
@@ -208,16 +207,6 @@ def test_eval_rubrics_and_runtime_auditor_and_council_scan_markdown_and_text(tmp
     assert p1["markdown_contracts_checked"] == 1
     assert not p1["passed"]
     assert any("Markdown JSON delegation contract missing mandatory fields" in g for g in p1["gaps"])
-
-    # 3. GovernanceSwarmCouncil ConfigSSOTAuditor flags .md shadow drift
-    (tmp_path / "config" / "provider_profiles.yaml").write_text("profiles: {}\n", encoding="utf-8")
-    (tmp_path / "pytest.ini").write_text("[pytest]\naddopts = --timeout=60\n", encoding="utf-8")
-    council = GovernanceSwarmCouncil(config_auditor=ConfigSSOTAuditor())
-    receipt = council.convene(repo_root=tmp_path, council_id="md_drift_council")
-    assert any(
-        f.member == CouncilMember.CONFIG_SSOT_AUDITOR and "llm_judge_rubric.md" in (f.target_path or "")
-        for f in receipt.findings
-    )
 
 
 def test_live_repository_passes_full_markdown_links_and_ssot_boundary_audit() -> None:

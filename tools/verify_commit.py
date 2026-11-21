@@ -29,14 +29,12 @@ from tools.pr_governance_core.common import bootstrap_shared_venv
 bootstrap_shared_venv(_REPO_ROOT)
 
 # Import sub-linters directly for high performance
-from tools.lint_file_budgets import check_file_budget, scan_all_production_files
 from tools.lint_layer_imports import check_file_layer_imports
 from tools.lint_model_neutral_naming import check_file_model_neutrality
 from tools.lint_production_purity import check_file_production_purity
 from tools.lint_contract_schemas import validate_file_against_schema
 from tools.lint_secrets import SCANNABLE_TEXT_EXTENSIONS, check_file_for_secrets
-from tools.lint_architecture_boundaries import run_architecture_linter
-from tools.lint_layer_boundaries import check_layer_boundaries
+from tools.lint_architecture_boundaries import check_layer_boundaries, run_architecture_linter
 from tools.lint_model_pins import audit_model_pins
 from tools.check_config_ssot_drift import analyze_drift
 from tools.lint_no_jd_overfitting import scan_files as scan_no_jd_overfitting
@@ -220,11 +218,6 @@ def _analyze_single_python_file(
     except SyntaxError as se:
         hygiene_errs.append(f"{rel}:{se.lineno}: AST syntax error: {se.msg}")
         return hygiene_errs, gov_errs, purity_errs
-
-    # 3. File budgets
-    ok_b, _, msg_b = check_file_budget(f, repo_root)
-    if not ok_b:
-        gov_errs.append(f"[File Budget] {msg_b}")
 
     # 4. Layer imports (shared AST)
     v_layers = check_file_layer_imports(f, repo_root, tree=tree, lines=lines)

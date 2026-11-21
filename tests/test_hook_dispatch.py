@@ -667,7 +667,7 @@ Build core foundation.
         data = json.loads(res.stdout.strip())
         self.assertEqual(data["decision"], "deny")
         self.assertIn(
-            "NEVER fall back to printing questions or options as plain text in chat; immediately invoke ask_question again with ONE atomic plain-English question at a time (<= 120 chars per option, Confidence: TIER (N%)).",
+            "NEVER fall back to printing questions or options as plain text in chat; immediately invoke ask_question again with ONE atomic plain-English question at a time (<= 250 chars per option, Confidence: TIER (N%)).",
             data["reason"],
         )
 
@@ -727,14 +727,16 @@ Build core foundation.
         self.assertEqual(json.loads(res_swarm.stdout.strip()).get("injectSteps"), [])
 
     def test_hooks_json_deduplicated_pre_edit_plan(self) -> None:
-        """Verify .agents/hooks.json retains agents-implementation-plan-guard once with no duplicate pre_edit_plan."""
+        """Verify .agents/hooks.json uses a single unified file-write guard with zero no-op zombie hooks."""
         hooks_path = ROOT / ".agents" / "hooks.json"
         hooks_data = json.loads(hooks_path.read_text(encoding="utf-8"))
-        self.assertIn("agents-implementation-plan-guard", hooks_data)
+        self.assertIn("agents-file-write-guard", hooks_data)
         self.assertNotIn("agents-pre-edit-plan-guard", hooks_data)
-        self.assertEqual(len(hooks_data), 8)
+        self.assertNotIn("agents-pytest-scope-guard", hooks_data)
+        self.assertNotIn("agents-wave-completion-guard", hooks_data)
+        self.assertEqual(len(hooks_data), 3)
 
-        pre_edit_commands = [
+        write_commands = [
             hook.get("command", "")
             for entry in hooks_data.values()
             if isinstance(entry, dict)
@@ -743,9 +745,36 @@ Build core foundation.
             for matcher_block in phase_list
             if isinstance(matcher_block, dict)
             for hook in (matcher_block.get("hooks", []) if isinstance(matcher_block.get("hooks"), list) else [matcher_block])
-            if isinstance(hook, dict) and "--hook pre_edit_plan" in str(hook.get("command", ""))
+            if isinstance(hook, dict) and "--hook pre_file_write" in str(hook.get("command", ""))
         ]
-        self.assertEqual(len(pre_edit_commands), 1)
+        self.assertEqual(len(write_commands), 1)
+
+    def test_pre_edit_plan_allows_explanation_markdown(self) -> None:
+        """Ordinary docs whose names contain 'plan' (like explanation.md) must never be blocked as wave plans."""
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_root = Path(tmpdir)
+            payload = {
+                "toolCall": {
+                    "name": "write_file",
+                    "args": {
+                        "Path": str(tmp_root / "docs" / "explanation.md"),
+                        "Content": "# Architecture Explanation\n\nPlain prose without wave sections.\n",
+                    },
+                }
+            }
+            for hook_name in ("pre_edit_plan", "pre_file_write"):
+                res = subprocess.run(
+                    [sys.executable, "tools/hook_dispatch.py", "--hook", hook_name, "--repo-root", str(tmp_root)],
+                    input=json.dumps(payload),
+                    capture_output=True,
+                    text=True,
+                    cwd=ROOT,
+                    timeout=10,
+                )
+                self.assertEqual(res.returncode, 0, f"{hook_name} blocked docs/explanation.md: {res.stdout} {res.stderr}")
+                self.assertEqual(json.loads(res.stdout.strip())["decision"], "allow")
 
     def test_pre_edit_plan_allows_focused_single_module_bugfix_plans(self) -> None:
         """Verify pre_edit_plan hook allows focused single-module bug-fix plans without forced pipeline bundling."""
@@ -848,14 +877,8 @@ Tweak compiler.py without artificial pipeline-bundling rejection.
 
         hooks_path = ROOT / ".agents" / "hooks.json"
         hooks_data = json.loads(hooks_path.read_text(encoding="utf-8"))
-        for guard_name in (
-            "agents-implementation-plan-guard",
-            "agents-model-neutral-artifact-guard",
-            "agents-model-registry-conformance-guard",
-            "agents-main-worktree-write-guard",
-        ):
-            matcher = hooks_data[guard_name]["PreToolUse"][0]["matcher"]
-            self.assertIn("create_file", matcher)
+        matcher = hooks_data["agents-file-write-guard"]["PreToolUse"][0]["matcher"]
+        self.assertIn("create_file", matcher)
         sub_matcher = hooks_data["agents-subagent-delegation-guard"]["PreToolUse"][0]["matcher"]
         self.assertIn("start_subagent", sub_matcher)
 

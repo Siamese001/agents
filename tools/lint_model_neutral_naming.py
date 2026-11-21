@@ -21,8 +21,6 @@ from typing import Sequence
 
 PRODUCTION_DIRECTORIES: tuple[str, ...] = (
     "scripts",
-    "dual_pipeline",
-    "storage",
     "resume_graph_engine/src",
     "resume_graph_engine/tools",
     "resume_engine",

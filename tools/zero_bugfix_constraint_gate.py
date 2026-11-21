@@ -29,11 +29,9 @@ DEAD_GHOST_HOOK_TOKENS: tuple[str, ...] = (
 
 AUDITED_RULE_FILES: tuple[str, ...] = (
     ".agents/rules/constitutional.md",
-    ".agents/rules/adg_transport_open_per_turn_gate.md",
-    ".agents/rules/adg-analysis-procedures.md",
-    ".agents/rules/codex-config-lookup.md",
+    ".agents/rules/adg-canonical-invariants.md",
+    ".agents/rules/scope-containment.md",
     ".agents/rules/ssot-folder-enforcement.md",
-    ".agents/rules/work-item-classification.md",
 )
 
 FORBIDDEN_DEFERRAL_ROWS: tuple[re.Pattern[str], ...] = (
@@ -80,7 +78,10 @@ def validate_zero_bugfix_constraint_floor(repo_root: Path | None = None) -> dict
     agents_md = root / "AGENTS.md"
     if agents_md.is_file():
         agents_txt = agents_md.read_text(encoding="utf-8")
-        if "Zero Blast-Radius Ceiling" not in agents_txt and (root / ".agents" / "rules" / "work-item-classification.md").is_file():
+        if "Zero Blast-Radius Ceiling" not in agents_txt and (
+            (root / ".agents" / "rules" / "constitutional.md").is_file()
+            or (root / ".agents" / "rules" / "work-item-classification.md").is_file()
+        ):
             issues.append("AGENTS.md missing 'Zero Blast-Radius Ceiling' bug-fix guarantee.")
 
     rules_dir = root / ".agents" / "rules"

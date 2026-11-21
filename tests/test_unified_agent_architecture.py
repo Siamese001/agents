@@ -132,7 +132,7 @@ def test_validate_unified_architecture_governance_tampered(tmp_path: Path) -> No
 
 
 def test_validate_unified_architecture_governance_requires_canonical_plan_guard(tmp_path: Path) -> None:
-    """Governance expects agents-implementation-plan-guard (not removed duplicate agents-pre-edit-plan-guard)."""
+    """Governance expects unified agents-file-write-guard (not removed duplicate or no-op guards)."""
     agents_dir = tmp_path / ".agents"
     rules_dir = agents_dir / "rules"
     skills_dir = agents_dir / "skills"
@@ -144,18 +144,18 @@ def test_validate_unified_architecture_governance_requires_canonical_plan_guard(
         json.dumps(
             {
                 "agents-pre-edit-plan-guard": {},
-                "agents-pytest-scope-guard": {},
                 "agents-hitl-atomic-guard": {},
             }
         ),
         encoding="utf-8",
     )
     errors = validate_unified_architecture_governance(tmp_path)
-    assert any("agents-implementation-plan-guard" in err for err in errors)
+    assert any("agents-file-write-guard" in err for err in errors)
 
     repo_hooks = json.loads((Path(__file__).resolve().parents[1] / ".agents" / "hooks.json").read_text(encoding="utf-8"))
-    assert "agents-implementation-plan-guard" in repo_hooks
+    assert "agents-file-write-guard" in repo_hooks
     assert "agents-pre-edit-plan-guard" not in repo_hooks
+    assert "agents-pytest-scope-guard" not in repo_hooks
 
 
 def test_wave3_subagent_config_and_swarm_capabilities() -> None:

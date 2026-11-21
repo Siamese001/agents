@@ -18,7 +18,6 @@ from .common import (
     sanitized_git_env,
     slugify_branch,
 )
-from .lint_file_budgets_bridge import clamp_ratchet_if_available
 from .worktree import _inspect_worktree_dirty, resolve_branch_worktree
 
 
@@ -215,19 +214,6 @@ def cmd_train(args: argparse.Namespace) -> int:
                 print(f"❌ Failed merging shard '{shard}' into '{train_branch}':\n{res.stdout}\n{res.stderr}")
                 return 1
 
-    clamped = clamp_ratchet_if_available(train_cwd)
-    if clamped:
-        run_git(["add", "config/governance/file_budgets_ratchet.json"], check=True, cwd=train_cwd)
-        subprocess.run(
-            ["git", "commit", "--no-verify", "-m", f"chore(ratchet): clamp {len(clamped)} ceiling(s) on {train_branch}"],
-            cwd=train_cwd,
-            env=merge_env,
-            capture_output=True,
-            text=True,
-            check=False,
-            timeout=30,
-        )
-
     train_head = run_git(["rev-parse", "HEAD"], check=True, cwd=train_cwd).strip()
     slug = slugify_branch(train_branch)
     manifest = {
@@ -235,7 +221,7 @@ def cmd_train(args: argparse.Namespace) -> int:
         "wave": wave_id,
         "head_sha": train_head,
         "shards": [{"branch": s, "head_sha": shard_heads[s], "changed_files": shard_files[s]} for s in shards],
-        "clamped_ratchets": clamped,
+        "clamped_ratchets": {},
         "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "terminal_outcome": "PASS",
     }

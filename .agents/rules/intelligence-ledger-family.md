@@ -1,7 +1,0 @@
----
-trigger: model_decision
----
-
-# Intelligence Ledger Family — stub
-
-> On-demand (plan `always-on-rule-surface-cut-c7f3a1`); enforcement unchanged. All ledger writes go through `tools.ledgers.hook_helpers.emit_ledger_event` (never raw `sqlite3`), fail-soft + idempotent; schema additive-only. Detail: [`receipt-auditor`](../skills/receipt-auditor/SKILL.md) skill, ADR-050. Enforced: `tools/verify_commit.py`.

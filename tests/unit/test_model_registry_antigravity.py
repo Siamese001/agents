@@ -50,7 +50,6 @@ from infrastructure.sdks_mcps.client_wrappers import (
     create_openai_client,
     create_openai_sync_client,
 )
-from tools.config_ssot_agent.registry import SSOTRegistry
 from tools.lint_model_neutral_naming import check_path_model_neutrality
 
 

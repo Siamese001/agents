@@ -14,7 +14,7 @@ policies:
     threshold: 0
     unit: "lines"
     description: "Unbounded production Python file line budget (0 = no artificial line-count or ratchet ceiling when fixing bugs or refactoring)."
-    enforcer: "tools/lint_file_budgets.py"
+    enforcer: "tools/zero_bugfix_constraint_gate.py"
     rule_reference: ".agents/rules/conformance-map.md"
 
   - id: "INV-REFACTOR-EXTENT-UNBOUNDED"
@@ -215,7 +215,7 @@ policies:
     unit: "artificial_scope_caps"
     description: "Root-cause bug fixes, cohesive refactors, /boost subagents, and /swarm workers must never be blocked by artificial file-count, wave-count, plan-word, test-batch, confidence-penalty, default subagent write-lock, or dead ghost-hook barriers."
     enforcer: "tools/zero_bugfix_constraint_gate.py"
-    rule_reference: ".agents/rules/work-item-classification.md"
+    rule_reference: ".agents/rules/constitutional.md"
 
   - id: "INV-RISK-TIERED-CHANGE-LANES"
     title: "Fail-Closed 3-Lane Risk Classification (Lane 0 / 1 / 2)"

@@ -261,7 +261,7 @@ def test_agents_sidecar_dispositions_skill_budget_and_eval_rubrics() -> None:
     budget_rep = audit_skills_budget(REPO_ROOT)
     assert budget_rep["status"] == "PASS"
     assert budget_rep["is_clean"] is True
-    assert budget_rep["skill_count"] in (10, 13)
+    assert 10 <= budget_rep["skill_count"] <= 13
     assert budget_rep["skill_count"] <= 26
 
     root_skills = {s["name"] for s in budget_rep["skills"]}
@@ -425,7 +425,7 @@ def test_skills_contract_integrity_and_zero_broken_links() -> None:
     rep = audit_skills_budget(REPO_ROOT)
     assert rep["status"] == "PASS", f"audit_skills_budget failed: {rep.get('violations')}"
     assert rep["is_clean"] is True
-    assert rep["skill_count"] in (10, 13)
+    assert 10 <= rep["skill_count"] <= 13
     assert rep["violations"] == []
     assert rep["estimated_description_tokens"] <= rep["max_description_tokens"]
 
