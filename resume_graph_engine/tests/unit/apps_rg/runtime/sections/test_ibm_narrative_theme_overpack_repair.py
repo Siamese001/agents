@@ -690,3 +690,19 @@ class TestThemeBudgetPromptContract:
         contract = str(_ibm_position_narrative_spec().get("claim_ledger_coverage_contract") or "")
         assert "STRUCTURAL THEME BUDGET" in contract
         assert "AT MOST 4 of the 5 theme families" in contract
+
+
+def test_regulated_financial_companion_supports_enterprise_scale_synonym() -> None:
+    from apps_rg.runtime.validators.ibm_narrative_x2 import ibm_narrative_material_fact_ids_for_sentence
+
+    companion = (
+        "- bul_ibm_002: Directed BI views across modernization programs and a $1B regulated financial portfolio.\n"
+        "- bul_ibm_004: Delivered ML risk stress-testing analytics for financial institutions with CCAR lineage.\n"
+    )
+    narrative = (
+        "Anchored governed BI and lineage modernization at IBM, establishing an operating discipline "
+        "across financial institutions at enterprise scale."
+    )
+    themes = ibm_narrative_material_fact_ids_for_sentence(narrative, companion)
+    assert not [t for t in themes if t.startswith("unsupported_companion_theme:")]
+    assert "bul_ibm_002" in themes
