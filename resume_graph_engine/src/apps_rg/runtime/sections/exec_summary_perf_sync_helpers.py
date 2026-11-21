@@ -636,3 +636,36 @@ def resolve_unallocated_metric_sentence_replacement(
         replacement, str(fallback_target.get("root_id") or "").strip(),
         str(fallback_target.get("fact_id") or "").strip(), str(fallback_target.get("skill_id") or "").strip(),
     )
+
+
+def sync_section_input_usage_ledger_claims(
+    *,
+    artifact_dir: Path | None,
+    usage_doc: dict[str, Any] | None,
+    claim_ledger: list[dict[str, Any]],
+    allowed_fact_ids: set[str],
+    write_json_fn: Any,
+) -> dict[str, Any] | None:
+    """Keep section_input_usage_ledger.json claim_support_summary in sync after regen or voice repair."""
+    from apps_rg.runtime.section_proof.section_input_usage_ledger import (
+        summarize_claim_ledger_proof_axes,
+    )
+
+    doc: dict[str, Any] | None = dict(usage_doc) if isinstance(usage_doc, dict) else None
+    ledger_path = (artifact_dir / "section_input_usage_ledger.json") if artifact_dir is not None else None
+    if doc is None and ledger_path is not None and ledger_path.is_file():
+        try:
+            loaded = json.loads(ledger_path.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                doc = loaded
+        except (OSError, json.JSONDecodeError):
+            doc = None
+    if doc is None:
+        return None
+    doc["claim_support_summary"] = summarize_claim_ledger_proof_axes(
+        list(claim_ledger or []),
+        allowed_fact_ids=set(allowed_fact_ids or set()),
+    )
+    if ledger_path is not None:
+        write_json_fn(ledger_path, doc)
+    return doc

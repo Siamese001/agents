@@ -1122,3 +1122,40 @@ def test_exec_summary_regen_dispatch_never_clamps_timeout_to_45s(
         artifact_dir=tmp_path,
     )
     assert int(captured["timeout_seconds"]) >= 180
+
+
+def test_sync_section_input_usage_ledger_claims_updates_claim_count_after_regen(tmp_path: Path) -> None:
+    from apps_rg.runtime.sections.exec_summary_perf_sync_helpers import (
+        sync_section_input_usage_ledger_claims,
+    )
+
+    initial_usage = {
+        "schema_version": "section_input_usage_ledger_v1",
+        "claim_support_summary": {
+            "displayed_claim_count": 3,
+            "claims_supported_by_selected_resume_facts": 3,
+            "claims_with_targeting_input_in_source_fact_ids": 0,
+            "claims_with_context_input_in_source_fact_ids": 0,
+            "unsupported_claim_count": 0,
+            "orphan_source_fact_id_count": 0,
+        },
+    }
+    ledger_path = tmp_path / "section_input_usage_ledger.json"
+    ledger_path.write_text(json.dumps(initial_usage), encoding="utf-8")
+
+    four_claims = [
+        {"claim_text": f"Sentence {i} grounded claim.", "source_fact_ids": [f"f{i}"]}
+        for i in range(1, 5)
+    ]
+    updated = sync_section_input_usage_ledger_claims(
+        artifact_dir=tmp_path,
+        usage_doc=None,
+        claim_ledger=four_claims,
+        allowed_fact_ids={"f1", "f2", "f3", "f4"},
+        write_json_fn=lambda p, d: p.write_text(json.dumps(d), encoding="utf-8"),
+    )
+    assert updated is not None
+    assert updated["claim_support_summary"]["displayed_claim_count"] == 4
+    assert updated["claim_support_summary"]["claims_supported_by_selected_resume_facts"] == 4
+    persisted = json.loads(ledger_path.read_text(encoding="utf-8"))
+    assert persisted["claim_support_summary"]["displayed_claim_count"] == 4

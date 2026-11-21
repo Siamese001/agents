@@ -221,6 +221,19 @@ def evaluate_remediation_draft_post_x2(ctx: dict[str, Any]) -> str | None:
             claim_ledger = list(_pre_ledger)
             x1d = list(_x1d_before_regen)
             x2 = list(_pre_x2)
+            from apps_rg.runtime.sections.exec_summary_perf_sync_helpers import (
+                sync_section_input_usage_ledger_claims,
+            )
+
+            _rb_usage = sync_section_input_usage_ledger_claims(
+                artifact_dir=artifact_dir,
+                usage_doc=ctx.get("usage_doc") if isinstance(ctx.get("usage_doc"), dict) else None,
+                claim_ledger=claim_ledger,
+                allowed_fact_ids=allowed_fact_ids,
+                write_json_fn=_lane_attr("write_json", write_json),
+            )
+            if _rb_usage is not None:
+                ctx["usage_doc"] = _rb_usage
             _prior_regen_output_hash, _conv = finalize_regen_cycle_observability(
                 _cycles_receipt,
                 _cycle_record,
