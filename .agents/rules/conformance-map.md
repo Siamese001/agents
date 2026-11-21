@@ -85,7 +85,9 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 | Rule | `.agents/rules/pr-governance.md` | Governed PR queue, FIFO trunk lock, and dirty-worktree recovery |
 | Rule | `.agents/rules/git-worktree-governance.md` | Isolated worktree lifecycle and post-merge cleanup |
 | Rule | `.agents/rules/risk-tiered-change-lanes.md` | 3-lane risk tiering and fail-closed escalation |
-| Rule | `.agents/rules/e2e-and-edge-case-coverage.md` | Unmocked E2E pinning and bilateral recall-precision gates |
+| Rule | `.agents/rules/e2e-and-edge-case-coverage.md` | Unmocked E2E pinning, pinned judge negative controls, and bilateral recall-precision gates |
+| Rule | `.agents/rules/resume-graph-engine.md` | Verified candidate fact provenance, zero post-LLM mutators, and multi-JD generalization |
+| Rule | `.agents/rules/flywheel-remediation-governance.md` | Hybrid Tier A/B/C auto-apply with immutable candidate-truth and blind-judge floor locks |
 | Tool | `tools/pr_governance.py` | Governed PR queue, trunk lock, and merge train |
 | Tool | `tools/verify_main_readiness.py` | Tier 2 9-stage local main readiness gate |
 | Tool | `tools/audit_governance_harmonization.py` | Cross-surface threshold, context budget, and broken-ref auditor |

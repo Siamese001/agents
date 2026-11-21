@@ -51,3 +51,45 @@ def test_detects_threshold_drift_and_broken_script_ref(tmp_path: Path) -> None:
     assert "threshold_drift" in categories
     assert "broken_reference" in categories
     assert any("nonexistent_ghost_gate.py" in ref for ref in report["broken_refs"])
+
+
+def test_rebaselined_learning_policies_flywheel_locks_and_graph_presence_ratchet(tmp_path: Path) -> None:
+    from agents.learning.policy_router import load_auto_apply_policy
+    from tools.audit_eval_construct_validity import scan_fact_inventory_graph_presence_ratchet
+    from tools.audit_governance_harmonization import REQUIRED_AI_SDLC_POLICY_IDS
+    from tools.validate_turn_gates import load_policy_registry
+
+    policies = load_policy_registry(REPO_ROOT)
+    for pid in REQUIRED_AI_SDLC_POLICY_IDS:
+        assert pid in policies, f"Missing policy {pid}"
+        assert (REPO_ROOT / policies[pid]["enforcer"]).is_file()
+        assert (REPO_ROOT / policies[pid]["rule_reference"]).is_file()
+
+    auto_pol = load_auto_apply_policy(REPO_ROOT)
+    forbidden = tuple((auto_pol.get("tier_c_pr_only") or {}).get("forbidden_auto_apply_prefixes") or ())
+    assert "resume_graph_engine/src/apps_rg/fact_inventory/" in forbidden
+    truth_locks = auto_pol.get("immutable_human_truth_surfaces") or {}
+    assert truth_locks.get("forbid_candidate_fact_synthesis") is True
+    assert truth_locks.get("forbid_literal_prose_splicing_repair_hints") is True
+    assert float(truth_locks.get("forbid_blind_judge_floor_reduction_below", 0.0)) == 4.7
+
+    count, ceiling, violations = scan_fact_inventory_graph_presence_ratchet(REPO_ROOT)
+    assert count <= ceiling
+    assert violations == []
+
+    # Fault injection: exceeding ratchet ceiling must fail closed.
+    (tmp_path / "config" / "governance").mkdir(parents=True)
+    (tmp_path / "config" / "governance" / "policy_registry.yaml").write_text(
+        'version: "1.1.0"\npolicies:\n  - id: "INV-FACT-GRAPH-NO-AGENT-SYNTHESIS"\n    threshold: 1\n',
+        encoding="utf-8",
+    )
+    inv_dir = tmp_path / "resume_graph_engine" / "src" / "apps_rg" / "fact_inventory"
+    inv_dir.mkdir(parents=True)
+    (inv_dir / "ibm_role_episode_bundles.json").write_text(
+        '{"a": "approved_by_graph_presence", "b": "approved_by_graph_presence"}\n',
+        encoding="utf-8",
+    )
+    bad_count, bad_ceiling, bad_violations = scan_fact_inventory_graph_presence_ratchet(tmp_path)
+    assert bad_count == 2 and bad_ceiling == 1
+    assert len(bad_violations) == 1
+    assert bad_violations[0]["code"] == "AGENT_SYNTHESIZED_GRAPH_PRESENCE_EXCEEDS_RATCHET"

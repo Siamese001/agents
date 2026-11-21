@@ -262,3 +262,48 @@ policies:
     enforcer: "agents/learning/flywheel_hitl_dispatcher.py"
     rule_reference: ".agents/rules/flywheel-remediation-governance.md"
 
+  - id: "INV-DELETE-BEFORE-DECOMPOSE"
+    title: "Subtraction-First Replacement Over Spaghetti Slicing"
+    category: "architecture"
+    threshold: 1500
+    unit: "max_private_section_loc"
+    description: "Replace bloated private section implementations (> 1,500 LOC or > 10 private modules) behind external boundary contracts and delete zero-caller legacy files instead of slicing into micro-files."
+    enforcer: "tools/audit_governance_harmonization.py"
+    rule_reference: ".agents/rules/constitutional.md"
+
+  - id: "INV-FACT-GRAPH-NO-AGENT-SYNTHESIS"
+    title: "Zero Agent-Synthesized Candidate Facts or Metrics"
+    category: "production_purity"
+    threshold: 193
+    unit: "ratcheted_unverified_graph_presence_entries"
+    description: "Candidate base resume and explicit operator confirmations are the sole source of truth; no new approved_by_graph_presence synthetic entries may be added (ratcheted from 193 down to 0)."
+    enforcer: "tools/audit_eval_construct_validity.py"
+    rule_reference: ".agents/rules/resume-graph-engine.md"
+
+  - id: "INV-NO-POST-LLM-PROSE-MUTATORS"
+    title: "Zero Post-LLM Regex Prose Splicers or Stacked Mutators"
+    category: "production_purity"
+    threshold: 0
+    unit: "new_post_llm_prose_mutators"
+    description: "Fix LLM prose defects upstream via verified facts, clean prompt contracts, or a single bounded fresh-turn judge-guided rewrite loop."
+    enforcer: "tools/audit_eval_construct_validity.py"
+    rule_reference: ".agents/rules/resume-graph-engine.md"
+
+  - id: "INV-MULTI-JD-NO-WHIPLASH"
+    title: "Multi-JD Generalization Anti-Whiplash Gate"
+    category: "ai_sdlc"
+    threshold: 0
+    unit: "single_jd_hardcoded_branches"
+    description: "Global section shapes, slot rules, and allocators must generalize across the multi-JD benchmark without single-company conditional branches."
+    enforcer: "tools/lint_no_jd_overfitting.py"
+    rule_reference: ".agents/rules/production-derivation-and-anti-overfitting.md"
+
+  - id: "INV-JUDGE-NEGATIVE-CONTROL-GOLDEN"
+    title: "Mandatory Human-Rejected Negative Control Pinning on Judge Rubrics"
+    category: "ai_sdlc"
+    threshold: 1
+    unit: "min_pinned_negative_controls"
+    description: "Every LLM-as-a-Judge rubric or threshold update must pin at least one real human-rejected output (including inanimate-subject datasheet prose) verified to fail."
+    enforcer: "tools/run_diff_scoped_eval_shield.py"
+    rule_reference: ".agents/rules/e2e-and-edge-case-coverage.md"
+
