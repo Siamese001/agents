@@ -474,6 +474,27 @@ def run_ibm_narrative_lane_execution(
                 artifact_base=artifact_dir,
             )
         ]
+        from apps_rg.runtime.sections.ibm_narrative_lane_runtime import (
+            apply_ibm_narrative_judge_feedback_rewrite,
+        )
+
+        raw_output, parsed, x1d, _judge_rewrite_accepted = apply_ibm_narrative_judge_feedback_rewrite(
+            messages=messages,
+            provider_payload=provider_payload,
+            raw_output=raw_output,
+            parsed=parsed,
+            x1d=x1d,
+            runtime_payload=runtime_payload,
+            artifact_dir=artifact_dir,
+            runtime_generation_status=runtime_generation_status,
+            companion_text=companion_text,
+            judge_keys=judge_keys,
+            judge_mode=judge_mode,
+        )
+        if _judge_rewrite_accepted and isinstance(parsed, dict):
+            narrative = str(parsed.get("narrative_sentence") or "").strip()
+            claim_ledger = list(parsed.get("claim_ledger") or [])
+            _theme_repair_accepted = True
     write_json(artifact_dir / "x1d_llm_judge_outputs.json", {"judges": x1d})
 
     parse_status, invalid_reason = classify_ledger_parse_state(
@@ -640,9 +661,14 @@ def run_ibm_narrative_lane_execution(
     # judge pass, X3_BLOCK "Product quality is FAIL"). Headline precedent: headline_lane
     # set_authoritative_attempt after its content-signal repair.
     if _theme_repair_accepted and not [g for g in x2 if not g.get("pass")]:
+        _regen_count = sum(
+            1
+            for r in (_ibm_ledger.get("repairs") or [])
+            if isinstance(r, dict) and r.get("replaced_l2")
+        )
         set_authoritative_attempt(
             artifact_dir,
-            2,
+            max(2, 1 + _regen_count),
             reason="ibm_narrative_theme_overpack_repair_x2_pass",
         )
     write_json(
