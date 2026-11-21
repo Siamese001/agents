@@ -30,10 +30,14 @@ def run_pillar_5_live_probes(repo_root: Path) -> tuple[list[str], dict[str, Any]
         repo_root,
         "resume_graph_engine/src/apps_rg/runtime/sections/executive_summary/word_budget_repair.py",
     )
+    v2_pg, e_v2 = load_repo_module(
+        repo_root,
+        "resume_graph_engine/src/apps_rg/runtime/sections/executive_summary_v2/prompt_and_generate.py",
+    )
     if e1 or estb is None:
         gaps.append(e1 or "Missing executive_summary_token_budget.py")
-    if e2 or wbr is None:
-        gaps.append(e2 or "Missing executive_summary/word_budget_repair.py")
+    if (e2 or wbr is None) and (e_v2 or v2_pg is None):
+        gaps.append(e_v2 or e2 or "Missing executive_summary_v2/prompt_and_generate.py")
     if gaps:
         return gaps, metrics
 
@@ -90,9 +94,23 @@ def run_pillar_5_live_probes(repo_root: Path) -> tuple[list[str], dict[str, Any]
         if not regen_check.dispatch_allowed or regen_check.available_input_tokens <= 0:
             gaps.append("regen_dispatch_allowed rejected small valid repair thread")
 
-        repair_prompt = wbr._build_word_budget_repair_user(148, word_ceiling=130)
-        if "148" not in repair_prompt or "130" not in repair_prompt:
-            gaps.append("word_budget_repair._build_word_budget_repair_user failed dynamic word-ceiling binding")
+        if wbr is not None:
+            repair_prompt = wbr._build_word_budget_repair_user(148, word_ceiling=130)
+            if "148" not in repair_prompt or "130" not in repair_prompt:
+                gaps.append("word_budget_repair._build_word_budget_repair_user failed dynamic word-ceiling binding")
+        elif v2_pg is not None:
+            v2_msgs = v2_pg.build_v2_prompt_messages(
+                target_company="Acme",
+                target_title="SVP AI",
+                jd_text="Enterprise AI transformation",
+                briefing_text="Strategic cloud mandate",
+                allowed_fact_ids_ordered=["fact_high_01"],
+                compact_verified_facts=[{"fact_id": "fact_high_01", "text": "Led $50M AI platform"}],
+                prior_draft="Oversized prior draft text.",
+                rejection_feedback="total_chars=740 outside 420-680",
+            )
+            if len(v2_msgs) != 2 or "740" not in v2_msgs[1]["content"] or "420-680" not in v2_msgs[1]["content"]:
+                gaps.append("executive_summary_v2.build_v2_prompt_messages failed dynamic rewrite_appendix_template binding")
 
         # Outreach prompt_templates/*.yaml + DeterministicDraftRepairer zero-token repair probes
         tmpl_dir = repo_root / "outreach_engine" / "config" / "prompt_templates"

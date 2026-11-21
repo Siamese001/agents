@@ -39,6 +39,12 @@ from tools.lint_model_pins import audit_model_pins
 from tools.check_config_ssot_drift import analyze_drift
 from tools.lint_no_jd_overfitting import scan_files as scan_no_jd_overfitting
 from tools.change_lane_classifier import classify_paths as classify_change_paths
+from tools.audit_mock_reachability import _MockReachabilityVisitor, _PRODUCTION_ROOTS
+from tools._testing_gaps_helpers import (
+    _inspect_decorators_and_calls_for_skip_xfail,
+    _is_pytest_fixture,
+    _test_fn_has_assertion,
+)
 
 # Model literal baseline for ratcheting legacy violations
 _BASELINE_PATH = _REPO_ROOT / "artifacts" / "governance" / "model_literal_baseline.json"
@@ -232,10 +238,46 @@ def _analyze_single_python_file(
         for lineno, val, msg in v_models[:excess]:
             gov_errs.append(f"[Model Neutrality] {rel}:{lineno}: {msg} (exceeds baseline of {base_count})")
 
-    # 6. Production purity (shared AST)
+    # 6. Production purity & mock reachability (shared AST)
     v_purity = check_file_production_purity(f, repo_root, tree=tree, lines=lines)
     for lineno, symbol, msg in v_purity:
         purity_errs.append(f"[Production Purity] {rel}:{lineno} [{symbol}]: {msg}")
+
+    norm_rel = rel.replace("\\", "/")
+    top_part = norm_rel.split("/", 1)[0]
+    is_test_module = (
+        "tests" in f.parts
+        or f.name.startswith("test_")
+        or f.name.endswith("_test.py")
+        or f.name == "conftest.py"
+    )
+    if top_part in _PRODUCTION_ROOTS and not is_test_module and "docs" not in f.parts:
+        mock_visitor = _MockReachabilityVisitor(rel)
+        mock_visitor.visit(tree)
+        for mv in mock_visitor.violations:
+            purity_errs.append(f"[Mock Reachability] {mv}")
+
+    # 7. Fast AST test hygiene on touched pytest modules (skip/xfail & zero-assertion guard)
+    if is_test_module and ("tests" in f.parts or "/evals/" in f"/{norm_rel}" or "scripts/local_llm" in norm_rel):
+        skips, xfails = _inspect_decorators_and_calls_for_skip_xfail(tree, rel)
+        for sv in skips:
+            hygiene_errs.append(f"[Test Skip Hygiene] {sv}")
+        for xv in xfails:
+            hygiene_errs.append(f"[Test Xfail Hygiene] {xv}")
+        if f.name != "conftest.py" and (f.name.startswith("test_") or f.name.endswith("_test.py")):
+            mod_fns = {n.name: n for n in tree.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
+            for node in tree.body:
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.startswith("test_") and not _is_pytest_fixture(node):
+                    if not _test_fn_has_assertion(node, module_fns=mod_fns, class_methods={}, is_method=False):
+                        hygiene_errs.append(f"[Zero-Assertion Test] {rel}:{node.lineno}: {node.name} has zero assertions")
+                elif isinstance(node, ast.ClassDef):
+                    cls_methods = {m.name: m for m in node.body if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef))}
+                    for m in cls_methods.values():
+                        if m.name.startswith("test_") and not _is_pytest_fixture(m):
+                            if not _test_fn_has_assertion(m, module_fns=mod_fns, class_methods=cls_methods, is_method=True):
+                                hygiene_errs.append(
+                                    f"[Zero-Assertion Test] {rel}:{m.lineno}: {node.name}.{m.name} has zero assertions"
+                                )
 
     return hygiene_errs, gov_errs, purity_errs
 

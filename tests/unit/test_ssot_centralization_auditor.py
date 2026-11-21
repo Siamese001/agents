@@ -27,8 +27,12 @@ def _create_clean_sandbox(sandbox: Path) -> None:
         "e2e_functionality_auditor.py",
         "retrieval_surface_auditor.py",
         "validate_eval_rubrics.py",
+        "run_eval_flywheel_cycle.py",
         "cost_token_budget_auditor.py",
         "testing_gaps_auditor.py",
+        "audit_mock_reachability.py",
+        "verify_main_readiness.py",
+        "validate_sidecar_separation.py",
         "validate_turn_gates.py",
         "zero_bugfix_constraint_gate.py",
         "hook_dispatch.py",
@@ -55,6 +59,10 @@ def _create_clean_sandbox(sandbox: Path) -> None:
             f"---\ntrigger: model_decision\ndescription: Clean sandbox rule {rule_name}.\n---\n\n# {rule_name}\n",
             encoding="utf-8",
         )
+    (sandbox / ".agents" / "rules" / "sidecar-automation-routing.md").write_text(
+        (REPO_ROOT / ".agents" / "rules" / "sidecar-automation-routing.md").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
 
     (sandbox / ".agents" / "skills" / "demo").mkdir(parents=True)
     (sandbox / ".agents" / "skills" / "demo" / "SKILL.md").write_text(
@@ -185,7 +193,7 @@ def test_revamped_ssot_prompt_passes_sidecar_separation_and_shared_contract() ->
     res = validate_sidecar_separation(repo_root=REPO_ROOT, sidecars_root=DEFAULT_SIDECARS_ROOT)
     assert res["status"] == "PASS", res["violations"]
     assert res["is_clean"] is True
-    prompt_text = (REPO_ROOT / "automations" / "prompts" / "agents_ssot_boundary_agent.md").read_text(encoding="utf-8")
+    prompt_text = (REPO_ROOT / "automations" / "prompts" / "agents_architecture_cost_agent.md").read_text(encoding="utf-8")
     assert "10-Dimension" in prompt_text
     assert "ssot_sprawl_scanner.py" in prompt_text
     assert "ssot_hardcoding_scanner.py" in prompt_text

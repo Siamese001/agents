@@ -119,7 +119,7 @@ def validate_zero_bugfix_constraint_floor(repo_root: Path | None = None) -> dict
             )
 
         blocked, _ = evaluate_prompt_stage_write_scope(
-            "agents/orchestration/engine.py", root, agent_id="agents-domain-applications-pipeline"
+            "agents/orchestration/engine.py", root, agent_id="agents-domain-pipelines-retrieval"
         )
         if blocked:
             issues.append("PROMPT_STAGE_ALLOWED_WRITE_PATHS blocked cross-repo root-cause bug fix.")

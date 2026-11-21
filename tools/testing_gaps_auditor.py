@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """Agents Repository — 6-Pillar Testing Gaps, Assertion Strength & Mock Reachability Auditor.
 
-Implements the deterministic, fail-closed Stage IV-B (`Order 7/7`) auditor for
-`automations/prompts/agents_testing_gaps_assurance_agent.md`:
+Implements the deterministic, fail-closed Tier 2 Stage 10 readiness gate and `.agents/skills/testing-framework/SKILL.md` auditor:
 1. Pillar 1: Per-module & per-package public entrypoint AST inventory across all 11 executable roots,
    enforcing both non-zero symbol coverage and minimum symbol/module coverage ratios.
 2. Pillar 2: Separate cross-subsystem handoff contract test verification for BOTH

@@ -172,16 +172,28 @@ def test_derive_branch_merge_title_fallback(tmp_path: Path) -> None:
     assert derived == "fix(companion): plain commit message"
 
 
-def test_all_seven_companion_agent_prompts_enforce_conventional_branch_and_governed_submit() -> None:
-    """Verify all 7 companion agent prompts use chore/ branches, stateless -C submit, --timeout=60, and zero raw merge."""
+def test_all_four_consolidated_agent_prompts_enforce_conventional_branch_and_governed_submit() -> None:
+    """Verify all 4 consolidated agent prompts + shared contract enforce chore/ branches, stateless -C submit, --timeout=60, and zero raw merge."""
     import re
     import shlex
     from tools.validate_sidecar_separation import EXPECTED_AGENTS_SIDECARS, REPO_ROOT
 
     parser = build_parser()
     prompts_dir = REPO_ROOT / "automations" / "prompts"
+    shared_text = (prompts_dir / "_shared_governance_contract.md").read_text(encoding="utf-8")
     branch_re = re.compile(r'export BRANCH_NAME="([^"]+)"')
     pr_gov_re = re.compile(r'pr_governance\.py"?\s+([^\n`]+)')
+
+    m_branch = branch_re.search(shared_text)
+    assert m_branch is not None
+    concrete_branch = (
+        m_branch.group(1)
+        .replace("${AGENT_SLUG}", "architecture-cost")
+        .replace("${RUN_TS}", "20261102T060000Z")
+        .replace("${HEX6}", "abc123")
+    )
+    assert CONVENTIONAL_BRANCH_RE.match(concrete_branch)
+    assert "--stage-only" in shared_text
 
     for sidecar_id, spec in EXPECTED_AGENTS_SIDECARS.items():
         prompt_path = prompts_dir / spec["prompt_file"]
@@ -190,20 +202,9 @@ def test_all_seven_companion_agent_prompts_enforce_conventional_branch_and_gover
         assert 'BRANCH_NAME="automation/' not in text, f"{sidecar_id} still uses forbidden automation/ prefix"
         assert "merge --no-ff" not in text, f"{sidecar_id} still invokes raw git merge --no-ff"
         assert "--timeout=60" in text, f"{sidecar_id} missing --timeout=60 pytest enforcement"
-        assert "--stage-only" in text, f"{sidecar_id} missing --stage-only overnight staging"
-
-        m_branch = branch_re.search(text)
-        assert m_branch is not None, f"{sidecar_id} missing export BRANCH_NAME"
-        concrete_branch = (
-            m_branch.group(1)
-            .replace("${BRANCH_SLUG}", "agents-check-20261102T060000Z")
-        )
-        assert CONVENTIONAL_BRANCH_RE.match(concrete_branch), (
-            f"{sidecar_id} branch '{concrete_branch}' violates CONVENTIONAL_BRANCH_RE"
-        )
 
         matches = pr_gov_re.findall(text)
-        assert len(matches) >= 2, f"{sidecar_id} must declare scheduled and interactive pr_governance.py submit commands"
+        assert len(matches) >= 1, f"{sidecar_id} must declare pr_governance.py submit command"
         for raw_tail in matches:
             cleaned = (
                 raw_tail.strip()
@@ -229,7 +230,7 @@ def test_sidecar_validator_rejects_automation_branch_and_raw_merge(tmp_path: Pat
     prompts_dir.mkdir(parents=True)
     for md_file in (REPO_ROOT / "automations" / "prompts").glob("*.md"):
         content = md_file.read_text(encoding="utf-8")
-        if md_file.name == "agents_testing_gaps_assurance_agent.md":
+        if md_file.name == "agents_evals_flywheel_assurance_agent.md":
             content += '\nexport BRANCH_NAME="automation/bad"\ngit merge --no-ff bad\n'
         (prompts_dir / md_file.name).write_text(content, encoding="utf-8")
 

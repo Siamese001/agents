@@ -18,7 +18,7 @@ from tools.validate_sidecar_separation import (
 
 
 def test_live_sidecar_separation_passes_with_zero_collisions() -> None:
-    """Verify live global sidecars have zero Agents background schedules while all 8 prompts bind dedicated auditors."""
+    """Verify live global sidecars have zero Agents background schedules while all 4 prompts bind dedicated auditors."""
     result = validate_sidecar_separation(
         repo_root=REPO_ROOT,
         sidecars_root=DEFAULT_SIDECARS_ROOT,
@@ -26,31 +26,28 @@ def test_live_sidecar_separation_passes_with_zero_collisions() -> None:
     assert result["status"] == "PASS", f"Expected PASS, got violations: {result['violations']}"
     assert result["is_clean"] is True
     assert result["agents_scheduled_count"] == 0
-    assert result["agents_catalog_count"] == 8
-    assert result["agents_prompt_count"] == 8
-    assert result["agents_sidecar_count"] == 8
+    assert result["agents_catalog_count"] == 4
+    assert result["agents_prompt_count"] == 4
+    assert result["agents_sidecar_count"] == 4
     assert result["nee_sidecar_count"] >= 3
     assert result["collision_count"] == 0
     assert result["violations"] == []
 
 
-def test_all_eight_workflows_bind_distinct_executable_behavioral_auditors() -> None:
-    """Verify every workflow binds a dedicated fail-closed Python auditor module (never verify_commit.py)."""
+def test_all_four_workflows_bind_distinct_executable_behavioral_auditors() -> None:
+    """Verify every consolidated workflow binds dedicated fail-closed Python auditor modules (never verify_commit.py)."""
     expected_entrypoints = {
-        "agents-storage-worktree-hygiene": "tools/storage_worktree_hygiene.py",
-        "agents-ssot-boundary-governance": "tools/ssot_boundary_auditor.py",
+        "agents-architecture-cost-governance": "tools/ssot_boundary_auditor.py",
         "agents-core-runtime-orchestration": "tools/agent_runtime_auditor.py",
-        "agents-domain-applications-pipeline": "tools/e2e_functionality_auditor.py",
-        "agents-research-retrieval-surface": "tools/retrieval_surface_auditor.py",
-        "agents-evals-judge-assurance": "tools/validate_eval_rubrics.py",
-        "agents-cost-token-budget": "tools/cost_token_budget_auditor.py",
-        "agents-testing-gaps-assurance": "tools/testing_gaps_auditor.py",
+        "agents-domain-pipelines-retrieval": "tools/e2e_functionality_auditor.py",
+        "agents-evals-flywheel-assurance": "tools/validate_eval_rubrics.py",
     }
     assert {k: v["deterministic_entrypoint"] for k, v in EXPECTED_AGENTS_SIDECARS.items()} == expected_entrypoints
     for workflow_id, rel_ep in expected_entrypoints.items():
-        ep_path = REPO_ROOT / rel_ep
-        assert ep_path.is_file(), f"Missing dedicated auditor {rel_ep} for {workflow_id}"
-        assert rel_ep != "tools/verify_commit.py"
+        for check_ep in (rel_ep, *EXPECTED_AGENTS_SIDECARS[workflow_id].get("secondary_entrypoints", ())):
+            ep_path = REPO_ROOT / check_ep
+            assert ep_path.is_file(), f"Missing dedicated auditor {check_ep} for {workflow_id}"
+            assert check_ep != "tools/verify_commit.py"
         assert EXPECTED_AGENTS_SIDECARS[workflow_id]["requires_remediation_quota"] is True, (
             f"{workflow_id} must enforce C04 remediation quota without exemption"
         )
@@ -63,7 +60,7 @@ def test_validator_rejects_inline_heredoc_and_missing_auditor_invocation(tmp_pat
     prompts_dir.mkdir(parents=True)
     for md_file in (REPO_ROOT / "automations" / "prompts").glob("*.md"):
         content = md_file.read_text(encoding="utf-8")
-        if md_file.name == "agents_domain_applications_pipeline_agent.md":
+        if md_file.name == "agents_domain_pipelines_retrieval_agent.md":
             content = content.replace("e2e_functionality_auditor.py", "verify_commit.py") + "\npython - <<'PY'\nPY\n"
         (prompts_dir / md_file.name).write_text(content, encoding="utf-8")
 
@@ -138,9 +135,9 @@ def test_validator_rejects_prompt_missing_wave_plan_mandate_or_consolidate_marke
     prompts_dir.mkdir(parents=True)
     for md_file in (REPO_ROOT / "automations" / "prompts").glob("*.md"):
         content = md_file.read_text(encoding="utf-8")
-        if md_file.name == "agents_domain_applications_pipeline_agent.md":
+        if md_file.name == "agents_domain_pipelines_retrieval_agent.md":
             content = content.replace("UNCONDITIONAL_WAVE_PLAN_MANDATE", "REMOVED_MANDATE")
-        if md_file.name == "agents_cost_token_budget_agent.md":
+        if md_file.name == "agents_architecture_cost_agent.md":
             content = content.replace("--consolidate-sidecar", "--legacy-worktree-add")
         (prompts_dir / md_file.name).write_text(content, encoding="utf-8")
 
@@ -291,7 +288,7 @@ def test_testing_gaps_auditor_passes_on_live_repo_and_rejects_hardcoded_root(tmp
     prompts_dir.mkdir(parents=True)
     for md_file in (REPO_ROOT / "automations" / "prompts").glob("*.md"):
         content = md_file.read_text(encoding="utf-8")
-        if md_file.name == "agents_testing_gaps_assurance_agent.md":
+        if md_file.name == "agents_evals_flywheel_assurance_agent.md":
             content += f'\nroot = Path("{AGENTS_CANONICAL_ROOT}")\n'
         (prompts_dir / md_file.name).write_text(content, encoding="utf-8")
 
@@ -398,9 +395,9 @@ def test_validator_rejects_cron_timestamp_or_routing_mismatch_or_missing_manifes
 
     for md_file in (REPO_ROOT / "automations" / "prompts").glob("*.md"):
         content = md_file.read_text(encoding="utf-8")
-        if md_file.name == "agents_storage_worktree_hygiene_agent.md":
+        if md_file.name == "agents_core_runtime_orchestration_agent.md":
             content += "\nLegacy schedule (`05:00 ET`, MODE: scheduled)\n"
-        if md_file.name == "agents_ssot_boundary_agent.md":
+        if md_file.name == "agents_architecture_cost_agent.md":
             content = content.replace("--write-manifest", "--missing-manifest")
         (prompts_dir / md_file.name).write_text(content, encoding="utf-8")
 
@@ -487,7 +484,7 @@ def test_mcp_sdk_loader_and_triggers_wiring() -> None:
     skills_paths = resolve_antigravity_skills_paths(REPO_ROOT)
     assert len(skills_paths) == 1 and skills_paths[0].endswith(".agents/skills")
     triggers = build_antigravity_sdk_triggers(REPO_ROOT)
-    assert len(triggers) == 8
+    assert len(triggers) == 4
     assert all(t["skills_paths"] == skills_paths for t in triggers)
 
 

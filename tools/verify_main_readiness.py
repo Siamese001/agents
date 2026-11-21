@@ -245,6 +245,14 @@ def verify_main_readiness(
             "Governance Harmonization & SSOT Drift Audit",
             60,
         ),
+        (
+            "10. Testing Gaps, Handoff Contracts & Mock Reachability",
+            [str(python_bin), "tools/testing_gaps_auditor.py", "--repo-root", str(repo_root)]
+            if (repo_root / "tools" / "testing_gaps_auditor.py").exists()
+            else None,
+            "Testing Gaps, Handoff Contracts & Mock Reachability Gate",
+            90,
+        ),
     ]
 
     for stage_name, argv, desc, timeout_s in stage_defs:

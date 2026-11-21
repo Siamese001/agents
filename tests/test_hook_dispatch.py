@@ -317,8 +317,8 @@ Build core foundation.
                         {
                             "question": "Which storage caching approach should we use?",
                             "options": [
-                                "(Recommended) Memory cache (Confidence: HIGH (88%))",
-                                "Disk cache fallback (Confidence: LOW (40%))",
+                                "(Recommended) HIGH 88%: Memory cache. Impact: Fast reads.",
+                                "LOW 40%: Disk cache fallback. Impact: Slower reads.",
                             ],
                         }
                     ]
@@ -348,8 +348,8 @@ Build core foundation.
                         {
                             "question": "Which retry policy should we apply?",
                             "options": [
-                                "(Recommended) Exponential backoff (Confidence: MEDIUM (68%))",
-                                "Fixed interval retry (Confidence: MEDIUM (55%))",
+                                "(Recommended) MEDIUM 68%: Exponential backoff. Impact: Smooth.",
+                                "MEDIUM 55%: Fixed interval retry. Impact: Predictable.",
                             ],
                         }
                     ]
@@ -368,45 +368,53 @@ Build core foundation.
         self.assertEqual(json.loads(res.stdout.strip())["decision"], "allow")
 
     def test_pre_ask_question_blocks_oversized_truncated_or_jargon_payloads(self) -> None:
-        """pre_ask_question must reject >300-char questions, >250-char options, ellipses, and technical jargon."""
+        """pre_ask_question must reject >300-char questions, >115-char options, buried confidence, ellipses, and jargon."""
         bad_cases = [
             {
                 "question": "Which option should we choose for this step? " + ("More context words " * 16),
                 "options": [
-                    "(Recommended) First plain choice (Confidence: MEDIUM (68%))",
-                    "Second plain choice (Confidence: MEDIUM (55%))",
+                    "(Recommended) MEDIUM 68%: First plain choice",
+                    "MEDIUM 55%: Second plain choice",
                 ],
                 "expected_code": "HITL_VIOLATION_QUESTION_LENGTH",
             },
             {
                 "question": "Which schedule should we choose?",
                 "options": [
-                    "(Recommended) First plain choice with extra words " + ("padding text " * 18) + "(Confidence: MEDIUM (68%))",
-                    "Second plain choice (Confidence: MEDIUM (55%))",
+                    "(Recommended) MEDIUM 68%: First plain choice " + ("padding text " * 8),
+                    "MEDIUM 55%: Second plain choice",
                 ],
                 "expected_code": "HITL_VIOLATION_OPTION_LENGTH",
             },
             {
+                "question": "Which schedule should we choose?",
+                "options": [
+                    "(Recommended) Keep the current daily schedule for this system (Confidence: MEDIUM (68%))",
+                    "MEDIUM 55%: Second plain choice",
+                ],
+                "expected_code": "HITL_VIOLATION_BURIED_CONFIDENCE",
+            },
+            {
                 "question": "Should we continue with the truncated option...?",
                 "options": [
-                    "(Recommended) First plain choice (Confidence: MEDIUM (68%))",
-                    "Second plain choice (Confidence: MEDIUM (55%))",
+                    "(Recommended) MEDIUM 68%: First plain choice",
+                    "MEDIUM 55%: Second plain choice",
                 ],
                 "expected_code": "HITL_VIOLATION_TRUNCATION",
             },
             {
                 "question": "Should we run O2 A2A voice repair in tools/hook_dispatch.py?",
                 "options": [
-                    "(Recommended) Run O2 repair (Confidence: MEDIUM (68%))",
-                    "Skip repair (Confidence: MEDIUM (55%))",
+                    "(Recommended) MEDIUM 68%: Run O2 repair",
+                    "MEDIUM 55%: Skip repair",
                 ],
                 "expected_code": "HITL_VIOLATION_JARGON_IN_QUESTION",
             },
             {
                 "question": "Which delivery order should we follow?",
                 "options": [
-                    "(Recommended) Run ExecutiveVoiceRepairAgent with blast radius check (Confidence: MEDIUM (68%))",
-                    "Wait for review (Confidence: MEDIUM (55%))",
+                    "(Recommended) MEDIUM 68%: Run ExecutiveVoiceRepairAgent with blast radius check",
+                    "MEDIUM 55%: Wait for review",
                 ],
                 "expected_code": "HITL_VIOLATION_JARGON_IN_OPTION",
             },
@@ -667,7 +675,7 @@ Build core foundation.
         data = json.loads(res.stdout.strip())
         self.assertEqual(data["decision"], "deny")
         self.assertIn(
-            "NEVER fall back to printing questions or options as plain text in chat; immediately invoke ask_question again with ONE atomic plain-English question at a time (<= 250 chars per option, Confidence: TIER (N%)).",
+            "NEVER fall back to printing questions or options as plain text in chat; immediately invoke ask_question again with ONE atomic plain-English question at a time (<= 115 chars per option with front-loaded confidence, e.g. '(Recommended) HIGH 85%: ...').",
             data["reason"],
         )
 

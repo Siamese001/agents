@@ -4,9 +4,9 @@
 Verifies and reconciles:
 1. Disabled Manual Launcher Catalog (`INV-NO-DAILY-AGENTS-SCHEDULES` & `CATALOG_DISABLED_BY_DEFAULT`):
    - Zero active (`enabled: true`) background schedules for `agents-*` in `/Users/amitayer/.gemini/config/config.json` (`agents_scheduled_count == 0`).
-   - All 8 approved `EXPECTED_AGENTS_SIDECARS` may be materialized in `/Users/amitayer/.gemini/config/sidecars/<id>/sidecar.json` as thin SSOT pointer dereferencers bound to `file:///Users/amitayer/Git/agents` (`projectId: f3cfd8ed-5fb8-40c7-b562-dbdf15522309`, `"enabled": false` in `config.json`) for manual one-click launch in the Antigravity Automations UI.
+   - All 4 approved `EXPECTED_AGENTS_SIDECARS` may be materialized in `/Users/amitayer/.gemini/config/sidecars/<id>/sidecar.json` as thin SSOT pointer dereferencers bound to `file:///Users/amitayer/Git/agents` (`projectId: f3cfd8ed-5fb8-40c7-b562-dbdf15522309`, `"enabled": false` in `config.json`) for manual one-click launch in the Antigravity Automations UI, while retired `RETIRED_AGENTS_SIDECARS` are cleanly pruned during `--reconcile`.
    - Any unapproved/rogue `agents-*` directory (not in `EXPECTED_AGENTS_SIDECARS`) or any `agents-*` directory missing its valid `file:///Users/amitayer/Git/agents/automations/prompts/agents_*_agent.md` pointer is rejected fail-closed.
-2. Dedicated Behavioral Auditor Integrity: All 8 `automations/prompts/agents_*_agent.md` prompt specifications invoke their dedicated fail-closed behavioral auditor CLI (never generic `verify_commit.py` masquerades or print-only inline heredoc scripts).
+2. Dedicated Behavioral Auditor Integrity: All 4 `automations/prompts/agents_*_agent.md` prompt specifications invoke their dedicated fail-closed behavioral auditor CLIs (never generic `verify_commit.py` masquerades or print-only inline heredoc scripts).
 3. Cross-Repo Firewall (`INV-REPO-SEPARATION-AGENTS-ONLY`): Every Agents prompt specification enforces `INV-REPO-SEPARATION-AGENTS-ONLY` and prohibits touching `/Users/amitayer/Git/decision-intelligence-engine`.
 4. Decision Intelligence Engine Preservation: All Decision Intelligence Engine sidecars remain untouched and bound exclusively to `/Users/amitayer/Git/decision-intelligence-engine` with zero grants targeting `/Users/amitayer/Git/agents`.
 """
@@ -17,6 +17,7 @@ import argparse
 import json
 import os
 import re
+import shutil
 import sys
 from pathlib import Path
 from typing import Any, Sequence
@@ -30,79 +31,60 @@ NEE_CANONICAL_ROOT = str(Path.home() / "Git" / "decision-intelligence-engine")
 AGENTS_PROJECT_ID = "f3cfd8ed-5fb8-40c7-b562-dbdf15522309"
 
 EXPECTED_AGENTS_SIDECARS: dict[str, dict[str, Any]] = {
-    "agents-storage-worktree-hygiene": {
-        "display_name": "Agents Repo: Storage & Worktree Hygiene",
-        "prompt_file": "agents_storage_worktree_hygiene_agent.md",
+    "agents-architecture-cost-governance": {
+        "display_name": "Agents Repo: Architecture, SSOT & Tokenomics",
+        "prompt_file": "agents_architecture_cost_agent.md",
         "cron": "CRON_TZ=America/New_York 0 5 * * *",
-        "disposition": "RETIRE_SIDECAR_TO_CLI",
+        "disposition": "CONSOLIDATED_ARCHITECTURE_COST_AGENT",
         "target_skill": "agents-governance-hygiene",
-        "deterministic_entrypoint": "tools/storage_worktree_hygiene.py",
-        "requires_remediation_quota": True,
-    },
-    "agents-ssot-boundary-governance": {
-        "display_name": "Agents Repo: SSOT & Boundary Governance",
-        "prompt_file": "agents_ssot_boundary_agent.md",
-        "cron": "CRON_TZ=America/New_York 20 5 * * *",
-        "disposition": "RETIRE_SIDECAR_TO_HOOK",
-        "target_skill": "scope-containment",
         "deterministic_entrypoint": "tools/ssot_boundary_auditor.py",
+        "secondary_entrypoints": ("tools/cost_token_budget_auditor.py",),
         "requires_remediation_quota": True,
     },
     "agents-core-runtime-orchestration": {
         "display_name": "Agents Repo: Core Runtime & Orchestration",
         "prompt_file": "agents_core_runtime_orchestration_agent.md",
-        "cron": "CRON_TZ=America/New_York 40 5 * * *",
+        "cron": "CRON_TZ=America/New_York 20 5 * * *",
         "disposition": "CONSOLIDATE_WITH_RUNTIME_SKILL",
         "target_skill": "agent-runtime-engineering",
         "deterministic_entrypoint": "tools/agent_runtime_auditor.py",
+        "secondary_entrypoints": (),
         "requires_remediation_quota": True,
     },
-    "agents-domain-applications-pipeline": {
-        "display_name": "Agents Repo: Domain Applications & Pipelines",
-        "prompt_file": "agents_domain_applications_pipeline_agent.md",
-        "cron": "CRON_TZ=America/New_York 5 6 * * *",
-        "disposition": "CONSOLIDATE_WITH_RETRIEVAL_SKILL",
+    "agents-domain-pipelines-retrieval": {
+        "display_name": "Agents Repo: Domain Pipelines & Retrieval",
+        "prompt_file": "agents_domain_pipelines_retrieval_agent.md",
+        "cron": "CRON_TZ=America/New_York 40 5 * * *",
+        "disposition": "CONSOLIDATED_DOMAIN_RETRIEVAL_AGENT",
         "target_skill": "agents-domain-assurance",
         "deterministic_entrypoint": "tools/e2e_functionality_auditor.py",
+        "secondary_entrypoints": ("tools/retrieval_surface_auditor.py",),
         "requires_remediation_quota": True,
     },
-    "agents-research-retrieval-surface": {
-        "display_name": "Agents Repo: Research & Retrieval Surface",
-        "prompt_file": "agents_research_retrieval_surface_agent.md",
-        "cron": "CRON_TZ=America/New_York 25 6 * * *",
-        "disposition": "CONSOLIDATE_WITH_E2E_SKILL",
-        "target_skill": "agents-domain-assurance",
-        "deterministic_entrypoint": "tools/retrieval_surface_auditor.py",
-        "requires_remediation_quota": True,
-    },
-    "agents-evals-judge-assurance": {
-        "display_name": "Agents Repo: Evals & Judge Validity",
-        "prompt_file": "agents_evals_judge_assurance_agent.md",
-        "cron": "CRON_TZ=America/New_York 45 6 * * *",
-        "disposition": "UPGRADE_TO_VALIDATOR_AND_SKILL",
+    "agents-evals-flywheel-assurance": {
+        "display_name": "Agents Repo: Evals, Judges & Learning Flywheel",
+        "prompt_file": "agents_evals_flywheel_assurance_agent.md",
+        "cron": "CRON_TZ=America/New_York 0 6 * * *",
+        "disposition": "CONSOLIDATED_EVALS_FLYWHEEL_AGENT",
         "target_skill": "receipt-auditor",
         "deterministic_entrypoint": "tools/validate_eval_rubrics.py",
-        "requires_remediation_quota": True,
-    },
-    "agents-cost-token-budget": {
-        "display_name": "Agents Repo: Cost & Token Budget",
-        "prompt_file": "agents_cost_token_budget_agent.md",
-        "cron": "CRON_TZ=America/New_York 5 7 * * *",
-        "disposition": "RETIRE_SIDECAR_TO_HOOK",
-        "target_skill": "operational-gates",
-        "deterministic_entrypoint": "tools/cost_token_budget_auditor.py",
-        "requires_remediation_quota": True,
-    },
-    "agents-testing-gaps-assurance": {
-        "display_name": "Agents Repo: Testing Gaps Assurance",
-        "prompt_file": "agents_testing_gaps_assurance_agent.md",
-        "cron": "CRON_TZ=America/New_York 25 7 * * *",
-        "disposition": "HYBRID_HOOK_SKILL",
-        "target_skill": "testing-framework",
-        "deterministic_entrypoint": "tools/testing_gaps_auditor.py",
+        "secondary_entrypoints": ("tools/run_eval_flywheel_cycle.py",),
         "requires_remediation_quota": True,
     },
 }
+
+RETIRED_AGENTS_SIDECARS: frozenset[str] = frozenset(
+    {
+        "agents-storage-worktree-hygiene",
+        "agents-ssot-boundary-governance",
+        "agents-domain-applications-pipeline",
+        "agents-research-retrieval-surface",
+        "agents-evals-judge-assurance",
+        "agents-cost-token-budget",
+        "agents-testing-gaps-assurance",
+        "agents-outreach-resume-functionality",
+    }
+)
 
 EXPECTED_NEE_SIDECARS: tuple[str, ...] = (
     "agentic-repo-best-practices-scout",
@@ -116,7 +98,7 @@ RETIRED_SCHEDULE_TIME_RE = re.compile(r"\b0[567]:[0-5][0-9]\s+ET\b")
 
 REQUIRED_SHARED_CONTRACT_MARKERS: tuple[str, ...] = (
     "INV-REPO-SEPARATION-AGENTS-ONLY",
-    "urn:agents:on-demand-assurance-control-matrix:2.0.0",
+    "urn:agents:on-demand-assurance-control-matrix:3.0.0",
     "PREFLIGHT_ZERO_DEFECT_FAST_EXIT",
     "UNCONDITIONAL_WAVE_PLAN_MANDATE",
     "INV-REMEDIATION-QUOTA-FLOOR",
@@ -134,7 +116,7 @@ REQUIRED_SHARED_CONTRACT_MARKERS: tuple[str, ...] = (
 
 REQUIRED_PROMPT_PARITY_MARKERS: tuple[str, ...] = (
     "INV-REPO-SEPARATION-AGENTS-ONLY",
-    "urn:agents:on-demand-assurance-control-matrix:2.0.0",
+    "urn:agents:on-demand-assurance-control-matrix:3.0.0",
     "PREFLIGHT_ZERO_DEFECT_FAST_EXIT",
     "UNCONDITIONAL_WAVE_PLAN_MANDATE",
     "INV-RUNTIME-PROOF-5POINT",
@@ -216,8 +198,15 @@ def reconcile_agents_sidecars(
     sidecars_root: Path = DEFAULT_SIDECARS_ROOT,
     project_id: str = AGENTS_PROJECT_ID,
 ) -> dict[str, Any]:
-    """Materialize all 8 EXPECTED_AGENTS_SIDECARS as disabled manual launchers in sidecars_root and config.json."""
+    """Materialize the 4 EXPECTED_AGENTS_SIDECARS as disabled manual launchers and prune retired agents-* entries."""
     sidecars_root.mkdir(parents=True, exist_ok=True)
+    pruned_retired: list[str] = []
+    for retired_id in sorted(RETIRED_AGENTS_SIDECARS):
+        ret_dir = sidecars_root / retired_id
+        if ret_dir.is_dir() and not ret_dir.is_symlink():
+            shutil.rmtree(ret_dir, ignore_errors=True)
+            pruned_retired.append(retired_id)
+
     reconciled: list[str] = []
     for workflow_id, spec in EXPECTED_AGENTS_SIDECARS.items():
         sc_dir = sidecars_root / workflow_id
@@ -231,10 +220,17 @@ def reconcile_agents_sidecars(
     if config_file.is_file():
         cfg = json.loads(config_file.read_text(encoding="utf-8"))
         sidecars_map = cfg.setdefault("sidecars", {})
+        for retired_id in RETIRED_AGENTS_SIDECARS:
+            sidecars_map.pop(retired_id, None)
         for workflow_id in EXPECTED_AGENTS_SIDECARS:
+            existing_proj = (
+                sidecars_map.get(workflow_id, {}).get("projectId")
+                if isinstance(sidecars_map.get(workflow_id), dict)
+                else None
+            )
             sidecars_map[workflow_id] = {
                 "enabled": False,
-                "projectId": project_id,
+                "projectId": existing_proj or project_id,
             }
             config_synced += 1
         config_file.write_text(json.dumps(cfg, indent=2) + "\n", encoding="utf-8")
@@ -251,6 +247,7 @@ def reconcile_agents_sidecars(
     return {
         "reconciled_count": len(reconciled),
         "reconciled_sidecars": reconciled,
+        "pruned_retired": pruned_retired,
         "config_synced": config_synced,
     }
 
@@ -276,7 +273,18 @@ def validate_sidecar_separation(
         if NEE_CANONICAL_ROOT in shared_text:
             violations.append(f"_shared_governance_contract.md contains forbidden path '{NEE_CANONICAL_ROOT}'")
 
-    # 2. Validate all 8 on-demand Agents prompt specs and dedicated behavioral auditor entrypoints
+    # 1b. Reject unindexed rogue prompt files in automations/prompts/
+    if prompts_dir.is_dir():
+        expected_prompt_files = {spec["prompt_file"] for spec in EXPECTED_AGENTS_SIDECARS.values()} | {
+            "_shared_governance_contract.md"
+        }
+        for md_path in sorted(prompts_dir.glob("*.md")):
+            if md_path.name not in expected_prompt_files:
+                violations.append(
+                    f"automations/prompts/{md_path.name}: unindexed or retired prompt specification must be consolidated or removed"
+                )
+
+    # 2. Validate all 4 consolidated Agents prompt specs and dedicated behavioral auditor entrypoints
     validated_prompts_count = 0
     for workflow_id, spec in EXPECTED_AGENTS_SIDECARS.items():
         if not workflow_id.startswith("agents-"):
@@ -284,10 +292,11 @@ def validate_sidecar_separation(
 
         if not spec.get("requires_remediation_quota", False):
             violations.append(
-                f"{workflow_id}: requires_remediation_quota must be True across all 8 assurance workflows (C04)"
+                f"{workflow_id}: requires_remediation_quota must be True across all 4 assurance workflows (C04)"
             )
 
         det_ep = str(spec.get("deterministic_entrypoint") or "")
+        sec_eps: tuple[str, ...] = tuple(spec.get("secondary_entrypoints") or ())
         if not det_ep or det_ep == "tools/verify_commit.py":
             violations.append(
                 f"{workflow_id}: deterministic_entrypoint must be a dedicated behavioral auditor, not '{det_ep}'"
@@ -301,10 +310,11 @@ def validate_sidecar_separation(
             for marker in REQUIRED_PROMPT_PARITY_MARKERS:
                 if marker not in p_text:
                     violations.append(f"{spec['prompt_file']}: missing mandatory parity marker '{marker}'")
-            if det_ep and Path(det_ep).name not in p_text:
-                violations.append(
-                    f"{spec['prompt_file']}: missing mandatory invocation of dedicated behavioral auditor '{det_ep}'"
-                )
+            for req_ep in (det_ep, *sec_eps):
+                if req_ep and Path(req_ep).name not in p_text:
+                    violations.append(
+                        f"{spec['prompt_file']}: missing mandatory invocation of dedicated behavioral auditor '{req_ep}'"
+                    )
             if "<<'PY'" in p_text or '<<"PY"' in p_text:
                 violations.append(
                     f"{spec['prompt_file']}: contains inline heredoc script instead of fail-closed auditor CLI"
@@ -341,34 +351,23 @@ def validate_sidecar_separation(
                 violations.append(
                     f"{spec['prompt_file']}: RUN_DIR must append '${{RUN_TS}}-${{HEX6}}' to avoid same-second collisions"
                 )
-            if spec["prompt_file"] == "agents_testing_gaps_assurance_agent.md":
-                for req_testing_token in (
-                    "resume_graph_engine/tests",
-                    "outreach_engine/tests",
-                    "apps_eval/tests",
-                    "AsyncFunctionDef",
-                    "audit_mock_reachability.py",
-                ):
-                    if req_testing_token not in p_text:
-                        violations.append(
-                            f"{spec['prompt_file']}: missing required 4-root testing governance token '{req_testing_token}'"
-                        )
             validated_prompts_count += 1
 
-        if det_ep and (repo_root.resolve() / "tools").is_dir() and not (repo_root.resolve() / det_ep).is_file():
-            violations.append(
-                f"{workflow_id}: declared deterministic_entrypoint '{det_ep}' missing under {repo_root.resolve()}"
-            )
+        for req_ep in (det_ep, *sec_eps):
+            if req_ep and (repo_root.resolve() / "tools").is_dir() and not (repo_root.resolve() / req_ep).is_file():
+                violations.append(
+                    f"{workflow_id}: declared auditor '{req_ep}' missing under {repo_root.resolve()}"
+                )
 
     routing_doc = repo_root / ".agents" / "rules" / "sidecar-automation-routing.md"
     if routing_doc.is_file():
         routing_text = routing_doc.read_text(encoding="utf-8")
         for workflow_id, spec in EXPECTED_AGENTS_SIDECARS.items():
-            det_ep = str(spec.get("deterministic_entrypoint") or "")
-            if det_ep and det_ep not in routing_text:
-                violations.append(
-                    f".agents/rules/sidecar-automation-routing.md: missing canonical checker '{det_ep}' for {workflow_id}"
-                )
+            for req_ep in (str(spec.get("deterministic_entrypoint") or ""), *(spec.get("secondary_entrypoints") or ())):
+                if req_ep and req_ep not in routing_text:
+                    violations.append(
+                        f".agents/rules/sidecar-automation-routing.md: missing canonical checker '{req_ep}' for {workflow_id}"
+                    )
 
     hygiene_skill = repo_root / ".agents" / "skills" / "agents-governance-hygiene" / "SKILL.md"
     if hygiene_skill.is_file():
@@ -378,7 +377,7 @@ def validate_sidecar_separation(
                 ".agents/skills/agents-governance-hygiene/SKILL.md: missing PREFLIGHT_ZERO_DEFECT_FAST_EXIT read-only gate"
             )
 
-    # 2b. Verify 100% pairwise MECE disjointness & path existence across all 8 stage ownership scopes
+    # 2b. Verify 100% pairwise MECE disjointness & path existence across all 4 stage ownership scopes
     if (repo_root / "tools" / "prompt_scope_isolation.py").is_file():
         try:
             from tools.prompt_scope_isolation import validate_stage_ownership_disjointness
@@ -387,10 +386,7 @@ def validate_sidecar_separation(
         except ImportError as exc:
             violations.append(f"Failed to import validate_stage_ownership_disjointness: {exc}")
 
-    # 3. Validate sidecars_root and config.json:
-    #    - Approved EXPECTED_AGENTS_SIDECARS may exist as disabled manual launchers pointing to AGENTS_CANONICAL_ROOT
-    #    - Any unapproved agents-* directory or active (enabled: true) schedule is a fail-closed violation
-    #    - NEE sidecars must never reference AGENTS_CANONICAL_ROOT
+    # 3. Validate sidecars_root and config.json
     agents_scheduled_count = 0
     agents_catalog_count = 0
     validated_nee_count = 0
@@ -404,7 +400,7 @@ def validate_sidecar_separation(
                     agents_scheduled_count += 1
                     violations.append(
                         f"Unapproved background schedule directory '{child.name}' present in {sidecars_root}; "
-                        f"Agents checks must run via pre-save gates and on-demand skills only"
+                        f"Agents checks must run via pre-save gates and the 4 consolidated on-demand launchers only"
                     )
                     continue
                 if not sc_file.is_file():
@@ -479,7 +475,7 @@ def validate_sidecar_separation(
                         if sid not in EXPECTED_AGENTS_SIDECARS:
                             agents_scheduled_count += 1
                             violations.append(
-                                f"Global config.json retains unapproved schedule entry '{sid}'; remove to enforce on-demand only"
+                                f"Global config.json retains unapproved schedule entry '{sid}'; run --reconcile to prune"
                             )
                         elif not isinstance(s_cfg, dict) or s_cfg.get("enabled") is not False:
                             agents_scheduled_count += 1
@@ -507,7 +503,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Validate Agents on-demand separation and mirrored disabled sidecars.")
     parser.add_argument("--repo-root", type=Path, default=REPO_ROOT, help="Agents repository root")
     parser.add_argument("--sidecars-root", type=Path, default=DEFAULT_SIDECARS_ROOT, help="Global sidecars root")
-    parser.add_argument("--reconcile", action="store_true", help="Materialize disabled manual launchers in sidecars-root")
+    parser.add_argument("--reconcile", action="store_true", help="Materialize 4 disabled manual launchers and prune retired ones")
     parser.add_argument("--json", action="store_true", help="Emit JSON output")
     args = parser.parse_args(argv)
 

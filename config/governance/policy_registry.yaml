@@ -85,11 +85,20 @@ policies:
   - id: "INV-HITL-OPTION-MAX-CHARS"
     title: "Maximum HITL Option Label Length"
     category: "decision_intelligence"
-    threshold: 250
+    threshold: 115
     unit: "characters"
-    description: "Maximum allowable character length per ask_question option string so every option is visible without UI truncation."
+    description: "Maximum allowable character length per ask_question option string with front-loaded confidence so every option and confidence badge is visible without UI truncation."
     enforcer: "tools/hitl_governance.py"
     rule_reference: ".agents/rules/hitl-decisions.md"
+
+  - id: "INV-SIDECAR-CATALOG-COUNT"
+    title: "Consolidated On-Demand Assurance Agent Catalog Count"
+    category: "ai_sdlc"
+    threshold: 4
+    unit: "agents"
+    description: "Exact number of consolidated MECE on-demand assurance agents registered in automations/prompts/ and sidecars catalog (with zero active background schedules)."
+    enforcer: "tools/validate_sidecar_separation.py"
+    rule_reference: ".agents/rules/sidecar-automation-routing.md"
 
   - id: "INV-HITL-ZERO-JARGON"
     title: "Zero-Jargon Plain-English Question & Option Standard"
@@ -179,7 +188,7 @@ policies:
     unit: "shadow_divergences"
     description: "All configuration, schema, and profile surfaces across all 9 packages must synchronize with canonical owners in centralization_registry.yaml with zero intra-file or twin-file contradictions."
     enforcer: "tools/ssot_sprawl_scanner.py"
-    rule_reference: "automations/prompts/agents_ssot_boundary_agent.md"
+    rule_reference: "automations/prompts/agents_architecture_cost_agent.md"
 
   - id: "INV-SSOT-ZERO-HARDCODED-THRESHOLDS"
     title: "Zero Unowned Hardcoded Domain or Governance Thresholds"
@@ -188,7 +197,7 @@ policies:
     unit: "hardcoded_literals"
     description: "Word, character, sentence, token, retry, and timeout thresholds plus environment lookups must resolve from canonical owners without magic-number duplication."
     enforcer: "tools/ssot_hardcoding_scanner.py"
-    rule_reference: "automations/prompts/agents_ssot_boundary_agent.md"
+    rule_reference: "automations/prompts/agents_architecture_cost_agent.md"
 
   - id: "INV-SSOT-PROMPT-CODE-PARITY"
     title: "Prompt Instruction to Runtime Validator Numeric Parity"
@@ -197,7 +206,7 @@ policies:
     unit: "parity_mismatches"
     description: "Numeric bounds embedded in prompt templates, repair builders, judge rubrics, and eval expectations must match canonical runtime validator constants."
     enforcer: "tools/ssot_hardcoding_scanner.py"
-    rule_reference: "automations/prompts/agents_ssot_boundary_agent.md"
+    rule_reference: "automations/prompts/agents_architecture_cost_agent.md"
 
   - id: "INV-SSOT-POLICY-REGISTRY-SYNC"
     title: "Governance Enforcer and Rule Policy Registry Synchronization"

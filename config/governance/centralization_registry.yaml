@@ -38,6 +38,7 @@ domain_threshold_owners:
       INV-SKILLS-BUDGET-MAX-TOKENS: 4000
       INV-HITL-AMBIGUITY-MARGIN: 0.20
       INV-HITL-MIN-CONFIDENCE-FLOOR: 0.65
+      INV-HITL-OPTION-MAX-CHARS: 115
       INV-TEST-TIMEOUT-HARD: 180
       INV-WAVE-PLAN-MAX-WORDS: 0
       INV-OUTPUT-MAX-WORDS: 450
@@ -72,9 +73,7 @@ domain_threshold_owners:
       - "resume_graph_engine/src/apps_rg/rg_style_profile.yaml"
       - "resume_graph_engine/src/apps_rg/prompt_assembly/section_contracts/executive_summary_contract.yaml"
       - "resume_graph_engine/src/apps_rg/prompt_assembly/templates/strategic_tailor_v1.yaml"
-      - "resume_graph_engine/src/apps_rg/runtime/sections/executive_summary/"
-      - "resume_graph_engine/src/apps_rg/runtime/sections/executive_summary/policy.py"
-      - "resume_graph_engine/src/apps_rg/runtime/sections/executive_summary/word_budget_repair.py"
+      - "resume_graph_engine/src/apps_rg/runtime/sections/executive_summary_v2/"
       - "resume_graph_engine/src/apps_rg/runtime/sections/executive_summary_lane.py"
       - "resume_graph_engine/src/apps_rg/runtime/sections/executive_summary_lane/"
       - "apps_eval/scenarios.py"

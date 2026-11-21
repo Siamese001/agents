@@ -41,7 +41,7 @@ def test_lane2_critical_fact_inventory_and_judges() -> None:
     )
     assert report["effective_lane"] == 2
     assert report["lanes_touched"] == [2]
-    assert len(report["required_readiness_stages"]) == 9
+    assert len(report["required_readiness_stages"]) == 10
 
 
 def test_unrecognized_path_escalates_fail_closed_to_lane2() -> None:

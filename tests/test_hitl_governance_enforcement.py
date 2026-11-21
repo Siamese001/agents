@@ -336,9 +336,9 @@ class HitlGovernanceEnforcementTests(unittest.TestCase):
             store.close()
 
     def test_visibility_and_jargon_enforcement_on_question_and_options(self) -> None:
-        """Verify 300-char question cap, 250-char option cap, anti-truncation, and zero-jargon checks."""
+        """Verify 300-char question cap, 115-char option cap, front-loaded confidence, anti-truncation, and zero-jargon checks."""
         self.assertEqual(MAX_QUESTION_LENGTH, 300)
-        self.assertEqual(MAX_OPTION_LENGTH, 250)
+        self.assertEqual(MAX_OPTION_LENGTH, 115)
 
         # Oversized question (>300 chars)
         long_q = "Which retry timing should we use for the background check? " * 6
@@ -346,8 +346,8 @@ class HitlGovernanceEnforcementTests(unittest.TestCase):
             {
                 "question": long_q,
                 "options": [
-                    "(Recommended) Wait five seconds (Confidence: MEDIUM (70%)). Impact: Fast retry.",
-                    "Wait thirty seconds (Confidence: MEDIUM (58%)). Impact: Slower retry.",
+                    "(Recommended) MEDIUM 70%: Wait five seconds. Impact: Fast retry.",
+                    "MEDIUM 58%: Wait thirty seconds. Impact: Slower retry.",
                 ],
             },
             enforce_visibility_and_jargon=True,
@@ -355,14 +355,14 @@ class HitlGovernanceEnforcementTests(unittest.TestCase):
         self.assertTrue(any("HITL_VIOLATION_QUESTION_LENGTH" in e for e in errs_long_q))
         self.assertTrue(any("HITL_VIOLATION_BUNDLED_QUESTIONS" in e for e in errs_long_q))
 
-        # Oversized option (>250 chars) and ellipsis truncation
-        long_opt = "(Recommended) Keep the current schedule and wait... " + ("extra detail " * 20) + "(Confidence: MEDIUM (70%))"
+        # Oversized option (>115 chars) and ellipsis truncation
+        long_opt = "(Recommended) MEDIUM 70%: Keep the current schedule and wait... " + ("extra detail " * 8)
         errs_long_opt = validate_hitl_presentation(
             {
                 "question": "Which schedule should we apply?",
                 "options": [
                     long_opt,
-                    "Switch to hourly schedule (Confidence: MEDIUM (58%)). Impact: Higher freshness.",
+                    "MEDIUM 58%: Switch to hourly schedule. Impact: Higher freshness.",
                 ],
             },
             enforce_visibility_and_jargon=True,
@@ -370,12 +370,23 @@ class HitlGovernanceEnforcementTests(unittest.TestCase):
         self.assertTrue(any("HITL_VIOLATION_OPTION_LENGTH" in e for e in errs_long_opt))
         self.assertTrue(any("HITL_VIOLATION_TRUNCATION" in e for e in errs_long_opt))
 
+        # Tail-buried confidence (>45 chars offset) rejected even when <= 115 chars
+        buried_conf_payload = {
+            "question": "Which schedule should we apply?",
+            "options": [
+                "(Recommended) Keep the current schedule with daily checks (Confidence: HIGH (85%))",
+                "MEDIUM 70%: Switch to hourly checks. Impact: Faster updates.",
+            ],
+        }
+        errs_buried = validate_hitl_presentation(buried_conf_payload, enforce_visibility_and_jargon=True)
+        self.assertTrue(any("HITL_VIOLATION_BURIED_CONFIDENCE" in e for e in errs_buried))
+
         # Jargon in question and option (HITL, A2A, O2, snake_case, Candidate ID)
         jargon_payload = {
             "question": "HITL Decision: Candidate ID: d1-test — Should we run O2 A2A loop on section_service.py?",
             "options": [
-                "(Recommended) Run ExecutiveVoiceRepairAgent (Confidence: HIGH (85%))",
-                "Skip snake_case check (Confidence: MEDIUM (70%))",
+                "(Recommended) HIGH 85%: Run ExecutiveVoiceRepairAgent",
+                "MEDIUM 70%: Skip snake_case check",
             ],
         }
         errs_jargon = validate_hitl_presentation(jargon_payload, enforce_visibility_and_jargon=True)
@@ -386,8 +397,8 @@ class HitlGovernanceEnforcementTests(unittest.TestCase):
         clean_payload = {
             "question": "Which order should we use to deliver the GitHub and LinkedIn writing upgrades on macOS?",
             "options": [
-                "(Recommended) Fix plain-English question rules and live resume repair first (Confidence: HIGH (85%)). Impact: Improves reliability now.",
-                "Upgrade company research contradiction checks first (Confidence: MEDIUM (71%)). Impact: Cleaner briefs.",
+                "(Recommended) HIGH 85%: Fix question rules and resume repair first. Impact: Reliable.",
+                "MEDIUM 71%: Upgrade company research checks first. Impact: Cleaner briefs.",
             ],
         }
         self.assertEqual(validate_hitl_presentation(clean_payload, enforce_visibility_and_jargon=True), [])
@@ -401,8 +412,8 @@ class HitlGovernanceEnforcementTests(unittest.TestCase):
         compound_payload = {
             "question": "We are ready to update the schedule; additionally, which retry timing should we use?",
             "options": [
-                "(Recommended) Wait five seconds (Confidence: MEDIUM (70%)). Impact: Fast retry.",
-                "Wait thirty seconds (Confidence: MEDIUM (58%)). Impact: Slower retry.",
+                "(Recommended) MEDIUM 70%: Wait five seconds. Impact: Fast retry.",
+                "MEDIUM 58%: Wait thirty seconds. Impact: Slower retry.",
             ],
         }
         errs_compound = validate_hitl_presentation(compound_payload, enforce_visibility_and_jargon=True)

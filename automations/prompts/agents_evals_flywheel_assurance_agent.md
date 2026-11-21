@@ -1,0 +1,28 @@
+# Agents Repository — Evals, Judge Validity & Continuous Learning Flywheel Agent (`4/4`)
+<!-- GOVERNED COMMON CONTRACT: urn:agents:on-demand-assurance-control-matrix:3.0.0 | Shared: automations/prompts/_shared_governance_contract.md | Order: 4/4 -->
+<!-- INVARIANT: INV-REPO-SEPARATION-AGENTS-ONLY | PREFLIGHT_ZERO_DEFECT_FAST_EXIT | UNCONDITIONAL_WAVE_PLAN_MANDATE | INV-RUNTIME-PROOF-5POINT | INV-AUTOMATION-PERSISTENT-LEARNING-LOOP | INV-REMEDIATION-QUOTA-FLOOR | INV-FLYWHEEL-AUTO-REMEDIATE -->
+
+## 1. Objective, Playbook & MECE Write Scope (`C01`, `C13`)
+Execute a fail-closed **Evals, Judge Validity, Holdout Custody, Production Purity & Post-Runtime Continuous Learning Flywheel Cycle** exclusively within `/Users/amitayer/Git/agents` (`$0.00` marginal API spend for deterministic grading, consolidation, and self-audits).
+- **Canonical Skills & Rules**: Load `.agents/skills/receipt-auditor/SKILL.md` and `.agents/rules/flywheel-remediation-governance.md`.
+- **MECE Single-Writer Scope (`AGY_SIDECAR_AGENT_ID="agents-evals-flywheel-assurance"`)**: `agents/learning/`, `agents/eval_flywheel_cli.py`, `apps_eval/`, `resume_graph_engine/src/apps_rg/evals/`, `config/exit_eval_rubrics/`, `config/judges/`, `config/certification/`, `config/routing_calibration.yaml`, `config/prompt_governance/`, `resume_graph_engine/config/certification/`, `data/holdout/`, `data/eval/`, `data/certification/`, `data/judge_calibration/`, `outreach_engine/data/`, `resume_graph_engine/data/`, `tools/validate_eval_rubrics.py`, `tools/lint_production_purity.py`, `tools/audit_eval_construct_validity.py`, `tools/audit_multi_ssot_judge_gate_drift.py`, `tools/run_eval_flywheel_cycle.py`, `tools/run_diff_scoped_eval_shield.py`, `tests/unit/test_flywheel_hitl_dispatcher.py`, and `tests/end_to_end/test_flywheel_hitl_remediation_e2e.py`.
+
+## 2. Phase 1 & Phase 1.5: Read-Only Preflight & Sandbox Flywheel Cycle (`C02`, `C03`)
+Verify rubric bounds, 11 live graders, 315-file holdout custody, construct validity, judge drift, production purity, and sandbox flywheel status first:
+```bash
+export PRIMARY_REPO_ROOT="/Users/amitayer/Git/agents"
+export PYTHONDONTWRITEBYTECODE=1
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/validate_eval_rubrics.py" --repo-root "${PRIMARY_REPO_ROOT}" --json
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/lint_production_purity.py" --all --repo-root "${PRIMARY_REPO_ROOT}"
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/audit_eval_construct_validity.py" --verify-strict --include-e2e-pin
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/audit_multi_ssot_judge_gate_drift.py"
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/run_eval_flywheel_cycle.py" --sandbox --emit-next-hitl-question
+"${PRIMARY_REPO_ROOT}/.venv/bin/pytest" "${PRIMARY_REPO_ROOT}/tests/unit/test_flywheel_hitl_dispatcher.py" "${PRIMARY_REPO_ROOT}/apps_eval/tests/test_apps_lic_dev_suite.py" -q -p no:cacheprovider --timeout=60
+```
+If all preflight gates pass (`is_clean == true`) and zero pending flywheel proposals or drift alerts exist, fast-exit `COMPLETE` (`PREFLIGHT_ZERO_DEFECT_FAST_EXIT`).
+
+## 3. Phase 0, Phase 2 & Phase 3: Hybrid Tier A/B/C Flywheel Execution & Promotion (`C02–C12`)
+1. **Phase 0 (`Step 0.1`)**: When rubric/purity defects or actionable flywheel proposals exist, export `AGY_SIDECAR_AGENT_ID="agents-evals-flywheel-assurance"` and `AGENT_SLUG="evals-flywheel-assurance"` (`RUN_DIR` appending `${RUN_TS}-${HEX6}`), invoke `prune_merged_chat_worktrees.py --consolidate-sidecar --write-manifest "${RUN_DIR}/manifest.json"`, and `cd "${WORKTREE_DIR}"` per `automations/prompts/_shared_governance_contract.md`.
+2. **Tier A Auto-Apply (`INV-FLYWHEEL-AUTO-REMEDIATE`)**: Apply verified **Tier A** bounded proposals (`confidence_margin > 0.20` and all 7 safety gates passing) via `agents/learning/commit_engine.py` with `LP5` canary auto-rollback and `LP0..LP5` Merkle sealing.
+3. **Phase 2 & Atomic Tier B/C Dispatch**: Author `${WORKTREE_DIR}/plans/evals-flywheel-assurance-${HEX6}.md` (`validate_implementation_plan.py`), render the **Dimension Findings Table**, query `HITLDecisionStore`, and present Tier B/C or close-margin (`<= 0.20`) updates strictly **one at a time** via `ask_question` (`<= 115` char front-loaded confidence options bound to `finding_digest` and `proposal_digest`).
+4. **Phase 3**: Execute approved fixes with 5-Point Counterfactual Runtime Proofs (`INV-RUNTIME-PROOF-5POINT`), pin unmocked regressions in `apps_eval/suites/pinned_fix_regressions.json` / `tests/end_to_end/`, record outcomes in `HITLDecisionStore`, pass `validate_sidecar_separation.py --json`, `validate_turn_gates.py --mode all`, and `verify_commit.py`, obtain `PR_MERGE_AUTHORIZATION`, and promote via `pr_governance.py -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --title "fix(evals): remediate judge rubrics and apply flywheel fixes"`.

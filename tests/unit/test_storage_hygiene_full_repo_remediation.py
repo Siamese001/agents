@@ -147,3 +147,36 @@ def test_storage_hygiene_flags_and_removes_shadow_skills_graph_db(tmp_path: Path
     assert canon_db.is_file()
     assert not shadow_db.exists()
 
+
+def test_post_merge_quick_hygiene_checkpoints_bloated_wal_and_removes_stale_locks(tmp_path: Path) -> None:
+    """Verify --post-merge-quick checkpoints >32MB WAL sidecars and removes >24h stale locks cleanly."""
+    import sqlite3
+    from tools.storage_worktree_hygiene import run_post_merge_quick_hygiene
+
+    sandbox = _init_sandbox(tmp_path)
+    db_file = sandbox / "artifacts" / "governance" / "hitl_decisions.sqlite"
+    db_file.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(db_file))
+    conn.execute("PRAGMA journal_mode=WAL;")
+    conn.execute("CREATE TABLE t (id INTEGER PRIMARY KEY);")
+    conn.commit()
+    conn.close()
+
+    wal_file = Path(str(db_file) + "-wal")
+    wal_file.write_bytes(b"\x00" * (33 * 1024 * 1024))
+
+    stale_tmp = sandbox / "artifacts" / "stale_orphan.tmp"
+    stale_tmp.write_text("stale", encoding="utf-8")
+    old_ts = time.time() - 90000
+    os.utime(stale_tmp, (old_ts, old_ts))
+
+    fresh_tmp = sandbox / "artifacts" / "fresh_active.tmp"
+    fresh_tmp.write_text("fresh", encoding="utf-8")
+
+    res = run_post_merge_quick_hygiene(repo_root=sandbox)
+    assert res["status"] == "PASS"
+    assert "artifacts/governance/hitl_decisions.sqlite" in res["checkpointed_bloated_wals"]
+    assert "artifacts/stale_orphan.tmp" in res["removed_stale_files"]
+    assert not stale_tmp.exists()
+    assert fresh_tmp.exists()
+

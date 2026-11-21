@@ -18,7 +18,7 @@ Verification ceremony scales proportionally with the blast radius of changed pat
   - *Ceremony*: Tier 1 pre-commit (including anti-overfitting linter), architectural boundaries, adversarial purity, contracts, eval harness, eval construct validity, unmocked diff-scoped eval shield, and governance harmonization.
 - **Lane 2 (High / Critical Risk)**:
   - *Scope*: Candidate fact inventories (`resume_graph_engine/src/apps_rg/fact_inventory/**`), C0 allocation and graph projection (`resume_graph_engine/src/apps_rg/runtime/c0/**`), X2/X3 validators and LLM judges (`runtime/validators/**`, `runtime/judges/**`), provider routing (`provider_profiles.yaml`, `runtime/providers/**`), and governance controls themselves (`AGENTS.md`, `.agents/**`, `.githooks/**`, `config/governance/**`, `tools/verify_*`, `tools/pr_governance*`, `tools/change_lane_classifier.py`).
-  - *Ceremony*: Strict 100% enforcement of all 9 registered Tier 2 readiness stages, PR merge queue qualification, unmocked domain eval shield across all domains, and governance harmonization.
+  - *Ceremony*: Strict 100% enforcement of all 10 registered Tier 2 readiness stages, PR merge queue qualification, unmocked domain eval shield across all domains, testing gaps/mock reachability, and governance harmonization.
 
 ## 2. Fail-Closed Escalation Invariants
 

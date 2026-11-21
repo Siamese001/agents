@@ -52,7 +52,8 @@
         "6. Resume & Outreach Eval Harness & Promotion Gate",
         "7. Eval Construct Validity & Unmocked E2E Pinning",
         "8. Diff-Scoped Unmocked Domain Eval Shield",
-        "9. Governance Harmonization & SSOT Drift Audit"
+        "9. Governance Harmonization & SSOT Drift Audit",
+        "10. Testing Gaps, Handoff Contracts & Mock Reachability"
       ],
       "globs": [
         "agents/**",
@@ -83,13 +84,15 @@
         "6. Resume & Outreach Eval Harness & Promotion Gate",
         "7. Eval Construct Validity & Unmocked E2E Pinning",
         "8. Diff-Scoped Unmocked Domain Eval Shield",
-        "9. Governance Harmonization & SSOT Drift Audit"
+        "9. Governance Harmonization & SSOT Drift Audit",
+        "10. Testing Gaps, Handoff Contracts & Mock Reachability"
       ],
       "globs": [
         "AGENTS.md",
         ".agents/**",
         ".antigravity/**",
         ".githooks/**",
+        "automations/**",
         ".mcp.json",
         "config/governance/**",
         "config/model_catalog.json",
@@ -113,6 +116,8 @@
         "tools/audit_governance_harmonization.py",
         "tools/lint_no_jd_overfitting.py",
         "tools/ssot_boundary_auditor.py",
+        "tools/testing_gaps_auditor.py",
+        "tools/audit_mock_reachability.py",
         "tools/hitl_governance.py"
       ]
     }

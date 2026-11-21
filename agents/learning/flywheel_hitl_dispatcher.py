@@ -241,17 +241,17 @@ def build_atomic_remediation_question(
         opt1_pct, opt1_tier = (88 if holdout_verdict and holdout_verdict.verdict == "PASS" else 85), "HIGH"
         opt2_pct, opt2_tier = 35, "LOW"
         opt3_pct, opt3_tier = 20, "LOW"
-        impact_approve = "Applies fix in an isolated workspace, pins a check, and merges after tests pass."
-        impact_snooze = f"Pauses this issue for {snooze_days} days and leaves live behavior unchanged."
-        impact_reject = "Closes this finding and records that no change is wanted."
+        impact_approve = "Fixes in isolated workspace, pins check, and merges."
+        impact_snooze = f"Pauses for {snooze_days} days without changing live behavior."
+        impact_reject = "Closes finding with no code change."
     elif mode == "TIER_B":
         action_phrase = f"Apply {prio_label} prompt update in {area}"
         opt1_pct, opt1_tier = (88 if holdout_verdict and holdout_verdict.verdict == "PASS" else 85), "HIGH"
         opt2_pct, opt2_tier = 35, "LOW"
         opt3_pct, opt3_tier = 20, "LOW"
-        impact_approve = "Saves prompt update with canary monitoring and automatic rollback if quality drops."
-        impact_snooze = f"Pauses this prompt update for {snooze_days} days without changing live behavior."
-        impact_reject = "Declines this prompt update and archives the finding."
+        impact_approve = "Saves prompt update with canary check and rollback."
+        impact_snooze = f"Pauses for {snooze_days} days without changing live behavior."
+        impact_reject = "Declines prompt update and archives finding."
     else:
         action_phrase = f"Apply {prio_label} routing adjustment in {area}"
         opt1_pct = 72
@@ -260,9 +260,9 @@ def build_atomic_remediation_question(
         opt2_pct = max(54, min(68, round(opt1_pct - clamped_margin * 100)))
         opt2_tier = "MEDIUM"
         opt3_pct, opt3_tier = 25, "LOW"
-        impact_approve = "Applies bounded setting update with canary checks and automatic rollback."
-        impact_snooze = f"Pauses this borderline change for {snooze_days} days until more runs finish."
-        impact_reject = "Discards this adjustment and keeps the current setting unchanged."
+        impact_approve = "Applies bounded update with canary and rollback."
+        impact_snooze = f"Pauses for {snooze_days} days until more runs finish."
+        impact_reject = "Discards adjustment and keeps current setting."
 
     detail = f" covering {topic} seen {occ_phrase}" if topic else f" seen {occ_phrase}"
     raw_question = f"{prefix}{action_phrase}{detail}"
@@ -275,15 +275,15 @@ def build_atomic_remediation_question(
         question_text = f"{fallback_body}?"
 
     opt1 = _trim_to_word_limit(
-        f"(Recommended) Approve and fix now (Confidence: {opt1_tier} ({opt1_pct}%)). Impact: {impact_approve}",
+        f"(Recommended) {opt1_tier} {opt1_pct}%: Approve and fix now. Impact: {impact_approve}",
         MAX_OPTION_LENGTH,
     )
     opt2 = _trim_to_word_limit(
-        f"Snooze for {snooze_days} days (Confidence: {opt2_tier} ({opt2_pct}%)). Impact: {impact_snooze}",
+        f"{opt2_tier} {opt2_pct}%: Snooze for {snooze_days} days. Impact: {impact_snooze}",
         MAX_OPTION_LENGTH,
     )
     opt3 = _trim_to_word_limit(
-        f"Reject and archive (Confidence: {opt3_tier} ({opt3_pct}%)). Impact: {impact_reject}",
+        f"{opt3_tier} {opt3_pct}%: Reject and archive. Impact: {impact_reject}",
         MAX_OPTION_LENGTH,
     )
     options = [opt1, opt2, opt3]
