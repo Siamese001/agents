@@ -21,6 +21,8 @@ def refresh_root_spine_bundle_after_patch(
     artifact_dir: Path | str,
     *,
     x3_disposition: str = "X3D_ALLOW_FINISH",
+    blockers: list[str] | None = None,
+    decisive_reason: str | None = None,
 ) -> None:
     """Refresh root spine envelope artifacts after surgical lane recovery/patch."""
     from apps_rg.runtime.contracts.failure_aware_replan import emit_failure_aware_replan
@@ -82,26 +84,36 @@ def refresh_root_spine_bundle_after_patch(
         "fault": "",
         "l2_result": {"all_lanes_authorized": True, "decisive_status": "PASS", "final_resume_assembly": "PASS"},
     })
-    top_x3 = {
-        "status": "PASS",
-        "x3_disposition": x3_disposition,
-        "disposition": x3_disposition,
-        "proceed_to_runtime": True,
-        "decisive_reason": (
+    is_allow = str(x3_disposition or "").strip() == "X3D_ALLOW_FINISH"
+    x3_status = "PASS" if is_allow else "FAIL"
+    effective_blockers = [] if is_allow else [str(b) for b in (blockers or [f"whole_run_exit_blocked:{x3_disposition}"]) if str(b).strip()]
+    effective_decisive_reason = (
+        str(decisive_reason).strip()
+        if decisive_reason and str(decisive_reason).strip()
+        else (
             "WHOLE_RUN_ALLOW_FINISH: structural and final-release gates PASS, X1D PASS, "
             "all producer-owned lane X3 receipts are exact and consistent allow codes, "
             "and PA/C0 grounding checks are satisfied"
-        ),
-        "blockers": [],
-        "block_reasons": [],
+            if is_allow
+            else f"WHOLE_RUN_BLOCKED: {x3_disposition}"
+        )
+    )
+    top_x3 = {
+        "status": x3_status,
+        "x3_disposition": x3_disposition,
+        "disposition": x3_disposition,
+        "proceed_to_runtime": is_allow,
+        "decisive_reason": effective_decisive_reason,
+        "blockers": effective_blockers,
+        "block_reasons": list(effective_blockers),
     }
-    _write_env("terminal_ret_packet.json", {"run_id": run_id, "status": "PASS", "fault": "", "l2_fault": "", "x3_disposition": x3_disposition}, top_x3)
-    _write_env("exit_review_packet.json", {"run_id": run_id, "status": "PASS", "fault": "", "packet_kind": "exit_review_packet", "x3_disposition": x3_disposition}, top_x3)
-    _write_env("x3_disposition_receipt.json", {"run_id": run_id, "status": "PASS", "fault": "", "x3_disposition": x3_disposition}, top_x3)
+    _write_env("terminal_ret_packet.json", {"run_id": run_id, "status": x3_status, "fault": "" if is_allow else effective_decisive_reason, "l2_fault": "", "x3_disposition": x3_disposition}, top_x3)
+    _write_env("exit_review_packet.json", {"run_id": run_id, "status": x3_status, "fault": "" if is_allow else effective_decisive_reason, "packet_kind": "exit_review_packet", "x3_disposition": x3_disposition}, top_x3)
+    _write_env("x3_disposition_receipt.json", {"run_id": run_id, "status": x3_status, "fault": "" if is_allow else effective_decisive_reason, "x3_disposition": x3_disposition}, top_x3)
     _write_env("runtime_exhaust_bundle.json", {
         "run_id": run_id,
         "runtime_mode": "production",
-        "status": "PASS",
+        "status": x3_status,
         "l2_fault": "",
         "x3_disposition": x3_disposition,
         "no_bypass_assertions": ["u0_l1_l0_c0_pa_l2_x1_x2_x3_observed"],
@@ -173,15 +185,15 @@ def refresh_root_spine_bundle_after_patch(
         "schema_version": str(r4_manifest.get("schema_version") or "apps_rg.r4_run_manifest.v1"),
         "run_id": run_id,
         "correlation_id": root.name,
-        "status": "PASS",
-        "decisive_status": "PASS",
-        "all_lanes_authorized": True,
-        "outcome_authorized": True,
+        "status": x3_status,
+        "decisive_status": x3_status,
+        "all_lanes_authorized": is_allow,
+        "outcome_authorized": is_allow,
         "x3_disposition": x3_disposition,
-        "apps_rg_terminal_class": "success",
-        "apps_rg_product_outcome_authorized": True,
+        "apps_rg_terminal_class": "success" if is_allow else "error",
+        "apps_rg_product_outcome_authorized": is_allow,
         "apps_rg_generation_status": "REAL_RESUME",
-        "apps_rg_full_resume_generated": True,
+        "apps_rg_full_resume_generated": is_allow,
         "apps_rg_required_resume_artifacts": {"outputs/generated_resume.json": "verified", "outputs/resume.docx": "verified"},
     })
     atomic_write_json(r4_manifest_path, r4_manifest)
@@ -411,7 +423,22 @@ def close_patched_product_run(
         else str(whole_run_exit.get("x3_disposition") or "X3A_DENY_REROUTE")
     )
     if effective_x3 != _PRODUCT_SUCCESS_X3:
-        refresh_root_spine_bundle_after_patch(art, x3_disposition=effective_x3)
+        _blockers = (
+            list(exec_summary_block.get("blockers") or [])
+            if bool(exec_summary_block.get("blocked"))
+            else list(whole_run_exit.get("blockers") or [])
+        )
+        _reason = (
+            str(exec_summary_block.get("reason") or "")
+            if bool(exec_summary_block.get("blocked"))
+            else str(whole_run_exit.get("decisive_reason") or "")
+        )
+        refresh_root_spine_bundle_after_patch(
+            art,
+            x3_disposition=effective_x3,
+            blockers=_blockers or None,
+            decisive_reason=_reason or None,
+        )
         raise ProductE2EAuthorityError(f"whole-run exit blocked after patch: {effective_x3}")
 
     product_stage_ledger = _rewind_product_stage_ledger_to_l0(art, preflight_rebound=preflight_rebound)

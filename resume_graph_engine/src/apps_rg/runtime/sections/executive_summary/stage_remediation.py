@@ -210,13 +210,37 @@ def run_remediation_stage(
                     from apps_rg.runtime.sections.executive_summary_judge_regen_loop import (
                         sync_claim_ledger_metrics_from_facts,
                     )
+                    from apps_rg.runtime.sections.executive_summary_judge_remediation import (
+                        rerun_x2_after_judge_remediation,
+                    )
+                    from apps_rg.runtime.sections.executive_summary_voice_repair import (
+                        finalize_executive_summary_coherence,
+                    )
+                    from apps_rg.runtime.sections.section_authority_repairs import (
+                        apply_exec_summary_display_authority_repairs,
+                    )
                     from apps_rg.runtime.validators.executive_summary_sentence_utils import (
                         split_sentences,
                     )
 
-                    resume_display_text = repaired_text
+                    _vr_orig_text = resume_display_text
+                    _vr_orig_ledger = [dict(r) if isinstance(r, dict) else r for r in (claim_ledger or [])]
+                    _vr_orig_parsed = dict(parsed) if isinstance(parsed, dict) else parsed
+                    _vr_orig_parsed_for_x2 = (
+                        dict(parsed_for_x2) if isinstance(parsed_for_x2, dict) else parsed_for_x2
+                    )
+                    _vr_orig_x2 = list(x2)
+                    _vr_orig_coverage = ctx.get("coverage")
+                    _vr_orig_l2 = dict(ctx["l2_output"]) if isinstance(ctx.get("l2_output"), dict) else None
+
+                    _plan_facts_vr = list(
+                        (ctx.get("selected_fact_plan") or {}).get("facts")
+                        or selected_facts_for_x2
+                        or []
+                    )
+                    _vr_text = repaired_text
                     repaired_sents = [
-                        s for s in split_sentences(resume_display_text) if str(s).strip()
+                        s for s in split_sentences(_vr_text) if str(s).strip()
                     ]
                     cand_ledger = repaired_cand.get("claim_ledger")
                     if (
@@ -224,10 +248,10 @@ def run_remediation_stage(
                         and len(cand_ledger) == len(repaired_sents)
                         and all(isinstance(r, dict) for r in cand_ledger)
                     ):
-                        claim_ledger = [dict(r) for r in cand_ledger]
+                        _vr_ledger = [dict(r) for r in cand_ledger]
                     elif repaired_sents:
                         all_prior_ids: list[str] = []
-                        for row in claim_ledger or []:
+                        for row in _vr_orig_ledger:
                             if isinstance(row, dict):
                                 for fid in row.get("source_fact_ids") or []:
                                     s = str(fid).strip()
@@ -236,104 +260,203 @@ def run_remediation_stage(
                         synced_rows: list[dict[str, Any]] = []
                         for idx, sent in enumerate(repaired_sents):
                             base_row = (
-                                dict(claim_ledger[idx])
-                                if idx < len(claim_ledger or [])
-                                and isinstance(claim_ledger[idx], dict)
+                                dict(_vr_orig_ledger[idx])
+                                if idx < len(_vr_orig_ledger)
+                                and isinstance(_vr_orig_ledger[idx], dict)
                                 else {"source_fact_ids": list(all_prior_ids)}
                             )
                             base_row["claim_text"] = sent
                             base_row["claim"] = sent[:80]
                             synced_rows.append(base_row)
-                        claim_ledger = synced_rows
-                    if isinstance(parsed, dict):
-                        parsed["resume_display_text"] = resume_display_text
-                        parsed["claim_ledger"] = claim_ledger
-                        _plan_facts_vr = list(
-                            (ctx.get("selected_fact_plan") or {}).get("facts")
-                            or selected_facts_for_x2
-                            or []
+                        _vr_ledger = synced_rows
+                    else:
+                        _vr_ledger = list(_vr_orig_ledger)
+
+                    _vr_parsed = dict(_vr_orig_parsed) if isinstance(_vr_orig_parsed, dict) else _vr_orig_parsed
+                    if isinstance(_vr_parsed, dict):
+                        _vr_parsed["resume_display_text"] = _vr_text
+                        _vr_parsed["claim_ledger"] = _vr_ledger
+                        _vr_parsed = apply_exec_summary_display_authority_repairs(
+                            _vr_parsed,
+                            allowed_fact_ids=allowed_fact_ids,
+                            plan_facts=_plan_facts_vr,
+                            artifact_dir=artifact_dir,
+                            target_company=str(getattr(args, "target_company", "") or ""),
                         )
-                        parsed, _ = sync_claim_ledger_metrics_from_facts(
-                            parsed,
+                        _vr_parsed, _ = finalize_executive_summary_coherence(
+                            _vr_parsed,
+                            selected_facts=_plan_facts_vr,
+                            allowed_fact_ids=allowed_fact_ids,
+                            runtime_generation_status=str(runtime_generation_status or ""),
+                        )
+                        _vr_parsed, _ = sync_claim_ledger_metrics_from_facts(
+                            _vr_parsed,
                             plan_facts=_plan_facts_vr,
                             allowed_fact_ids=allowed_fact_ids,
                         )
-                        claim_ledger = list(parsed.get("claim_ledger") or claim_ledger)
+                        _vr_text = str(_vr_parsed.get("resume_display_text") or _vr_text)
+                        _vr_ledger = list(_vr_parsed.get("claim_ledger") or _vr_ledger)
+
                     _vr_coverage = build_sentence_claim_coverage(
-                        resume_display_text, claim_ledger, allowed_fact_ids
+                        _vr_text, _vr_ledger, allowed_fact_ids
                     )
-                    ctx["coverage"] = _vr_coverage
-                    ctx["claim_ledger"] = claim_ledger
-                    if isinstance(parsed, dict):
-                        parsed_for_x2 = enrich_parsed_for_x2(
-                            parsed,
+                    if isinstance(_vr_parsed, dict):
+                        _vr_parsed_for_x2 = enrich_parsed_for_x2(
+                            _vr_parsed,
                             coverage=_vr_coverage,
                             input_payload_hash=str(ctx.get("input_payload_hash") or ""),
                             allowed_fact_ids=allowed_fact_ids,
                             runtime_payload=runtime_payload,
                         )
-                    elif isinstance(parsed_for_x2, dict):
-                        parsed_for_x2["resume_display_text"] = resume_display_text
-                        parsed_for_x2["claim_ledger"] = claim_ledger
-                    _vr_l2 = ctx.get("l2_output")
-                    if isinstance(_vr_l2, dict):
-                        _vr_l2["resume_display_text"] = resume_display_text
-                        _vr_l2["claim_ledger"] = claim_ledger
-                        _vr_l2["text_claim_coverage"] = _vr_coverage
-                        _lane_attr("write_json", write_json)(artifact_dir / "l2_output.json", _vr_l2)
-                    _wg.write_text(
-                        artifact_dir / "resume_display_text.txt",
-                        resume_display_text + "\n",
-                        encoding="utf-8",
-                    )
-                    _lane_attr("write_json", write_json)(artifact_dir / "claim_ledger.json", claim_ledger)
-                    _lane_attr("write_json", write_json)(
-                        artifact_dir / "text_claim_coverage.json", _vr_coverage
-                    )
-                    write_synced_canonical_claim_ledger_v2(
-                        artifact_dir=artifact_dir,
-                        claim_ledger=claim_ledger,
-                        parse_status=str(ctx.get("parse_status") or "OK"),
-                        invalid_reason=ctx.get("invalid_reason"),
-                        normalize_ledger_fn=normalize_exec_summary_claim_ledger,
-                        build_payload_fn=build_canonical_claim_ledger_v2_payload,
-                        write_json_fn=_lane_attr("write_json", write_json),
-                    )
-                    _vr_binding_gate = build_pre_x2_resume_graph_claim_binding_gate(
-                        section_id="executive_summary",
-                        claim_rows=claim_ledger,
-                        selected_fact_plan=ctx.get("selected_fact_plan") or {},
-                    )
-                    if _vr_binding_gate is not None:
-                        x2 = [
-                            gate
-                            for gate in x2
-                            if str(gate.get("gate_id") or "") != GRAPH_CLAIM_BINDING_GATE_ID
+                    elif isinstance(_vr_orig_parsed_for_x2, dict):
+                        _vr_parsed_for_x2 = dict(_vr_orig_parsed_for_x2)
+                        _vr_parsed_for_x2["resume_display_text"] = _vr_text
+                        _vr_parsed_for_x2["claim_ledger"] = _vr_ledger
+                    else:
+                        _vr_parsed_for_x2 = _vr_orig_parsed_for_x2
+
+                    def _persist_vr_artifacts(
+                        text_val: str,
+                        ledger_val: list[dict[str, Any]],
+                        cov_val: Any,
+                        l2_base: dict[str, Any] | None,
+                    ) -> None:
+                        if isinstance(l2_base, dict):
+                            l2_doc = dict(l2_base)
+                            l2_doc["resume_display_text"] = text_val
+                            l2_doc["claim_ledger"] = ledger_val
+                            l2_doc["text_claim_coverage"] = cov_val
+                            ctx["l2_output"] = l2_doc
+                            _lane_attr("write_json", write_json)(artifact_dir / "l2_output.json", l2_doc)
+                        _wg.write_text(
+                            artifact_dir / "resume_display_text.txt",
+                            text_val + "\n",
+                            encoding="utf-8",
+                        )
+                        _lane_attr("write_json", write_json)(artifact_dir / "claim_ledger.json", ledger_val)
+                        _lane_attr("write_json", write_json)(
+                            artifact_dir / "text_claim_coverage.json", cov_val
+                        )
+                        write_synced_canonical_claim_ledger_v2(
+                            artifact_dir=artifact_dir,
+                            claim_ledger=ledger_val,
+                            parse_status=str(ctx.get("parse_status") or "OK"),
+                            invalid_reason=ctx.get("invalid_reason"),
+                            normalize_ledger_fn=normalize_exec_summary_claim_ledger,
+                            build_payload_fn=build_canonical_claim_ledger_v2_payload,
+                            write_json_fn=_lane_attr("write_json", write_json),
+                        )
+
+                    _persist_vr_artifacts(_vr_text, _vr_ledger, _vr_coverage, _vr_orig_l2)
+
+                    _vr_x2_ok = True
+                    _vr_det_failed_ids: list[str] = []
+                    _vr_new_x2: list[dict[str, Any]] | None = None
+                    _vr_pool = ctx.get("pool")
+                    if _vr_pool is not None and ctx.get("selected_fact_plan") is not None:
+                        _vr_x2_full = rerun_x2_after_judge_remediation(
+                            resume_display_text=_vr_text,
+                            parsed_for_x2=_vr_parsed_for_x2,
+                            claim_ledger=_vr_ledger,
+                            text_claim_coverage=_vr_coverage,
+                            allowed_fact_ids=allowed_fact_ids,
+                            args=args,
+                            jd_text=_judge_jd,
+                            temperature=float(ctx.get("temperature") or 0.0),
+                            runtime_generation_status=runtime_generation_status,
+                            artifact_dir=artifact_dir,
+                            model_name=str(ctx.get("model_name") or ""),
+                            prompt_hash=str(ctx.get("prompt_hash") or ""),
+                            compiled_prompt=compiled_prompt,
+                            raw_output=raw_output,
+                            selected_facts=selected_facts_for_x2,
+                            selected_fact_plan=ctx["selected_fact_plan"],
+                            x1d_judges=x1d,
+                            proof_pool_metadata=ctx.get("pp_x2") if ctx.get("proof_pool_x2_active") else None,
+                            proof_pool_ref=str(getattr(_vr_pool, "proof_pool_ref", "") or ""),
+                            proof_pool_digest=str(getattr(_vr_pool, "proof_pool_digest", "") or ""),
+                        )
+                        _vr_det_x2 = [
+                            g
+                            for g in _vr_x2_full
+                            if not str(g.get("gate_id") or "").startswith("x2_x1d_")
                         ]
-                        x2.append(_vr_binding_gate)
-                    x1d, _x1d_refresh_receipt = refresh_x1d_judges_after_full_x2(
-                        x2_gates=x2,
-                        resume_display_text=resume_display_text,
-                        claim_ledger=claim_ledger,
-                        allowed_fact_packet=selected_facts_for_x2,
-                        allowed_fact_ids=allowed_fact_ids,
-                        target_title=_lane_attr("_args_target_title", _args_target_title)(args),
-                        target_company=str(args.target_company),
-                        jd_text=_judge_jd,
-                        briefing_text=_judge_briefing,
-                        parsed_output=parsed_for_x2,
-                        judge_keys=judge_keys,
-                        judge_mode=judge_mode,
-                        artifact_dir=artifact_dir,
-                        compiled_prompt=compiled_prompt,
-                        prior_judges=[],
-                        graph_targeting_capsule=_gtc_lane_dict,
-                        material_targeting_bundle=_bundle_mat.to_dict()
-                        if hasattr(_bundle_mat, "to_dict")
-                        else runtime_payload.get("material_targeting_bundle"),
-                        graph_bindings=_graph_bindings_lane,
-                        repo_root=REPO_ROOT,
-                    )
+                        _vr_det_failed_ids = [
+                            str(g.get("gate_id") or "")
+                            for g in _vr_det_x2
+                            if not g.get("pass")
+                        ]
+                        if _vr_det_failed_ids:
+                            _vr_x2_ok = False
+                        else:
+                            _vr_new_x2 = _vr_det_x2
+                    else:
+                        _vr_binding_gate = build_pre_x2_resume_graph_claim_binding_gate(
+                            section_id="executive_summary",
+                            claim_rows=_vr_ledger,
+                            selected_fact_plan=ctx.get("selected_fact_plan") or {},
+                        )
+                        if _vr_binding_gate is not None:
+                            if not _vr_binding_gate.get("pass"):
+                                _vr_x2_ok = False
+                                _vr_det_failed_ids = [GRAPH_CLAIM_BINDING_GATE_ID]
+                            else:
+                                _vr_new_x2 = [
+                                    gate
+                                    for gate in _vr_orig_x2
+                                    if str(gate.get("gate_id") or "") != GRAPH_CLAIM_BINDING_GATE_ID
+                                ] + [_vr_binding_gate]
+
+                    if not _vr_x2_ok:
+                        resume_display_text = _vr_orig_text
+                        claim_ledger = _vr_orig_ledger
+                        parsed = _vr_orig_parsed
+                        parsed_for_x2 = _vr_orig_parsed_for_x2
+                        x2 = _vr_orig_x2
+                        ctx["coverage"] = _vr_orig_coverage
+                        ctx["claim_ledger"] = claim_ledger
+                        _persist_vr_artifacts(
+                            _vr_orig_text, _vr_orig_ledger, _vr_orig_coverage, _vr_orig_l2
+                        )
+                        if isinstance(_x1d_refresh_receipt, dict):
+                            _x1d_refresh_receipt = {
+                                **_x1d_refresh_receipt,
+                                "voice_repair_rejected_x2_failed_gates": _vr_det_failed_ids,
+                            }
+                    else:
+                        resume_display_text = _vr_text
+                        claim_ledger = _vr_ledger
+                        parsed = _vr_parsed
+                        parsed_for_x2 = _vr_parsed_for_x2
+                        if _vr_new_x2 is not None:
+                            x2 = _vr_new_x2
+                        ctx["coverage"] = _vr_coverage
+                        ctx["claim_ledger"] = claim_ledger
+                        x1d, _x1d_refresh_receipt = refresh_x1d_judges_after_full_x2(
+                            x2_gates=x2,
+                            resume_display_text=resume_display_text,
+                            claim_ledger=claim_ledger,
+                            allowed_fact_packet=selected_facts_for_x2,
+                            allowed_fact_ids=allowed_fact_ids,
+                            target_title=_lane_attr("_args_target_title", _args_target_title)(args),
+                            target_company=str(args.target_company),
+                            jd_text=_judge_jd,
+                            briefing_text=_judge_briefing,
+                            parsed_output=parsed_for_x2,
+                            judge_keys=judge_keys,
+                            judge_mode=judge_mode,
+                            artifact_dir=artifact_dir,
+                            compiled_prompt=compiled_prompt,
+                            prior_judges=[],
+                            graph_targeting_capsule=_gtc_lane_dict,
+                            material_targeting_bundle=_bundle_mat.to_dict()
+                            if hasattr(_bundle_mat, "to_dict")
+                            else runtime_payload.get("material_targeting_bundle"),
+                            graph_bindings=_graph_bindings_lane,
+                            repo_root=REPO_ROOT,
+                        )
+                        _judged_display_sha = _display_text_sha256(resume_display_text)
+                        ctx["_x1d_judged_display_sha256"] = _judged_display_sha
         from apps_rg.runtime.sections.executive_summary_repair_policy import (
             judge_regeneration_enabled,
         )

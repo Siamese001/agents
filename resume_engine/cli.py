@@ -98,6 +98,12 @@ def _build_parser(prog: str = "python -m resume_engine") -> argparse.ArgumentPar
         default=True,
         help="Record read-only evaluation observation into the EvalFlywheelEngine (default: true).",
     )
+    eval_parser.add_argument(
+        "--json",
+        action="store_true",
+        default=False,
+        help="Emit pure structured JSON evaluation output.",
+    )
 
     # 3. show
     show_parser = subparsers.add_parser(
@@ -304,7 +310,10 @@ def main(argv: list[str] | None = None, prog: str | None = None) -> int:
         run_path = Path(args.run_dir).expanduser().resolve()
         report = _evaluate_product_run(run_path)
         report["run_dir"] = str(run_path)
-        _print_evaluation(report)
+        if getattr(args, "json", False):
+            print(json.dumps(report, indent=2, sort_keys=True))
+        else:
+            _print_evaluation(report)
         if getattr(args, "record_flywheel", True) and "pytest" not in sys.modules and not os.environ.get("PYTEST_CURRENT_TEST"):
             try:
                 from agents.observability.eval_flywheel import EvalFlywheelEngine

@@ -227,6 +227,10 @@ def call_ide_cli_generation(
         stepped_slug = cli_slug[:-5] + f"-{effort}"
         if stepped_slug in ide_cli_generation_models():
             cli_slug = stepped_slug
+    elif effort == "low" and cli_slug.endswith("-medium"):
+        stepped_slug = cli_slug[:-7] + "-low"
+        if stepped_slug in ide_cli_generation_models():
+            cli_slug = stepped_slug
     prompt = build_ide_cli_generation_prompt(
         system=body.get("system"),
         messages=body.get("messages"),
