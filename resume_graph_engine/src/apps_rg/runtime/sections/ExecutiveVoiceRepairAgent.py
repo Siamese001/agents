@@ -306,6 +306,30 @@ def _call_llm_repair(
     )
 
     is_openai_auditor = str(model).startswith("gpt-") or model == DEFAULT_AUDITOR_MODEL
+    if is_openai_auditor:
+        from apps_rg.runtime.judges.x1d_ide_cli import (
+            ide_cli_unavailable_reason,
+            second_judge_model,
+            uses_ide_cli_judges,
+        )
+
+        if uses_ide_cli_judges(os.environ) and not ide_cli_unavailable_reason(os.environ):
+            try:
+                from apps_rg.runtime.providers.agy_cli_transport import run_agy
+
+                auditor_ide_slug, _ = second_judge_model(section_id)
+                cli_res = run_agy(
+                    f"{prompt}\n\nReturn ONLY valid JSON with no markdown fences and no tool calls.",
+                    model=auditor_ide_slug,
+                    timeout_s=120,
+                )
+                clean = str(cli_res.response or "").strip()
+                if clean.startswith("```"):
+                    clean = re.sub(r"^```(?:json)?\s*", "", clean)
+                    clean = re.sub(r"\s*```$", "", clean)
+                return json.loads(clean)
+            except Exception:  # guardian: allow-broad-exception -- optional voice repair auditor returns None on CLI or parse failure
+                return None
     if not is_openai_auditor and uses_ide_cli_generation(os.environ, model=model):
         if ide_cli_generation_unavailable_reason(os.environ):
             return None
@@ -326,7 +350,7 @@ def _call_llm_repair(
         except Exception:  # guardian: allow-broad-exception -- optional voice repair returns None on CLI or parse failure
             return None
     api_key = (
-        (os.environ.get("OPENAI_API_KEY") or os.environ.get("ANTHROPIC_API_KEY"))
+        os.environ.get("OPENAI_API_KEY")
         if is_openai_auditor
         else os.environ.get("ANTHROPIC_API_KEY")
     )
@@ -470,12 +494,18 @@ def repair_section_with_executive_voice_agent(
         comps = candidate_data.get("competencies") or []
         original_snippet = f"{len(comps)} categories"
 
+    from apps_rg.runtime.providers.ide_cli_generation import (
+        ide_cli_generation_unavailable_reason,
+        uses_ide_cli_generation,
+    )
+
     is_test = bool(os.environ.get("PYTEST_CURRENT_TEST")) or ("pytest" in sys.modules) or (os.environ.get("APPS_RG_TEST_HARNESS") == "1")
-    is_live_key_present = bool(os.environ.get("ANTHROPIC_API_KEY"))
+    is_ide_cli_ready = uses_ide_cli_generation(os.environ, model=DEFAULT_REPAIR_MODEL) and not ide_cli_generation_unavailable_reason(os.environ)
+    is_live_key_present = bool(os.environ.get("ANTHROPIC_API_KEY")) or is_ide_cli_ready
 
     if not mock_mode and not is_live_key_present and not is_test:
         raise RuntimeError(
-            f"LIVE_REPAIR_KEY_REQUIRED: ANTHROPIC_API_KEY is not configured for ExecutiveVoiceRepairAgent on '{sec}'. "
+            f"LIVE_REPAIR_KEY_REQUIRED: ANTHROPIC_API_KEY is not configured (and IDE CLI transport is unavailable) for ExecutiveVoiceRepairAgent on '{sec}'. "
             "Silent mock degradation is strictly forbidden in production runtime."
         )
 

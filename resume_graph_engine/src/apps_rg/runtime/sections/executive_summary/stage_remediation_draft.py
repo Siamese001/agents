@@ -102,6 +102,8 @@ def process_remediation_draft(ctx: dict[str, Any]) -> str | None:
     _last_regen_candidate = ctx["_last_regen_candidate"]
     _regen_attempt_parsed_snapshot = ctx["_regen_attempt_parsed_snapshot"]
     _reject_gate = None
+    x2_regen: list[dict[str, Any]] = []
+    _x2_failed: list[dict[str, Any]] = []
 
     def _sync_ctx() -> None:
         ctx.update({
@@ -122,8 +124,8 @@ def process_remediation_draft(ctx: dict[str, Any]) -> str | None:
             "_regen_attempt_parsed_snapshot": _regen_attempt_parsed_snapshot,
             "parsed_regen": parsed_regen,
             "_reject_gate": _reject_gate,
-            "x2_regen": locals().get("x2_regen", []),
-            "_x2_failed": locals().get("_x2_failed", []),
+            "x2_regen": x2_regen,
+            "_x2_failed": _x2_failed,
         })
 
     from apps_rg.runtime.section_repair_ledger import (

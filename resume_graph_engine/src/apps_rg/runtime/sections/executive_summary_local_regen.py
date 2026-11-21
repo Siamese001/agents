@@ -167,6 +167,16 @@ class SameAuthorityRegenRunner:
         actual_prefix_hash = compute_system_prefix_hash(contract.prompt_messages.system_text())
         delta_tokens = _delta_token_count(contract.delta_lines)
         refusal: RegenRefusal | None = None
+        max_delta_lines = (
+            contract.max_delta_lines
+            if contract.max_delta_lines > 0
+            else DEFAULT_MAX_DELTA_LINES
+        )
+        max_delta_tokens = (
+            contract.max_delta_tokens
+            if contract.max_delta_tokens > 0
+            else DEFAULT_MAX_DELTA_TOKENS
+        )
         if actual_prefix_hash != contract.expected_system_prefix_hash:
             refusal = RegenRefusal("SYSTEM_PREFIX_HASH_MISMATCH", "frozen system prefix changed")
         elif not contract.anchor_output_text:
@@ -175,9 +185,9 @@ class SameAuthorityRegenRunner:
             refusal = RegenRefusal("ANCHOR_HASH_MISMATCH", "anchor output does not match its contract hash")
         elif contract.semantic_regen_attempt_index > contract.max_semantic_regen_attempts:
             refusal = RegenRefusal("SEMANTIC_ATTEMPT_EXHAUSTED", "semantic regeneration attempt budget exhausted")
-        elif len(contract.delta_lines) > min(contract.max_delta_lines, DEFAULT_MAX_DELTA_LINES):
+        elif len(contract.delta_lines) > max_delta_lines:
             refusal = RegenRefusal("DELTA_LINE_LIMIT_EXCEEDED", "repair delta exceeds its line budget")
-        elif delta_tokens > min(contract.max_delta_tokens, DEFAULT_MAX_DELTA_TOKENS):
+        elif delta_tokens > max_delta_tokens:
             refusal = RegenRefusal("DELTA_TOKEN_LIMIT_EXCEEDED", "repair delta exceeds its token budget")
 
         if refusal is not None:
