@@ -1044,3 +1044,40 @@ def test_rc1_generation_steps_down_medium_slug_when_effort_is_low(
         agy_bin="/fake/agy",
     )
     assert captured["model"] == low_slug
+
+
+def test_recovery_agent_temperature_respects_all_section_recipe_bounds(tmp_path: Path) -> None:
+    from apps_rg.runtime.orchestration.ResumeRunRecoveryAgent import ResumeRunRecoveryAgent
+    from apps_rg.runtime.sections.executive_summary.lane_constants import EXEC_SUMMARY_TEMP_RANGE
+    from apps_rg.runtime.sections.ibm_bullets.lane_constants import IBM_TEMP_RANGE
+    from apps_rg.runtime.sections.ibm_narrative_lane import IBM_NARRATIVE_TEMP_RANGE
+    from apps_rg.runtime.sections.unify_bullets.lane_constants import UNIFY_TEMP_RANGE
+    from apps_rg.runtime.sections.unify_narrative_lane import NARRATIVE_TEMP_RANGE
+
+    bounds = {
+        "executive_summary": EXEC_SUMMARY_TEMP_RANGE,
+        "ibm_bullets": IBM_TEMP_RANGE,
+        "ibm_narrative": IBM_NARRATIVE_TEMP_RANGE,
+        "unify_bullets": UNIFY_TEMP_RANGE,
+        "unify_narrative": NARRATIVE_TEMP_RANGE,
+    }
+    agent = ResumeRunRecoveryAgent(artifact_dir=tmp_path)
+    for diag_msg in ("Non-authorizing X3 disposition (X3A_DENY_REROUTE)", "Failed X2 deterministic gate (1 violations)"):
+        plan = agent._call_strategy_re_planner(
+            {"failing_lanes_diagnostics": {lane: diag_msg for lane in bounds}}
+        )
+        for lane, (lo, hi) in bounds.items():
+            temp = plan["lane_overrides"][lane]["temperature"]
+            assert lo <= temp <= hi, f"{lane} recovery temp {temp} outside [{lo}, {hi}]"
+
+
+def test_section_dispatch_timeouts_support_exec_summary_regen(monkeypatch: pytest.MonkeyPatch) -> None:
+    from apps_rg.runtime.providers.wallclock_http_guard import (
+        resolve_section_lane_timeout_s,
+        resolve_section_run_timeout_s,
+    )
+
+    monkeypatch.delenv("APPS_RG_SECTION_LANE_TIMEOUT_SECONDS", raising=False)
+    monkeypatch.delenv("APPS_RG_SECTION_RUN_TIMEOUT_SECONDS", raising=False)
+    assert resolve_section_lane_timeout_s() >= 600.0
+    assert resolve_section_run_timeout_s() >= 1200.0

@@ -317,8 +317,8 @@ runtime_limits:
     timeout_seconds: 90
     total_budget_seconds: 150
   section_dispatch:
-    lane_timeout_seconds: 300
-    run_timeout_seconds: 900
+    lane_timeout_seconds: 600
+    run_timeout_seconds: 1200
   # W1 external-model spend guard.  This is a conservative reservation of
 
   # estimated input plus requested maximum output, not a truncation policy.
