@@ -309,7 +309,15 @@ def ibm_narrative_material_fact_ids_for_sentence(
             # unsupported_companion_theme marker after the IBM allocation
             # moved alliance execution from the legacy static slot.
             normalized_family_phrases = {normalized_phrase}
-            if fid == "bul_ibm_005" and normalized_phrase in {
+            if fid == "bul_ibm_001" and normalized_phrase == "enterprise scale":
+                normalized_family_phrases = {
+                    "enterprise scale",
+                    "regulated financial",
+                    "financial services",
+                    "financial institutions",
+                    "regulated banking",
+                }
+            elif fid == "bul_ibm_005" and normalized_phrase in {
                 "partnership",
                 "alliance",
             }:

@@ -575,6 +575,9 @@ def _sanitize_regen_unsupported_companion_theme_phrases(
     repaired = narrative
     if "unsupported_companion_theme:regulated_financial" in before:
         repaired = re.sub(r"\bregulated(?=[\s-]+financial\b)", "", repaired, flags=re.IGNORECASE)
+    if "unsupported_companion_theme:enterprise_scale" in before:
+        repaired = re.sub(r"\s+at\s+enterprise[\s-]+scale\b", "", repaired, flags=re.IGNORECASE)
+        repaired = re.sub(r"\benterprise[\s-]+scale\s+", "enterprise ", repaired, flags=re.IGNORECASE)
     if "unsupported_companion_theme:hyperscaler" in before and "aws" in companion_text.lower():
         repaired = re.sub(r"\bhyperscalers?\b", "AWS", repaired, flags=re.IGNORECASE)
     if before.intersection({"unsupported_companion_theme:ecosystem", "unsupported_companion_theme:ecosystems"}):
