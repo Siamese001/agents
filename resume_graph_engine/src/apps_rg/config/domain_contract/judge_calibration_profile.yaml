@@ -37,9 +37,9 @@ ide_cli_panel_baseline:
   slot_1_enhanced_model: "gemini-4-argon-high"
   slot_1_standard_model: "gemini-4-argon-medium"
   slot_2_by_writer_maker:
-    anthropic: "gemini-3.8-flash-high"
-    openai: "gemini-4-neon-high"
-    google: "gemini-3.8-flash-high"
+    anthropic: "gemini-3.8-flash-medium"
+    openai: "gemini-4-neon-medium"
+    google: "gemini-3.8-flash-medium"
   pilot_thresholds:
     negative_control_catch_rate_min: 1.00
     historical_verdict_agreement_min: 0.95

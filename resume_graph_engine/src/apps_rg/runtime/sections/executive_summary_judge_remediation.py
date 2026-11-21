@@ -103,7 +103,7 @@ def _is_model_backed_soft_fail(judge: dict[str, Any]) -> bool:
     if judge.get("evaluator_mode") != "MODEL_BACKED":
         return False
     if judge.get("decisive_failure"):
-        return False
+        return True
     if judge.get("provider_status") == "MODEL_BACKED_FAIL":
         return True
     if judge.get("pass") is False:
@@ -297,7 +297,7 @@ def _flatten_delta_sections(
             packed.extend(by_section[section_key])
         return packed
 
-    protected_keys = ("dimension", "floors", "guards")
+    protected_keys = ("incremental", "dimension", "floors", "guards")
     protected_count = sum(len(by_section[key]) for key in protected_keys)
     feedback = list(by_section.get("judge_feedback") or [])
     budget_for_feedback = max(0, int(max_lines) - protected_count)
@@ -1706,11 +1706,30 @@ def rescore_judges_after_regen(
                 "improved": delta_ns is not None and delta_ns > 0,
             },
         )
+    out_by_key = {
+        str(j.get("provider_key") or ""): j
+        for j in _normalize_judge_list(out)
+        if j.get("provider_key")
+    }
+    out_hashes = {
+        str(out_by_key[k].get("judge_packet_hash") or out_by_key[k].get("input_hash") or "").strip()
+        for k in judge_keys
+        if k in out_by_key
+    } - {""}
+    full_panel_rescored = bool(judge_keys) and (
+        set(judge_keys) <= soft_keys
+        or (all(k in out_by_key for k in judge_keys) and len(out_hashes) == 1)
+    )
+    effective_rescore_mode = (
+        POST_REGEN_JUDGE_RESCORE_FULL_PANEL
+        if full_panel_rescored
+        else POST_REGEN_JUDGE_RESCORE_SOFT_ONLY
+    )
     return out, {
         "schema": "executive_summary_post_regen_judge_rescore_v1",
-        "rescore_mode": POST_REGEN_JUDGE_RESCORE_SOFT_ONLY,
+        "rescore_mode": effective_rescore_mode,
         "soft_failed_provider_keys": sorted(soft_keys),
-        "judges_rescored_count": len(soft_keys),
+        "judges_rescored_count": len(judge_keys) if full_panel_rescored else len(soft_keys),
         "scores_before": scores_before,
         "scores_after": scores_after,
         "score_deltas": deltas,

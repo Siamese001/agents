@@ -116,7 +116,7 @@ def _expand_short_exec_summary_sentence(sentence: str) -> str:
     terminal = "." if text.endswith(".") else ""
     core = text[:-1].rstrip() if terminal else text
     lower = core.lower()
-    if "regulated enterprises" in lower:
+    if "regulated enterprises" in lower and "operating models" not in lower:
         return re.sub(
             r"regulated enterprises\b",
             "regulated enterprise operating models",
@@ -124,7 +124,12 @@ def _expand_short_exec_summary_sentence(sentence: str) -> str:
             count=1,
             flags=re.IGNORECASE,
         ).rstrip() + "."
-    if " enterprise adoption" in lower or lower.startswith("enterprise adoption"):
+    if (
+        (" enterprise adoption" in lower or lower.startswith("enterprise adoption"))
+        and "across " not in lower
+        and "production" not in lower
+        and "environments" not in lower
+    ):
         return re.sub(
             r"enterprise adoption\b",
             "enterprise adoption across production environments",
@@ -132,9 +137,10 @@ def _expand_short_exec_summary_sentence(sentence: str) -> str:
             count=1,
             flags=re.IGNORECASE,
         ).rstrip() + "."
-    if "across enterprise production environments" in lower:
-        return f"{core} to scale governed enterprise delivery."
-    return f"{core} across enterprise production environments."
+    # Do not blindly append generic boilerplate tails onto clean LLM prose;
+    # doing so creates duplicate-preposition stutters (e.g., "across regulated
+    # enterprise workloads across enterprise production environments.").
+    return text
 
 
 def repair_exec_summary_thin_sentence_weave(parsed: dict[str, Any]) -> list[dict[str, Any]]:

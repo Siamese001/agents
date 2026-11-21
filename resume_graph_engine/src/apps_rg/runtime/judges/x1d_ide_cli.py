@@ -189,6 +189,7 @@ def call_ide_cli_judge(
             "conversation_id": res.conversation_id,
             "usage": res.usage,
             "duration_seconds": res.duration_seconds,
+            "queue_wait_seconds": res.queue_wait_seconds,
             "response": res.response,
             "structured_output": res.structured_output,
         },

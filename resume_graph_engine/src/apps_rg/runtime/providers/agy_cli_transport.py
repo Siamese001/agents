@@ -31,14 +31,14 @@ from typing import Any, Iterator
 
 AGY_CLI_ENV_VAR = "AGY_CLI_BIN"
 AGY_MAX_CONCURRENCY_ENV_VAR = "AGY_CLI_MAX_CONCURRENCY"
-DEFAULT_AGY_MAX_CONCURRENCY = 2
+DEFAULT_AGY_MAX_CONCURRENCY = 6
 _CONCURRENCY_LOCK = threading.Lock()
 _CONCURRENCY_LIMIT = DEFAULT_AGY_MAX_CONCURRENCY
 _CLI_CONCURRENCY_SEMAPHORE = threading.BoundedSemaphore(DEFAULT_AGY_MAX_CONCURRENCY)
 
 
 def resolve_agy_max_concurrency(explicit: int | None = None) -> int:
-    """Resolve active concurrency cap for headless `agy -p` calls (env > explicit > default=2)."""
+    """Resolve active concurrency cap for headless `agy -p` calls (explicit > env > default=6)."""
     if explicit is not None:
         return max(1, int(explicit))
     raw = str(os.environ.get(AGY_MAX_CONCURRENCY_ENV_VAR) or "").strip()

@@ -227,9 +227,9 @@ ide_cli_judging:
   # Slot one keeps the judge_models Argon pin for provider key gemini_pro. Slot two (provider key openai_chatgpt)
   # resolves to a distinct IDE model pin that never equals the lane's writer or Slot one's Argon pin.
   second_judge_by_writer_maker:
-    anthropic: gemini-3.8-flash-high
-    openai: gemini-4-neon-high
-    google: gemini-3.8-flash-high
+    anthropic: gemini-3.8-flash-medium
+    openai: gemini-4-neon-medium
+    google: gemini-3.8-flash-medium
 
 ide_cli_generation:
   transport: ide_cli
@@ -242,7 +242,7 @@ ide_cli_generation:
     - gemini-4-neon-high
     - gemini-4-neon-medium
   model_map:
-    claude-sonnet-5-5-high: gemini-4-neon-high
+    claude-sonnet-5-5-high: gemini-4-neon-medium
     claude-sonnet-5-5-medium: gemini-4-neon-medium
 
 judge_model_governance:

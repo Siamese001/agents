@@ -219,15 +219,19 @@ def call_ide_cli_generation(
     if not requested_model:
         raise ProviderGatewayError("IDE CLI generation requires a non-empty model slug")
     cli_slug = resolve_ide_cli_generation_slug(requested_model)
+    effort_raw = str(request.get("reasoning_effort") or "").strip().lower()
+    effort = effort_raw if effort_raw in {"low", "medium", "high", "xhigh"} else None
     if downgrade_high_effort and cli_slug.endswith("-high"):
         cli_slug = cli_slug[:-5] + "-medium"
+    elif effort in {"low", "medium"} and cli_slug.endswith("-high"):
+        stepped_slug = cli_slug[:-5] + f"-{effort}"
+        if stepped_slug in ide_cli_generation_models():
+            cli_slug = stepped_slug
     prompt = build_ide_cli_generation_prompt(
         system=body.get("system"),
         messages=body.get("messages"),
         fallback_prompt=str(request.get("prompt") or ""),
     )
-    effort_raw = str(request.get("reasoning_effort") or "").strip().lower()
-    effort = effort_raw if effort_raw in {"low", "medium", "high", "xhigh"} else None
     resolved_bin = _resolved_agy_bin(environ, agy_bin)
     effective_timeout = _resolved_timeout_s(timeout_s, environ)
 
@@ -287,6 +291,7 @@ def call_ide_cli_generation(
         "stream": False,
         "transport": "ide_cli",
         "cli_duration_seconds": res.duration_seconds,
+        "queue_wait_seconds": res.queue_wait_seconds,
     }
     if progress is not None:
         progress.update(

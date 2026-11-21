@@ -29,6 +29,7 @@ def evaluate_remediation_draft_post_x2(ctx: dict[str, Any]) -> str | None:
         set_authoritative_attempt,
     )
     from apps_rg.runtime.sections.executive_summary_candidate_pool import (
+        SCORES_FRESHNESS_FULL_PANEL,
         SCORES_FRESHNESS_SOFT_FAILED_ONLY,
         freeze_candidate_snapshot,
     )
@@ -244,6 +245,12 @@ def evaluate_remediation_draft_post_x2(ctx: dict[str, Any]) -> str | None:
         _cycle_record["publish_eligible"] = True
         _cycle_record["g3_passed"] = True
         _cycle_record["reject_gate"] = None
+        _regen_scores_freshness = (
+            SCORES_FRESHNESS_FULL_PANEL
+            if _post_regen_x1d_receipt.get("rescore_mode") == "full_panel"
+            and len(x1d) >= len(judge_keys)
+            else SCORES_FRESHNESS_SOFT_FAILED_ONLY
+        )
         _regen_snap = freeze_candidate_snapshot(
             candidate_id=f"regen_cycle_{_cycle_idx + 1}",
             raw_output=raw_output or "",
@@ -264,7 +271,7 @@ def evaluate_remediation_draft_post_x2(ctx: dict[str, Any]) -> str | None:
                     artifact_dir / f"provider_response_regen_{_cycle_idx + 1}.json"
                 ),
             },
-            scores_freshness=SCORES_FRESHNESS_SOFT_FAILED_ONLY,
+            scores_freshness=_regen_scores_freshness,
             publish_eligible=True,
         )
         _cycle_record["candidate_digest"] = _regen_snap.candidate_digest
