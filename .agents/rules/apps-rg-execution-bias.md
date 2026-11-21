@@ -3,6 +3,6 @@ trigger: glob
 globs: "resume_graph_engine/**"
 ---
 
-# apps_rg Execution Bias — stub
+# apps_rg Execution & Multi-JD Generalization Contract
 
-> On-demand under `apps_rg`. Default mode EXECUTION. North star: AIG resume 11/11 `X3_ALLOW` + assembled DOCX. Any tactical or systemic bug discovered in `apps_rg` or its upstream/downstream contracts is fixed immediately at its root cause with zero file-count, wave-count, or `WIP=1` restrictions (including parallel `/boost` and `/swarm` execution). Cohesive package decomposition (cohesive submodules behind a facade) and shared domain contracts tracing coupled upstream/downstream spine dependencies (`INV-HOLISTIC-PIPELINE-PLANNING`) are explicitly authorized with unbounded full-ripple inspection and edit scope (distinguishing cohesive refactoring and root-cause bug fixes from unrelated cosmetic drift). Detail: `resume_graph_engine/src/apps_rg/AGENTS.md`.
+> On-demand under `apps_rg`. North star: verified, human-authentic resumes generalizing across the standing 6-JD multi-industry benchmark (banking, AI lab, insurance, enterprise software, asset management) with zero fabricated candidate facts and zero post-LLM prose mutators. Never overfit global structure, sentence bands, or employer slot locks to a single target company. Root-cause bug fixes and subtraction-first refactors (`INV-DELETE-BEFORE-DECOMPOSE`) execute cleanly behind external caller contracts (`INV-HOLISTIC-PIPELINE-PLANNING`) while keeping directional inter-subsystem and storage import boundaries intact. Detail: `resume_graph_engine/src/apps_rg/AGENTS.md`.

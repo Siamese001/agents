@@ -25,6 +25,7 @@ Decomposing oversized files into cohesive submodules behind an intact facade and
 1. **Found a bug -> fix its root cause now.** Never defer a multi-file or cross-layer bug to `spawn_task` or a backlog row regardless of file count or line count.
 2. **Scale `/boost` and `/swarm` freely.** Spawn parallel investigation, implementation, and verification workers as needed without artificial fan-out, file-count, or disjoint-scope blocks.
 3. **Preserve directional architectural boundaries.** Respect unidirectional layer, storage-interface, and inter-subsystem import boundaries across all touched modules.
+4. **Delete and Replace Before Slicing Spaghetti (`INV-DELETE-BEFORE-DECOMPOSE`).** Never slice bloated, fighting legacy code into dozens of micro-files behind facades just to satisfy line budgets (which preserves complexity and creates state-sync/closure bugs). When a single bounded output (such as a 70-word summary section) accumulates disproportionate private complexity (`> 1,500` LOC or `> 10` private modules), replace it cleanly behind its external boundary contract and delete all verified zero-caller private legacy files.
 
 ## References
 

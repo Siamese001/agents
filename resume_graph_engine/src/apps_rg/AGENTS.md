@@ -8,11 +8,13 @@
 
 ## Core invariants
 
-- Graph IDs are the only claim authority.
-- Runtime selection narrows evidence, but cannot add evidence.
+- Verified candidate base resume and explicit operator confirmations are the only source of truth; graph JSON files (`fact_inventory/*.json`) are derived indices, never self-certifying (`approved_by_graph_presence` without source provenance is forbidden).
+- Agents must NEVER invent, extrapolate, or backfill candidate facts, vendor names, or metrics into `fact_inventory/*.json` to pass a coverage gate (`INV-FACT-GRAPH-NO-AGENT-SYNTHESIS`); surface source-data gaps to the operator instead.
+- Runtime selection narrows verified evidence and strictly enforces per-item `section_eligibility`; it can never add evidence or bypass eligibility locks.
+- Zero post-LLM regex prose mutators (`INV-NO-POST-LLM-PROSE-MUTATORS`): fix prose quality upstream via clean facts, concise prompts, or a single bounded judge-guided fresh rewrite loop.
 - Whole-run caches stay separate from per-section C0 semantic payloads.
-- Shared lanes such as `executive_summary`, `headline`, and `competencies` may only claim from their section-specific evidence plan.
-- Deterministic copy and section templates remain grounded in canonical graph claims, and may be updated freely when resolving root-cause bugs or aligning section contracts.
+- Shared lanes such as `executive_summary`, `headline`, and `competencies` may only claim from their section-specific verified evidence plan.
+- Global structural changes must generalize across the multi-JD benchmark (`INV-MULTI-JD-NO-WHIPLASH`), never overfit to one company.
 
 ## Working rules
 
