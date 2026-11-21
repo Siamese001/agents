@@ -1673,6 +1673,40 @@ def rescore_judges_after_regen(
         briefing_text=briefing_text,
         parsed_output=parsed_output,
     )
+    out_by_key = {
+        str(j.get("provider_key") or ""): j
+        for j in _normalize_judge_list(out)
+        if j.get("provider_key")
+    }
+    prior_non_soft_hashes = {
+        str(j.get("judge_packet_hash") or j.get("input_hash") or "").strip()
+        for j in _normalize_judge_list(prior_judges)
+        if j.get("provider_key") and str(j.get("provider_key")) not in soft_keys
+    } - {""}
+    out_hash_per_key = {
+        k: str(out_by_key[k].get("judge_packet_hash") or out_by_key[k].get("input_hash") or "").strip()
+        for k in judge_keys
+        if k in out_by_key
+    }
+    all_keys_have_nonempty_hash = (
+        len(out_hash_per_key) == len(judge_keys)
+        and all(bool(h) for h in out_hash_per_key.values())
+    )
+    unique_out_hashes = set(out_hash_per_key.values()) if all_keys_have_nonempty_hash else set()
+    full_panel_rescored = bool(judge_keys) and (
+        set(judge_keys) <= soft_keys
+        or (
+            all_keys_have_nonempty_hash
+            and len(unique_out_hashes) == 1
+            and next(iter(unique_out_hashes)) not in prior_non_soft_hashes
+        )
+    )
+    effective_rescore_mode = (
+        POST_REGEN_JUDGE_RESCORE_FULL_PANEL
+        if full_panel_rescored
+        else POST_REGEN_JUDGE_RESCORE_SOFT_ONLY
+    )
+    rescored_keys = set(judge_keys) if full_panel_rescored else soft_keys
     scores_after = snapshot_model_backed_judge_scores(out)
     deltas: list[dict[str, Any]] = []
     before_by_key = {
@@ -1684,7 +1718,7 @@ def rescore_judges_after_regen(
         if not isinstance(row, dict):
             continue
         pk = str(row.get("provider_key") or "")
-        if pk not in soft_keys:
+        if pk not in rescored_keys:
             continue
         prev = before_by_key.get(pk) or {}
         try:
@@ -1706,25 +1740,6 @@ def rescore_judges_after_regen(
                 "improved": delta_ns is not None and delta_ns > 0,
             },
         )
-    out_by_key = {
-        str(j.get("provider_key") or ""): j
-        for j in _normalize_judge_list(out)
-        if j.get("provider_key")
-    }
-    out_hashes = {
-        str(out_by_key[k].get("judge_packet_hash") or out_by_key[k].get("input_hash") or "").strip()
-        for k in judge_keys
-        if k in out_by_key
-    } - {""}
-    full_panel_rescored = bool(judge_keys) and (
-        set(judge_keys) <= soft_keys
-        or (all(k in out_by_key for k in judge_keys) and len(out_hashes) == 1)
-    )
-    effective_rescore_mode = (
-        POST_REGEN_JUDGE_RESCORE_FULL_PANEL
-        if full_panel_rescored
-        else POST_REGEN_JUDGE_RESCORE_SOFT_ONLY
-    )
     return out, {
         "schema": "executive_summary_post_regen_judge_rescore_v1",
         "rescore_mode": effective_rescore_mode,

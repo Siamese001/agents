@@ -245,10 +245,18 @@ def evaluate_remediation_draft_post_x2(ctx: dict[str, Any]) -> str | None:
         _cycle_record["publish_eligible"] = True
         _cycle_record["g3_passed"] = True
         _cycle_record["reject_gate"] = None
+        _x1d_present_keys = {
+            str(j.get("provider_key") or "")
+            for j in x1d
+            if isinstance(j, dict)
+            and j.get("provider_key")
+            and not j.get("provider_blocked")
+        }
         _regen_scores_freshness = (
             SCORES_FRESHNESS_FULL_PANEL
             if _post_regen_x1d_receipt.get("rescore_mode") == "full_panel"
-            and len(x1d) >= len(judge_keys)
+            and bool(judge_keys)
+            and set(judge_keys) <= _x1d_present_keys
             else SCORES_FRESHNESS_SOFT_FAILED_ONLY
         )
         _regen_snap = freeze_candidate_snapshot(

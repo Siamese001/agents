@@ -46,7 +46,7 @@ PATCH_RUN_PREFLIGHT_ARTIFACT = "patch_run_preflight_receipt.json"
 _WHOLE_RUN_ENVELOPE_ENV = "APPS_RG_WHOLE_RUN_ENVELOPE"
 _CORRELATED_CLI_RUN_ENV = "APPS_RG_CORRELATED_CLI_RUN"
 
-DEFAULT_PATCH_LANE_TIMEOUT_SECONDS = 360.0
+DEFAULT_PATCH_LANE_TIMEOUT_SECONDS = 600.0
 DEFAULT_PATCH_RUN_TIMEOUT_SECONDS = 1200.0
 
 
@@ -1731,13 +1731,40 @@ def execute_patch_run(
         ],
     }
     _write_json(plan.run_dir / PATCH_RUN_RECEIPT_ARTIFACT, receipt)
+    log_stream = _patch_log_stream()
     if exit_code == 0:
-        with contextlib.suppress(Exception):
+        try:
             from apps_rg.runtime.orchestration.patch_product_closeout import run_patch_post_receipt_closeout
-            run_patch_post_receipt_closeout(run_dir=plan.run_dir, repo=plan.repo, patch_identity=patch_identity, target_company=plan.targeting.target_company, target_role=plan.targeting.target_role, close_product_run=close_product_run)
+            from apps_rg.runtime.orchestration.r3r4_whole_run_orchestration import ProductE2EAuthorityError
+
+            closeout_res = run_patch_post_receipt_closeout(
+                run_dir=plan.run_dir,
+                repo=plan.repo,
+                patch_identity=patch_identity,
+                target_company=plan.targeting.target_company,
+                target_role=plan.targeting.target_role,
+                close_product_run=close_product_run,
+            )
+            receipt["post_receipt_closeout"] = {
+                "status": "PASS",
+                "x3_disposition": str(closeout_res.get("x3_disposition") or "") if isinstance(closeout_res, Mapping) else "",
+                "pipeline_complete": bool(closeout_res.get("pipeline_complete")) if isinstance(closeout_res, Mapping) else False,
+            }
+            _write_json(plan.run_dir / PATCH_RUN_RECEIPT_ARTIFACT, receipt)
+        except ProductE2EAuthorityError as exc:
+            decisive = "FAIL"
+            exit_code = 1
+            receipt["decisive_status"] = decisive
+            receipt["failure_reason"] = str(exc)
+            receipt["exit_code"] = exit_code
+            receipt["post_receipt_closeout"] = {"status": "BLOCKED", "error": str(exc)}
+            _write_json(plan.run_dir / PATCH_RUN_RECEIPT_ARTIFACT, receipt)
+            print(f"[patch_run] Post-receipt product closeout BLOCKED: {exc}", file=log_stream, flush=True)
+        except Exception as exc:  # guardian: allow-broad-exception -- best-effort post-receipt closeout hook for minimal/non-product harnesses
+            receipt["post_receipt_closeout"] = {"status": "SKIPPED_ERROR", "error": f"{type(exc).__name__}: {exc}"}
+            _write_json(plan.run_dir / PATCH_RUN_RECEIPT_ARTIFACT, receipt)
 
     total_elapsed = time.monotonic() - run_start_time
-    log_stream = _patch_log_stream()
     print(
         f"[patch_run] Completed in {total_elapsed:.1f}s: decisive_status={decisive} "
         f"all_lanes_authorized={all_authorized} exit_code={exit_code}",

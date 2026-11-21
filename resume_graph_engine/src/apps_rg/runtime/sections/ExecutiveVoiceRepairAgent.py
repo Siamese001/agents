@@ -294,6 +294,33 @@ def _mock_repair(
     return candidate_data, False, "none"
 
 
+def _parse_ide_cli_json_response(cli_res: Any) -> dict[str, Any] | None:
+    """Parse a JSON object from an `agy -p` AgyResult (structured_output, fenced, or prose-wrapped)."""
+    structured = getattr(cli_res, "structured_output", None)
+    if isinstance(structured, dict):
+        return structured
+    raw = str(getattr(cli_res, "response", None) or "").strip()
+    if not raw:
+        return None
+    fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", raw, flags=re.DOTALL)
+    candidates = [fenced.group(1).strip()] if fenced else []
+    clean = re.sub(r"^```(?:json)?\s*", "", raw)
+    clean = re.sub(r"\s*```$", "", clean).strip()
+    candidates.append(clean)
+    first_brace = raw.find("{")
+    last_brace = raw.rfind("}")
+    if first_brace != -1 and last_brace > first_brace:
+        candidates.append(raw[first_brace : last_brace + 1].strip())
+    for candidate in candidates:
+        try:
+            parsed = json.loads(candidate)
+            if isinstance(parsed, dict):
+                return parsed
+        except (ValueError, TypeError):
+            continue
+    return None
+
+
 def _call_llm_repair(
     section_id: str,
     prompt: str,
@@ -302,6 +329,7 @@ def _call_llm_repair(
     """Call Claude (drafter) or cross-family OpenAI (auditor) model for repair pass via standard transport."""
     from apps_rg.runtime.providers.ide_cli_generation import (
         ide_cli_generation_unavailable_reason,
+        resolve_ide_cli_generation_slug,
         uses_ide_cli_generation,
     )
 
@@ -317,17 +345,16 @@ def _call_llm_repair(
             try:
                 from apps_rg.runtime.providers.agy_cli_transport import run_agy
 
+                drafter_ide_slug = resolve_ide_cli_generation_slug(DEFAULT_REPAIR_MODEL)
                 auditor_ide_slug, _ = second_judge_model(section_id)
+                if auditor_ide_slug == drafter_ide_slug:
+                    auditor_ide_slug, _ = second_judge_model("executive_summary")
                 cli_res = run_agy(
                     f"{prompt}\n\nReturn ONLY valid JSON with no markdown fences and no tool calls.",
                     model=auditor_ide_slug,
                     timeout_s=120,
                 )
-                clean = str(cli_res.response or "").strip()
-                if clean.startswith("```"):
-                    clean = re.sub(r"^```(?:json)?\s*", "", clean)
-                    clean = re.sub(r"\s*```$", "", clean)
-                return json.loads(clean)
+                return _parse_ide_cli_json_response(cli_res)
             except Exception:  # guardian: allow-broad-exception -- optional voice repair auditor returns None on CLI or parse failure
                 return None
     if not is_openai_auditor and uses_ide_cli_generation(os.environ, model=model):
@@ -335,18 +362,13 @@ def _call_llm_repair(
             return None
         try:
             from apps_rg.runtime.providers.agy_cli_transport import run_agy
-            from apps_rg.runtime.providers.ide_cli_generation import resolve_ide_cli_generation_slug
 
             cli_res = run_agy(
                 f"{prompt}\n\nReturn ONLY valid JSON with no markdown fences and no tool calls.",
                 model=resolve_ide_cli_generation_slug(model),
                 timeout_s=120,
             )
-            clean = str(cli_res.response or "").strip()
-            if clean.startswith("```"):
-                clean = re.sub(r"^```(?:json)?\s*", "", clean)
-                clean = re.sub(r"\s*```$", "", clean)
-            return json.loads(clean)
+            return _parse_ide_cli_json_response(cli_res)
         except Exception:  # guardian: allow-broad-exception -- optional voice repair returns None on CLI or parse failure
             return None
     api_key = (

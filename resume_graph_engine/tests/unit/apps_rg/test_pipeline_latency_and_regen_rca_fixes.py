@@ -725,3 +725,322 @@ def test_rc9_mechanism_repair_never_produces_audit_grade_audit_lineage() -> None
     out = _normalize_mechanism_repair_text(out)
     assert "audit-grade audit lineage" not in out.lower()
     assert "audit-grade execution lineage" in out.lower()
+
+
+# ---------------------------------------------------------------------------
+# Post-review RCA fixes: voice-repair X2 enforcement, RC-4 hash guard,
+# patch closeout integrity, eval --json, orthogonal auditor, low-effort step
+# ---------------------------------------------------------------------------
+
+
+def test_voice_repair_runs_full_x2_and_rolls_back_on_x2_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import argparse
+    from types import SimpleNamespace
+    from apps_rg.runtime.sections import ExecutiveVoiceRepairAgent as evra
+    from apps_rg.runtime.sections import executive_summary_judge_remediation as rem
+    from apps_rg.runtime.sections.executive_summary import stage_remediation as sr
+
+    orig_text = (
+        "Engineering executive scaling governed AI platforms for regulated financial enterprises. "
+        "Directed multi-region production control planes across global banking programs. "
+        "Delivered 24% renewal lift across 10+ enterprise institutions."
+    )
+    bad_repaired = (
+        "SVP-level executive with sandboxed tool execution and OpenTelemetry lineage. "
+        "Directed multi-region production control planes across global banking programs. "
+        "Delivered 24% renewal lift across 10+ enterprise institutions."
+    )
+    orig_ledger = [
+        {"claim": "c1", "claim_text": "Engineering executive scaling governed AI platforms for regulated financial enterprises.", "source_fact_ids": ["f1"]},
+        {"claim": "c2", "claim_text": "Directed multi-region production control planes across global banking programs.", "source_fact_ids": ["f2"]},
+        {"claim": "c3", "claim_text": "Delivered 24% renewal lift across 10+ enterprise institutions.", "source_fact_ids": ["f3"]},
+    ]
+    orig_x2 = [
+        {"gate_id": "x2_exec_summary_no_mechanism_inventory", "pass": True},
+        {"gate_id": "x2_resume_graph_claim_binding", "pass": True},
+    ]
+    refresh_calls: list[str] = []
+
+    def _fake_refresh(**kwargs):
+        refresh_calls.append(kwargs["resume_display_text"])
+        return [
+            {"provider_key": "gemini_pro", "evaluator_mode": "MODEL_BACKED", "score": 4.2, "pass": False, "rationale": "Hook weak"},
+            {"provider_key": "openai_chatgpt", "evaluator_mode": "MODEL_BACKED", "score": 4.3, "pass": False, "rationale": "Hook weak"},
+        ], {"rescore_mode": "full_panel"}
+
+    def _fake_rerun_x2(**kwargs):
+        return [
+            {"gate_id": "x2_exec_summary_no_mechanism_inventory", "pass": False},
+            {"gate_id": "x2_x1d_required_judges_present", "pass": False},
+        ]
+
+    monkeypatch.setattr(rem, "refresh_x1d_judges_after_full_x2", _fake_refresh)
+    monkeypatch.setattr(rem, "rerun_x2_after_judge_remediation", _fake_rerun_x2)
+    monkeypatch.setattr(
+        evra,
+        "repair_section_with_executive_voice_agent",
+        lambda **kwargs: (
+            {"resume_display_text": bad_repaired, "claim_ledger": orig_ledger},
+            SimpleNamespace(repair_succeeded=True),
+        ),
+    )
+    monkeypatch.setattr(
+        "apps_rg.runtime.judges.x1d_panel_harness.extract_x1d_diagnostic",
+        lambda x1d, sec: {"repair_needed": True, "findings": ["Improve hook"]},
+    )
+    monkeypatch.setattr(
+        "apps_rg.runtime.sections.executive_summary_repair_policy.judge_regeneration_enabled",
+        lambda: False,
+    )
+    monkeypatch.setattr(
+        "apps_rg.runtime.section_repair_policy.judge_remediation_regen_allowed",
+        lambda: False,
+    )
+    monkeypatch.setattr(sr, "publish_targeting_parity_and_usage_ledger", lambda **kw: ({}, kw.get("usage_doc") or {}))
+    monkeypatch.setattr(sr, "resolve_judge_packet_for_parity", lambda *a, **k: {})
+    monkeypatch.setattr(sr, "parity_allows_judge_regen", lambda *a, **k: (False, "test"))
+    monkeypatch.setattr(sr, "_write_x1d_judge_artifacts", lambda *a, **k: None)
+    monkeypatch.setattr(sr, "_emit_dimension_upstream_triangulation", lambda *a, **k: None)
+    monkeypatch.setattr(sr, "write_x2_gate_outputs", lambda *a, **k: None)
+    monkeypatch.setattr(
+        "apps_rg.runtime.validators.executive_summary_x2.append_executive_summary_x1d_x2_gate_dicts",
+        lambda **kw: [],
+    )
+    monkeypatch.setattr(
+        "apps_rg.runtime.sections.section_authority_repairs.apply_exec_summary_display_authority_repairs",
+        lambda parsed, **kw: parsed,
+    )
+    monkeypatch.setattr(
+        "apps_rg.runtime.sections.executive_summary_voice_repair.finalize_executive_summary_coherence",
+        lambda parsed, **kw: (parsed, {}),
+    )
+    monkeypatch.setattr(
+        "apps_rg.runtime.sections.executive_summary_judge_regen_loop.sync_claim_ledger_metrics_from_facts",
+        lambda parsed, **kw: (parsed, {"passed": True}),
+    )
+
+    ctx = {
+        "args": argparse.Namespace(target_company="Truist", target_role="Head of FDE", target_title="Head of FDE", provider="external_claude", mode="live"),
+        "artifact_dir": tmp_path,
+        "runtime_payload": {"run_id": "test_run"},
+        "token_budget_receipt": {},
+        "usage_doc": {},
+        "allowed_fact_ids": {"f1", "f2", "f3"},
+        "raw_output": "{}",
+        "runtime_generation_status": "REAL_LLM",
+        "parsed": {"resume_display_text": orig_text, "claim_ledger": orig_ledger},
+        "resume_display_text": orig_text,
+        "claim_ledger": list(orig_ledger),
+        "coverage": {"uncovered_sentences": []},
+        "l2_output": {"resume_display_text": orig_text, "claim_ledger": orig_ledger},
+        "_word_budget_repair_accepted": False,
+        "parsed_for_x2": {"resume_display_text": orig_text, "claim_ledger": orig_ledger},
+        "x2": list(orig_x2),
+        "x1d": [],
+        "_generation_material": SimpleNamespace(generation_material_digest="d"),
+        "_bundle_mat": SimpleNamespace(to_dict=lambda: {}),
+        "_targeting_parity": {},
+        "selected_facts_for_x2": [],
+        "selected_fact_plan": {"facts": []},
+        "_judge_jd": "",
+        "_judge_briefing": "",
+        "judge_keys": ["gemini_pro", "openai_chatgpt"],
+        "judge_mode": "live",
+        "compiled_prompt": "",
+        "pool": SimpleNamespace(proof_pool_ref="ref", proof_pool_digest="dig"),
+        "model_name": "m",
+        "prompt_hash": "ph",
+        "temperature": 0.4,
+    }
+    sr.run_remediation_stage(ctx, emit_initial_gate_artifacts=False)
+
+    # Voice repair broke X2 -> must roll back text/artifacts and NOT re-invoke judges on broken draft
+    assert ctx["resume_display_text"] == orig_text
+    assert (tmp_path / "resume_display_text.txt").read_text(encoding="utf-8").strip() == orig_text
+    assert len(refresh_calls) == 1
+    refresh_receipt = json.loads((tmp_path / "post_x2_x1d_refresh_receipt.json").read_text(encoding="utf-8"))
+    assert refresh_receipt["voice_repair_rejected_x2_failed_gates"] == ["x2_exec_summary_no_mechanism_inventory"]
+
+
+def test_rc4_rescore_judges_after_regen_guards_missing_and_stale_hashes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from apps_rg.runtime.sections import executive_summary_judge_remediation as rem
+
+    monkeypatch.setenv("APPS_RG_EXEC_SUMMARY_POST_REGEN_JUDGE_MODE", "soft_failed_only")
+
+    # Case A: gemini_pro has NO hash and was NOT rescored; openai_chatgpt rescored with hash_v1 -> MUST be soft_failed_only
+    prior_missing = [
+        {"provider_key": "gemini_pro", "evaluator_mode": "MODEL_BACKED", "score": 4.8, "normalized_score": 0.96, "pass": True},
+        {"provider_key": "openai_chatgpt", "evaluator_mode": "MODEL_BACKED", "score": 4.2, "normalized_score": 0.84, "pass": False},
+    ]
+    monkeypatch.setattr(
+        rem,
+        "rerun_soft_failed_judges",
+        lambda **kw: [
+            dict(prior_missing[0]),
+            {"provider_key": "openai_chatgpt", "evaluator_mode": "MODEL_BACKED", "score": 4.8, "normalized_score": 0.96, "pass": True, "judge_packet_hash": "hash_v1"},
+        ],
+    )
+    _, rcpt_a = rem.rescore_judges_after_regen(
+        x2_gates=[], resume_display_text="Draft.", claim_ledger=[], allowed_fact_packet=[],
+        allowed_fact_ids=set(), target_title="T", target_company="C", jd_text="", briefing_text="",
+        parsed_output=None, judge_keys=["gemini_pro", "openai_chatgpt"], judge_mode="live",
+        artifact_dir=tmp_path, compiled_prompt="", prior_judges=prior_missing,
+        judge_packet={}, judge_packet_ref="",
+    )
+    assert rcpt_a["rescore_mode"] == rem.POST_REGEN_JUDGE_RESCORE_SOFT_ONLY
+    assert rcpt_a["judges_rescored_count"] == 1
+
+    # Case B: gemini_pro kept stale hash_v0; openai_chatgpt returned same hash_v0 -> MUST be soft_failed_only
+    prior_stale = [
+        {"provider_key": "gemini_pro", "evaluator_mode": "MODEL_BACKED", "score": 4.8, "normalized_score": 0.96, "pass": True, "judge_packet_hash": "hash_v0"},
+        {"provider_key": "openai_chatgpt", "evaluator_mode": "MODEL_BACKED", "score": 4.2, "normalized_score": 0.84, "pass": False, "judge_packet_hash": "hash_v0"},
+    ]
+    monkeypatch.setattr(
+        rem,
+        "rerun_soft_failed_judges",
+        lambda **kw: [
+            dict(prior_stale[0]),
+            {"provider_key": "openai_chatgpt", "evaluator_mode": "MODEL_BACKED", "score": 4.8, "normalized_score": 0.96, "pass": True, "judge_packet_hash": "hash_v0"},
+        ],
+    )
+    _, rcpt_b = rem.rescore_judges_after_regen(
+        x2_gates=[], resume_display_text="Draft.", claim_ledger=[], allowed_fact_packet=[],
+        allowed_fact_ids=set(), target_title="T", target_company="C", jd_text="", briefing_text="",
+        parsed_output=None, judge_keys=["gemini_pro", "openai_chatgpt"], judge_mode="live",
+        artifact_dir=tmp_path, compiled_prompt="", prior_judges=prior_stale,
+        judge_packet={}, judge_packet_ref="",
+    )
+    assert rcpt_b["rescore_mode"] == rem.POST_REGEN_JUDGE_RESCORE_SOFT_ONLY
+
+    # Case C: both judges refreshed onto new hash_v1 -> MUST be full_panel with deltas for BOTH keys
+    monkeypatch.setattr(
+        rem,
+        "rerun_soft_failed_judges",
+        lambda **kw: [
+            {"provider_key": "gemini_pro", "evaluator_mode": "MODEL_BACKED", "score": 4.9, "normalized_score": 0.98, "pass": True, "judge_packet_hash": "hash_v1"},
+            {"provider_key": "openai_chatgpt", "evaluator_mode": "MODEL_BACKED", "score": 4.8, "normalized_score": 0.96, "pass": True, "judge_packet_hash": "hash_v1"},
+        ],
+    )
+    _, rcpt_c = rem.rescore_judges_after_regen(
+        x2_gates=[], resume_display_text="Draft.", claim_ledger=[], allowed_fact_packet=[],
+        allowed_fact_ids=set(), target_title="T", target_company="C", jd_text="", briefing_text="",
+        parsed_output=None, judge_keys=["gemini_pro", "openai_chatgpt"], judge_mode="live",
+        artifact_dir=tmp_path, compiled_prompt="", prior_judges=prior_stale,
+        judge_packet={}, judge_packet_ref="",
+    )
+    assert rcpt_c["rescore_mode"] == rem.POST_REGEN_JUDGE_RESCORE_FULL_PANEL
+    assert rcpt_c["judges_rescored_count"] == 2
+    assert {d["provider_key"] for d in rcpt_c["score_deltas"]} == {"gemini_pro", "openai_chatgpt"}
+
+
+def test_patch_product_closeout_denied_x3_marks_fail_and_preserves_blockers(tmp_path: Path) -> None:
+    from apps_rg.runtime.orchestration.patch_product_closeout import refresh_root_spine_bundle_after_patch
+
+    refresh_root_spine_bundle_after_patch(
+        tmp_path,
+        x3_disposition="X3A_DENY_REROUTE",
+        blockers=["producer-owned lane X3 is not an exact allow code for lanes [unify_narrative]"],
+        decisive_reason="STRUCTURAL_BLOCK: unify_narrative soft-failed",
+    )
+    x3_doc = json.loads((tmp_path / "x3_disposition_receipt.json").read_text(encoding="utf-8"))
+    assert x3_doc["status"] == "FAIL"
+    assert x3_doc["proceed_to_runtime"] is False
+    assert x3_doc["x3_disposition"] == "X3A_DENY_REROUTE"
+    assert x3_doc["disposition"] == "X3A_DENY_REROUTE"
+    assert "STRUCTURAL_BLOCK" in x3_doc["decisive_reason"]
+    assert x3_doc["blockers"] == ["producer-owned lane X3 is not an exact allow code for lanes [unify_narrative]"]
+    r4_doc = json.loads((tmp_path / "r4_run_manifest.json").read_text(encoding="utf-8"))
+    assert r4_doc["status"] == "FAIL"
+    assert r4_doc["outcome_authorized"] is False
+    assert r4_doc["apps_rg_product_outcome_authorized"] is False
+
+
+def test_patch_run_default_timeout_and_eval_json_flag(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from apps_rg.runtime.orchestration.patch_run import DEFAULT_PATCH_LANE_TIMEOUT_SECONDS
+    from resume_engine import cli as re_cli
+
+    assert DEFAULT_PATCH_LANE_TIMEOUT_SECONDS >= 600.0
+    monkeypatch.setattr(
+        "apps_rg.__main__._evaluate_product_run",
+        lambda path: {"status": "PASS", "x3_disposition": "X3D_ALLOW_FINISH", "pipeline_complete": True},
+    )
+    rc = re_cli.main(["eval", "--run-dir", str(tmp_path), "--json"])
+    assert rc == 0
+    parsed = json.loads(capsys.readouterr().out)
+    assert parsed["status"] == "PASS"
+    assert parsed["x3_disposition"] == "X3D_ALLOW_FINISH"
+
+
+def test_rc6_voice_repair_auditor_orthogonal_on_openai_lane_and_parses_prose_json(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from apps_rg.runtime.providers import agy_cli_transport as act
+    from apps_rg.runtime.providers.ide_cli_generation import resolve_ide_cli_generation_slug
+    from apps_rg.runtime.sections import ExecutiveVoiceRepairAgent as evra
+
+    seen_models: list[str] = []
+
+    def _fake_run_agy(prompt: str, *, model: str, **kwargs):
+        seen_models.append(model)
+        return act.AgyResult(
+            model_requested=model,
+            model_reported=model,
+            status="SUCCESS",
+            response='Here is the audit result:\n{"disposition": "PASS", "violated_facts": [], "repair_hint": ""}\nDone.',
+            structured_output=None,
+            usage={"input_tokens": 10, "output_tokens": 5},
+            duration_seconds=1.0,
+            conversation_id="c1",
+        )
+
+    monkeypatch.setattr(act, "run_agy", _fake_run_agy)
+    monkeypatch.setattr("apps_rg.runtime.judges.x1d_ide_cli.uses_ide_cli_judges", lambda env: True)
+    monkeypatch.setattr("apps_rg.runtime.judges.x1d_ide_cli.ide_cli_unavailable_reason", lambda env: "")
+
+    res = evra._call_llm_repair("unify_narrative", "Audit this.", model=evra.DEFAULT_AUDITOR_MODEL)
+    assert res == {"disposition": "PASS", "violated_facts": [], "repair_hint": ""}
+    drafter_slug = resolve_ide_cli_generation_slug(evra.DEFAULT_REPAIR_MODEL)
+    assert seen_models and seen_models[0] != drafter_slug
+
+
+def test_rc1_generation_steps_down_medium_slug_when_effort_is_low(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from apps_rg.runtime.providers import agy_cli_transport as act
+    from apps_rg.runtime.providers import ide_cli_generation as icg
+
+    captured: dict[str, Any] = {}
+
+    def _fake_run_agy(prompt: str, *, model: str, effort: str | None = None, **kwargs):
+        captured["model"] = model
+        captured["effort"] = effort
+        return act.AgyResult(
+            model_requested=model,
+            model_reported=model,
+            status="SUCCESS",
+            response='{"ok": true}',
+            structured_output=None,
+            usage={"input_tokens": 5, "output_tokens": 5},
+            duration_seconds=0.5,
+            conversation_id="c-low",
+        )
+
+    base = icg.resolve_ide_cli_generation_slug(icg.ide_cli_generation_models()[0])
+    assert base.endswith("-medium")
+    low_slug = base[:-7] + "-low"
+    monkeypatch.setattr(icg, "ide_cli_generation_models", lambda: (*icg._generation_cfg().get("ide_models", ()), low_slug))
+    monkeypatch.setattr(icg, "run_agy", _fake_run_agy)
+
+    icg.call_ide_cli_generation(
+        request={"model": base, "reasoning_effort": "low", "prompt": "select"},
+        body={"model": base, "messages": [{"role": "user", "content": "select"}]},
+        environ={"AGY_CLI_BIN": "/fake/agy"},
+        agy_bin="/fake/agy",
+    )
+    assert captured["model"] == low_slug
