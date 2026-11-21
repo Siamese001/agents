@@ -172,3 +172,26 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 | Defense | `tools/validate_implementation_plan.py` | Anti-flat, wave-gap, and incomplete milestone rejection |
 | Test | `tests/test_governance_adversarial_redteam.py` | 11-attack adversarial regression test suite |
 
+### §"AI-SDLC Risk Lanes, Eval Shield & Governance Harmonization"
+| Type | Path | Coverage |
+| :--- | :--- | :--- |
+| Policy | `config/governance/risk_lanes_policy.json` | Fail-closed Lane 0/1/2 path classification and non-blocking batch soft caps |
+| Rule | `.agents/rules/risk-tiered-change-lanes.md` | 3-lane risk tiering, fail-closed escalation, self-referential locks |
+| Rule | `.agents/rules/e2e-and-edge-case-coverage.md` | Unmocked E2E pinning, eval construct validity, bilateral recall-precision |
+| Rule | `.agents/rules/production-derivation-and-anti-overfitting.md` | Ban on company/JD branches, provenance truth, post-verification immutability |
+| Rule | `.agents/rules/runtime-evidence.md` | Grounded delivery, explicit run scoping, fail-closed publication |
+| Rule | `.agents/rules/contract-enforcement.md` | Schema/digest integrity and receipt parity |
+| Rule | `.agents/rules/provider-resilience-and-healing.md` | Keyless IDE CLI transport, effort parity, cross-family orthogonality |
+| Rule | `.agents/rules/git-worktree-governance.md` | Isolated worktree lifecycle, root checkout ban, linear rebase |
+| Skill | `.agents/skills/governance-harmonizer/SKILL.md` | Cross-surface threshold, rule, skill, and hook reconciliation |
+| Tool | `tools/change_lane_classifier.py` | Fail-closed Lane 0/1/2 classifier and batch advisories |
+| Tool | `tools/audit_eval_construct_validity.py` | AST anti-mock, vacuous-stub, and upward score-clamp detector |
+| Tool | `tools/verify_fix_eval_pinning.py` | Branch-diff unmocked E2E pin verifier |
+| Tool | `tools/run_diff_scoped_eval_shield.py` | Unmocked diff-scoped domain eval shield across 4 domains |
+| Tool | `tools/lint_no_jd_overfitting.py` | Tier 1 anti-overfitting company-branch linter with ratchet |
+| Tool | `tools/audit_governance_harmonization.py` | Tier 2 cross-surface governance drift and reference auditor |
+| Test | `tests/unit/test_change_lane_classifier.py` | Lane 0/1/2 escalation and immutability tests |
+| Test | `tests/unit/test_lint_no_jd_overfitting.py` | Anti-overfitting bilateral recall-precision tests |
+| Test | `tests/unit/test_governance_harmonization.py` | Drift, budget, and broken-ref auditor tests |
+| Test | `tests/end_to_end/test_ai_sdlc_eval_shield_e2e.py` | Unmocked E2E construct-validity and domain shield suite |
+

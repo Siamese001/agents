@@ -1,0 +1,8 @@
+{
+  "schema_version": "1.0.0",
+  "description": "Legacy ratchet baseline for tools/lint_no_jd_overfitting.py (zero new hits allowed; burn down to 0).",
+  "file_counts": {
+    "resume_graph_engine/src/apps_rg/runtime/assembly/competencies_display.py": 1,
+    "resume_graph_engine/src/apps_rg/runtime/sections/graph_role_episode_selector.py": 1
+  }
+}

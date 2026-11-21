@@ -39,6 +39,8 @@ from tools.lint_architecture_boundaries import run_architecture_linter
 from tools.lint_layer_boundaries import check_layer_boundaries
 from tools.lint_model_pins import audit_model_pins
 from tools.check_config_ssot_drift import analyze_drift
+from tools.lint_no_jd_overfitting import scan_files as scan_no_jd_overfitting
+from tools.change_lane_classifier import classify_paths as classify_change_paths
 
 # Model literal baseline for ratcheting legacy violations
 _BASELINE_PATH = _REPO_ROOT / "artifacts" / "governance" / "model_literal_baseline.json"
@@ -364,6 +366,9 @@ def check_production_purity(files: Sequence[Path] | None, repo_root: Path) -> tu
     for f in target_py:
         _, _, p_errs = _analyze_single_python_file(f, repo_root)
         errors.extend(p_errs)
+    ov_report = scan_no_jd_overfitting(target_py, repo_root, use_baseline=True)
+    for v in ov_report.get("violations", []):
+        errors.append(f"[Anti-Overfitting] {v['file']}:{v['line']}: {v['message']}")
     return len(errors) == 0, errors
 
 
@@ -414,6 +419,14 @@ def run_precommit_gate(
     print("=" * 72)
     print(f"  PRE-COMMIT QUALITY GATE (Tier 1) — Mode: {mode_name}")
     print("  Invariant: Is this change structurally legal?")
+    if target_files:
+        try:
+            lane_report = classify_change_paths([str(f) for f in target_files], repo_root=repo_root)
+            print(f"  Risk Classification: {lane_report['lane_name']} (Lane {lane_report['effective_lane']})")
+            for adv in lane_report.get("advisories", []):
+                print(f"    [ADVISORY:{adv['code']}] {adv['message']}")
+        except (OSError, ValueError, KeyError):
+            pass
     print("=" * 72)
 
     # 1. File collection
@@ -444,6 +457,10 @@ def run_precommit_gate(
         if b_err not in err_a:
             err_a.append(b_err)
     err_a.extend(_run_extended_architectural_checks(target_files, repo_root, mode_name=mode_name, shard_fast=shard_fast))
+
+    ov_report = scan_no_jd_overfitting(py_files, repo_root, use_baseline=True)
+    for v in ov_report.get("violations", []):
+        err_p.append(f"[Anti-Overfitting] {v['file']}:{v['line']}: {v['message']}")
 
     results["1. Standard Code Hygiene"] = (len(err_h) == 0, err_h)
     results["2. Architectural Governance"] = (len(err_a) == 0, err_a)

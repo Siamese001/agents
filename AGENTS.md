@@ -121,7 +121,8 @@ Procedural MCP / Notion / ledgers: Root `.mcp.json`, `.agents/`, and `tools/` co
 | Skills | `.agents/skills/*/SKILL.md` | Reusable procedural adapters and cheatsheets |
 | Lifecycle Hooks | `.agents/hooks.json` | Native Antigravity lifecycle hook registry (pre/post-tool guards) |
 | Turn-Gate Validator | `tools/validate_turn_gates.py` | Mechanical pre-turn & post-turn gate validator |
-| Tier 1 Pre-Commit Gate | `tools/verify_commit.py` | Deterministic file budgets, layer imports, model neutrality, secrets |
+| Tier 1 Pre-Commit Gate | `tools/verify_commit.py` | Deterministic hygiene, layer imports, anti-overfitting (`tools/lint_no_jd_overfitting.py`), model neutrality, secrets |
+| Tier 2 AI-SDLC Readiness Gate | `tools/verify_main_readiness.py` | Risk-tiered 9-stage readiness (`tools/change_lane_classifier.py`, eval construct validity, unmocked eval shield, `tools/audit_governance_harmonization.py`) |
 | Governed PR Queue & Trunk Lock | `tools/pr_governance.py` + `tools/rebase_orchestrator.py` | Serialized FIFO PR queue, `.git/governed_merge_queue.lock`, catch-up under lock, and `--no-ff` merge to `main` |
 | Deprecated compatibility shims | `docs/archive/` and `_legacy_*` shims | Non-authoritative compatibility/archive only |
 
