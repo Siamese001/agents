@@ -104,5 +104,6 @@ def test_unmocked_diff_scoped_eval_shield_all_domains_pass() -> None:
         "resume_graph_engine",
         "outreach_engine",
         "apps_research",
+        "agents_eval_flywheel",
         "governance_guards",
     }

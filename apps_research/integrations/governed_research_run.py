@@ -340,6 +340,28 @@ class GovernedResearchRun(GovernedAppRunner):
                 exc_info=True,
             )
 
+        try:
+            from agents.observability.trace_collector import emit_post_run_trace_safe  # noqa: PLC0415
+
+            emit_post_run_trace_safe(
+                app_id="apps_research",
+                run_id=record.run_id,
+                session_id=record.run_id,
+                terminal_status="PASS" if (not record.error and record.grounded) else "FAIL",
+                raw_input={"topic": record.topic},
+                output_summary={
+                    "disposition": record.disposition,
+                    "gate_disposition": record.gate_disposition,
+                    "citation_count": record.citation_count,
+                },
+                gate_outcomes={
+                    "x2_gates": {"grounded": bool(record.grounded), "l6_ingested": bool(record.l6_ingested)},
+                    "error": record.error,
+                },
+            )
+        except (ImportError, OSError, ValueError, RuntimeError):  # guardian: allow-silent-swallow -- observer-only trace hook must never break governed research runs
+            pass
+
         return record
 
     # ------------------------------------------------------------------

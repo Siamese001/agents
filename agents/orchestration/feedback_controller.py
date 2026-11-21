@@ -121,11 +121,13 @@ class FeedbackController:
                             if str(stat.get("failure_kind", "")) == kind.value and str(
                                 stat.get("normalized_constraint", "")
                             ).endswith(suffix):
-                                import json as _json
-
-                                raw_h = stat.get("effective_repair_hints_json") or "[]"
-                                parsed = _json.loads(raw_h) if isinstance(raw_h, str) else list(raw_h)
-                                hints.extend(str(h) for h in parsed if h)
+                                matched_hints = list(
+                                    self.learning_store.get_repair_hints(
+                                        kind,
+                                        str(stat.get("normalized_constraint", "")),
+                                    )
+                                )
+                                hints.extend(str(h) for h in matched_hints if h)
                                 break
                 except (OSError, RuntimeError, ValueError, TypeError, KeyError):  # guardian: allow-silent-swallow -- learning store failure recording is non-fatal
                     pass

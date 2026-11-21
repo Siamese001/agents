@@ -302,6 +302,19 @@ def main(argv: list[str] | None = None, prog: str | None = None) -> int:
             _print_json_result(result)
         else:
             _print_result(result)
+        if "pytest" not in sys.modules and not os.environ.get("PYTEST_CURRENT_TEST"):
+            try:
+                from agents.observability.trace_collector import emit_post_run_trace_safe
+
+                emit_post_run_trace_safe(
+                    app_id="apps_rg",
+                    run_id=str(result.get("run_id") or "resume_run"),
+                    terminal_status="PASS" if result.get("status") == "SUCCESS" else "FAIL",
+                    output_summary={"run_dir": str(result.get("run_dir") or "")},
+                    gate_outcomes={"status": result.get("status")},
+                )
+            except (ImportError, OSError, ValueError, RuntimeError):  # guardian: allow-silent-swallow -- observer-only trace hook must never fail resume run
+                pass
         return 0 if result.get("status") == "SUCCESS" else 1
 
     if action == "eval":

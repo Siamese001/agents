@@ -1,0 +1,54 @@
+{
+  "coverage_ratio": 1.0,
+  "generated_at_utc": "2026-11-21T12:21:56.322958Z",
+  "instrumented_seams_count": 6,
+  "schema_version": "agents.learning_role_registry.v1",
+  "seams": [
+    {
+      "instrumented": true,
+      "seam_path": "tools/hook_dispatch.py",
+      "symbols": [
+        "HITLDecisionStore",
+        "emit_post_run_trace_safe"
+      ]
+    },
+    {
+      "instrumented": true,
+      "seam_path": "agents/cli.py",
+      "symbols": [
+        "EvalFlywheelEngine",
+        "emit_post_run_trace_safe"
+      ]
+    },
+    {
+      "instrumented": true,
+      "seam_path": "agents/orchestration/services/pipeline_coordinator.py",
+      "symbols": [
+        "emit_post_run_trace_safe"
+      ]
+    },
+    {
+      "instrumented": true,
+      "seam_path": "resume_engine/cli.py",
+      "symbols": [
+        "EvalFlywheelEngine",
+        "emit_post_run_trace_safe"
+      ]
+    },
+    {
+      "instrumented": true,
+      "seam_path": "outreach_engine/src/apps_lic/runtime/whole_run_exit.py",
+      "symbols": [
+        "emit_post_run_trace_safe"
+      ]
+    },
+    {
+      "instrumented": true,
+      "seam_path": "apps_research/integrations/governed_research_run.py",
+      "symbols": [
+        "emit_post_run_trace_safe"
+      ]
+    }
+  ],
+  "watched_seams_count": 6
+}

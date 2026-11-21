@@ -175,8 +175,60 @@ def handle_pre_edit_plan(payload: Dict[str, Any], repo_root: Path) -> int:
     return emit_decision("allow", reason=msg)
 
 
+def _emit_turn_trace_safe(
+    payload: Dict[str, Any],
+    steps: List[Dict[str, Any]],
+    repo_root: Path,
+    *,
+    hook_name: str,
+) -> None:
+    """Fail-safe observer emitting redacted Antigravity turn traces to RunTraceCollector."""
+    if os.environ.get("PYTEST_CURRENT_TEST") and os.environ.get("AGENTS_TRACE_IN_PYTEST") != "1":
+        return
+    try:
+        from agents.observability.trace_collector import emit_post_run_trace_safe
+
+        traj_steps: List[Dict[str, Any]] = []
+        error_count = 0
+        for idx, s in enumerate(steps):
+            if not isinstance(s, dict):
+                continue
+            tcs = s.get("tool_calls") or s.get("toolCalls") or ([] if not s.get("toolCall") else [s["toolCall"]])
+            status_str = str(s.get("status") or "SUCCESS").upper()
+            if status_str in {"ERROR", "FAILED", "TIMEOUT"}:
+                error_count += 1
+            for tc in tcs:
+                if not isinstance(tc, dict):
+                    continue
+                traj_steps.append(
+                    {
+                        "step_index": len(traj_steps),
+                        "action_type": "tool_call",
+                        "target": str(tc.get("name") or tc.get("tool_name") or "unknown"),
+                        "status": "ERROR" if status_str in {"ERROR", "FAILED"} else "SUCCESS",
+                        "latency_ms": 0.0,
+                        "error_code": status_str if status_str in {"ERROR", "FAILED"} else None,
+                    }
+                )
+        run_id = str(payload.get("conversation_id") or payload.get("conversationId") or f"{hook_name}-turn")
+        emit_post_run_trace_safe(
+            app_id="antigravity_turn",
+            run_id=run_id,
+            session_id=run_id,
+            terminal_status="FAIL" if error_count > 0 else "PASS",
+            raw_input={"hook": hook_name, "step_count": len(steps)},
+            output_summary={"error_count": error_count, "tool_calls_observed": len(traj_steps)},
+            trajectory_steps=traj_steps,
+            repo_root=repo_root,
+        )
+    except (ImportError, OSError, ValueError, TypeError, RuntimeError):  # guardian: allow-silent-swallow -- observer-only turn trace must never block hooks
+        pass
+
+
 def handle_stop_wave_summary(payload: Dict[str, Any], repo_root: Path) -> int:
-    """Stop hook handler: silenced to adhere to output brevity rules without dumping raw wave tables into chat."""
+    """Stop hook handler: emits fail-safe turn trace while adhering to output brevity rules."""
+    steps = _load_turn_steps_from_payload(payload)
+    _emit_turn_trace_safe(payload, steps, repo_root, hook_name="stop")
     print(json.dumps({}))
     return 0
 

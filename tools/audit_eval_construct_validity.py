@@ -35,6 +35,12 @@ DEFAULT_SMOKE_HARNESS_PATHS: tuple[str, ...] = (
 DEFAULT_EVALUATOR_GLOBS: tuple[str, ...] = (
     "tools/eval_shield_core/*.py",
     "tools/run_diff_scoped_eval_shield.py",
+    "apps_eval/graders/trajectory.py",
+    "apps_eval/graders/judge/*.py",
+    "apps_eval/online_grader.py",
+    "apps_eval/holdout_replay.py",
+    "apps_eval/pareto.py",
+    "apps_eval/longitudinal.py",
     "resume_graph_engine/src/apps_rg/runtime/judges/executive_summary_judge_packet.py",
     "resume_graph_engine/src/apps_rg/runtime/judges/executive_summary_x1d_dimension_verdicts.py",
 )
@@ -214,7 +220,15 @@ def audit_repository(
                 eval_targets.append(p)
     eval_targets.extend(extra_eval_files)
 
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
+    from apps_eval.construct_validity import (
+        classify_evaluator_grounding_tier,
+        scan_extended_construct_validity,
+    )
+
     seen_eval: set[Path] = set()
+    grounding_tiers: dict[str, str] = {}
     for path in eval_targets:
         resolved = path.resolve()
         if resolved in seen_eval or not path.is_file():
@@ -222,13 +236,17 @@ def audit_repository(
         seen_eval.add(resolved)
         rel = resolved.relative_to(root).as_posix() if resolved.is_relative_to(root) else str(path)
         scanned_eval.append(rel)
+        grounding_tiers[rel] = classify_evaluator_grounding_tier(path)
         violations.extend(scan_file_for_vacuous_eval_and_score_clamping(path))
+        if rel.startswith("apps_eval/"):
+            violations.extend(scan_extended_construct_validity(path))
 
     return {
-        "schema_version": "agents.eval_construct_validity_audit.v1",
+        "schema_version": "agents.eval_construct_validity_audit.v2",
         "status": "PASS" if not violations else "FAIL",
         "scanned_smoke_files": sorted(set(scanned_smoke)),
         "scanned_eval_files": sorted(set(scanned_eval)),
+        "grounding_tiers": grounding_tiers,
         "violation_count": len(violations),
         "violations": violations,
     }
@@ -253,12 +271,28 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.include_e2e_pin:
         if str(repo_root) not in sys.path:
             sys.path.insert(0, str(repo_root))
+        from tools.audit_multi_ssot_judge_gate_drift import audit_multi_ssot_judge_gate_drift
         from tools.verify_fix_eval_pinning import evaluate_non_mock_e2e_branch_requirement
 
         pin_report = evaluate_non_mock_e2e_branch_requirement(repo_root)
         report["e2e_pin_report"] = pin_report
         if pin_report.get("violations"):
             report["violations"].extend(pin_report["violations"])
+            report["violation_count"] = len(report["violations"])
+            report["status"] = "FAIL"
+
+        drift_report = audit_multi_ssot_judge_gate_drift(repo_root)
+        report["multi_ssot_judge_drift_report"] = drift_report
+        if drift_report.get("violations"):
+            for dv in drift_report["violations"]:
+                report["violations"].append(
+                    {
+                        "code": f"MULTI_SSOT_DRIFT_{dv.get('vector', 'UNKNOWN')}",
+                        "file": "tools/audit_multi_ssot_judge_gate_drift.py",
+                        "line": 1,
+                        "message": str(dv.get("message") or ""),
+                    }
+                )
             report["violation_count"] = len(report["violations"])
             report["status"] = "FAIL"
     if args.json:

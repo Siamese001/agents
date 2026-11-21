@@ -6,7 +6,7 @@ from dataclasses import asdict, dataclass, field
 from typing import Any, Literal
 
 ALLOWED_APPS = {"apps_rg", "apps_lic"}
-EvalMode = Literal["snapshot", "live_adapter", "current_snapshot"]
+EvalMode = Literal["snapshot", "live_adapter", "current_snapshot", "cassette_replay"]
 PROJECT_NAME = "agentic-workflow"
 CURRENT_EVAL_RECORD_SCHEMA_VERSION = "apps_eval.completed_eval.v3"
 CURRENT_EVAL_MANIFEST_SCHEMA_VERSION = "apps_eval.eval_manifest.v2"
@@ -57,7 +57,7 @@ class EvalRequest:
     emit_l6_handoff: bool = False
 
     def __post_init__(self) -> None:
-        if self.mode not in {"snapshot", "live_adapter", "current_snapshot"}:
+        if self.mode not in {"snapshot", "live_adapter", "current_snapshot", "cassette_replay"}:
             raise ValueError(f"unsupported mode: {self.mode}")
         if self.with_judge and self.deterministic_only:
             raise ValueError("--with-judge requires deterministic_only=false")

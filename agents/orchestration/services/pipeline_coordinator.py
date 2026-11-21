@@ -228,6 +228,21 @@ class PipelineCoordinator:
         )
         events.append(e_finish)
 
+        try:
+            from agents.observability.trace_collector import emit_post_run_trace_safe
+
+            emit_post_run_trace_safe(
+                app_id="agents_core",
+                run_id=request.run_id,
+                session_id=request.run_id,
+                terminal_status="PASS" if final_phase == RunPhase.COMPLETED else "FAIL",
+                raw_input={"producer": request.producer},
+                output_summary={"final_phase": final_phase.value, "error_count": len(errors)},
+                gate_outcomes={"errors": list(errors)},
+            )
+        except (ImportError, OSError, ValueError, RuntimeError):  # guardian: allow-silent-swallow -- observer-only trace hook must never fail pipeline execution
+            pass
+
         return PipelineExecutionResult(
             run_id=request.run_id,
             state=state,

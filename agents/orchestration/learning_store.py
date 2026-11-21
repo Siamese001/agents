@@ -209,11 +209,11 @@ class FeedbackLearningStore:
                     ).fetchone()[0]
 
                     total_res = conn.execute(
-                        "SELECT COUNT(*) FROM resolution_events WHERE signature_hash = ?",
+                        "SELECT COUNT(*) FROM resolution_events WHERE signature_hash = ? AND outcome != 'PENDING_VERIFICATION'",
                         (signature_hash,),
                     ).fetchone()[0]
 
-                    succ_rate = round(succ_count / max(1, total_res), 4)
+                    succ_rate = round(succ_count / max(1, total_res), 4) if total_res > 0 else 0.0
 
                     conn.execute(
                         """
@@ -228,7 +228,7 @@ class FeedbackLearningStore:
                     )
 
     def get_repair_hints(self, failure_kind: FailureKind | str, constraint: str) -> list[str]:
-        """Retrieve empirically effective repair hints for a given failure."""
+        """Retrieve empirically effective repair hints for a given failure (verified first, diagnostic fallback)."""
         sig_hash = compute_failure_signature(failure_kind, constraint)
         with self._lock:
             conn = self._get_connection()
@@ -238,10 +238,20 @@ class FeedbackLearningStore:
             ).fetchone()
             if row and row["effective_repair_hints_json"]:
                 try:
-                    return json.loads(row["effective_repair_hints_json"])
+                    verified = json.loads(row["effective_repair_hints_json"])
+                    if verified:
+                        return verified
                 except (json.JSONDecodeError, TypeError):  # guardian: allow-silent-swallow -- invalid json in repair hints defaults to empty list
-                    return []
-        return []
+                    pass
+            pending_rows = conn.execute(
+                """
+                SELECT repair_hint FROM resolution_events
+                WHERE signature_hash = ? AND outcome = 'PENDING_VERIFICATION' AND repair_hint != ''
+                ORDER BY occurred_at DESC LIMIT 3
+                """,
+                (sig_hash,),
+            ).fetchall()
+            return [str(r["repair_hint"]) for r in pending_rows if r["repair_hint"]]
 
     def get_failure_statistics(self, signature_hash: str | None = None) -> list[dict[str, Any]]:
         """Query failure signature statistics."""
