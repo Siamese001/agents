@@ -565,8 +565,29 @@ def repair_section_with_executive_voice_agent(
             )
             audit_resp = _call_llm_repair(sec, auditor_prompt, model=DEFAULT_AUDITOR_MODEL)
             if isinstance(audit_resp, dict) and str(audit_resp.get("disposition", "")).upper() == "PASS" and not audit_resp.get("violated_facts"):
-                if 3 <= len(_split_into_sentences(proposed_text)) <= 4:
+                repaired_sents = _split_into_sentences(proposed_text)
+                if 3 <= len(repaired_sents) <= 4:
                     updated_data["resume_display_text"] = proposed_text
+                    prior_ledger = updated_data.get("claim_ledger")
+                    if isinstance(prior_ledger, list) and prior_ledger:
+                        all_prior_ids: list[str] = []
+                        for row in prior_ledger:
+                            if isinstance(row, dict):
+                                for fid in row.get("source_fact_ids") or []:
+                                    s = str(fid).strip()
+                                    if s and s not in all_prior_ids:
+                                        all_prior_ids.append(s)
+                        synced_ledger: list[dict[str, Any]] = []
+                        for idx, sent in enumerate(repaired_sents):
+                            base_row = (
+                                dict(prior_ledger[idx])
+                                if idx < len(prior_ledger) and isinstance(prior_ledger[idx], dict)
+                                else {"source_fact_ids": list(all_prior_ids)}
+                            )
+                            base_row["claim_text"] = sent
+                            base_row["claim"] = sent[:80]
+                            synced_ledger.append(base_row)
+                        updated_data["claim_ledger"] = synced_ledger
                     ok = True
                     mech = "a2a_socratic_repair_loop"
             else:

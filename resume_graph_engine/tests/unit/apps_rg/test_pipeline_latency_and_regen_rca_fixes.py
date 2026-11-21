@@ -665,3 +665,63 @@ def test_rc7_same_authority_runner_honors_large_contract_budget_and_flatten_prot
     assert res.accepted is True
     assert res.refusal is None
     assert res.receipt is not None and res.receipt.delta_line_count == 25
+
+
+# ---------------------------------------------------------------------------
+# RC-8 & RC-9: Voice-repair claim_ledger sync + no "audit-grade audit lineage"
+# ---------------------------------------------------------------------------
+
+
+def test_rc8_voice_repair_syncs_claim_ledger_sentences(monkeypatch: pytest.MonkeyPatch) -> None:
+    from apps_rg.runtime.sections import ExecutiveVoiceRepairAgent as evra
+
+    repaired = (
+        "Engineering executive scaling governed AI platforms across regulated financial institutions. "
+        "Owned a multi-layer agentic control plane with governed route selection and isolated execution. "
+        "Scaled 7 reusable cloud accelerators across 10+ global financial institutions, driving 24% renewal lift."
+    )
+    prior_ledger = [
+        {"claim": "old 1", "claim_text": "Old sentence one.", "source_fact_ids": ["f1"]},
+        {"claim": "old 2", "claim_text": "Old sentence two.", "source_fact_ids": ["f2"]},
+        {"claim": "old 3", "claim_text": "Old sentence three.", "source_fact_ids": ["f3"]},
+    ]
+    calls = 0
+
+    def _fake_call(sec: str, prompt: str, model: str = evra.DEFAULT_REPAIR_MODEL):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return {"repaired_text": repaired}
+        return {"disposition": "PASS", "violated_facts": [], "repair_hint": ""}
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "dummy-anthropic-token-for-unit-test")
+    monkeypatch.setattr(evra, "_call_llm_repair", _fake_call)
+    updated, receipt = evra.repair_section_with_executive_voice_agent(
+        section_id="executive_summary",
+        candidate_data={"resume_display_text": "Old sentence one. Old sentence two. Old sentence three.", "claim_ledger": prior_ledger},
+        diagnostic={"repair_needed": True, "findings": ["Improve executive hook"]},
+        allowed_facts=[{"assertion_id": "f1", "fact_text": "7 accelerators 24% renewal lift"}],
+        mock_mode=False,
+    )
+    assert receipt.repair_succeeded is True
+    assert updated["resume_display_text"] == repaired
+    assert len(updated["claim_ledger"]) == 3
+    for row in updated["claim_ledger"]:
+        assert row["claim_text"] in repaired
+    assert updated["claim_ledger"][0]["source_fact_ids"] == ["f1"]
+    assert updated["claim_ledger"][2]["source_fact_ids"] == ["f3"]
+
+
+def test_rc9_mechanism_repair_never_produces_audit_grade_audit_lineage() -> None:
+    from apps_rg.runtime.sections.authority_repairs.citation_and_mechanism import (
+        _normalize_mechanism_repair_text,
+        _MECHANISM_INVENTORY_REWRITES,
+    )
+
+    text = "Engineered outcome-based evaluation harnesses and audit-grade OpenTelemetry lineage for regulated workloads."
+    out = text
+    for pat, repl in _MECHANISM_INVENTORY_REWRITES:
+        out = pat.sub(repl, out)
+    out = _normalize_mechanism_repair_text(out)
+    assert "audit-grade audit lineage" not in out.lower()
+    assert "audit-grade execution lineage" in out.lower()
