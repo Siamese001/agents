@@ -145,8 +145,9 @@ def run_executive_summary_v2(
         verified_corpus_lower=vctx.verified_corpus_lower, proof_pool_metadata=vctx.proof_pool_metadata, **loop_kwargs,
     )
     turn, x2, x1d = outcome.final_turn, outcome.final_x2_gates, outcome.final_x1d_rows
-    if turn.prompt_hash != initial_prompt_hash or (turn.model_name and turn.model_name != "mock"):
-        _emit_compiled_prompt_and_prepare(turn.messages, turn.prompt_hash, model_lane=turn.model_name if provider_name != "mock" else None)
+    req_model = str((turn.provider_request_data or {}).get("model") or turn.model_name or "")
+    if turn.prompt_hash != initial_prompt_hash or (req_model and req_model != "mock"):
+        _emit_compiled_prompt_and_prepare(turn.messages, turn.prompt_hash, model_lane=req_model if provider_name != "mock" else None)
     display_text, claim_ledger = turn.resume_display_text, turn.claim_ledger
 
     if outcome.attempts_used > 1:

@@ -317,6 +317,7 @@ class ResumeRunRecoveryAgent:
             plan = build_patch_plan(
                 self.artifact_dir,
                 sections_csv=",".join(target_failing),
+                force_lanes_csv=",".join(target_failing),
             )
             receipt.lanes_re_dispatched = list(plan.target_lanes)
 
