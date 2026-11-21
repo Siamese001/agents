@@ -191,6 +191,35 @@ def scan_file_for_vacuous_eval_and_score_clamping(file_path: Path) -> list[dict[
     return violations
 
 
+def scan_fact_inventory_graph_presence_ratchet(repo_root: Path) -> tuple[int, int, list[dict[str, Any]]]:
+    """Enforce INV-FACT-GRAPH-NO-AGENT-SYNTHESIS ratchet on approved_by_graph_presence entries."""
+    if str(repo_root) not in sys.path:
+        sys.path.insert(0, str(repo_root))
+    from tools.validate_turn_gates import load_policy_registry
+
+    policies = load_policy_registry(repo_root)
+    ceiling = int((policies.get("INV-FACT-GRAPH-NO-AGENT-SYNTHESIS") or {}).get("threshold", 193))
+    inv_dir = repo_root / "resume_graph_engine" / "src" / "apps_rg" / "fact_inventory"
+    total_count = 0
+    if inv_dir.is_dir():
+        for bundle_path in sorted(inv_dir.glob("*_role_episode_bundles.json")):
+            total_count += bundle_path.read_text(encoding="utf-8", errors="ignore").count("approved_by_graph_presence")
+    violations: list[dict[str, Any]] = []
+    if total_count > ceiling:
+        violations.append(
+            {
+                "code": "AGENT_SYNTHESIZED_GRAPH_PRESENCE_EXCEEDS_RATCHET",
+                "file": "resume_graph_engine/src/apps_rg/fact_inventory/*_role_episode_bundles.json",
+                "line": 1,
+                "message": (
+                    f"approved_by_graph_presence count ({total_count}) exceeds INV-FACT-GRAPH-NO-AGENT-SYNTHESIS "
+                    f"ratchet ceiling ({ceiling}). Agents must never invent or backfill unverified candidate facts."
+                ),
+            }
+        )
+    return total_count, ceiling, violations
+
+
 def audit_repository(
     repo_root: Path,
     *,
@@ -241,12 +270,17 @@ def audit_repository(
         if rel.startswith("apps_eval/"):
             violations.extend(scan_extended_construct_validity(path))
 
+    gp_count, gp_ceiling, gp_violations = scan_fact_inventory_graph_presence_ratchet(root)
+    violations.extend(gp_violations)
+
     return {
         "schema_version": "agents.eval_construct_validity_audit.v2",
         "status": "PASS" if not violations else "FAIL",
         "scanned_smoke_files": sorted(set(scanned_smoke)),
         "scanned_eval_files": sorted(set(scanned_eval)),
         "grounding_tiers": grounding_tiers,
+        "graph_presence_count": gp_count,
+        "graph_presence_ceiling": gp_ceiling,
         "violation_count": len(violations),
         "violations": violations,
     }

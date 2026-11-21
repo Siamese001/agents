@@ -84,6 +84,17 @@ tier_c_pr_only:
     - config/governance/
     - config/provider_profiles.yaml
     - config/judges/
+    - resume_graph_engine/src/apps_rg/fact_inventory/
+    - resume_graph_engine/src/apps_rg/config/provider_profiles.yaml
+    - resume_graph_engine/src/apps_rg/config/domain_contract/judge_calibration_profile.yaml
+
+immutable_human_truth_surfaces:
+  forbid_candidate_fact_synthesis: true
+  forbid_literal_prose_splicing_repair_hints: true
+  forbid_blind_judge_floor_reduction_below: 4.7
+  locked_paths:
+    - resume_graph_engine/src/apps_rg/fact_inventory/
+    - resume_graph_engine/src/apps_rg/config/domain_contract/judge_calibration_profile.yaml
 
 interactive_remediation:
   one_at_a_time: true
