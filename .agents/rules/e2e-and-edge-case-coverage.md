@@ -36,6 +36,7 @@ Non-pipeline waves (documentation or receipts only) may declare `E2E-EXEMPT` in 
 
 1. **Zero-Drift Specification Parity**: Numeric latency, score, or coverage targets stated in approved plans must be asserted with identical or stricter thresholds in automated tests; silently relaxing assertions fails closed.
 2. **Bilateral Recall-and-Precision Bounds**: Recall floors (`>= N` matched facts or outcomes) must be paired with explicit precision ceilings (`== 0` unverified claims, `== 0` off-domain leaks, `== 0` forbidden patterns) so noisy inflation never looks like a pass.
+3. **Judge Negative-Control Golden Pinning (`INV-JUDGE-NEGATIVE-CONTROL-GOLDEN`)**: Every LLM-as-a-Judge rubric or threshold change must include at least one pinned negative control taken from a real human-rejected output (for example, impersonal datasheet prose with inanimate-subject openers like `"Platform ownership covered..."` / `"Field delivery scaled..."`) verified to fail both deterministic guards and judge rubric criteria.
 
 ## 5. Enforcement
 

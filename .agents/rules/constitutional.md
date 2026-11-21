@@ -20,7 +20,7 @@ trigger: always_on
 7. **RCA auto-closure.** Execute corrective actions immediately across all root-cause layers. Never leave RCA unresolved or defer multi-file bugs.
 8. **Guardian exemptions require rationale.** `# guardian: allow-<type> -- <specific justification>`. Generic words forbidden.
 9. **SVP Engineering rigor for architecture.** Operational simplicity, cohesive modular boundaries, clean inter-subsystem separation, zero-regression.
-10. **Zero-loss refactor.** After refactoring or decomposing monoliths, verify public facade exports and module/symbol test coverage (`tools/testing_gaps_auditor.py`).
+10. **External-contract refactor discipline.** After refactoring, replacing, or deleting bloated modules, verify external caller contracts (public interfaces used by sibling subsystems/lanes) and unmocked regression coverage (`tools/testing_gaps_auditor.py`). Never preserve dead internal helpers, fighting text mutators, or obsolete regex layers (`INV-DELETE-BEFORE-DECOMPOSE`).
 11. **Terminal process lifecycle.** All `run_command`/subprocess invocations must terminate cleanly and reap background tasks.
 12. **No imports from `archives/` in production.**
 13. **Non-blocking structural inspection fallback.** Prefer `adg_sqlite` MCP or `artifacts/adg/*.sqlite` when available; if unavailable or closed, proceed immediately using direct AST/code search without blocking root-cause edits or `/boost` / `/swarm` workers.
