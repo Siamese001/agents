@@ -342,6 +342,20 @@ def test_contract_emitter_writes_all_15_required_lane_contract_artifacts(tmp_pat
                 "factual_truth_and_non_exaggeration",
             )
         }
+        pkt = build_executive_summary_judge_packet(
+            resume_display_text=kwargs["turn"].resume_display_text,
+            claim_ledger=kwargs["turn"].claim_ledger,
+            allowed_fact_packet=list((kwargs["selected_fact_plan"] or {}).get("facts") or []),
+            allowed_fact_ids=kwargs["allowed_fact_ids"],
+            target_title=kwargs["target_title"],
+            target_company=kwargs["target_company"],
+            jd_text=kwargs["jd_text"],
+            briefing_text=kwargs["briefing_text"],
+            parsed_output=kwargs["turn"].parsed_output,
+            graph_targeting_capsule=(kwargs["proof_pool_metadata"] or {}).get("graph_targeting_capsule"),
+            proof_pool_metadata=kwargs["proof_pool_metadata"],
+            repo_root=REPO_ROOT / "resume_graph_engine/src",
+        )
         return [
             {
                 "provider_key": k,
@@ -359,7 +373,7 @@ def test_contract_emitter_writes_all_15_required_lane_contract_artifacts(tmp_pat
                 "dimension_verdicts": dims,
             }
             for k in ("openai_chatgpt", "gemini_pro")
-        ], {"blind_to_deterministic_gates": True, "prompt_has_deterministic_gate_summary": False}
+        ], pkt
 
     args = argparse.Namespace(
         provider="external_claude",
@@ -386,6 +400,10 @@ def test_contract_emitter_writes_all_15_required_lane_contract_artifacts(tmp_pat
         assert (out_dir / fname).is_file(), f"Missing canonical lane contract artifact: {fname}"
     handoff = json.loads((out_dir / "l2_handoff_receipt.json").read_text(encoding="utf-8"))
     assert handoff["handoff_status"] == "PASS"
+    parity = json.loads((out_dir / "targeting_context_parity_receipt.json").read_text(encoding="utf-8"))
+    assert parity["parity_match"] is True
+    assert parity["targeting_parity_status"] == "match"
+    assert "Targeting context parity violation" not in str(res["x3"].get("decisive_reason") or "")
     assert (out_dir / "resume_display_text.txt").is_file()
     assert (out_dir / "claim_ledger.json").is_file()
     assert (out_dir / "fact_check_result.json").is_file()
