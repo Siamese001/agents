@@ -84,3 +84,12 @@ tier_c_pr_only:
     - config/governance/
     - config/provider_profiles.yaml
     - config/judges/
+
+interactive_remediation:
+  one_at_a_time: true
+  rank_by: "impact_score_desc"
+  auto_apply_clear_tier_a: true
+  min_autonomous_confidence_margin: 0.20
+  snooze_days_default: 7
+  auto_execute_on_approval: true
+  auto_promote_approved_fixes: true

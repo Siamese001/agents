@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""5-Vector Multi-SSOT Judge & Gate Drift Auditor for `agents`.
+"""6-Vector Multi-SSOT Judge & Gate Drift Auditor for `agents`.
 
 Cross-checks:
 - Vector 1 (V1_RUBRIC_TO_CONFIG): config/judges/rubrics.yaml & trace_rubric.yaml integrity.
@@ -7,6 +7,8 @@ Cross-checks:
 - Vector 3 (V3_LIVE_NEGATIVE_PROBES): executable negative probes against Tier-1/Tier-2 judge gates.
 - Vector 4 (V4_AUTO_APPLY_POLICY_BOUNDS): auto_apply_policy.yaml bounds vs routing_calibration.yaml live defaults.
 - Vector 5 (V5_PINNED_REGRESSIONS_PARITY): pinned_fix_regressions.json covers all eval shield domains.
+- Vector 6 (V6_FLYWHEEL_HITL_REMEDIATION_PARITY): INV-FLYWHEEL-AUTO-REMEDIATE parity across policy_registry.yaml,
+  auto_apply_policy.yaml, and flywheel_hitl_dispatcher.py.
 """
 
 from __future__ import annotations
@@ -144,6 +146,108 @@ def audit_multi_ssot_judge_gate_drift(repo_root: Path) -> dict[str, Any]:
     vectors["V5_PINNED_REGRESSIONS_PARITY"] = "PASS" if not v5_errs else "FAIL"
     for e in v5_errs:
         violations.append({"vector": "V5_PINNED_REGRESSIONS_PARITY", "message": e})
+
+    # Vector 6: INV-FLYWHEEL-AUTO-REMEDIATE parity across policy_registry.yaml, auto_apply_policy.yaml, and dispatcher.
+    v6_errs: list[str] = []
+    registry_path = root / "config" / "governance" / "policy_registry.yaml"
+    if not registry_path.is_file():
+        v6_errs.append("missing_policy_registry_yaml")
+    else:
+        reg_data = yaml.safe_load(registry_path.read_text(encoding="utf-8")) or {}
+        policies_by_id = {
+            str(p.get("id")): p
+            for p in (reg_data.get("policies") or [])
+            if isinstance(p, dict) and p.get("id")
+        }
+        inv_entry = policies_by_id.get("INV-FLYWHEEL-AUTO-REMEDIATE")
+        if inv_entry is None:
+            v6_errs.append("missing_INV-FLYWHEEL-AUTO-REMEDIATE_in_policy_registry")
+        else:
+            enforcer_rel = str(inv_entry.get("enforcer") or "").strip()
+            rule_rel = str(inv_entry.get("rule_reference") or "").strip()
+            if not enforcer_rel or not (root / enforcer_rel).is_file():
+                v6_errs.append(f"missing_flywheel_enforcer:{enforcer_rel}")
+            if not rule_rel or not (root / rule_rel).is_file():
+                v6_errs.append(f"missing_flywheel_rule_reference:{rule_rel}")
+
+        hitl_margin_pol = policies_by_id.get("INV-HITL-AMBIGUITY-MARGIN") or {}
+        canon_margin = float(hitl_margin_pol.get("threshold", 0.20))
+
+        if policy_path.is_file():
+            pol_doc = yaml.safe_load(policy_path.read_text(encoding="utf-8")) or {}
+            interactive = pol_doc.get("interactive_remediation") or {}
+            cool = pol_doc.get("cooldown_and_hysteresis") or {}
+            if not interactive.get("one_at_a_time", False):
+                v6_errs.append("interactive_remediation.one_at_a_time_must_be_true")
+            if not interactive.get("auto_execute_on_approval", False):
+                v6_errs.append("interactive_remediation.auto_execute_on_approval_must_be_true")
+            if not interactive.get("auto_promote_approved_fixes", False):
+                v6_errs.append("interactive_remediation.auto_promote_approved_fixes_must_be_true")
+            inter_margin = float(interactive.get("min_autonomous_confidence_margin", -1.0))
+            cool_margin = float(cool.get("hysteresis_min_confidence_margin", -1.0))
+            if inter_margin != canon_margin or cool_margin != canon_margin:
+                v6_errs.append(
+                    f"margin_drift:interactive={inter_margin},cooldown={cool_margin},registry={canon_margin}"
+                )
+
+    try:
+        from agents.learning.flywheel_hitl_dispatcher import (
+            build_atomic_remediation_question,
+            record_remediation_decision,
+        )
+        from apps_eval.contracts.schemas import FindingRecord, ImprovementProposal
+        from tools.hitl_governance import validate_hitl_presentation
+
+        if not callable(build_atomic_remediation_question) or not callable(record_remediation_decision):
+            v6_errs.append("flywheel_dispatcher_missing_required_callables")
+        else:
+            probe_f = FindingRecord(
+                finding_id="find-ssot-probe",
+                fingerprint_sha256="a" * 64,
+                source_surface="online_eval",
+                app_id="apps_rg",
+                failed_gate_signature="x2_gates_passed",
+                root_cause_bucket="probe_snake_case_bucket",
+                owner_subsystem="resume_graph_engine",
+                track="TRACK_2_CODE_FIX",
+                priority="P1",
+                status="OPEN",
+                title="apps_rg x2_gates failure in tools/probe_file.py",
+                summary="SSOT probe summary",
+                recommended_action="Fix probe",
+                occurrence_count=3,
+                impact_score=18.5,
+            )
+            probe_p = ImprovementProposal(
+                proposal_id="prop-ssot-probe",
+                cluster_id="clst-ssot-probe",
+                artifact_class="validator_or_code",
+                autonomy_tier="TIER_C_PR_ONLY",
+                risk_lane="LANE_2",
+                target_path="resume_graph_engine/src/apps_rg/runtime/validators/x2.py",
+                target_key=None,
+                expected_current_value=None,
+                proposed_value_or_patch={"action": "open_pr_for_root_cause_fix"},
+                step_delta_magnitude=0.0,
+                evidence_trace_ids=["probe-1"],
+                source_receipt_digests=[],
+                provenance_digest="b" * 64,
+                evaluation_plan=["isolated_worktree_fix"],
+                status="PROPOSED",
+                expires_at_utc="2026-12-31T00:00:00Z",
+            )
+            q_probe = build_atomic_remediation_question(probe_f, probe_p)
+            if len(q_probe.get("questions") or []) != 1:
+                v6_errs.append("flywheel_dispatcher_emitted_non_atomic_question_count")
+            pres_errs = validate_hitl_presentation(q_probe, enforce_visibility_and_jargon=True)
+            if pres_errs:
+                v6_errs.append(f"flywheel_dispatcher_jargon_or_length_violation:{pres_errs[0]}")
+    except Exception as exc:  # guardian: allow-broad-exception -- fail closed on dispatcher parity import or probe error
+        v6_errs.append(f"flywheel_dispatcher_probe_error:{exc}")
+
+    vectors["V6_FLYWHEEL_HITL_REMEDIATION_PARITY"] = "PASS" if not v6_errs else "FAIL"
+    for e in v6_errs:
+        violations.append({"vector": "V6_FLYWHEEL_HITL_REMEDIATION_PARITY", "message": e})
 
     return {
         "schema_version": "agents.multi_ssot_judge_gate_drift.v1",

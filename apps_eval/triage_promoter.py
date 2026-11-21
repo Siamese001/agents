@@ -348,6 +348,7 @@ def promote_golden_cases(
     eligible_clusters: Sequence[FailureCluster] = (),
     operator_corrections: Sequence[Mapping[str, Any]] = (),
     curated_holdout_seeds: Sequence[Mapping[str, Any]] = (),
+    failed_trace_ids: Sequence[str] = (),
     repo_root: Path | None = None,
 ) -> dict[str, Any]:
     """Promote PII-scrubbed real payloads from eligible clusters, corrections, and locked seeds into golden_eval_cases.json."""
@@ -358,6 +359,7 @@ def promote_golden_cases(
     for cl in eligible_clusters:
         if cl.eligible_for_golden_promotion and not cl.conflict_detected:
             eligible_trace_ids.update(str(rid) for rid in cl.unique_run_ids)
+    failed_id_set = {str(tid) for tid in failed_trace_ids if tid}
 
     dedup: dict[str, dict[str, Any]] = {}
 
@@ -383,7 +385,7 @@ def promote_golden_cases(
 
     # 2. Authentic failed RunTraces gated by eligible_clusters (preserving real redacted input payloads).
     for tr in traces:
-        if tr.terminal_status == "PASS":
+        if tr.terminal_status == "PASS" and tr.trace_id not in failed_id_set:
             continue
         if eligible_clusters and (tr.trace_id not in eligible_trace_ids and tr.run_id not in eligible_trace_ids):
             continue
