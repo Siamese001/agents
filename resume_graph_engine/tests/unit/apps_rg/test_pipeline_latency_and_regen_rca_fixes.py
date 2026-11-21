@@ -1081,3 +1081,44 @@ def test_section_dispatch_timeouts_support_exec_summary_regen(monkeypatch: pytes
     monkeypatch.delenv("APPS_RG_SECTION_RUN_TIMEOUT_SECONDS", raising=False)
     assert resolve_section_lane_timeout_s() >= 600.0
     assert resolve_section_run_timeout_s() >= 1200.0
+
+
+def test_exec_summary_regen_dispatch_never_clamps_timeout_to_45s(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from types import SimpleNamespace
+    from apps_rg.runtime.sections import executive_summary_regen_dispatch as rd
+
+    captured: dict[str, Any] = {}
+
+    def _fake_generate(payload: dict[str, Any], **kwargs):
+        captured["timeout_seconds"] = payload.get("timeout_seconds")
+        return SimpleNamespace(
+            runtime_generation_status="REAL_LLM",
+            raw_model_output='{"resume_display_text": "Ok."}',
+            provider_response={"ok": True},
+            to_dict=lambda: {"runtime_generation_status": "REAL_LLM"},
+        )
+
+    monkeypatch.setattr(rd, "generate_section", _fake_generate)
+    rd.budgeted_regen_call(
+        {"model": "m", "provider": "external_claude", "timeout_seconds": 300},
+        messages=[{"role": "user", "content": "Repair draft."}],
+        phase="judge_regen",
+        call_site="test_regen_timeout",
+        cycle_index=0,
+        attempt_index=0,
+        artifact_dir=tmp_path,
+    )
+    assert captured["timeout_seconds"] == 300
+
+    rd.budgeted_regen_call(
+        {"model": "m", "provider": "external_claude"},
+        messages=[{"role": "user", "content": "Repair draft."}],
+        phase="judge_regen",
+        call_site="test_regen_timeout_default",
+        cycle_index=0,
+        attempt_index=1,
+        artifact_dir=tmp_path,
+    )
+    assert int(captured["timeout_seconds"]) >= 180
