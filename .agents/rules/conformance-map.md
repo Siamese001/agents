@@ -33,7 +33,7 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 | Type | Path | Coverage |
 | :--- | :--- | :--- |
 | Config | `.mcp.json` | Sole repository MCP Server-of-Record (SSOT) |
-| Skill | `.agents/skills/mcp-engineering/SKILL.md` | MCP server schema contracts and transport verification |
+| Tool | `tools/ssot_sprawl_scanner.py` | MCP configuration SSOT sprawl prevention (global `mcp-engineering` skill handles protocol design) |
 | Skill | `.agents/skills/agents-governance-hygiene/SKILL.md` | Repository boundary and infrastructure hygiene |
 
 ### §"Constitutional floor"
