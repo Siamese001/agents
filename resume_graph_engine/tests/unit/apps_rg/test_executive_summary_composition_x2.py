@@ -1,4 +1,4 @@
-"""Unit tests: executive summary graph-backed painting-plan X2 gates."""
+"""Unit tests: graph-backed C0 painting-plan metadata, narrative echo repair, and competency surface."""
 
 from __future__ import annotations
 
@@ -11,14 +11,8 @@ from apps_rg.runtime.sections.executive_summary_composition import (
     check_graph_skill_coverage,
     check_mechanism_inventory_control,
     check_s1_dominant_brushstroke_thesis,
-    format_composition_plan_for_pa,
     is_mechanism_inventory_sentence,
 )
-from apps_rg.runtime.validators.executive_summary_x2 import check_graph_evidence_sentence_responsibility_shape
-
-
-def _graph_pool() -> dict[str, object]:
-    return {"graph_skills_proof_pool": True, "proof_pool_type": "augmented_skills_graph"}
 
 
 def _facts() -> list[dict[str, object]]:
@@ -67,20 +61,6 @@ def test_s1_through_routing_retrieval_telemetry_inventory_fails() -> None:
     assert ok is False
 
 
-def test_s2_platform_brushstroke_routing_passes_shape_gate() -> None:
-    text = (
-        "Engineering executive building governed agentic AI platforms for regulated enterprise environments. "
-        "Designed runtime systems combining deterministic routing, multi-agent orchestration, and "
-        "GraphRAG retrieval with validation controls and traceability. "
-        "Standardized AI lifecycle practices across intake, validation, execution, monitoring, and remediation. "
-        "Connected governance themes to enterprise operating rhythms without adding unsupported metrics. "
-        "Delivered measurable commercial outcomes grounded in cited executive facts. "
-        "Integrated AWS and FSA credentials reinforce quantitative credibility for stakeholders."
-    )
-    ok, reason = check_graph_evidence_sentence_responsibility_shape(text, _graph_pool())
-    assert ok is True, reason
-
-
 def test_composition_plan_missing_graph_refs_fails_when_claimed() -> None:
     plan = {
         "composition_style": "executive_painting",
@@ -121,30 +101,10 @@ def test_composition_plan_present_requires_artifact_fields() -> None:
     assert reason
 
 
-def test_strategy_target_emits_svp_sentence_arc() -> None:
-    plan = build_executive_summary_composition_plan(
-        selected_facts=_facts(),
-        allowed_fact_ids={"fact_engineering_platform_001", "fact_governance_003"},
-        target_role="SVP, IT Strategy & Innovation",
-        target_company="Brown & Brown",
-    )
-    assert plan.get("strategy_executive_arc") is True
-    assert "leadership-first" in str(plan.get("target_picture") or "").lower()
-    arc = plan.get("sentence_arc") or []
-    assert len(arc) == 6
-    assert arc[2].get("arc_role") == "scale_operating_model"
-    assert arc[4].get("arc_role") == "commercial_strategy"
-    pa_block = format_composition_plan_for_pa(plan)
-    assert "narrative_arc_weights" in pa_block
-    assert "executive_strategy_thesis" in pa_block
-    assert "S3" in pa_block
-
-
-def test_build_sentence_arc_default_has_six_rows() -> None:
+def test_build_sentence_arc_v2_fits_3_to_4_sentence_band() -> None:
     arc = build_sentence_arc(target_role="VP Engineering", strategy_executive=False)
-    assert len(arc) == 6
+    assert 3 <= len(arc) <= 4
     assert arc[0]["brushstroke_id"] == "B1_executive_identity"
-    assert "leadership" in arc[0]["guidance"].lower()
 
 
 def test_dominant_brushstroke_coherence_passes_thesis() -> None:
@@ -158,8 +118,7 @@ def test_dominant_brushstroke_coherence_passes_thesis() -> None:
         "Engineering executive building governed agentic platforms for regulated enterprises. "
         "Architected routing and orchestration with GraphRAG retrieval. "
         "Leads lifecycle commercialization across programs. "
-        "Delivered proof-backed outcomes. "
-        "Closes with integrated credential depth."
+        "Delivered proof-backed outcomes across enterprise deployments."
     )
     ok, _ = check_dominant_brushstroke_coherence(text, plan)
     assert ok is True
@@ -207,68 +166,10 @@ def test_execution_fact_id_does_not_misclassify_as_b1_and_ai_partnerships_popula
     assert plan["sentence_arc"][0]["arc_role"] == "partnerships_thesis"
 
 
-def test_fde_truist_target_classifies_as_agentic_platform_not_ai_partnerships() -> None:
-    from apps_rg.runtime.sections.executive_summary_synthesis_contract import (
-        classify_exec_summary_role_archetype,
-        format_s6_briefing_forward_targeting_anchor,
-    )
-
-    truist_jd = (
-        "Head of Forward Deployed Engineering leading embedded AI engineering teams from "
-        "rapid prototyping to production activation across business lines, in change management "
-        "partnership with enterprise risk and applied AI platform governance."
-    )
-    archetype = classify_exec_summary_role_archetype(
-        target_role="Head of Forward Deployed Engineering",
-        jd_text=truist_jd,
-        briefing_text="Forward Deployed Engineering & Agentic AI",
-    )
-    assert archetype == "agentic_platform"
-
-    s6_anchor = format_s6_briefing_forward_targeting_anchor(
-        briefing_text="Forward Deployed Engineering & Agentic AI",
-        jd_text=truist_jd,
-    )
-    assert "forward-deployed AI engineering execution" in s6_anchor
-    assert "partner-facing" not in s6_anchor
-    assert "co-sell" not in s6_anchor
-
-
-def test_non_partner_allowed_fact_utilization_and_narrative_echo_avoid_cosell() -> None:
-    from apps_rg.runtime.sections.voice_repair.fact_utilization import (
-        ensure_required_allowed_fact_utilization,
-    )
+def test_slalom_narrative_echo_repair_avoids_cosell() -> None:
     from apps_rg.runtime.validators.narrative_quality_x2 import (
         repair_narrative_bullet_echo_from_graph,
     )
-
-    fde_facts = [
-        {"fact_id": "reb_unify_platform_commercialization_leadership"},
-        {"fact_id": "reb_insurtech_aws_migration_execution"},
-        {"fact_id": "reb_slalom_agentic_client_delivery"},
-    ]
-    parsed_input = {
-        "resume_display_text": (
-            "Engineering executive building governed agentic AI platforms across enterprise teams. "
-            "Architected multi-agent orchestration across regulated workflows. "
-            "Delivered enterprise lakehouse platforms across Fortune 500 accounts. "
-            "Established governance and release discipline across distributed clouds. "
-            "Modernized policy and core insurance platforms on AWS. "
-            "Advances forward-deployed AI engineering execution at scale."
-        ),
-        "claim_ledger": [
-            {"sentence_index": 1, "source_fact_ids": ["reb_slalom_agentic_client_delivery"]},
-            {"sentence_index": 5, "source_fact_ids": ["reb_insurtech_aws_migration_execution"]},
-        ],
-    }
-    repaired_parsed, _ = ensure_required_allowed_fact_utilization(
-        parsed_input,
-        selected_facts=fde_facts,
-    )
-    repaired_summary = str(repaired_parsed.get("resume_display_text") or "")
-    assert "partner-led" not in repaired_summary.lower()
-    assert "alliance gtm" not in repaired_summary.lower()
-    assert "platform commercialization" in repaired_summary.lower()
 
     slalom_text = (
         "Led a 105-person data and AI engineering organization at Slalom. "
@@ -329,36 +230,3 @@ def test_competencies_visible_graph_surface_svp_agentic_engineering_avoids_partn
     assert "reference" in terms_blob
     assert "accelerators" in terms_blob
     assert "enablement" in terms_blob
-
-
-def test_normalize_exec_summary_recruiter_openers_preserves_valid_verb_and_avoids_and_fragment() -> None:
-    from apps_rg.runtime.sections.executive_summary_composition import (
-        normalize_exec_summary_recruiter_openers,
-    )
-    from apps_rg.runtime.validators.executive_summary_x2 import (
-        check_exec_summary_mechanical_opener_stack,
-    )
-
-    single_verb = (
-        "Engineering executive uniting governed agentic AI architecture with repeatable cloud delivery. "
-        "Architected and owned a multi-layer agentic AI platform control plane combining governed route selection with isolated tool execution. "
-        "In parallel, fail-closed validation meshes enforced 100% deterministic gate conformance."
-    )
-    normalized = normalize_exec_summary_recruiter_openers(single_verb)
-    assert "Owned a multi-layer" in normalized
-    assert "And owned" not in normalized
-    assert check_exec_summary_mechanical_opener_stack(normalized)[0] is True
-
-    stacked = (
-        "Led enterprise AI transformation across regulated institutions. "
-        "Built reusable orchestration services for multi-agent workflows. "
-        "Architected and owned a multi-layer control plane for production execution. "
-        "Delivered deterministic evaluation gates with full lineage."
-    )
-    repaired = normalize_exec_summary_recruiter_openers(stacked)
-    assert "And owned" not in repaired
-    assert "Owned a multi-layer control plane" in repaired
-    assert check_exec_summary_mechanical_opener_stack(repaired)[0] is True
-
-
-

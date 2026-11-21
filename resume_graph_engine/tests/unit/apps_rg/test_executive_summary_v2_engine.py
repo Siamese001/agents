@@ -306,7 +306,27 @@ def test_contract_emitter_writes_all_15_required_lane_contract_artifacts(tmp_pat
     brief_text = (REPO_ROOT / "resume_graph_engine/src/apps_rg/config/targeting/truist_head_forward_deployed_engineering_briefing.md").read_text(encoding="utf-8")
 
     def _stub_product_turn(**kwargs: Any) -> GenerationTurnOutput:
+        att = int(kwargs["attempt"])
         fids = list(kwargs["allowed_fact_ids_ordered"])[:3]
+        if att == 1:
+            # Force a counted rewrite so section_repair_ledger authoritative_attempt_number >= 2 is exercised!
+            bad_led = [{"claim_text": "s1", "source_fact_ids": [fids[0]]}]
+            return GenerationTurnOutput(
+                attempt=1,
+                messages=[{"role": "user", "content": "product_test_1"}],
+                compiled_prompt="product_test_1",
+                prompt_hash="phash_product_test_1",
+                model_name="claude-opus-4-7",
+                temperature=0.45,
+                runtime_generation_status="REAL_LLM",
+                raw_output=json.dumps({"resume_display_text": PINNED_V4_ROBOTIC_DRAFT, "claim_ledger": bad_led}),
+                parsed_output={"resume_display_text": PINNED_V4_ROBOTIC_DRAFT, "claim_ledger": bad_led},
+                resume_display_text=PINNED_V4_ROBOTIC_DRAFT,
+                claim_ledger=bad_led,
+                parse_error="",
+                provider_request_data={"provider": "external_claude", "model": "claude-opus-4-7"},
+                provider_result_data={"provider_available": True, "usage": {"input_tokens": 900, "output_tokens": 220, "total_tokens": 1120}},
+            )
         led = [
             {"claim_text": "Enterprise AI and Cloud Architecture Leader with 20+ years scaling regulated transformations across Fortune 500 banking and financial platforms.", "source_fact_ids": [fids[0]]},
             {"claim_text": "Built and led Slalom's 100+ person Cloud and AI practice generating $45M+ in portfolio value across regulated data and agentic systems.", "source_fact_ids": [fids[1]]},
@@ -314,7 +334,7 @@ def test_contract_emitter_writes_all_15_required_lane_contract_artifacts(tmp_pat
         ]
         raw = json.dumps({"resume_display_text": POSITIVE_HUMAN_EXEC_SUMMARY, "claim_ledger": led})
         return GenerationTurnOutput(
-            attempt=int(kwargs["attempt"]),
+            attempt=att,
             messages=[{"role": "user", "content": "product_test"}],
             compiled_prompt="product_test",
             prompt_hash="phash_product_test",
@@ -403,6 +423,8 @@ def test_contract_emitter_writes_all_15_required_lane_contract_artifacts(tmp_pat
     parity = json.loads((out_dir / "targeting_context_parity_receipt.json").read_text(encoding="utf-8"))
     assert parity["parity_match"] is True
     assert parity["targeting_parity_status"] == "match"
+    assert res["product_quality_status"] == "PASS", res["product_quality_reason"]
+    assert (out_dir / "heal_receipt.json").is_file()
     assert "Targeting context parity violation" not in str(res["x3"].get("decisive_reason") or "")
     assert (out_dir / "resume_display_text.txt").is_file()
     assert (out_dir / "claim_ledger.json").is_file()

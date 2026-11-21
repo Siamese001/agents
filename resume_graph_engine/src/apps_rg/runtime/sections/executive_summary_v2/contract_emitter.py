@@ -22,7 +22,7 @@ from apps_rg.runtime.section_l7_binding_lane_integration import finalize_section
 from apps_rg.runtime.section_one_spine_certification_lane_integration import finalize_section_one_spine_certification
 from apps_rg.runtime.section_proof.mock_runtime_proof_policy import attach_lane_proof_bundle_fields, compute_lane_proof_bundle
 from apps_rg.runtime.section_proof.section_input_usage_ledger import build_section_input_usage_ledger_v1
-from apps_rg.runtime.section_repair_ledger import KIND_REGEN_LLM, attach_ledger_summary_to_l2, infer_product_quality_with_repair_ledger, init_ledger, record_repair
+from apps_rg.runtime.section_repair_ledger import KIND_REGEN_LLM, attach_ledger_summary_to_l2, infer_product_quality_with_repair_ledger, init_ledger, record_repair, set_authoritative_attempt
 from apps_rg.runtime.section_runtime_exhaust_lane_integration import finalize_section_runtime_exhaust_before_l6, gate_section_l6_shadow_after_exhaust
 from apps_rg.runtime.sections.executive_summary_context_limits import resolve_scratch_max_output_tokens
 from apps_rg.runtime.sections.executive_summary_generation_grade_contract import build_generation_grade_contract_manifest, write_generation_grade_contract_manifest
@@ -153,6 +153,7 @@ def run_executive_summary_v2(
     if outcome.attempts_used > 1:
         for hist in outcome.attempt_history[:-1]:
             record_repair(artifact_dir, kind=KIND_REGEN_LLM, operation="v2_bounded_fresh_turn_rewrite", reason=str(hist.get("stage") or "v2_rewrite"), replaced_l2=True, detail={"section_id": LANE_KEY})
+        set_authoritative_attempt(artifact_dir, outcome.attempts_used, reason="v2_bounded_fresh_turn_rewrite")
         _write_json(artifact_dir / "heal_receipt.json", {"schema_version": "executive_summary_v2_heal_receipt_v1", "section_id": LANE_KEY, "run_id": run_id, "attempts_used": outcome.attempts_used, "attempt_history": outcome.attempt_history, "zero_post_llm_prose_mutation": True})
 
     _wg.write_text(artifact_dir / "resume_display_text.txt", display_text + ("\n" if display_text else ""), encoding="utf-8")

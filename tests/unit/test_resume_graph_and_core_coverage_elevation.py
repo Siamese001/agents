@@ -433,15 +433,6 @@ def test_resume_graph_layout_retrieval_spine_and_review_helpers() -> None:
         perf_sync.expand_covered_brushstroke_roles,
         perf_sync.resolve_target_picture_for_archetype,
         perf_sync.attach_non_strategy_s6_anchor,
-        perf_sync.has_upstream_allocation_defect_in_judges,
-        perf_sync.apply_pre_synthesis_candidate_repairs,
-        perf_sync.write_synced_canonical_claim_ledger_v2,
-        perf_sync.rescore_snapshot_or_reuse_full_panel,
-        perf_sync.repair_legacy_regulated_partnership_arc,
-        perf_sync.match_legacy_regulated_source_fact_ids,
-        perf_sync.bind_orphan_row_to_best_allocated_root,
-        perf_sync.scrub_secondary_causal_metrics,
-        perf_sync.resolve_unallocated_metric_sentence_replacement,
         local_retrieval.HybridSearchResult,
         local_retrieval.SparseLexicalLaneStatus,
         local_retrieval.SparseLexicalQuerySpec,
@@ -644,7 +635,7 @@ def test_wave1_resume_graph_cache_fact_inventory_bindings_and_preflights(tmp_pat
     )
     from apps_rg.runtime.c0 import resume_graph_proof_pool
     from apps_rg.runtime.evidence import canonical_evidence_digest_chain
-    from apps_rg.runtime.judges import executive_summary_judge_profile, x1d_panel_preflight
+    from apps_rg.runtime.judges import x1d_panel_preflight
 
     assert callable(ensure_dotenv_loaded)
     assert provider_run_diagnostics.redact_endpoint("https://api.example.com/v1/chat") == "https://<redacted-host>/v1/chat"
@@ -747,8 +738,6 @@ def test_wave1_resume_graph_cache_fact_inventory_bindings_and_preflights(tmp_pat
         graph_runtime_persistence.enrich_binding_receipt,
         graph_runtime_persistence.record_c03_expansion_events,
         ibm_narrative_judge_preflight.run_ibm_narrative_judge_credentials_preflight,
-        executive_summary_judge_profile.ExecutiveSummaryJudgeModelResolution,
-        executive_summary_judge_profile.resolve_executive_summary_proof_judge_model,
         x1d_panel_preflight.profile_to_transport_receipt,
         x1d_panel_preflight.profile_to_declared_policy,
         x1d_panel_preflight.audit_provider_transport_preflight_core,
@@ -775,15 +764,13 @@ def test_wave2_resume_graph_orchestration_schemas_stages_shadow_and_spine() -> N
     from apps_rg.runtime.rigor import convergence_audit
     from apps_rg.runtime.schemas import source_resume_schema
     from apps_rg.runtime.section_proof import lane_proof_accounting
-    from apps_rg.runtime.sections import executive_summary_lane_done_policy, jd_fit_bundle_selection
-    from apps_rg.runtime.sections.executive_summary import (
-        stage_closeout,
-        stage_generation,
-        stage_ingress,
-        stage_remediation_cycles,
-        stage_remediation_draft,
-        stage_remediation_pool,
-        word_budget_repair,
+    from apps_rg.runtime.sections import jd_fit_bundle_selection
+    from apps_rg.runtime.sections.executive_summary_v2 import (
+        blind_judge_and_loop,
+        contract_emitter,
+        evidence_firewall,
+        prompt_and_generate,
+        x2_invariants,
     )
     from apps_rg.runtime.shadow import (
         competencies_l6,
@@ -851,17 +838,11 @@ def test_wave2_resume_graph_orchestration_schemas_stages_shadow_and_spine() -> N
         source_resume_schema.validate_structured_resume,
         section_l2_authority.prepare_section_l2_authority,
         section_l2_authority.finalize_section_l2_authority,
-        stage_closeout.run_closeout_stage,
-        stage_generation.run_generation_stage,
-        stage_ingress.run_ingress_stage,
-        stage_remediation_cycles.run_remediation_cycles,
-        stage_remediation_draft.process_remediation_draft,
-        stage_remediation_pool.finalize_remediation_candidate_pool,
-        word_budget_repair.apply_exec_summary_word_budget_repair,
-        word_budget_repair.set_word_budget_repair_authoritative_after_x2,
-        executive_summary_lane_done_policy.ExecutiveSummaryLaneDonePolicy,
-        executive_summary_lane_done_policy.compute_executive_summary_lane_done_policy,
-        executive_summary_lane_done_policy.x3_disposition_for_judges,
+        blind_judge_and_loop.run_bounded_v2_generation_and_judge_loop,
+        contract_emitter.run_executive_summary_v2,
+        evidence_firewall.load_verified_executive_summary_context,
+        prompt_and_generate.generate_executive_summary_v2_turn,
+        x2_invariants.evaluate_executive_summary_v2_x2,
         jd_fit_bundle_selection.profile_pillar_weights,
         jd_fit_bundle_selection.bundle_jd_fit_score,
         jd_fit_bundle_selection.resolve_jd_fit_slot_bundle_map,

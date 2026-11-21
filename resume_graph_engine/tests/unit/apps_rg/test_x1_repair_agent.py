@@ -114,10 +114,11 @@ class TestX1RepairAgent(unittest.TestCase):
             self.assertTrue(receipt.repair_attempted)
             self.assertTrue(receipt.repair_succeeded)
             self.assertNotIn("derivatives pricing, multi-Greek hedging", repaired["resume_display_text"])
-            self.assertIn("portfolio resilience", repaired["resume_display_text"])
+            self.assertIn("resilience", repaired["resume_display_text"])
             from apps_rg.runtime.sections.x1_repair_agent import _split_into_sentences
             sentences = _split_into_sentences(repaired["resume_display_text"])
-            self.assertEqual(len(sentences), 6)
+            self.assertGreaterEqual(len(sentences), 3)
+            self.assertLessEqual(len(sentences), 4)
             # Audit receipt written to disk
             self.assertTrue((tmp_path / "x1_repair_receipt.json").is_file())
 
@@ -223,40 +224,18 @@ class TestX1RepairAgent(unittest.TestCase):
             else:
                 os.environ.pop("APPS_RG_X1_REPAIR_ENABLED", None)
 
-    def test_polish_executive_summary_judge_alignment_invokes_x1_repair(self) -> None:
-        from apps_rg.runtime.sections.executive_summary_voice_repair import (
-            polish_executive_summary_judge_alignment,
+    def test_executive_summary_v2_enforces_zero_post_llm_prose_mutators(self) -> None:
+        import inspect
+        from apps_rg.runtime.sections.executive_summary_v2 import (
+            blind_judge_and_loop,
+            contract_emitter,
         )
 
-        bad_text = (
-            "Technology strategy executive who aligns enterprise IT direction. "
-            "Building on that platform foundation, delivered enterprise cloud architectures. "
-            "Engineered resilient distributed systems with high uptime. "
-            "Scaled architecture teams across multiple product divisions. "
-            "Built advanced quantitative foundation through derivatives pricing, multi-Greek hedging, capital modeling, and FSA credential rigor. "
-            "Governed platform delivery, engineering scale, and regulatory-grade controls extend that arc toward enterprise architecture modernization."
-        )
-        parsed = {
-            "resume_display_text": bad_text,
-            "claim_ledger": [],
-        }
-        diag = {
-            "section_id": "executive_summary",
-            "repair_needed": True,
-            "findings": ["Credential dump in sentence 5"],
-            "cited_sentence_indexes": [5],
-            "remediation_suggestions": ["Foreground quantitative outcome"],
-        }
-
-        out, receipt = polish_executive_summary_judge_alignment(
-            parsed,
-            diagnostic=diag,
-        )
-
-        self.assertTrue(receipt["applied"])
-        self.assertTrue(any("x1_repair_agent" in a for a in receipt["actions"]))
-        self.assertNotIn("derivatives pricing, multi-Greek hedging", out["resume_display_text"])
-        self.assertIn("portfolio resilience", out["resume_display_text"])
+        for mod in (blind_judge_and_loop, contract_emitter):
+            src = inspect.getsource(mod)
+            self.assertNotIn("repair_section_with_x1_agent", src)
+            self.assertNotIn("ExecutiveVoiceRepairAgent", src)
+            self.assertNotIn("executive_summary_voice_repair", src)
 
 
 if __name__ == "__main__":

@@ -434,35 +434,32 @@ class TestWave3BlindHumanJudgeAndThreshold47:
         assert_executive_summary_x1d_judge_coherence()
 
     def test_g5_v2_regen_sentence_count_invariant_accepts_3_to_4_and_rejects_6(self) -> None:
-        from apps_rg.runtime.sections.executive_summary_regen_delta_policy import (
-            DELTA_CLASS_RESUME_VOICE_HUMANIZE,
-            evaluate_g5_delta_scope_v2,
+        from apps_rg.runtime.sections.executive_summary_v2.x2_invariants import (
+            evaluate_executive_summary_v2_x2,
         )
 
-        g5_4 = evaluate_g5_delta_scope_v2(
-            _CLEAN_4_SENTENCE_SUMMARY,
-            _CLEAN_4_SENTENCE_SUMMARY,
-            DELTA_CLASS_RESUME_VOICE_HUMANIZE,
-        )
-        assert g5_4["passed"] is True
-        assert g5_4["reject_gate"] is None
+        def _sentence_gate(text: str) -> dict:
+            gates = evaluate_executive_summary_v2_x2(
+                resume_display_text=text,
+                claim_ledger=[],
+                parsed_output={"resume_display_text": text},
+                allowed_fact_ids=set(),
+                verified_numbers=frozenset(),
+                verified_corpus_lower="",
+                target_company="Truist",
+                jd_text="",
+            )
+            return next(g for g in gates if g["gate_id"] == "x2_v2_sentence_band_3_to_4")
 
-        three_sent = "One. Two. Three."
-        g5_3 = evaluate_g5_delta_scope_v2(
-            _CLEAN_4_SENTENCE_SUMMARY,
-            three_sent,
-            DELTA_CLASS_RESUME_VOICE_HUMANIZE,
-        )
-        assert g5_3["passed"] is True
+        g4 = _sentence_gate(_CLEAN_4_SENTENCE_SUMMARY)
+        assert g4["pass"] is True
 
-        six_sent = "One. Two. Three. Four. Five. Six."
-        g5_6 = evaluate_g5_delta_scope_v2(
-            _CLEAN_4_SENTENCE_SUMMARY,
-            six_sent,
-            DELTA_CLASS_RESUME_VOICE_HUMANIZE,
-        )
-        assert g5_6["passed"] is False
-        assert g5_6["reject_gate"] == "regen_sentence_count_invariant"
+        g3 = _sentence_gate("One. Two. Three.")
+        assert g3["pass"] is True
+
+        g6 = _sentence_gate("One. Two. Three. Four. Five. Six.")
+        assert g6["pass"] is False
+        assert "sentence_count=6" in str(g6["failure_reason"])
 
     def test_non_exec_summary_system_prompt_keeps_4_0_threshold_not_4_7(self) -> None:
         sys_comp = build_x1d_judge_system_prompt(compact=True, section_id="competencies")
