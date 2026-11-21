@@ -346,6 +346,20 @@ def run_remediation_stage(
                             build_payload_fn=build_canonical_claim_ledger_v2_payload,
                             write_json_fn=_lane_attr("write_json", write_json),
                         )
+                        from apps_rg.runtime.sections.exec_summary_perf_sync_helpers import (
+                            sync_section_input_usage_ledger_claims,
+                        )
+
+                        _synced_vr_usage = sync_section_input_usage_ledger_claims(
+                            artifact_dir=artifact_dir,
+                            usage_doc=usage_doc if isinstance(usage_doc, dict) else None,
+                            claim_ledger=ledger_val,
+                            allowed_fact_ids=allowed_fact_ids,
+                            write_json_fn=_lane_attr("write_json", write_json),
+                        )
+                        if _synced_vr_usage is not None:
+                            usage_doc.clear()
+                            usage_doc.update(_synced_vr_usage)
 
                     _persist_vr_artifacts(_vr_text, _vr_ledger, _vr_coverage, _vr_orig_l2)
 

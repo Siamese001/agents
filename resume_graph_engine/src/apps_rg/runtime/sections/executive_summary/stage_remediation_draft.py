@@ -304,6 +304,19 @@ def process_remediation_draft(ctx: dict[str, Any]) -> str | None:
     )
     _lane_attr("write_json", write_json)(artifact_dir / "claim_ledger.json", claim_ledger)
     _lane_attr("write_json", write_json)(artifact_dir / "text_claim_coverage.json", coverage)
+    from apps_rg.runtime.sections.exec_summary_perf_sync_helpers import (
+        sync_section_input_usage_ledger_claims,
+    )
+
+    _synced_usage = sync_section_input_usage_ledger_claims(
+        artifact_dir=artifact_dir,
+        usage_doc=ctx.get("usage_doc") if isinstance(ctx.get("usage_doc"), dict) else None,
+        claim_ledger=claim_ledger,
+        allowed_fact_ids=allowed_fact_ids,
+        write_json_fn=_lane_attr("write_json", write_json),
+    )
+    if _synced_usage is not None:
+        ctx["usage_doc"] = _synced_usage
     x2_regen = rerun_x2_after_judge_remediation(
         resume_display_text=resume_display_text,
         parsed_for_x2=parsed_for_x2,
@@ -380,6 +393,15 @@ def process_remediation_draft(ctx: dict[str, Any]) -> str | None:
                 allowed_fact_ids=allowed_fact_ids,
                 runtime_payload=runtime_payload,
             )
+            _synced_usage_r = sync_section_input_usage_ledger_claims(
+                artifact_dir=artifact_dir,
+                usage_doc=ctx.get("usage_doc") if isinstance(ctx.get("usage_doc"), dict) else None,
+                claim_ledger=claim_ledger,
+                allowed_fact_ids=allowed_fact_ids,
+                write_json_fn=_lane_attr("write_json", write_json),
+            )
+            if _synced_usage_r is not None:
+                ctx["usage_doc"] = _synced_usage_r
             x2_regen = rerun_x2_after_judge_remediation(
                 resume_display_text=resume_display_text,
                 parsed_for_x2=parsed_for_x2,
