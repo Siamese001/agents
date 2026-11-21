@@ -706,3 +706,30 @@ def test_regulated_financial_companion_supports_enterprise_scale_synonym() -> No
     themes = ibm_narrative_material_fact_ids_for_sentence(narrative, companion)
     assert not [t for t in themes if t.startswith("unsupported_companion_theme:")]
     assert "bul_ibm_002" in themes
+
+
+def test_judge_feedback_rewrite_noop_when_all_judges_pass(tmp_path) -> None:
+    from apps_rg.runtime.sections.ibm_narrative_lane_runtime import (
+        apply_ibm_narrative_judge_feedback_rewrite,
+    )
+
+    raw = '{"narrative_sentence": "Led client cloud modernization at IBM, establishing BI lineage."}'
+    parsed = {"narrative_sentence": "Led client cloud modernization at IBM, establishing BI lineage."}
+    x1d = [{"provider_key": "openai_chatgpt", "score": 4.5, "pass": True}]
+    out_raw, out_parsed, out_x1d, accepted = apply_ibm_narrative_judge_feedback_rewrite(
+        messages=[],
+        provider_payload={},
+        raw_output=raw,
+        parsed=parsed,
+        x1d=x1d,
+        runtime_payload={},
+        artifact_dir=tmp_path,
+        runtime_generation_status="REAL_LLM",
+        companion_text="",
+        judge_keys=["openai_chatgpt"],
+        judge_mode="blocked_if_unavailable",
+    )
+    assert accepted is False
+    assert out_raw == raw
+    assert out_parsed == parsed
+    assert out_x1d == x1d

@@ -834,10 +834,10 @@ def apply_ibm_narrative_theme_overpack_repair(
             revision_intro = (
                 "COSINE_ECHO_REVISION (x2_narrative_bullet_cosine_similarity): "
                 f"{cosine_res_pre.failure_reason if cosine_res_pre is not None else 'narrative echoes companion bullets'}. "
-                "Rewrite narrative_sentence at executive operating-scope altitude (practice mandate, regulated "
-                "governance posture, and portfolio continuity) using fresh executive vocabulary so pairwise content "
-                "cosine with every companion bullet is <= 0.28 and pool content cosine is <= 0.38. Do NOT repeat "
-                "noun phrases or opener verbs from the companion IBM bullets. "
+                "Rewrite narrative_sentence using concrete client-facing cloud, BI/lineage, and regulated financial-services "
+                "solution-leadership framing at IBM (NEVER claim an internal 'IBM mandate' and NEVER use vague buzzwords like "
+                "'high-stakes institutions' or 'accountable choices'), varying word choice from the companion bullets so "
+                "pairwise content cosine with every companion bullet is <= 0.28 and pool content cosine is <= 0.38. "
             )
         repair_messages = [
             *messages,
@@ -1054,10 +1054,9 @@ def apply_ibm_narrative_theme_overpack_repair(
                             "but still echoed too many words from the companion IBM bullets "
                             "(x2_narrative_bullet_cosine_similarity requires max_pairwise_cosine <= 0.28 and "
                             "pool_content_cosine <= 0.38). Keep the exact same cited bul_ibm_* IDs and "
-                            "supported mechanism tokens, but rephrase the surrounding executive framing "
-                            "at strategic practice-mandate altitude using distinct high-level vocabulary "
-                            "(avoid repeating companion bullet nouns like 'modernization', 'regulated', "
-                            "'financial', 'clients', 'frameworks', 'workloads'). Preserve one sentence and "
+                            "supported mechanism tokens, keep concrete client-facing enterprise advisory/solution "
+                            "delivery framing at IBM (never claim an internal 'IBM mandate' or vague filler), "
+                            "and paraphrase surrounding nouns so pairwise cosine is <= 0.28. Preserve one sentence and "
                             "the ', establishing' clause split. Return one complete compact JSON object only."
                         ),
                     },
@@ -1067,6 +1066,119 @@ def apply_ibm_narrative_theme_overpack_repair(
         receipt["attempts"] = attempt_rows
     write_json(artifact_dir / THEME_REPAIR_RECEIPT_FILENAME, receipt)
     return raw_output, parsed, accepted
+
+
+def apply_ibm_narrative_judge_feedback_rewrite(
+    *,
+    messages: list[dict[str, str]],
+    provider_payload: dict[str, Any],
+    raw_output: str,
+    parsed: dict[str, Any] | None,
+    x1d: list[dict[str, Any]],
+    runtime_payload: dict[str, Any],
+    artifact_dir: Path,
+    runtime_generation_status: str,
+    companion_text: str,
+    judge_keys: list[str],
+    judge_mode: str,
+) -> tuple[str, dict[str, Any] | None, list[dict[str, Any]], bool]:
+    """Bounded 1-attempt fresh-turn rewrite when X1D judge(s) fail on REAL_LLM."""
+    if (
+        not isinstance(parsed, dict)
+        or runtime_generation_status != "REAL_LLM"
+        or judge_mode == "mocked"
+        or not x1d
+        or all(bool(j.get("pass")) for j in x1d)
+    ):
+        return raw_output, parsed, x1d, False
+    from apps_rg.runtime.section_repair_ledger import KIND_REGEN_LLM, load_ledger, record_repair, set_authoritative_attempt
+    from apps_rg.runtime.sections.ibm_canonical_hydration import (
+        redact_banned_lexicon_from_attestation_change_log,
+        redact_banned_lexicon_from_attestation_metadata,
+    )
+    from apps_rg.runtime.sections.section_authority_repairs import sanitize_ibm_narrative_display_text
+    from apps_rg.runtime.validators.ibm_narrative_x2 import (
+        _ledger_fact_ids,
+        check_ibm_narrative_claim_ledger_clause_decomposition,
+        ibm_narrative_material_fact_ids_for_sentence,
+        ibm_narrative_mechanism_support_observation,
+    )
+    from apps_rg.runtime.validators.narrative_quality_x2 import check_narrative_bullet_cosine_similarity
+
+    findings = [
+        f"{j.get('provider_key')}(score={j.get('score')}): {f}"
+        for j in x1d
+        if not j.get("pass")
+        for f in (j.get("findings") or [])
+    ]
+    critique = "; ".join(findings[:6]) or "Strengthen concrete client-facing grounding across cited companion bullets."
+    rewrite_msgs = [
+        *messages,
+        {"role": "assistant", "content": raw_output},
+        {
+            "role": "user",
+            "content": (
+                f"X1D_JUDGE_REVISION: independent judge review rejected the draft: [{critique}]. "
+                "Rewrite narrative_sentence and claim_ledger from scratch in one crisp client-facing executive sentence "
+                "at IBM (NEVER frame as an internal 'IBM mandate' and NEVER use vague filler like 'high-stakes institutions' "
+                "or 'accountable choices'). Synthesize 2 to 4 concrete capabilities directly attested in the companion IBM "
+                "bullets using ', establishing' clause structure, cite ONLY literal bul_ibm_001..bul_ibm_005 IDs (max 2 per "
+                "clause row), ensure every visible mechanism token appears verbatim in a cited bullet, and keep pairwise "
+                "content cosine <= 0.28 with each companion bullet. Return one complete compact JSON object only."
+            ),
+        },
+    ]
+    res = generate_section(
+        {**provider_payload, "messages": rewrite_msgs, "max_tokens": _theme_repair_regen_max_tokens(raw_output)},
+        lane_key=LANE_KEY,
+    )
+    if res.runtime_generation_status != "REAL_LLM":
+        return raw_output, parsed, x1d, False
+    cand_raw = str(res.raw_model_output or "")
+    cand_parsed, _ = parse_model_json(cand_raw)
+    if cand_parsed is None:
+        return raw_output, parsed, x1d, False
+    cand_parsed = _run_ibm_narrative_deterministic_ledger_chain(cand_parsed, runtime_payload, companion_text)
+    if cand_parsed is None:
+        return raw_output, parsed, x1d, False
+    redact_banned_lexicon_from_attestation_change_log(cand_parsed)
+    redact_banned_lexicon_from_attestation_metadata(cand_parsed)
+    cand_narr, _ = sanitize_ibm_narrative_display_text(str(cand_parsed.get("narrative_sentence") or "").strip())
+    if not cand_narr:
+        return raw_output, parsed, x1d, False
+    cand_parsed["narrative_sentence"] = cand_narr
+    cand_rows = [r for r in (cand_parsed.get("claim_ledger") or []) if isinstance(r, dict)]
+    themes = ibm_narrative_material_fact_ids_for_sentence(cand_narr, companion_text)
+    cited = {s for s in _ledger_fact_ids(cand_rows) if s.startswith("bul_ibm_")}
+    clause_ok, _ = check_ibm_narrative_claim_ledger_clause_decomposition(cand_narr, cand_rows)
+    mech_obs = ibm_narrative_mechanism_support_observation(cand_narr, cand_rows, companion_text)
+    comp_lines = [ln.strip() for ln in str(companion_text or "").splitlines() if ln.strip()]
+    has_full = bool(comp_lines and min((len(b.split()) for b in comp_lines), default=0) >= 12)
+    cos_ok = not has_full or check_narrative_bullet_cosine_similarity(
+        cand_narr, comp_lines, max_pairwise_cosine=0.28, max_pool_cosine=0.38, forbid_shared_opener=True, forbid_repeated_metrics=True
+    ).passed
+    if len(themes) > 4 or (themes - cited) or not clause_ok or mech_obs.get("unsupported_mechanisms") or not cos_ok:
+        return raw_output, parsed, x1d, False
+    cand_x1d = [
+        j.to_dict()
+        for j in run_ibm_narrative_judges(
+            narrative_sentence=cand_narr,
+            claim_ledger=cand_rows,
+            judge_keys=judge_keys,
+            companion_bullets_context=companion_text,
+            mode=judge_mode,
+            artifact_base=artifact_dir,
+        )
+    ]
+    old_rank = (sum(1 for j in x1d if j.get("pass")), min((float(j.get("score") or 0.0) for j in x1d), default=0.0))
+    new_rank = (sum(1 for j in cand_x1d if j.get("pass")), min((float(j.get("score") or 0.0) for j in cand_x1d), default=0.0))
+    if new_rank <= old_rank:
+        return raw_output, parsed, x1d, False
+    record_repair(artifact_dir, kind=KIND_REGEN_LLM, operation="ibm_narrative_judge_feedback_rewrite", reason="x1d_judge_feedback", replaced_l2=True)
+    cur_ledger = load_ledger(artifact_dir) or {}
+    next_att = 1 + sum(1 for r in (cur_ledger.get("repairs") or []) if r.get("kind") == KIND_REGEN_LLM and r.get("replaced_l2"))
+    set_authoritative_attempt(artifact_dir, next_att, reason="ibm_narrative_judge_feedback_rewrite")
+    return cand_raw, cand_parsed, cand_x1d, True
 
 
 def build_mock_output(runtime_payload: dict[str, Any]) -> dict[str, Any]:
