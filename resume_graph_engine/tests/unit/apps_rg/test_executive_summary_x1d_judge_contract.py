@@ -323,3 +323,54 @@ def test_flawed_bcbs239_summary_triggers_alignment_gate_and_caps_score_at_3_4() 
     assert reconciled["pass"] is False
     assert float(reconciled["score"]) <= 3.4
     assert reconciled["defect_origin"] == "UPSTREAM_ALLOCATION_DEFECT"
+
+
+def test_regulated_banking_targets_allow_bcbs_239_while_ai_native_targets_reject() -> None:
+    from apps_rg.runtime.sections.executive_summary_v2.x2_invariants import (
+        evaluate_executive_summary_v2_x2,
+    )
+    from apps_rg.runtime.validators.allocation_jd_alignment_gate import (
+        check_allocation_jd_alignment_gate,
+        is_regulated_finance_or_insurance_target,
+    )
+
+    banking_prose = (
+        "Enterprise AI and cloud platform executive taking agentic systems into production. "
+        "Architected a multi-layer agentic AI control plane with deterministic route policy and GraphRAG grounding. "
+        "Led AWS modernization for regulated banking workloads with BCBS 239-aligned reference architectures."
+    )
+    assert (
+        is_regulated_finance_or_insurance_target(
+            target_role="Head of Forward Deployed Engineering",
+            jd_text="Deploy production agentic AI across commercial banking, wealth management, and regulated financial services.",
+            briefing_text="Top-10 U.S. commercial bank.",
+        )
+        is True
+    )
+    bank_ok, _, bank_reason = check_allocation_jd_alignment_gate(
+        section_id="executive_summary",
+        candidate_text=banking_prose,
+        selected_facts=[],
+        target_role="Head of Forward Deployed Engineering",
+        jd_text="Deploy production agentic AI across commercial banking, wealth management, and regulated financial services.",
+        briefing_text="Top-10 U.S. commercial bank.",
+    )
+    assert bank_ok is True, bank_reason
+
+    ai_native_gates = evaluate_executive_summary_v2_x2(
+        resume_display_text=banking_prose,
+        claim_ledger=[],
+        parsed_output={"resume_display_text": banking_prose},
+        allowed_fact_ids=set(),
+        verified_numbers=frozenset(),
+        verified_corpus_lower="bcbs 239",
+        target_company="Anthropic",
+        target_role="Manager, Applied AI Architecture & Partnerships",
+        jd_text="Partner solution architecture, GSI/SI co-sell enablement, enterprise AI deployment.",
+        briefing_text="Frontier AI lab partnerships role.",
+    )
+    vendor_gate = next(
+        g for g in ai_native_gates if g["gate_id"] == "x2_v2_zero_unverified_vendors_or_employers"
+    )
+    assert vendor_gate["pass"] is False
+    assert "off_domain_clutter:bcbs 239" in str(vendor_gate["failure_reason"])

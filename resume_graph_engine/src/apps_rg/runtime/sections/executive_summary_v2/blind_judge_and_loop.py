@@ -26,6 +26,7 @@ class LoopExecutionOutcome:
     final_judge_packet: dict[str, Any] | None
     attempts_used: int
     attempt_history: list[dict[str, Any]]
+    winning_attempt: int = 1
 
 
 def _judge_row_to_dict(row: Any) -> dict[str, Any]:
@@ -128,6 +129,8 @@ def run_bounded_v2_generation_and_judge_loop(
     last_x2: list[dict[str, Any]] = []
     last_x1d: list[dict[str, Any]] = []
     last_packet: dict[str, Any] | None = None
+    winning_attempt = 1
+    best_rank: tuple[int, float, float] | None = None
     for attempt in range(1, MAX_V2_ATTEMPTS + 1):
         turn = generate_turn_fn(
             attempt=attempt, provider_name=provider_name, temperature=temperature, input_payload_hash=input_payload_hash,
@@ -136,31 +139,42 @@ def run_bounded_v2_generation_and_judge_loop(
             allowed_fact_ids_ordered=allowed_fact_ids_ordered, compact_verified_facts=compact_verified_facts,
             prior_draft=prior_draft, rejection_feedback=rejection_feedback,
         )
-        last_turn = turn
+        if last_turn is None:
+            last_turn = turn
         if turn.runtime_generation_status not in {"REAL_LLM", "OFFLINE_CONTRACT_STUB"}:
-            x2 = evaluate_executive_summary_v2_x2(resume_display_text="", claim_ledger=[], parsed_output=None, allowed_fact_ids=allowed_fact_ids, verified_numbers=verified_numbers, verified_corpus_lower=verified_corpus_lower, target_company=target_company, jd_text=jd_text, x1d_judges=[])
+            x2 = evaluate_executive_summary_v2_x2(resume_display_text="", claim_ledger=[], parsed_output=None, allowed_fact_ids=allowed_fact_ids, verified_numbers=verified_numbers, verified_corpus_lower=verified_corpus_lower, target_company=target_company, jd_text=jd_text, target_role=target_title, briefing_text=briefing_text, x1d_judges=[])
             attempt_history.append({"attempt": attempt, "stage": "provider_blocked", "error": turn.parse_error})
-            return LoopExecutionOutcome(final_turn=turn, final_x2_gates=x2, final_x1d_rows=[], final_judge_packet=None, attempts_used=attempt, attempt_history=attempt_history)
-        pre_x2 = evaluate_executive_summary_v2_x2(resume_display_text=turn.resume_display_text, claim_ledger=turn.claim_ledger, parsed_output=turn.parsed_output, allowed_fact_ids=allowed_fact_ids, verified_numbers=verified_numbers, verified_corpus_lower=verified_corpus_lower, target_company=target_company, jd_text=jd_text, x1d_judges=None)
+            return LoopExecutionOutcome(final_turn=turn, final_x2_gates=x2, final_x1d_rows=[], final_judge_packet=None, attempts_used=attempt, attempt_history=attempt_history, winning_attempt=attempt)
+        pre_x2 = evaluate_executive_summary_v2_x2(resume_display_text=turn.resume_display_text, claim_ledger=turn.claim_ledger, parsed_output=turn.parsed_output, allowed_fact_ids=allowed_fact_ids, verified_numbers=verified_numbers, verified_corpus_lower=verified_corpus_lower, target_company=target_company, jd_text=jd_text, target_role=target_title, briefing_text=briefing_text, x1d_judges=None)
         if failed_x2 := [g for g in pre_x2 if not g["pass"]]:
             attempt_history.append({"attempt": attempt, "stage": "x2_failed_fast", "failed_gates": [g["gate_id"] for g in failed_x2]})
             if attempt < MAX_V2_ATTEMPTS and str(provider_name).strip().lower() != "mock":
                 prior_draft, rejection_feedback = turn.resume_display_text or turn.raw_output, format_x2_failure_feedback(failed_x2)
                 continue
-            last_x2 = evaluate_executive_summary_v2_x2(resume_display_text=turn.resume_display_text, claim_ledger=turn.claim_ledger, parsed_output=turn.parsed_output, allowed_fact_ids=allowed_fact_ids, verified_numbers=verified_numbers, verified_corpus_lower=verified_corpus_lower, target_company=target_company, jd_text=jd_text, x1d_judges=last_x1d)
+            if best_rank is None:
+                last_turn = turn
+                winning_attempt = attempt
+                last_x2 = evaluate_executive_summary_v2_x2(resume_display_text=turn.resume_display_text, claim_ledger=turn.claim_ledger, parsed_output=turn.parsed_output, allowed_fact_ids=allowed_fact_ids, verified_numbers=verified_numbers, verified_corpus_lower=verified_corpus_lower, target_company=target_company, jd_text=jd_text, target_role=target_title, briefing_text=briefing_text, x1d_judges=last_x1d)
             break
         x1d_rows, packet = evaluate_judges_fn(
             artifact_dir=artifact_dir, attempt=attempt, turn=turn, selected_fact_plan=selected_fact_plan,
             allowed_fact_ids=allowed_fact_ids, proof_pool_metadata=proof_pool_metadata, target_title=target_title,
             target_company=target_company, jd_text=jd_text, briefing_text=briefing_text, judge_mode=judge_mode,
         )
-        last_x1d, last_packet = x1d_rows, packet
-        last_x2 = evaluate_executive_summary_v2_x2(resume_display_text=turn.resume_display_text, claim_ledger=turn.claim_ledger, parsed_output=turn.parsed_output, allowed_fact_ids=allowed_fact_ids, verified_numbers=verified_numbers, verified_corpus_lower=verified_corpus_lower, target_company=target_company, jd_text=jd_text, x1d_judges=x1d_rows)
+        cur_x2 = evaluate_executive_summary_v2_x2(resume_display_text=turn.resume_display_text, claim_ledger=turn.claim_ledger, parsed_output=turn.parsed_output, allowed_fact_ids=allowed_fact_ids, verified_numbers=verified_numbers, verified_corpus_lower=verified_corpus_lower, target_company=target_company, jd_text=jd_text, target_role=target_title, briefing_text=briefing_text, x1d_judges=x1d_rows)
         both_pass = len(x1d_rows) >= 2 and all(judge_row_passes_4_7_human_bar(r) for r in x1d_rows)
+        scores = [float(r.get("score") or 0.0) for r in x1d_rows]
+        cur_rank = (1 if both_pass else 0, min(scores, default=0.0), sum(scores))
+        if best_rank is None or cur_rank >= best_rank:
+            best_rank = cur_rank
+            last_turn, last_x2, last_x1d, last_packet, winning_attempt = turn, cur_x2, x1d_rows, packet, attempt
         attempt_history.append({"attempt": attempt, "stage": "x1d_evaluated", "both_judges_pass": both_pass, "scores": [r.get("score") for r in x1d_rows], "decisive_failures": [bool(r.get("decisive_failure")) for r in x1d_rows]})
         if both_pass or any(bool(r.get("provider_blocked")) for r in x1d_rows) or str(provider_name).strip().lower() == "mock":
             break
         if attempt < MAX_V2_ATTEMPTS:
             prior_draft, rejection_feedback = turn.resume_display_text, format_blind_judge_feedback(x1d_rows)
     assert last_turn is not None
-    return LoopExecutionOutcome(final_turn=last_turn, final_x2_gates=last_x2, final_x1d_rows=last_x1d, final_judge_packet=last_packet, attempts_used=len(attempt_history), attempt_history=attempt_history)
+    if last_packet is not None and winning_attempt != len(attempt_history):
+        write_executive_summary_judge_packet(artifact_dir / "judge_packet.json", last_packet)
+        write_executive_summary_judge_packet(artifact_dir / "executive_summary_judge_packet.json", last_packet)
+    return LoopExecutionOutcome(final_turn=last_turn, final_x2_gates=last_x2, final_x1d_rows=last_x1d, final_judge_packet=last_packet, attempts_used=len(attempt_history), attempt_history=attempt_history, winning_attempt=winning_attempt)

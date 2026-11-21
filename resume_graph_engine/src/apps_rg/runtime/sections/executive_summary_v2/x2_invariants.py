@@ -102,7 +102,8 @@ def _gate(gate_id: str, passed: bool, observed: Any, threshold: str, reason: str
 def evaluate_executive_summary_v2_x2(
     *, resume_display_text: str, claim_ledger: Sequence[Mapping[str, Any]], parsed_output: Mapping[str, Any] | None,
     allowed_fact_ids: set[str], verified_numbers: frozenset[str], verified_corpus_lower: str,
-    target_company: str, jd_text: str, x1d_judges: Sequence[Mapping[str, Any]] | None = None,
+    target_company: str, jd_text: str, target_role: str = "", briefing_text: str = "",
+    x1d_judges: Sequence[Mapping[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     text = str(resume_display_text or "").strip()
     sentences = split_sentences(text)
@@ -161,7 +162,12 @@ def evaluate_executive_summary_v2_x2(
     co_head = (str(target_company or "").strip().lower().split() or [""])[0]
     if len(co_head) >= 4 and co_head not in {"slalom", "unify", "insurtech", "ernst", "synthetic", "enterprise"} and re.search(rf"\b(?:at|for|joined|employed\s+by)\s+{re.escape(co_head)}\b", low_text):
         vendor_v.append(f"target_company_claimed_as_employer:{co_head}")
-    gates.append(_gate("x2_v2_zero_unverified_vendors_or_employers", not vendor_v, vendor_v or "clean", "0 unverified vendors/employers", "; ".join(vendor_v)))
+    if target_role or jd_text or briefing_text:
+        from apps_rg.runtime.validators.allocation_jd_alignment_gate import find_off_domain_clutter_hits
+
+        for clutter_hit in find_off_domain_clutter_hits(text, target_role=target_role, jd_text=jd_text, briefing_text=briefing_text):
+            vendor_v.append(f"off_domain_clutter:{clutter_hit}")
+    gates.append(_gate("x2_v2_zero_unverified_vendors_or_employers", not vendor_v, vendor_v or "clean", "0 unverified vendors/employers/off-domain clutter", "; ".join(vendor_v)))
 
     jd_align = (parsed_output or {}).get("jd_alignment") if isinstance(parsed_output, Mapping) else {}
     jd_reasons = ["jd_or_briefing_marked_as_proof"] if isinstance(jd_align, Mapping) and (jd_align.get("jd_used_as_proof") is True or jd_align.get("briefing_used_as_proof") is True) else []
