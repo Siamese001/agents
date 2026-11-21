@@ -136,6 +136,25 @@ def test_six_jd_multi_industry_allocation_truth_firewall_and_v2_gates_e2e(case: 
     else:
         assert "insurtech" not in lanes, f"InsurTech leaked into non-insurance JD {case['case_id']}"
 
+    from apps_rg.runtime.sections.graph_role_episode_selector import (
+        build_selected_graph_evidence_plan_for_section,
+    )
+
+    comp_plan, _comp_trace, _comp_audit = build_selected_graph_evidence_plan_for_section(
+        repo_root=RG_SRC,
+        section_id="competencies",
+        target_role=case["role"],
+        jd_text=jd_text,
+        briefing_text=brief_text,
+    )
+    comp_items = list(comp_plan.get("facts") or [])
+    assert len(comp_items) == 8, f"competencies graph evidence plan expected 8 facts on {case['case_id']}, got {len(comp_items)}"
+    assert comp_plan.get("graph_evidence_depth_status") == "judge_grade", f"competencies depth insufficient on {case['case_id']}: {comp_plan.get('graph_evidence_depth_report')}"
+    assert all(bool(it.get("selected_metric_ids")) for it in comp_items), (
+        f"0-metric thin root leaked into competencies on {case['case_id']}: "
+        f"{[it.get('role_episode_bundle_id') for it in comp_items if not it.get('selected_metric_ids')]}"
+    )
+
     raw_facts = [
         {
             "fact_id": str(r.get("root_id") or r.get("fact_id") or ""),

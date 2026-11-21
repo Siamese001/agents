@@ -990,7 +990,7 @@ def build_selected_graph_evidence_plan_for_section(
             not authorized_skills
             or not authorized_facts
             or skill_cap <= 0
-            or (section_id == "executive_summary" and not authorized_metrics)
+            or (section_id in ("executive_summary", "competencies") and not authorized_metrics)
         ):
             root["target_alignment_score"] = 0.0
             root["ranking_score"] = 0.0
@@ -998,7 +998,7 @@ def build_selected_graph_evidence_plan_for_section(
                 reason = "no_authorized_skill_children"
             elif not authorized_facts:
                 reason = "no_authorized_source_fact_children"
-            elif section_id == "executive_summary" and not authorized_metrics:
+            elif section_id in ("executive_summary", "competencies") and not authorized_metrics:
                 reason = "no_authorized_metric_children"
             else:
                 reason = "section_skill_cap_zero"

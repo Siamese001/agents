@@ -396,3 +396,58 @@ def test_contract_emitter_writes_all_15_required_lane_contract_artifacts(tmp_pat
     mock_res = run_executive_summary_v2(mock_args, artifact_dir_override=mock_dir)
     assert (mock_dir / "l2_output.json").is_file()
     assert mock_res["runtime_generation_status"] == "OFFLINE_CONTRACT_STUB"
+
+
+def test_real_provider_result_and_run_llm_judges_keyword_contract(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from apps_rg.runtime.providers.provider_contract import ProviderResult
+    from apps_rg.runtime.sections.executive_summary_v2 import prompt_and_generate as pg
+    from apps_rg.runtime.sections.executive_summary_v2.blind_judge_and_loop import evaluate_blind_dual_judges
+
+    raw = json.dumps({"resume_display_text": POSITIVE_HUMAN_EXEC_SUMMARY, "claim_ledger": _valid_ledger()})
+    monkeypatch.setattr(
+        pg,
+        "generate_section",
+        lambda *a, **kw: ProviderResult(
+            provider_requested="external_claude",
+            provider_attempted=True,
+            provider_available=True,
+            exact_provider_error=None,
+            runtime_generation_status="REAL_LLM",
+            model="claude-sonnet-5-5-medium",
+            raw_model_output=raw,
+            provider_response={"usage": {"input_tokens": 500, "output_tokens": 180, "total_tokens": 680}},
+        ),
+    )
+    turn = pg.generate_executive_summary_v2_turn(
+        attempt=1,
+        provider_name="external_claude",
+        temperature=0.45,
+        input_payload_hash="inhash",
+        run_id="r1",
+        artifact_dir=tmp_path,
+        target_company="Truist",
+        target_title="Head of Forward Deployed Engineering",
+        jd_text="banking fde",
+        briefing_text="regulated banking",
+        allowed_fact_ids=ALLOWED_IDS,
+        allowed_fact_ids_ordered=sorted(ALLOWED_IDS),
+        compact_verified_facts=[],
+    )
+    assert turn.runtime_generation_status == "REAL_LLM"
+    assert turn.resume_display_text == POSITIVE_HUMAN_EXEC_SUMMARY
+
+    rows, pkt = evaluate_blind_dual_judges(
+        artifact_dir=tmp_path,
+        attempt=1,
+        turn=turn,
+        selected_fact_plan={"facts": []},
+        allowed_fact_ids=ALLOWED_IDS,
+        proof_pool_metadata={},
+        target_title="Head of Forward Deployed Engineering",
+        target_company="Truist",
+        jd_text="banking fde",
+        briefing_text="regulated banking",
+        judge_mode="mocked",
+    )
+    assert len(rows) >= 2
+    assert "rubric" in pkt

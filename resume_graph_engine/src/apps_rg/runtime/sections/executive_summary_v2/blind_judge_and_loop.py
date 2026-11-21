@@ -101,9 +101,12 @@ def evaluate_blind_dual_judges(
     write_executive_summary_judge_packet(artifact_dir / ("judge_packet.json" if attempt == 1 else f"judge_packet_attempt_{attempt}.json"), packet)
     if attempt > 1:
         write_executive_summary_judge_packet(artifact_dir / "judge_packet.json", packet)
+    eff_mode = "mocked" if str(judge_mode).strip().lower() == "mocked" else "blocked_if_unavailable"
     raw_outputs = run_llm_judges(
-        turn.resume_display_text, turn.claim_ledger, list(get_section_judge_policy(LANE_KEY).default_judge_keys),
-        mode=judge_mode, artifact_base=artifact_dir, judge_packet=packet,
+        resume_display_text=turn.resume_display_text,
+        claim_ledger=turn.claim_ledger,
+        judge_keys=list(get_section_judge_policy(LANE_KEY).required_judge_providers),
+        mode=eff_mode, artifact_base=artifact_dir, judge_packet=packet,
         judge_packet_ref=str(artifact_dir / "judge_packet.json"), compiled_prompt=turn.compiled_prompt, section_id=LANE_KEY,
     )
     return [_judge_row_to_dict(r) for r in raw_outputs], packet

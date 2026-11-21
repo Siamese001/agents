@@ -694,7 +694,25 @@ def apply_ibm_narrative_theme_overpack_repair(
     unsupported_mechanisms_pre = list(
         mechanism_observation_pre.get("unsupported_mechanisms") or []
     )
-    if not overpacked and not missing_pre and not unsupported_mechanisms_pre:
+    from apps_rg.runtime.validators.narrative_quality_x2 import (
+        check_narrative_bullet_cosine_similarity,
+    )
+
+    companion_bullets_list = [ln.strip() for ln in str(companion_text or "").splitlines() if ln.strip()]
+    cosine_res_pre = (
+        check_narrative_bullet_cosine_similarity(
+            narrative_pre,
+            companion_bullets_list,
+            max_pairwise_cosine=0.28,
+            max_pool_cosine=0.38,
+            forbid_shared_opener=True,
+            forbid_repeated_metrics=True,
+        )
+        if companion_bullets_list
+        else None
+    )
+    cosine_failed_pre = bool(cosine_res_pre is not None and not cosine_res_pre.passed)
+    if not overpacked and not missing_pre and not unsupported_mechanisms_pre and not cosine_failed_pre:
         return raw_output, parsed, False
 
     from apps_rg.runtime.section_repair_ledger import KIND_REGEN_LLM, load_ledger, record_repair
@@ -722,6 +740,9 @@ def apply_ibm_narrative_theme_overpack_repair(
             "x2_ibm_narrative_mechanisms_supported_by_cited_companion_bullets:"
             + ",".join(sorted(unsupported_mechanisms_pre))
         )
+    if cosine_failed_pre and cosine_res_pre is not None:
+        trigger_gate_ids.append("x2_narrative_bullet_cosine_similarity")
+        trigger_reasons.append(f"x2_narrative_bullet_cosine_similarity:{cosine_res_pre.failure_reason or 'echo'}")
     repair_reason = "+".join(trigger_reasons)
     receipt: dict[str, Any] = {
         "section_id": "ibm_narrative",
@@ -791,7 +812,7 @@ def apply_ibm_narrative_theme_overpack_repair(
                 "into the other clause or drop that family entirely - do not allude to a "
                 "dropped family's trigger words). "
             )
-        else:
+        elif unsupported_mechanisms_pre:
             revision_intro = (
                 "MECHANISM_CITATION_REVISION "
                 "(x2_ibm_narrative_mechanisms_supported_by_cited_companion_bullets): "
@@ -801,6 +822,15 @@ def apply_ibm_narrative_theme_overpack_repair(
                 "sentence and claim_ledger so each visible mechanism is supported by a cited "
                 "companion bullet; either cite the supporting bullet on the matching clause or "
                 "remove that mechanism token. Preserve the current focused theme budget. "
+            )
+        else:
+            revision_intro = (
+                "COSINE_ECHO_REVISION (x2_narrative_bullet_cosine_similarity): "
+                f"{cosine_res_pre.failure_reason if cosine_res_pre is not None else 'narrative echoes companion bullets'}. "
+                "Rewrite narrative_sentence at executive operating-scope altitude (practice mandate, regulated "
+                "governance posture, and portfolio continuity) using fresh executive vocabulary so pairwise content "
+                "cosine with every companion bullet is <= 0.28 and pool content cosine is <= 0.38. Do NOT repeat "
+                "noun phrases or opener verbs from the companion IBM bullets. "
             )
         repair_messages = [
             *messages,
@@ -928,6 +958,15 @@ def apply_ibm_narrative_theme_overpack_repair(
                             receipt["rejected_reason"] = "clause_decomposition_failed"
                         elif unsupported_mechanisms:
                             receipt["rejected_reason"] = "mechanism_support_unsatisfied"
+                        elif companion_bullets_list and not check_narrative_bullet_cosine_similarity(
+                            narrative_post,
+                            companion_bullets_list,
+                            max_pairwise_cosine=0.28,
+                            max_pool_cosine=0.38,
+                            forbid_shared_opener=True,
+                            forbid_repeated_metrics=True,
+                        ).passed:
+                            receipt["rejected_reason"] = "cosine_similarity_still_high"
                         else:
                             prior_log = (
                                 list(parsed.get("change_log") or [])
