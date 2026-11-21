@@ -751,26 +751,28 @@ Build core foundation.
 
     def test_pre_edit_plan_allows_explanation_markdown(self) -> None:
         """Ordinary docs whose names contain 'plan' (like explanation.md) must never be blocked as wave plans."""
-        payload = {
-            "toolCall": {
-                "name": "write_file",
-                "args": {
-                    "Path": "docs/explanation.md",
-                    "Content": "# Architecture Explanation\n\nPlain prose without wave sections.\n",
-                },
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_root = Path(tmpdir)
+            payload = {
+                "toolCall": {
+                    "name": "write_file",
+                    "args": {
+                        "Path": str(tmp_root / "docs" / "explanation.md"),
+                        "Content": "# Architecture Explanation\n\nPlain prose without wave sections.\n",
+                    },
+                }
             }
-        }
-        for hook_name in ("pre_edit_plan", "pre_file_write"):
-            res = subprocess.run(
-                [sys.executable, "tools/hook_dispatch.py", "--hook", hook_name],
-                input=json.dumps(payload),
-                capture_output=True,
-                text=True,
-                cwd=ROOT,
-                timeout=10,
-            )
-            self.assertEqual(res.returncode, 0, f"{hook_name} blocked docs/explanation.md: {res.stdout} {res.stderr}")
-            self.assertEqual(json.loads(res.stdout.strip())["decision"], "allow")
+            for hook_name in ("pre_edit_plan", "pre_file_write"):
+                res = subprocess.run(
+                    [sys.executable, "tools/hook_dispatch.py", "--hook", hook_name, "--repo-root", str(tmp_root)],
+                    input=json.dumps(payload),
+                    capture_output=True,
+                    text=True,
+                    cwd=ROOT,
+                    timeout=10,
+                )
+                self.assertEqual(res.returncode, 0, f"{hook_name} blocked docs/explanation.md: {res.stdout} {res.stderr}")
+                self.assertEqual(json.loads(res.stdout.strip())["decision"], "allow")
 
     def test_pre_edit_plan_allows_focused_single_module_bugfix_plans(self) -> None:
         """Verify pre_edit_plan hook allows focused single-module bug-fix plans without forced pipeline bundling."""
