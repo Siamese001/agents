@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""HITL Governance and Ambiguity Gating Engine (20% margin, 65% floor, 300/250-char caps, zero-jargon)."""
+"""HITL Governance and Ambiguity Gating Engine (20% margin, 65% floor, 300/115-char caps, front-loaded confidence, zero-jargon)."""
 from __future__ import annotations
 
 import argparse
@@ -18,7 +18,8 @@ from typing import Any, Iterator, Sequence
 DEFAULT_AMBIGUITY_THRESHOLD: float = 0.20
 DEFAULT_MIN_CONFIDENCE_FLOOR: float = 0.65
 MAX_QUESTION_LENGTH: int = 300
-MAX_OPTION_LENGTH: int = 250
+MAX_OPTION_LENGTH: int = 115
+MAX_CONFIDENCE_PREFIX_OFFSET: int = 45
 DEFAULT_STORE_PATH = Path("artifacts/governance/hitl_decisions.sqlite")
 
 
@@ -530,6 +531,12 @@ def validate_hitl_presentation(
                 errors.append(
                     f"HITL_VIOLATION_OPTION_LENGTH: Option {idx + 1} length ({len(opt_label)} chars) exceeds MAX_OPTION_LENGTH ({MAX_OPTION_LENGTH} chars)."
                 )
+            if isinstance(opt, str):
+                conf_m = re.search(r"\b(?:HIGH|MEDIUM|LOW)\b|\b\d+(?:\.\d+)?\s*%", opt_label, re.IGNORECASE)
+                if conf_m and conf_m.start() > MAX_CONFIDENCE_PREFIX_OFFSET:
+                    errors.append(
+                        f"HITL_VIOLATION_BURIED_CONFIDENCE: Option {idx + 1} places confidence at offset {conf_m.start()} (> {MAX_CONFIDENCE_PREFIX_OFFSET}); front-load confidence near the start (e.g. '(Recommended) HIGH 85%: ...')."
+                    )
             if _TRUNCATION_PATTERN.search(opt_label):
                 errors.append(
                     f"HITL_VIOLATION_TRUNCATION: Option {idx + 1} contains ellipsis or truncation marker ('...' or '…')."

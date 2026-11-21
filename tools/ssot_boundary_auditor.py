@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Agents Repository — 10-Dimension SSOT, Centralization, Sprawl & Subsystem Boundary Auditor.
 
-Implements the deterministic Stage II (`Order 2/7`) boundary, config sprawl, anti-hardcoding,
+Implements the deterministic Stage I (`Order 1/4`) boundary, config sprawl, anti-hardcoding,
 prompt-to-code parity, policy registry sync, constitutional floor, MCP/hook portability, and
-link-integrity auditor declared in `automations/prompts/agents_ssot_boundary_agent.md` and
+link-integrity auditor declared in `automations/prompts/agents_architecture_cost_agent.md` and
 `tools/validate_sidecar_separation.py`.
 """
 

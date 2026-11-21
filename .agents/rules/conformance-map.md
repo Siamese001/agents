@@ -89,7 +89,7 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 | Rule | `.agents/rules/resume-graph-engine.md` | Verified candidate fact provenance, zero post-LLM mutators, and multi-JD generalization |
 | Rule | `.agents/rules/flywheel-remediation-governance.md` | Hybrid Tier A/B/C auto-apply with immutable candidate-truth and blind-judge floor locks |
 | Tool | `tools/pr_governance.py` | Governed PR queue, trunk lock, and merge train |
-| Tool | `tools/verify_main_readiness.py` | Tier 2 9-stage local main readiness gate |
+| Tool | `tools/verify_main_readiness.py` | Tier 2 10-stage local main readiness gate |
 | Tool | `tools/audit_governance_harmonization.py` | Cross-surface threshold, context budget, and broken-ref auditor |
 | Tool | `tools/audit_eval_construct_validity.py` | Eval construct validity and unmocked E2E pinning gate |
 | Tool | `tools/run_diff_scoped_eval_shield.py` | Diff-scoped unmocked domain eval shield |

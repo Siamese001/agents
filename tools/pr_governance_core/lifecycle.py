@@ -589,6 +589,10 @@ def _teardown_merged_worktree(branch: str, delete_branch: bool = True, repo_root
                 print(f"Pruned merged secondary worktree: {r_wt}")
             for d_br in pruned.get("deleted_branches", []):
                 print(f"Deleted merged local branch: {d_br}")
+        with contextlib.suppress(Exception):
+            from tools.storage_worktree_hygiene import run_post_merge_quick_hygiene
+
+            run_post_merge_quick_hygiene(repo_root=root)
 
 
 def cmd_merge(args: argparse.Namespace) -> int:

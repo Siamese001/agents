@@ -22,13 +22,9 @@ def test_agents_retrieval_and_outreach_sidecar_prompts_bind_live_graph_probe() -
     repo_root = Path(__file__).resolve().parents[1]
     prompts_dir = repo_root / "automations" / "prompts"
 
-    for fname in (
-        "agents_research_retrieval_surface_agent.md",
-        "agents_domain_applications_pipeline_agent.md",
-    ):
-        text = (prompts_dir / fname).read_text(encoding="utf-8")
-        assert "python3 tools/run_resume_graph_traversal_probe.py" in text
-        assert "direct_graph_traversal" in text
+    text = (prompts_dir / "agents_domain_pipelines_retrieval_agent.md").read_text(encoding="utf-8")
+    assert "run_resume_graph_traversal_probe.py" in text
+    assert "direct_graph_traversal" in text
 
     sep = validate_sidecar_separation(repo_root=repo_root)
     assert sep["is_clean"] is True, sep["violations"]

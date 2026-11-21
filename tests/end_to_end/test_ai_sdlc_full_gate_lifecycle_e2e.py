@@ -41,10 +41,10 @@ def test_lane_classification_end_to_end_cli() -> None:
     data = json.loads(proc.stdout)
     assert data["effective_lane"] == 2
     assert data["lanes_touched"] == [0, 2]
-    assert len(data["required_readiness_stages"]) == 9
+    assert len(data["required_readiness_stages"]) == 10
 
 
-def test_tier2_readiness_dry_run_records_9_stages_and_lane() -> None:
+def test_tier2_readiness_dry_run_records_10_stages_and_lane() -> None:
     proc = subprocess.run(
         [
             sys.executable,
@@ -68,13 +68,14 @@ def test_tier2_readiness_dry_run_records_9_stages_and_lane() -> None:
     receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
     try:
         assert receipt["terminal_outcome"] == "PASS"
-        assert receipt["total_stages"] == 9
-        assert receipt["stages_evaluated"] == 9
+        assert receipt["total_stages"] == 10
+        assert receipt["stages_evaluated"] == 10
         assert "effective_lane" in receipt
         stage_names = [s["stage_name"] for s in receipt["stages"]]
         assert "7. Eval Construct Validity & Unmocked E2E Pinning" in stage_names
         assert "8. Diff-Scoped Unmocked Domain Eval Shield" in stage_names
         assert "9. Governance Harmonization & SSOT Drift Audit" in stage_names
+        assert "10. Testing Gaps, Handoff Contracts & Mock Reachability" in stage_names
     finally:
         receipt_path.unlink(missing_ok=True)
 

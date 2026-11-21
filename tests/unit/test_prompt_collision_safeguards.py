@@ -79,10 +79,10 @@ def _run_hook(fn, payload: dict[str, object], repo_root: Path) -> dict[str, obje
 
 
 def test_wave1_prompt_stage_manifests_and_write_scope(tmp_path: Path) -> None:
-    """All 8 sidecar prompts declare stage isolation and write outside scope fails closed."""
-    assert len(PROMPT_STAGE_ALLOWED_WRITE_PATHS) == 8
+    """All 4 consolidated sidecar prompts declare stage isolation and write outside scope allows solo root-cause fixes."""
+    assert len(PROMPT_STAGE_ALLOWED_WRITE_PATHS) == 4
     prompt_files = sorted((REPO_ROOT / "automations" / "prompts").glob("agents_*_agent.md"))
-    assert len(prompt_files) == 8
+    assert len(prompt_files) == 4
     for pf in prompt_files:
         text = pf.read_text(encoding="utf-8")
         assert "PYTHONDONTWRITEBYTECODE=1" in text, pf.name
@@ -91,17 +91,17 @@ def test_wave1_prompt_stage_manifests_and_write_scope(tmp_path: Path) -> None:
         assert "AGY_SIDECAR_AGENT_ID=" in text, pf.name
 
     blocked_cross, reason_cross = evaluate_prompt_stage_write_scope(
-        "agents/runtime/supervisor.py", tmp_path, agent_id="agents-storage-worktree-hygiene"
+        "agents/runtime/supervisor.py", tmp_path, agent_id="agents-architecture-cost-governance"
     )
     assert blocked_cross is False and "root-cause" in reason_cross
 
     allowed_own, _ = evaluate_prompt_stage_write_scope(
-        "tools/storage_worktree_hygiene.py", tmp_path, agent_id="agents-storage-worktree-hygiene"
+        "tools/storage_worktree_hygiene.py", tmp_path, agent_id="agents-architecture-cost-governance"
     )
     assert allowed_own is False
 
     allowed_ephemeral, _ = evaluate_prompt_stage_write_scope(
-        "plans/fix-wave-123abc.md", tmp_path, agent_id="agents-storage-worktree-hygiene"
+        "plans/fix-wave-123abc.md", tmp_path, agent_id="agents-architecture-cost-governance"
     )
     assert allowed_ephemeral is False
 
@@ -351,7 +351,7 @@ def test_wave4_subagent_scope_hooks_and_prompt_catalog_parity(tmp_path: Path, mo
     assert (tmp_path / ".agents" / "teamwork" / "ORIGINAL_REQUEST.md").read_text(encoding="utf-8") == "Coordinate multi-file fix\n"
 
     # File write hook allows known and custom stage root-cause writes and releases subagent leases cleanly
-    monkeypatch.setenv("AGY_SIDECAR_AGENT_ID", "agents-storage-worktree-hygiene")
+    monkeypatch.setenv("AGY_SIDECAR_AGENT_ID", "agents-architecture-cost-governance")
     allow_write_stage = _run_hook(handle_pre_file_write, {"Path": "agents/foo.py"}, tmp_path)
     assert allow_write_stage["decision"] == "allow"
     monkeypatch.setenv("AGY_SIDECAR_AGENT_ID", "custom-swarm-stage")
@@ -378,8 +378,8 @@ def test_wave4_subagent_scope_hooks_and_prompt_catalog_parity(tmp_path: Path, mo
     assert '"status": "SUCCESS"' in skill_text
 
 
-def test_all_28_agent_pairs_strictly_mece_disjoint_and_paths_exist() -> None:
-    """All 8 Agents Repo prompt stages declare 100% pairwise-disjoint existing write paths."""
+def test_all_6_agent_pairs_strictly_mece_disjoint_and_paths_exist() -> None:
+    """All 4 Agents Repo prompt stages declare 100% pairwise-disjoint existing write paths."""
     from tools.prompt_scope_isolation import validate_stage_ownership_disjointness
 
     violations = validate_stage_ownership_disjointness(REPO_ROOT)
@@ -387,7 +387,7 @@ def test_all_28_agent_pairs_strictly_mece_disjoint_and_paths_exist() -> None:
 
     # Counterfactual: injecting a synthetic overlap must fail closed
     synthetic = dict(PROMPT_STAGE_ALLOWED_WRITE_PATHS)
-    synthetic["agents-cost-token-budget"] = synthetic["agents-cost-token-budget"] + ("tools/lint_secrets.py",)
+    synthetic["agents-core-runtime-orchestration"] = synthetic["agents-core-runtime-orchestration"] + ("tools/lint_secrets.py",)
     overlap_errs = validate_stage_ownership_disjointness(None, stage_paths=synthetic)
     assert any("STAGE_WRITE_PATH_OVERLAP" in err and "lint_secrets.py" in err for err in overlap_errs)
 
@@ -411,45 +411,45 @@ def test_parallel_active_stage_leases_block_peer_code_stepping_while_solo_allows
     _git(repo, "add", "README.md")
     _git(repo, "commit", "-m", "init")
 
-    wt_a = repo / ".worktrees" / "chore__agents__cost"
-    wt_b = repo / ".worktrees" / "chore__agents__testing"
+    wt_a = repo / ".worktrees" / "chore__agents__core"
+    wt_b = repo / ".worktrees" / "chore__agents__arch"
     wt_a.parent.mkdir(parents=True, exist_ok=True)
-    _git(repo, "worktree", "add", "-b", "chore/agents-cost-1", str(wt_a), "main")
-    _git(repo, "worktree", "add", "-b", "chore/agents-testing-1", str(wt_b), "main")
+    _git(repo, "worktree", "add", "-b", "chore/agents-core-1", str(wt_a), "main")
+    _git(repo, "worktree", "add", "-b", "chore/agents-arch-1", str(wt_b), "main")
 
-    # 1. Solo run: only agents-cost-token-budget leased -> cross-stage root-cause write allowed
-    register_active_stage_lease(repo, "agents-cost-token-budget", "chore/agents-cost-1", wt_a)
+    # 1. Solo run: only agents-core-runtime-orchestration leased -> cross-stage root-cause write allowed
+    register_active_stage_lease(repo, "agents-core-runtime-orchestration", "chore/agents-core-1", wt_a)
     blocked_solo, reason_solo = evaluate_prompt_stage_write_scope(
-        "tools/lint_secrets.py", wt_a, agent_id="agents-cost-token-budget"
+        "tools/lint_secrets.py", wt_a, agent_id="agents-core-runtime-orchestration"
     )
     assert blocked_solo is False and "root-cause" in reason_solo
 
-    # 2. Parallel run: agents-testing-gaps-assurance also leased -> stepping on peer's file fails closed
-    register_active_stage_lease(repo, "agents-testing-gaps-assurance", "chore/agents-testing-1", wt_b)
+    # 2. Parallel run: agents-architecture-cost-governance also leased -> stepping on peer's file fails closed
+    register_active_stage_lease(repo, "agents-architecture-cost-governance", "chore/agents-arch-1", wt_b)
     assert len(list_active_stage_leases(repo)) == 2
 
     blocked_peer, reason_peer = evaluate_prompt_stage_write_scope(
-        "tools/lint_secrets.py", wt_a, agent_id="agents-cost-token-budget"
+        "tools/lint_secrets.py", wt_a, agent_id="agents-core-runtime-orchestration"
     )
     assert blocked_peer is True and "PARALLEL_STAGE_OWNERSHIP_CONFLICT" in reason_peer
 
     # Own path remains allowed during parallel execution
     allowed_own, _ = evaluate_prompt_stage_write_scope(
-        "config/provider_profiles.yaml", wt_a, agent_id="agents-cost-token-budget"
+        "tools/agent_runtime_auditor.py", wt_a, agent_id="agents-core-runtime-orchestration"
     )
     assert allowed_own is False
 
     # PreToolUse hook inside wt_a enforces the parallel conflict fail-closed across worktrees
-    monkeypatch.setenv("AGY_SIDECAR_AGENT_ID", "agents-cost-token-budget")
+    monkeypatch.setenv("AGY_SIDECAR_AGENT_ID", "agents-core-runtime-orchestration")
     hook_deny = _run_hook(handle_pre_file_write, {"Path": str(wt_a / "tools/lint_secrets.py")}, wt_a)
     assert hook_deny["decision"] == "deny" and "PARALLEL_STAGE_OWNERSHIP_CONFLICT" in hook_deny["reason"]
     monkeypatch.delenv("AGY_SIDECAR_AGENT_ID", raising=False)
 
     # 3. Release peer lease -> solo mode restored cleanly
-    assert release_active_stage_lease(repo, branch_name="chore/agents-testing-1") == 1
+    assert release_active_stage_lease(repo, branch_name="chore/agents-arch-1") == 1
     assert len(list_active_stage_leases(repo)) == 1
     blocked_after, _ = evaluate_prompt_stage_write_scope(
-        "tools/lint_secrets.py", repo, agent_id="agents-cost-token-budget"
+        "tools/lint_secrets.py", repo, agent_id="agents-core-runtime-orchestration"
     )
     assert blocked_after is False
     assert release_active_stage_lease(repo, worktree_dir=wt_a) == 1
@@ -475,8 +475,8 @@ def test_concurrent_worktree_provisioning_and_stage_lease_lifecycle(tmp_path: Pa
 
     stages = [
         ("agents-core-runtime-orchestration", "chore/agents-core-20261120T060000Z-aaa111"),
-        ("agents-evals-judge-assurance", "chore/agents-evals-20261120T060000Z-bbb222"),
-        ("agents-cost-token-budget", "chore/agents-cost-20261120T060000Z-ccc333"),
+        ("agents-evals-flywheel-assurance", "chore/agents-evals-20261120T060000Z-bbb222"),
+        ("agents-architecture-cost-governance", "chore/agents-arch-20261120T060000Z-ccc333"),
     ]
 
     def _provision(item: tuple[str, str]) -> dict[str, object]:

@@ -19,7 +19,7 @@ Governs Human-in-the-Loop (HITL) decisions, approvals, and clarifications across
    - The recommended option must be designated as `(Recommended)` with supporting rationale.
    - **Full Character Visibility & Display Caps (`INV-HITL-QUESTION-VISIBILITY`)**:
      - `question` prompt text must never exceed **300 characters** (`MAX_QUESTION_LENGTH = 300`).
-     - Each option string must never exceed **250 characters** (`MAX_OPTION_LENGTH = 250`).
+     - Each option string must never exceed **115 characters** (`MAX_OPTION_LENGTH = 115`) and must front-load its confidence badge within the first `45` characters (`(Recommended) HIGH 85%: ...` or `MEDIUM 71%: ...`) so confidence never gets clipped by UI column width.
      - Ellipses and truncation markers (`...`, `…`, `[truncated]`) are strictly prohibited so the operator can read every character in the UI without cutoff.
    - **Zero-Jargon Layman Standard on Questions & Options (`INV-HITL-ZERO-JARGON`)**:
      - Both `question` and every `option` must be written in 100% plain layman English with operational impact (`Impact: ...`).
@@ -73,7 +73,7 @@ Governs Human-in-the-Loop (HITL) decisions, approvals, and clarifications across
 
 10. **Multi-Agent & Teamwork Interview Relay Decomposition (`INV-HITL-RELAY-DECOMPOSITION`)**
    - When relaying an upstream interview questionnaire or task prompt approval draft from `/teamwork` (`teamwork_interviewer`) or any sub-agent, never dump multi-question menus as plain text in chat or pass bundled/jargon questions to `ask_question`.
-   - Decompose genuinely ambiguous scope or design questions ($\Delta \le 20\%$) into sequential, atomic, 100% plain-English `ask_question` calls (`<= 250` characters per option, calibrated confidence, `Impact: ...`).
+   - Decompose genuinely ambiguous scope or design questions ($\Delta \le 20\%$) into sequential, atomic, 100% plain-English `ask_question` calls (`<= 115` characters per option, front-loaded confidence, `Impact: ...`).
    - Resolve default administrative questions with $\Delta > 20\%$ autonomously under a recorded audit receipt, and present the final task prompt draft approval via an atomic `ask_question` call.
 
 ## Decision Structure
@@ -81,8 +81,8 @@ Governs Human-in-the-Loop (HITL) decisions, approvals, and clarifications across
 Use the `ask_question` tool with concise, fully visible plain-English parameters:
 - `question`: "[Single plain-English question <= 300 characters with zero technical jargon]"
 - `options`:
-  - "(Recommended) [Plain-English Option A] (Confidence: HIGH (85%)). Impact: [Plain-English operational outcome <= 250 chars total]"
-  - "[Plain-English Option B] (Confidence: MEDIUM (71%)). Impact: [Plain-English operational outcome <= 250 chars total]"
+  - "(Recommended) HIGH 85%: [Plain-English Option A]. Impact: [Outcome <= 115 chars total]"
+  - "MEDIUM 71%: [Plain-English Option B]. Impact: [Outcome <= 115 chars total]"
 
 ## Governance Enforcement & System Learning
 - Hook: `agents-hitl-atomic-guard` in `.agents/hooks.json`.

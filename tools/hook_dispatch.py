@@ -70,7 +70,7 @@ WORD_BUDGET_INTERCEPT_PROMPT = (
 ANTI_PLAINTEXT_FALLBACK_DIRECTIVE = (
     "NEVER fall back to printing questions or options as plain text in chat; "
     "immediately invoke ask_question again with ONE atomic plain-English question at a time "
-    "(<= 250 chars per option, Confidence: TIER (N%))."
+    "(<= 115 chars per option with front-loaded confidence, e.g. '(Recommended) HIGH 85%: ...')."
 )
 
 

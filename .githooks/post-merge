@@ -32,6 +32,10 @@ elif [ -f "$MAIN_REPO/tools/prune_merged_chat_worktrees.py" ]; then
     "$PYTHON_BIN" "$MAIN_REPO/tools/prune_merged_chat_worktrees.py" --repo-root "$MAIN_REPO" --active-cwd "$MAIN_REPO" --target-ref "$CURRENT_BRANCH" --delete-merged
 fi
 
+if [ -f "$REPO_ROOT/tools/storage_worktree_hygiene.py" ]; then
+    "$PYTHON_BIN" "$REPO_ROOT/tools/storage_worktree_hygiene.py" --repo-root "$REPO_ROOT" --post-merge-quick >/dev/null 2>&1 || true
+fi
+
 if [ -f "$REPO_ROOT/tools/pr_governance_core/lifecycle.py" ] && git rev-parse --verify ORIG_HEAD >/dev/null 2>&1; then
     ORIG_SHA="$(git rev-parse ORIG_HEAD 2>/dev/null || echo "")"
     if [ -n "$ORIG_SHA" ]; then
