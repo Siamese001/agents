@@ -22,10 +22,6 @@ shadow_copy_pairs:
     mirrors:
       - "resume_graph_engine/src/apps_rg/config/provider_profiles.yaml"
     policy: "MUST_MATCH_OR_IMPORT_CANONICAL"
-  - canonical: ".mcp.json"
-    mirrors:
-      - ".agents/mcp_config.json"
-    policy: "PORTABLE_SERVER_PARITY"
   - canonical: "pytest.ini"
     mirrors:
       - "resume_graph_engine/pytest.ini"
@@ -49,7 +45,7 @@ domain_threshold_owners:
     required_consumers:
       - "tools/validate_turn_gates.py"
       - "tools/implementation_plan_core/evidence_requirements.py"
-      - "tools/lint_file_budgets.py"
+      - "tools/zero_bugfix_constraint_gate.py"
       - "tools/hitl_governance.py"
       - "AGENTS.md"
       - ".agents/rules/output-brevity-governance.md"

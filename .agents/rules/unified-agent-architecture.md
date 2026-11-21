@@ -1,5 +1,6 @@
 ---
-trigger: always_on
+trigger: model_decision
+description: Five-pillar taxonomy, 10-field delegation contract, upstream return protocol, and in-process A2A guardrails.
 ---
 
 # Unified Architecture: Skills, Agents, Sub-Agents, Hooks & Rules

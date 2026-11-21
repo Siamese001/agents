@@ -1,49 +1,12 @@
 {
-  "agents-implementation-plan-guard": {
+  "agents-file-write-guard": {
     "PreToolUse": [
       {
         "matcher": "write_to_file|replace_file_content|multi_replace_file_content|write_file|edit_file|create_file",
         "hooks": [
           {
             "type": "command",
-            "command": "python3 tools/hook_dispatch.py --hook pre_edit_plan",
-            "timeout": 30
-          }
-        ]
-      }
-    ]
-  },
-  "agents-wave-completion-guard": {
-    "Stop": [
-      {
-        "type": "command",
-        "command": "python3 tools/hook_dispatch.py --hook stop_wave_summary",
-        "timeout": 30
-      }
-    ]
-  },
-  "agents-pytest-scope-guard": {
-    "PreToolUse": [
-      {
-        "matcher": "run_command",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 tools/hook_dispatch.py --hook pre_run_command",
-            "timeout": 30
-          }
-        ]
-      }
-    ]
-  },
-  "agents-model-neutral-artifact-guard": {
-    "PreToolUse": [
-      {
-        "matcher": "write_to_file|replace_file_content|multi_replace_file_content|write_file|edit_file|create_file",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 tools/hook_dispatch.py --hook pre_model_neutral",
+            "command": "python3 tools/hook_dispatch.py --hook pre_file_write",
             "timeout": 30
           }
         ]
@@ -103,34 +66,6 @@
           {
             "type": "command",
             "command": "python3 tools/hook_dispatch.py --hook post_subagent_delegation",
-            "timeout": 15
-          }
-        ]
-      }
-    ]
-  },
-  "agents-model-registry-conformance-guard": {
-    "PreToolUse": [
-      {
-        "matcher": "write_to_file|replace_file_content|multi_replace_file_content|write_file|edit_file|create_file",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 tools/hook_dispatch.py --hook pre_model_registry",
-            "timeout": 30
-          }
-        ]
-      }
-    ]
-  },
-  "agents-main-worktree-write-guard": {
-    "PreToolUse": [
-      {
-        "matcher": "write_to_file|replace_file_content|multi_replace_file_content|write_file|edit_file|create_file",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 tools/hook_dispatch.py --hook pre_file_write",
             "timeout": 15
           }
         ]

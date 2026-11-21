@@ -159,9 +159,9 @@ _MONOLITH_SUBMODULE_RE = re.compile(
     re.IGNORECASE,
 )
 _MONOLITH_BOUNDARY_RATCHET_RE = re.compile(
-    r"(?:file_budgets_ratchet|env_lookup_ratchet|centralization_registry|"
-    r"lint_file_budgets|ssot_hardcoding_scanner|ssot_boundary_auditor|"
-    r"lint_layer_imports|lint_layer_boundaries|lint_architecture_boundaries|"
+    r"(?:env_lookup_ratchet|centralization_registry|"
+    r"ssot_hardcoding_scanner|ssot_boundary_auditor|"
+    r"lint_layer_imports|lint_architecture_boundaries|"
     r"lint_model_neutral_naming|retrieval_surface_auditor|cost_token_budget_auditor|"
     r"cost_token_budget_probes|boundary\s+(?:check|alignment|linter|audit)|"
     r"ratchet\s+(?:ceiling|clamp|update))",

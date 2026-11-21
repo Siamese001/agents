@@ -1,8 +1,0 @@
----
-trigger: glob
-globs: "resume_graph_engine/**"
----
-
-# apps_rg Interactive Discipline — stub
-
-> On-demand under apps_rg (plan `always-on-rule-surface-cut-c7f3a1`); enforcement unchanged (runtime guards). Never pre-fill `--target-company`/`--target-role`/`--jd`/`--manual-brief` from inferred context (the wizard owns them); when inputs aren't all named in the SAME turn, issue ONE prompt for ALL missing inputs; source resume is static (don't re-ask); auto-fill company/role only when both named same-turn. Detail: [`agents-domain-assurance`](../skills/agents-domain-assurance/SKILL.md) skill, constitutional §6/§18. Guards: `_interactive_wizard`, `_assert_artifact_matches_company` in `apps_rg/__main__.py`.

@@ -50,7 +50,6 @@ PROMPT_STAGE_ALLOWED_WRITE_PATHS: dict[str, tuple[str, ...]] = {
         "tools/lint_architecture_boundaries.py",
         "tools/lint_layer_imports.py",
         "tools/lint_contract_schemas.py",
-        "tools/lint_file_budgets.py",
         "tools/lint_model_neutral_naming.py",
         "tools/validate_sidecar_separation.py",
         "tools/prompt_scope_isolation.py",

@@ -49,20 +49,16 @@ def _create_clean_sandbox(sandbox: Path) -> None:
         "output-brevity-governance.md",
         "pr-governance.md",
         "hitl-decisions.md",
-        "work-item-classification.md",
+        "constitutional.md",
     ):
         (sandbox / ".agents" / "rules" / rule_name).write_text(
-            f"---\ntrigger: model_decision\n---\n\n# {rule_name}\n",
+            f"---\ntrigger: model_decision\ndescription: Clean sandbox rule {rule_name}.\n---\n\n# {rule_name}\n",
             encoding="utf-8",
         )
 
     (sandbox / ".agents" / "skills" / "demo").mkdir(parents=True)
     (sandbox / ".agents" / "skills" / "demo" / "SKILL.md").write_text(
         "---\nname: demo\ndescription: Short skill.\n---\n# Demo\n",
-        encoding="utf-8",
-    )
-    (sandbox / ".agents" / "mcp_config.json").write_text(
-        json.dumps({"mcpServers": {"filesystem": {"command": "npx"}}}),
         encoding="utf-8",
     )
     (sandbox / ".agents" / "hooks.json").write_text(
@@ -101,10 +97,34 @@ def _create_clean_sandbox(sandbox: Path) -> None:
         "      EXEC_SUMMARY_MAX_WORDS_PER_SENTENCE: 45\n",
         encoding="utf-8",
     )
-    (gov_dir / "policy_registry.yaml").write_text(
-        (REPO_ROOT / "config" / "governance" / "policy_registry.yaml").read_text(encoding="utf-8"),
-        encoding="utf-8",
-    )
+    policy_text = (REPO_ROOT / "config" / "governance" / "policy_registry.yaml").read_text(encoding="utf-8")
+    (gov_dir / "policy_registry.yaml").write_text(policy_text, encoding="utf-8")
+    import yaml  # type: ignore
+
+    for pol in (yaml.safe_load(policy_text) or {}).get("policies", []):
+        if not isinstance(pol, dict):
+            continue
+        for key in ("enforcer", "rule_reference"):
+            rel = str(pol.get(key) or "").strip()
+            if not rel or (sandbox / rel).exists():
+                continue
+            target = sandbox / rel
+            target.parent.mkdir(parents=True, exist_ok=True)
+            if target.suffix == ".md":
+                if rel.startswith(".agents/rules/"):
+                    target.write_text(
+                        f"---\ntrigger: model_decision\ndescription: Sandbox rule {target.name}.\n---\n\n# {target.name}\n",
+                        encoding="utf-8",
+                    )
+                elif target.name == "SKILL.md":
+                    target.write_text(
+                        f"---\nname: {target.parent.name}\ndescription: Short sandbox skill.\n---\n# {target.parent.name}\n",
+                        encoding="utf-8",
+                    )
+                else:
+                    target.write_text(f"# {target.name}\n", encoding="utf-8")
+            else:
+                target.write_text("# sandbox stub\n", encoding="utf-8")
 
 
 def test_clean_sandbox_passes_all_ten_dimensions(tmp_path: Path) -> None:

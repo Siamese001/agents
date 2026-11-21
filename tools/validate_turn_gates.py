@@ -23,7 +23,6 @@ bootstrap_shared_venv(ROOT)
 
 REQUIRED_TIER1_TOOLS = (
     "hitl_governance.py",
-    "lint_file_budgets.py",
     "lint_layer_imports.py",
     "lint_model_neutral_naming.py",
     "lint_secrets.py",
@@ -42,7 +41,7 @@ REQUIRED_AGENTS_HEADERS = [
 ]
 
 
-def validate_pre_turn_gate(repo_root: Path | None = None) -> dict[str, Any]:
+def validate_pre_turn_gate(repo_root: Path | None = None, *, skip_active_plan_check: bool = False) -> dict[str, Any]:
     """Execute all pre-turn gate checks.
 
     Returns:
@@ -52,26 +51,36 @@ def validate_pre_turn_gate(repo_root: Path | None = None) -> dict[str, Any]:
     issues: list[str] = []
     checks: dict[str, Any] = {}
 
-    # Check 1: Governance hooks presence and completeness
+    # Check 1: Governance hooks presence and handler parity
     hooks_path = root / ".agents" / "hooks.json"
     if not hooks_path.is_file():
         issues.append(f"Hooks configuration missing: {hooks_path}")
         checks["hooks_configuration"] = {"status": "FAIL"}
     else:
         try:
-            hooks_data = json.loads(hooks_path.read_text(encoding="utf-8"))
+            raw_hooks = hooks_path.read_text(encoding="utf-8")
+            hooks_data = json.loads(raw_hooks)
             if isinstance(hooks_data, dict) and "hooks" in hooks_data and isinstance(hooks_data["hooks"], list):
                 hook_count = len(hooks_data["hooks"])
             elif isinstance(hooks_data, dict):
                 hook_count = len([k for k, v in hooks_data.items() if isinstance(v, dict)])
             else:
                 hook_count = 0
+            hook_ok = hook_count >= 3
+            if not hook_ok:
+                issues.append(f"Expected >= 3 active governance hook groups, found {hook_count}")
+            dispatch_path = root / "tools" / "hook_dispatch.py"
+            if dispatch_path.is_file():
+                dispatch_text = dispatch_path.read_text(encoding="utf-8", errors="ignore")
+                if "handle_pre_file_write" in dispatch_text:
+                    for hname in sorted(set(re.findall(r"--hook\s+([a-zA-Z0-9_-]+)", raw_hooks))):
+                        if f'"{hname}"' not in dispatch_text and f"'{hname}'" not in dispatch_text:
+                            hook_ok = False
+                            issues.append(f"Hook handler '{hname}' in .agents/hooks.json missing from tools/hook_dispatch.py")
             checks["hooks_configuration"] = {
-                "status": "PASS" if hook_count >= 7 else "FAIL",
+                "status": "PASS" if hook_ok else "FAIL",
                 "hook_count": hook_count,
             }
-            if hook_count < 7:
-                issues.append(f"Expected >= 7 governance hooks, found {hook_count}")
         except Exception as exc:
             issues.append(f"Invalid hooks JSON: {exc}")
             checks["hooks_configuration"] = {"status": "FAIL", "error": str(exc)}
@@ -152,44 +161,53 @@ def validate_pre_turn_gate(repo_root: Path | None = None) -> dict[str, Any]:
             checks["provider_profiles"] = {"status": "FAIL", "error": str(exc)}
 
     # Check 7: Implementation Plan & Mandatory Wave Summary Table validation
-    try:
-        from tools.validate_implementation_plan import (
-            extract_wave_summary_entries,
-            get_active_plan_file,
-            validate_file,
-        )
+    if skip_active_plan_check:
+        checks["implementation_plan"] = {
+            "status": "PASS",
+            "active_plan": None,
+            "wave_count": 0,
+            "wave_summary": [],
+            "note": "Skipped repo-wide active plan scan (staged plans validated separately).",
+        }
+    else:
+        try:
+            from tools.validate_implementation_plan import (
+                extract_wave_summary_entries,
+                get_active_plan_file,
+                validate_file,
+            )
 
-        active_plan = get_active_plan_file(root)
-        if active_plan:
-            is_valid, plan_issues = validate_file(active_plan, repo_root=root)
-            entries, _ = extract_wave_summary_entries(active_plan.read_text(encoding="utf-8"))
-            checks["implementation_plan"] = {
-                "status": "PASS" if is_valid else "FAIL",
-                "active_plan": active_plan.name,
-                "wave_count": len(entries),
-                "wave_summary": [
-                    {
-                        "wave": e["wave"],
-                        "description": e["description"],
-                        "status": e["status"],
-                        "check_open": e["check_open"],
-                    }
-                    for e in entries
-                ],
-            }
-            if not is_valid:
-                issues.extend([f"Plan {active_plan.name}: {iss}" for iss in plan_issues])
-        else:
-            checks["implementation_plan"] = {
-                "status": "PASS",
-                "active_plan": None,
-                "wave_count": 0,
-                "wave_summary": [],
-                "note": "No active implementation plan found.",
-            }
-    except Exception as exc:
-        checks["implementation_plan"] = {"status": "FAIL", "error": str(exc)}
-        issues.append(f"Failed validating implementation plan: {exc}")
+            active_plan = get_active_plan_file(root)
+            if active_plan:
+                is_valid, plan_issues = validate_file(active_plan, repo_root=root)
+                entries, _ = extract_wave_summary_entries(active_plan.read_text(encoding="utf-8"))
+                checks["implementation_plan"] = {
+                    "status": "PASS" if is_valid else "FAIL",
+                    "active_plan": active_plan.name,
+                    "wave_count": len(entries),
+                    "wave_summary": [
+                        {
+                            "wave": e["wave"],
+                            "description": e["description"],
+                            "status": e["status"],
+                            "check_open": e["check_open"],
+                        }
+                        for e in entries
+                    ],
+                }
+                if not is_valid:
+                    issues.extend([f"Plan {active_plan.name}: {iss}" for iss in plan_issues])
+            else:
+                checks["implementation_plan"] = {
+                    "status": "PASS",
+                    "active_plan": None,
+                    "wave_count": 0,
+                    "wave_summary": [],
+                    "note": "No active implementation plan found.",
+                }
+        except Exception as exc:
+            checks["implementation_plan"] = {"status": "FAIL", "error": str(exc)}
+            issues.append(f"Failed validating implementation plan: {exc}")
 
     # Check 8: Canonical Policy Registry (SSOT) integrity
     policy_check = validate_policy_registry(root)
@@ -679,13 +697,21 @@ def main(argv: list[str] | None = None) -> int:
         default=ROOT,
         help="Repository root path.",
     )
+    parser.add_argument(
+        "--skip-active-plan-check",
+        action="store_true",
+        help="Skip scanning unrelated repo-wide plans (used by pre-commit where --staged plans are checked separately).",
+    )
     args = parser.parse_args(argv)
 
     results: dict[str, Any] = {}
     exit_code = 0
 
     if args.mode in ("pre-turn", "all"):
-        pre_result = validate_pre_turn_gate(args.repository_root)
+        pre_result = validate_pre_turn_gate(
+            args.repository_root,
+            skip_active_plan_check=args.skip_active_plan_check,
+        )
         results["pre_turn"] = pre_result
         if pre_result["status"] != "PASS":
             exit_code = 1

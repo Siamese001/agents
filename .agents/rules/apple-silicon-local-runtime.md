@@ -1,5 +1,6 @@
 ---
 trigger: model_decision
+description: Apple Silicon macOS MPS-first runtime invariant with CPU fallback and zero CUDA dependencies.
 ---
 
 # Apple Silicon Local MacBook Runtime Invariant
@@ -12,10 +13,9 @@ Governs local development and execution across macOS (Darwin) environments.
 - CI/CD and local development configurations must enforce `uv lock --check` ensuring zero CUDA artifacts.
 
 ## 2. Hardware Acceleration & CPU Fallback
-- Model embeddings, tensor evaluations, and dense vector operations must query `infrastructure/device/device_manager.py:resolve_optimal_device()`.
-- On macOS with Apple Silicon, the runtime must prioritize Metal Performance Shaders (`mps`).
-- If MPS is unavailable or uninitialized, execution must seamlessly fall back to `cpu` without unhandled exceptions or device mismatches.
-- Control-plane orchestration, graph database queries (SQLite FTS5), and formatting stay on CPU.
+- Hardware acceleration (Apple Silicon Metal `mps`) is restricted to transformer/BGE embeddings and opt-in large vector math (`APPS_SHARED_VECTOR_GPU_ENABLED` + `APPS_SHARED_VECTOR_GPU_MIN_ROWS`), resolved via `infrastructure/device/device_manager.py:resolve_optimal_device()`.
+- If MPS is unavailable or uninitialized, execution must fall back cleanly to `cpu` without unhandled exceptions or device mismatches.
+- Control-plane orchestration, C0.3 graph traversal, SQLite FTS5 queries, receipt assembly, and JSON/file I/O stay on CPU.
 
 ## 3. Verification & Benchmark Standard
 - Standalone verification must be maintained under `tests/macbook_runtime/` (verifying device resolution, CUDA absence, local graph skill execution, and end-to-end pipeline sanity).

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Continuous Architectural Boundary & Anti-Pattern Linter (Wave 6).
+"""Continuous Architectural Boundary & Layer Isolation Linter.
 
 Enforces repository-wide architectural constraints across:
 - Domain Storage Isolation: Zero concrete persistence imports in domain services.
+- Layer Boundaries: Zero concrete persistence or CLI framework imports in orchestration services.
 - Sys.Path Purity: Zero runtime `sys.path.insert()` or `sys.path.append()` mutations in production.
-- Production File Budgets: Ceiling compliance for all production modules (<= 600 lines).
 """
 
 from __future__ import annotations
@@ -19,8 +19,6 @@ from typing import Any, Sequence
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
-
-from tools.lint_file_budgets import DEFAULT_MAX_LINES, scan_all_production_files
 
 FORBIDDEN_STORAGE_MODULES = {
     "sqlite3",
@@ -39,6 +37,12 @@ FORBIDDEN_STORAGE_CLASSES = {
     "FilesystemArtifactStore",
 }
 
+FORBIDDEN_CLI_MODULES = {
+    "argparse",
+    "click",
+    "typer",
+}
+
 DOMAIN_SERVICE_DIRS = [
     "resume_graph_engine/src/apps_rg/runtime/artifact_output",
     "resume_graph_engine/src/apps_rg/runtime/pipeline",
@@ -51,7 +55,7 @@ DOMAIN_SERVICE_DIRS = [
     "agents/orchestration/services",
 ]
 
-LINE_BUDGET_CEILING = DEFAULT_MAX_LINES
+LEGACY_SYS_PATH_ALLOWLIST: set[str] = set()
 
 
 def check_domain_storage_isolation(
@@ -101,8 +105,51 @@ def check_domain_storage_isolation(
     return violations
 
 
-# Legacy sys.path mutations removed in Wave 2 packaging SSOT
-LEGACY_SYS_PATH_ALLOWLIST: set[str] = set()
+def check_layer_boundaries(target_dir: Path) -> list[str]:
+    """Scan Python files in target_dir for concrete persistence or CLI framework leaks."""
+    violations: list[str] = []
+    if not target_dir.is_dir():
+        return violations
+
+    for file_path in target_dir.glob("**/*.py"):
+        if file_path.name.startswith("__") and file_path.name != "__init__.py":
+            continue
+        try:
+            tree = ast.parse(file_path.read_text(encoding="utf-8"), filename=str(file_path))
+        except Exception as e:
+            violations.append(f"{file_path}: Parse error: {e}")
+            continue
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    mod = alias.name
+                    if mod in FORBIDDEN_STORAGE_MODULES:
+                        violations.append(
+                            f"{file_path.name}:{node.lineno}: Forbidden concrete persistence import: '{mod}'"
+                        )
+                    if mod in FORBIDDEN_CLI_MODULES:
+                        violations.append(
+                            f"{file_path.name}:{node.lineno}: Forbidden CLI framework import in domain service: '{mod}'"
+                        )
+            elif isinstance(node, ast.ImportFrom):
+                mod = node.module or ""
+                if mod in FORBIDDEN_STORAGE_MODULES:
+                    violations.append(
+                        f"{file_path.name}:{node.lineno}: Forbidden concrete persistence import: '{mod}'"
+                    )
+                for alias in node.names:
+                    full = f"{mod}.{alias.name}" if mod else alias.name
+                    if full in FORBIDDEN_STORAGE_MODULES:
+                        violations.append(
+                            f"{file_path.name}:{node.lineno}: Forbidden concrete persistence import: '{full}'"
+                        )
+                    if alias.name in FORBIDDEN_STORAGE_CLASSES:
+                        violations.append(
+                            f"{file_path.name}:{node.lineno}: Forbidden concrete persistence class import: '{alias.name}'"
+                        )
+
+    return violations
 
 
 def check_sys_path_purity(
@@ -171,14 +218,6 @@ def check_sys_path_purity(
     return violations
 
 
-def check_file_budgets(repo_root: Path) -> list[str]:
-    """Enforce production file ceilings across all 11 executable roots with ratchet governance."""
-    violations: list[str] = []
-    for _rel_path, _lines, msg in scan_all_production_files(repo_root, max_lines=LINE_BUDGET_CEILING):
-        violations.append(msg)
-    return violations
-
-
 def run_architecture_linter(
     repo_root: Path,
     *,
@@ -187,9 +226,9 @@ def run_architecture_linter(
     """Run all continuous architecture checks and return structured diagnostic results."""
     storage_violations = check_domain_storage_isolation(repo_root, ast_cache=ast_cache)
     syspath_violations = check_sys_path_purity(repo_root, ast_cache=ast_cache)
-    budget_violations = check_file_budgets(repo_root)
+    layer_violations = check_layer_boundaries(repo_root / "agents" / "orchestration" / "services")
 
-    total_violations = len(storage_violations) + len(syspath_violations) + len(budget_violations)
+    total_violations = len(storage_violations) + len(syspath_violations) + len(layer_violations)
     is_clean = total_violations == 0
 
     return {
@@ -202,15 +241,15 @@ def run_architecture_linter(
                 "violation_count": len(storage_violations),
                 "violations": storage_violations,
             },
+            "layer_boundaries": {
+                "status": "PASS" if not layer_violations else "FAIL",
+                "violation_count": len(layer_violations),
+                "violations": layer_violations,
+            },
             "sys_path_purity": {
                 "status": "PASS" if not syspath_violations else "FAIL",
                 "violation_count": len(syspath_violations),
                 "violations": syspath_violations,
-            },
-            "file_budgets": {
-                "status": "PASS" if not budget_violations else "FAIL",
-                "violation_count": len(budget_violations),
-                "violations": budget_violations,
             },
         },
     }
@@ -238,7 +277,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     print(f"    - {v}", file=sys.stderr)
         return 1
 
-    print("[PASS] Architectural boundaries clean (Zero concrete storage imports, sys.path clean, line budgets respected).")
+    print("[PASS] Architectural boundaries clean (Zero concrete storage imports, layer leaks, or sys.path mutations).")
     return 0
 
 

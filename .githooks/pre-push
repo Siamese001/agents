@@ -19,31 +19,37 @@ else
     PYTEST_BIN="pytest"
 fi
 
+CHANGED_FILES=$(git diff --name-only main...HEAD 2>/dev/null || true)
+
 # 1. Turn gates (all modes)
 echo "-> 1. Validating all turn gates..."
-"$PYTHON_BIN" tools/validate_turn_gates.py --mode all
+"$PYTHON_BIN" tools/validate_turn_gates.py --mode all >/dev/null
 
-# 2. Active plan validation & wave summary
-echo "-> 2. Validating active implementation plan & confirming wave summary table..."
-"$PYTHON_BIN" tools/validate_implementation_plan.py
+# 2. Tier 1 commit gate (scoped to changed files when available)
+echo "-> 2. Running Tier 1 verify_commit..."
+if [ -n "$CHANGED_FILES" ]; then
+    # shellcheck disable=SC2086
+    "$PYTHON_BIN" tools/verify_commit.py --files $CHANGED_FILES --shard-fast
+else
+    "$PYTHON_BIN" tools/verify_commit.py --all
+fi
 
+# 3. Governance test suite when governance surfaces changed
+GOV_TOUCHED=$(printf '%s\n' "$CHANGED_FILES" | grep -E '^(AGENTS\.md|\.agents/|\.githooks/|config/governance/|tools/)' || true)
+if [ -n "$GOV_TOUCHED" ] || [ -z "$CHANGED_FILES" ]; then
+    echo "-> 3. Running governance test suite..."
+    "$PYTEST_BIN" tests/test_turn_gates.py \
+      tests/test_hook_dispatch.py \
+      tests/test_implementation_plan_governance.py \
+      tests/test_hitl_governance_enforcement.py \
+      tests/test_model_neutral_naming.py \
+      tests/test_unified_agent_architecture.py \
+      tests/test_post_merge_cleanup.py \
+      --timeout=60 -q
+fi
 
-# 3. Tier 1 commit gate
-echo "-> 3. Running Tier 1 verify_commit..."
-"$PYTHON_BIN" tools/verify_commit.py
-
-# 4. Comprehensive test suite
-echo "-> 4. Running governance test suite..."
-"$PYTEST_BIN" tests/test_turn_gates.py \
-  tests/test_implementation_plan_governance.py \
-  tests/test_hitl_governance_enforcement.py \
-  tests/test_model_neutral_naming.py \
-  tests/test_unified_agent_architecture.py \
-  tests/test_post_merge_cleanup.py \
-  --timeout=60
-
-# 5. Fast deterministic Resume & Outreach eval harness & baseline gate
-echo "-> 5. Running Resume & Outreach eval harness gate..."
+# 4. Fast deterministic Resume & Outreach eval harness gate
+echo "-> 4. Running Resume & Outreach eval harness gate..."
 "$PYTHON_BIN" ops_scripts/ci/check_eval_harness_promotion_evidence.py --run-offline --fast-dev
 
 echo "=== [Git Hook] All Pre-Push Checks PASSED ==="

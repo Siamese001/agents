@@ -24,4 +24,4 @@
 
 ## References
 
-- Root [`AGENTS.md`](../AGENTS.md)
+- Root [`AGENTS.md`](../../../AGENTS.md)

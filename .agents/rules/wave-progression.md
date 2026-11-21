@@ -1,5 +1,6 @@
 ---
-trigger: always_on
+trigger: model_decision
+description: Wave-based implementation plan format, 6-field completion gates, sharded progression, and pytest Class A/B protocol.
 ---
 
 # Wave Progression Rules

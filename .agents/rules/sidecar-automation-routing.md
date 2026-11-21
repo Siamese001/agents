@@ -1,5 +1,6 @@
 ---
 trigger: model_decision
+description: On-demand assurance workflow routing, disabled background schedules, and cross-repository isolation.
 ---
 
 # On-Demand Assurance Routing & Cross-Repository Firewall (`agents-*`)

@@ -70,7 +70,7 @@ WORD_BUDGET_INTERCEPT_PROMPT = (
 ANTI_PLAINTEXT_FALLBACK_DIRECTIVE = (
     "NEVER fall back to printing questions or options as plain text in chat; "
     "immediately invoke ask_question again with ONE atomic plain-English question at a time "
-    "(<= 120 chars per option, Confidence: TIER (N%))."
+    "(<= 250 chars per option, Confidence: TIER (N%))."
 )
 
 
@@ -97,28 +97,34 @@ def emit_decision(decision: str, reason: str = "", overwrite: Optional[Dict[str,
     return 0 if decision == "allow" else 1
 
 
-def handle_pre_edit_plan(payload: Dict[str, Any], repo_root: Path) -> int:
-    """Validate implementation plan before write_to_file or replace_file_content executes."""
+def _is_plan_target(target_file: str) -> bool:
+    """Return True only for actual implementation plans (never ordinary docs like explanation.md)."""
+    if not target_file:
+        return False
+    norm_target = target_file.replace("\\", "/")
+    if "/.agents/rules/" in norm_target or not norm_target.lower().endswith(".md"):
+        return False
+    target_name = Path(norm_target).name.lower()
+    if target_name == "implementation_plan.md":
+        return True
+    padded = f"/{norm_target.lstrip('./')}"
+    return "/plans/" in padded or "/docs/plans/" in padded
+
+
+def _evaluate_pre_edit_plan(payload: Dict[str, Any], repo_root: Path) -> Tuple[bool, str]:
+    """Validate implementation plan content; returns (is_blocked, reason)."""
     tool_call = payload.get("toolCall", {})
     tool_name = tool_call.get("name", "")
     args = tool_call.get("args", {})
 
-    target_file = args.get("TargetFile") or args.get("Path") or args.get("path") or ""
-    if not target_file:
-        return emit_decision("allow")
+    target_file = str(args.get("TargetFile") or args.get("Path") or args.get("path") or "")
+    if not _is_plan_target(target_file):
+        return False, ""
 
     target_path = Path(target_file)
-    target_name = target_path.name.lower()
-    norm_target = target_file.replace("\\", "/")
-    is_plan = "/.agents/rules/" not in norm_target and (
-        target_name == "implementation_plan.md" or "plans/" in norm_target or (target_file.endswith(".md") and "plan" in target_name)
-    )
-    if not is_plan:
-        return emit_decision("allow")
-
     content = ""
     if tool_name in ("write_to_file", "write_file", "create_file"):
-        content = args.get("CodeContent") or args.get("Content") or args.get("content") or ""
+        content = str(args.get("CodeContent") or args.get("Content") or args.get("content") or "")
     elif tool_name in ("replace_file_content", "multi_replace_file_content", "edit_file"):
         if target_path.is_file():
             try:
@@ -126,10 +132,10 @@ def handle_pre_edit_plan(payload: Dict[str, Any], repo_root: Path) -> int:
             except (OSError, UnicodeDecodeError):  # guardian: allow-silent-swallow -- fallback to replacement content
                 pass
         if not content:
-            content = args.get("ReplacementContent") or args.get("Replacement") or ""
+            content = str(args.get("ReplacementContent") or args.get("Replacement") or "")
 
     if not content:
-        return emit_decision("allow")
+        return False, ""
 
     effective_root = repo_root
     if target_path.is_absolute():
@@ -152,13 +158,21 @@ def handle_pre_edit_plan(payload: Dict[str, Any], repo_root: Path) -> int:
     if not is_valid:
         error_msg = f"Plan validation rejected for {target_path.name}:\n" + "\n".join(f"- {e}" for e in errors)
         sys.stderr.write(f"\n[Antigravity Hook BLOCK] {error_msg}\n")
-        return emit_decision("deny", reason=error_msg)
+        return True, error_msg
 
     entries, _ = extract_wave_summary_entries(content)
     if entries:
         sys.stderr.write(f"\n[Antigravity Hook PASS] Plan satisfies wave governance ({len(entries)} wave(s) validated).\n")
 
-    return emit_decision("allow", reason="Plan satisfies wave governance requirements.")
+    return False, "Plan satisfies wave governance requirements."
+
+
+def handle_pre_edit_plan(payload: Dict[str, Any], repo_root: Path) -> int:
+    """Validate implementation plan before write_to_file or replace_file_content executes."""
+    blocked, msg = _evaluate_pre_edit_plan(payload, repo_root)
+    if blocked:
+        return emit_decision("deny", reason=msg)
+    return emit_decision("allow", reason=msg)
 
 
 def handle_stop_wave_summary(payload: Dict[str, Any], repo_root: Path) -> int:
@@ -556,6 +570,35 @@ def handle_pre_file_write(payload: Dict[str, Any], repo_root: Path) -> int:
                         "must preserve fail-closed 'default_unrecognized_lane: 2' (INV-RISK-TIERED-CHANGE-LANES)."
                     ),
                 )
+
+        # Consolidated single-process checks (formerly 3 separate PreToolUse subprocesses):
+        # 1. Model-neutral artifact path guard
+        from tools.lint_model_neutral_naming import check_path_model_neutrality
+
+        path_violations = check_path_model_neutrality(Path(target_file), repo_root)
+        if path_violations:
+            reason = f"Model-neutral path violation: {'; '.join(path_violations)}"
+            sys.stderr.write(f"\n[Antigravity Hook BLOCK] {reason}\n")
+            return emit_decision("deny", reason=reason)
+
+        # 2. Implementation plan wave validation guard
+        plan_blocked, plan_reason = _evaluate_pre_edit_plan(payload, repo_root)
+        if plan_blocked:
+            return emit_decision("deny", reason=plan_reason)
+
+        # 3. Plan model-registry conformance guard
+        content_blob = str(args.get("CodeContent") or args.get("Content") or args.get("Replacement") or "")
+        if content_blob and norm_target.endswith(".md") and "plans/" in norm_target:
+            try:
+                from tools.hitl_governance import validate_model_token_registry
+
+                is_valid, unapproved, _ = validate_model_token_registry(content_blob, repo_root=repo_root)
+                if not is_valid and unapproved:
+                    reason = f"Unapproved model identifier(s) in plan: {', '.join(unapproved)}. Resolve against config/provider_profiles.yaml."
+                    sys.stderr.write(f"\n[Antigravity Hook BLOCK] {reason}\n")
+                    return emit_decision("deny", reason=reason)
+            except Exception:  # guardian: allow-silent-swallow -- fail open only if import/helper unavailable
+                pass
 
     return emit_decision("allow")
 

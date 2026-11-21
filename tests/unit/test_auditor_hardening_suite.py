@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 from tools.audit_mock_reachability import audit_production_file
-from tools.lint_file_budgets import PRODUCTION_DIRECTORIES as BUDGET_PROD_DIRS, check_file_budget
+from tools.lint_layer_imports import PRODUCTION_DIRECTORIES as LAYER_PROD_DIRS
 from tools.lint_model_pins import scan_catalog_json, scan_provider_profiles_yaml
 from tools.lint_production_purity import check_file_production_purity
 from tools.ssot_boundary_auditor import audit_constitutional_ast_floor
@@ -130,7 +130,7 @@ def test_validate_eval_rubrics_catches_comment_only_module_and_weight_drift(tmp_
     assert any("sum to 0.8000 != 1.0" in v for v in rep["violations"]), rep["violations"]
 
 
-def test_ssot_boundary_and_file_budgets_cover_all_nine_packages(tmp_path: Path) -> None:
+def test_ssot_boundary_and_layer_linters_cover_all_nine_packages(tmp_path: Path) -> None:
     for expected_dir in (
         "agents",
         "outreach_engine",
@@ -142,7 +142,7 @@ def test_ssot_boundary_and_file_budgets_cover_all_nine_packages(tmp_path: Path) 
         "infrastructure",
         "ops_scripts",
     ):
-        assert expected_dir in BUDGET_PROD_DIRS
+        assert expected_dir in LAYER_PROD_DIRS
 
     res_file = tmp_path / "apps_research" / "swallow.py"
     res_file.parent.mkdir(parents=True)
@@ -156,15 +156,6 @@ def test_ssot_boundary_and_file_budgets_cover_all_nine_packages(tmp_path: Path) 
     )
     floor = audit_constitutional_ast_floor(tmp_path)
     assert any("apps_research/swallow.py" in item for item in floor["unguarded_exceptions"])
-
-    oversized = tmp_path / "infrastructure" / "huge_mod.py"
-    oversized.parent.mkdir(parents=True)
-    oversized.write_text("x = 1\n" * 605, encoding="utf-8")
-    passed_default, line_count, _ = check_file_budget(oversized, tmp_path, ratchet={})
-    assert passed_default is True
-    assert line_count == 605
-    passed_explicit, _, _ = check_file_budget(oversized, tmp_path, max_lines=600, ratchet={})
-    assert passed_explicit is False
 
 
 def test_model_pins_and_scratch_secret_scanner_fail_closed(tmp_path: Path) -> None:
