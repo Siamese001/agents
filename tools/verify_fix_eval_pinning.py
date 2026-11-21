@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any, Sequence
@@ -28,9 +29,24 @@ PRODUCTION_ROOT_PREFIXES: tuple[str, ...] = (
     "outreach_engine/",
     "apps_research/",
     "agents/",
+    "apps_eval/",
     "infrastructure/",
     "resume_engine/",
 )
+
+
+def _current_branch_name(repo_root: Path) -> str:
+    try:
+        proc = subprocess.run(
+            ["git", "-C", str(repo_root), "branch", "--show-current"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        return proc.stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        return ""
 
 
 def scan_e2e_file_for_forbidden_mocks(file_path: Path) -> list[dict[str, Any]]:
@@ -44,6 +60,7 @@ def evaluate_non_mock_e2e_branch_requirement(
     changed_paths: Sequence[str] | None = None,
     e2e_files: Sequence[Path] | None = None,
     require_branch_test: bool = False,
+    branch_name: str | None = None,
 ) -> dict[str, Any]:
     root = repo_root.resolve()
     violations: list[dict[str, Any]] = []
@@ -51,7 +68,7 @@ def evaluate_non_mock_e2e_branch_requirement(
     if e2e_files is not None:
         targets = [Path(p) for p in e2e_files]
     else:
-        targets = sorted((root / "tests" / "end_to_end").glob("*_e2e.py"))
+        targets = sorted((root / "tests" / "end_to_end").glob("*_e2e*.py"))
 
     scanned_e2e: list[str] = []
     for path in targets:
@@ -62,17 +79,28 @@ def evaluate_non_mock_e2e_branch_requirement(
         violations.extend(scan_e2e_file_for_forbidden_mocks(path))
 
     paths = list(changed_paths) if changed_paths is not None else collect_git_changed_paths(root)[0]
+    branch = branch_name if branch_name is not None else _current_branch_name(root)
+    is_fix_branch = branch.lower().startswith("fix/")
+    effective_require = bool(require_branch_test or is_fix_branch)
+
     prod_touched = [
         p for p in paths if any(p.startswith(pref) for pref in PRODUCTION_ROOT_PREFIXES) and "/tests/" not in p
     ]
-    tests_touched = [p for p in paths if p.startswith("tests/") or "/tests/" in p]
+    tests_touched = [
+        p
+        for p in paths
+        if p.startswith("tests/")
+        or "/tests/" in p
+        or p.startswith("apps_eval/suites/")
+    ]
 
     branch_test_warning = ""
     if prod_touched and not tests_touched:
         branch_test_warning = (
-            f"Branch modifies {len(prod_touched)} production file(s) without adding or updating any test file."
+            f"Branch '{branch or 'HEAD'}' modifies {len(prod_touched)} production file(s) "
+            "without adding a pinned regression case (apps_eval/suites/) or test file."
         )
-        if require_branch_test:
+        if effective_require:
             violations.append(
                 {
                     "code": "MISSING_BRANCH_REGRESSION_TEST",
@@ -83,8 +111,10 @@ def evaluate_non_mock_e2e_branch_requirement(
             )
 
     return {
-        "schema_version": "agents.fix_eval_pinning.v1",
+        "schema_version": "agents.fix_eval_pinning.v2",
         "status": "PASS" if not violations else "FAIL",
+        "branch": branch,
+        "fail_closed_fix_pinning_active": effective_require,
         "scanned_e2e_files": scanned_e2e,
         "prod_touched_count": len(prod_touched),
         "tests_touched_count": len(tests_touched),

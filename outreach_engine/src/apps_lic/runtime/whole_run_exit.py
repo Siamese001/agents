@@ -299,6 +299,29 @@ def write_exit_artifacts(
     )
     os.chmod(manifest_path, 0o644)
     os.chmod(receipt_path, 0o644)
+    try:
+        from agents.observability.trace_collector import emit_post_run_trace_safe
+
+        emit_post_run_trace_safe(
+            app_id="apps_lic",
+            run_id=decision.run_id,
+            session_id=decision.mission_id,
+            terminal_status="PASS" if decision.allow_finish else "FAIL",
+            output_summary={
+                "x3_disposition": decision.x3_disposition.value,
+                "execution_mode": decision.execution_mode.value,
+            },
+            gate_outcomes={
+                "x2_gates": {
+                    "x2_passed": bool(decision.x2_passed),
+                    "quorum_passed": bool(decision.quorum_passed),
+                    "drafter_judge_orthogonal": bool(decision.drafter_judge_orthogonal),
+                },
+                "reason_codes": list(decision.reason_codes),
+            },
+        )
+    except (ImportError, OSError, ValueError, RuntimeError):  # guardian: allow-silent-swallow -- observer-only trace hook must never fail outreach exit
+        pass
     return manifest_path, receipt_path, manifest_payload, receipt_payload
 
 

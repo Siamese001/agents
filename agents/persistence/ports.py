@@ -7,11 +7,12 @@ backends (SQLite, JSONL, Filesystem, Object Storage).
 
 from __future__ import annotations
 
-from typing import Protocol, Sequence
+from typing import Any, Mapping, Protocol, Sequence
 
 from agents.observability.artifacts import ArtifactManifest
 from agents.observability.events import AgentEventEnvelope, VerificationResult
 from agents.orchestration.state_contracts import ResumeRunState, RunCheckpoint
+from apps_eval.contracts.schemas import FindingRecord
 
 
 class StateRepository(Protocol):
@@ -80,4 +81,58 @@ class ArtifactStore(Protocol):
 
     def verify_artifact(self, artifact_id: str) -> bool:
         """Verify that stored artifact bytes match the recorded manifest digest."""
+        ...
+
+
+class FindingsQueuePort(Protocol):
+    """Storage-independent port for the canonical deduplicated eval findings queue."""
+
+    def upsert_finding(
+        self,
+        *,
+        source_surface: str,
+        app_id: str,
+        failed_gate_signature: str,
+        root_cause_bucket: str,
+        owner_subsystem: str,
+        track: str,
+        priority: str,
+        title: str,
+        summary: str,
+        recommended_action: str,
+        occurrence_count: int = 1,
+        target_files: Sequence[str] = (),
+        sample_trace_ids: Sequence[str] = (),
+        metadata: Mapping[str, Any] | None = None,
+        seen_at_utc: str | None = None,
+        cutoff_utc: str | None = None,
+    ) -> FindingRecord:
+        """Insert or merge a fingerprinted finding while preserving human workflow states."""
+        ...
+
+    def list_findings(
+        self,
+        *,
+        status: str | None = None,
+        track: str | None = None,
+        limit: int = 500,
+    ) -> list[FindingRecord]:
+        """List findings ordered by impact_score DESC, occurrence_count DESC, finding_id ASC."""
+        ...
+
+    def transition_status(
+        self,
+        finding_id: str,
+        to_status: str,
+        *,
+        actor: str,
+        rationale: str,
+        hitl_decision_id: str | None = None,
+        snoozed_until_utc: str | None = None,
+    ) -> FindingRecord:
+        """Transition a finding's status and append an immutable audit event."""
+        ...
+
+    def export_snapshot(self, snapshot_path: Any) -> dict[str, Any]:
+        """Atomically export a canonical JSON snapshot of the findings queue."""
         ...

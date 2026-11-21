@@ -258,20 +258,36 @@ def run_e2e(args: argparse.Namespace) -> int:
     if "pytest" not in sys.modules and not os.environ.get("PYTEST_CURRENT_TEST"):
         try:
             from agents.observability.eval_flywheel import EvalFlywheelEngine
+            from agents.observability.trace_collector import emit_post_run_trace_safe
 
             fw = EvalFlywheelEngine()
             stages = summary_payload.get("stages") or {}
-            for stage_key, app_id in (("resume_tailoring", "apps_rg"), ("executive_outreach", "apps_lic")):
+            for stage_key, app_id in (
+                ("resume_tailoring", "apps_rg"),
+                ("executive_outreach", "apps_lic"),
+                ("research", "apps_research"),
+            ):
                 st = stages.get(stage_key)
                 if isinstance(st, dict) and st.get("status") not in (None, "SKIPPED"):
                     ok = str(st.get("status", "")).upper() in ("SUCCESS", "PASS", "PASSED", "COMPLETED")
-                    fw.ingest_product_run(
+                    if app_id in ("apps_rg", "apps_lic"):
+                        fw.ingest_product_run(
+                            app_id=app_id,
+                            run_id=run_id,
+                            x3_disposition="X3D_ALLOW_FINISH" if ok else "X3B_ESCALATE_HITL",
+                            passed=ok,
+                            failure_reasons=list(st.get("failure_reasons") or ()),
+                            score=1.0 if ok else 0.0,
+                        )
+                    emit_post_run_trace_safe(
                         app_id=app_id,
                         run_id=run_id,
-                        x3_disposition="X3D_ALLOW_FINISH" if ok else "X3B_ESCALATE_HITL",
-                        passed=ok,
-                        failure_reasons=list(st.get("failure_reasons") or ()),
-                        score=1.0 if ok else 0.0,
+                        session_id=run_id,
+                        terminal_status="PASS" if ok else "FAIL",
+                        raw_input={"stage": stage_key, "research_enabled": research_enabled},
+                        output_summary={"workflow_status": summary_payload.get("workflow_status")},
+                        gate_outcomes={"failure_reasons": list(st.get("failure_reasons") or ())},
+                        telemetry={"events_count": summary_payload.get("telemetry_events_count", 0)},
                     )
         except (ImportError, OSError, ValueError, RuntimeError):  # guardian: allow-silent-swallow -- observer-only flywheel hook must never mutate or fail e2e product runs
             pass

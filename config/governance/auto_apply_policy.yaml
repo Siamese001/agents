@@ -1,0 +1,86 @@
+schema_version: "1.0.0"
+policy_id: "agents::post_runtime_auto_apply::v1"
+
+evidence_thresholds:
+  min_cluster_occurrences: 3
+  min_distinct_sessions: 2
+  allow_p0_single_occurrence: true
+  reject_conflicting_targets: true
+  require_zero_test_or_unverified_auto_weight: true
+
+step_and_budget_limits:
+  max_step_delta: 0.15
+  max_repair_hint_bytes: 256
+  max_holdout_latency_delta_pct: 10.0
+  max_holdout_cost_delta_pct: 10.0
+  min_holdout_cases: 5
+
+cooldown_and_hysteresis:
+  per_key_cooldown_hours: 24
+  per_key_cooldown_runs: 10
+  global_max_auto_applies_per_24h: 3
+  post_rollback_lock_days: 7
+  hysteresis_clean_runs_required: 3
+  hysteresis_min_confidence_margin: 0.20
+
+tier_a_auto_apply:
+  allowed_artifact_classes:
+    - repair_hint
+    - trajectory_exemplar
+    - bounded_threshold
+    - routing_weight
+    - regression_case_pin
+  allowed_target_paths:
+    - artifacts/learning/feedback_learning.sqlite
+    - artifacts/learning/trajectory_exemplars.json
+    - config/routing_calibration.yaml
+    - apps_eval/suites/pinned_fix_regressions.json
+  bounded_numeric_parameters:
+    "config/routing_calibration.yaml::abstain.default_threshold":
+      min: 0.35
+      max: 0.75
+    "config/routing_calibration.yaml::semantic_cache.similarity_threshold":
+      min: 0.85
+      max: 0.99
+    "config/routing_calibration.yaml::v12_routing.classifier_surface_threshold":
+      min: 0.55
+      max: 0.90
+    "config/routing_calibration.yaml::v12_routing.r1b_semantic_match_threshold":
+      min: 0.75
+      max: 0.96
+    "config/routing_calibration.yaml::v12_routing.r_casc_escalation_threshold":
+      min: 0.35
+      max: 0.75
+    "config/routing_calibration.yaml::v12_routing.loop_guard_efficiency_threshold":
+      min: 0.25
+      max: 0.65
+
+tier_b_hitl_gated:
+  artifact_classes:
+    - prompt_prior
+    - prompt_template
+  target_path_prefixes:
+    - config/prompt_governance/
+    - apps_eval/baselines/
+
+tier_c_pr_only:
+  artifact_classes:
+    - validator_or_code
+    - governance_or_schema
+  forbidden_auto_apply_extensions:
+    - ".py"
+  forbidden_auto_apply_prefixes:
+    - agents/
+    - apps_eval/runner/
+    - apps_eval/graders/
+    - apps_eval/contracts/
+    - apps_research/
+    - outreach_engine/
+    - resume_graph_engine/
+    - resume_engine/
+    - infrastructure/
+    - tools/
+    - .agents/
+    - config/governance/
+    - config/provider_profiles.yaml
+    - config/judges/

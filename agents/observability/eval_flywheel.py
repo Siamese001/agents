@@ -338,7 +338,7 @@ class EvalFlywheelEngine:
                             run_id=record_id,
                             action_taken="EVAL_FLYWHEEL_DIAGNOSTIC_HINT",
                             repair_hint=default_hint,
-                            outcome="SUCCESS",
+                            outcome="PENDING_VERIFICATION",
                             event_id=f"hint_{sig_hash}",
                         )
                         harvested_failures.append({"signature_hash": sig_hash, "kind": kind.value, "constraint": constraint})

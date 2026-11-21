@@ -1,0 +1,87 @@
+{
+  "contract_id": "urn:agents:eval:pinned-fix-regressions:1.0.0",
+  "schema_version": "1.0.0",
+  "per_domain_sla_seconds": 10.0,
+  "cases": [
+    {
+      "case_id": "pin-rg-001-banking-allocation-and-blind-judge",
+      "domain": "resume_graph_engine",
+      "historical_fix_date": "2026-10-15",
+      "watch_prefixes": [
+        "resume_graph_engine/",
+        "resume_engine/"
+      ],
+      "evaluator": "check_resume_graph_engine_domain",
+      "invariants": [
+        "c0_allocation_plan_valid",
+        "uniqueness_receipt_pass",
+        "no_off_domain_employer_in_banking_exec_summary",
+        "x2_sentence_band_and_anti_ai_crutch_bilateral",
+        "blind_judge_omits_deterministic_gate_summary"
+      ]
+    },
+    {
+      "case_id": "pin-lic-001-whole-run-exit-orthogonality-and-smoke-isolation",
+      "domain": "outreach_engine",
+      "historical_fix_date": "2026-11-21",
+      "watch_prefixes": [
+        "outreach_engine/"
+      ],
+      "evaluator": "check_outreach_engine_domain",
+      "invariants": [
+        "offline_smoke_isolated_to_x3e_safe_abstain",
+        "real_llm_orthogonal_quorum_allows_finish",
+        "fallback_drafter_escalates_hitl_never_self_judges"
+      ]
+    },
+    {
+      "case_id": "pin-res-001-briefing-airlock-injection-and-boundary",
+      "domain": "apps_research",
+      "historical_fix_date": "2026-11-21",
+      "watch_prefixes": [
+        "apps_research/"
+      ],
+      "evaluator": "check_apps_research_domain",
+      "invariants": [
+        "zero_outreach_engine_cross_imports",
+        "clean_briefing_preserved_by_airlock",
+        "prompt_injection_lines_stripped_fail_closed"
+      ]
+    },
+    {
+      "case_id": "pin-eval-001-blind-judge-zero-priming-and-trajectory-loops",
+      "domain": "agents_eval_flywheel",
+      "historical_fix_date": "2026-11-21",
+      "watch_prefixes": [
+        "apps_eval/",
+        "agents/",
+        "infrastructure/"
+      ],
+      "evaluator": "check_agents_eval_flywheel_domain",
+      "invariants": [
+        "blind_judge_strips_priming_and_rejects_self_grading",
+        "non_compensating_case_flip_detection",
+        "trajectory_oscillation_loop_rejected",
+        "eval_case_unlabeled_view_strips_expected_contract"
+      ]
+    },
+    {
+      "case_id": "pin-gov-001-risk-lanes-plan-and-hitl-jargon-guards",
+      "domain": "governance_guards",
+      "historical_fix_date": "2026-10-20",
+      "watch_prefixes": [
+        ".agents/",
+        "config/governance/",
+        "tools/",
+        "AGENTS.md"
+      ],
+      "evaluator": "check_governance_guards_domain",
+      "invariants": [
+        "unknown_path_escalates_to_lane_2",
+        "malformed_flat_plan_rejected",
+        "jargon_hitl_payload_rejected",
+        "risk_lanes_policy_default_lane_2"
+      ]
+    }
+  ]
+}
