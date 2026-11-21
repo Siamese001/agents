@@ -462,13 +462,22 @@ def validate_hitl_presentation(
         return errors
 
     if isinstance(payload, dict) and "questions" in payload:
-        if isinstance(payload["questions"], list) and len(payload["questions"]) > 1:
-            errors.append(
-                "HITL_VIOLATION_BULK_DECISION: Batched questions detected. Present strictly one decision at a time."
-            )
+        qs = payload["questions"]
+        if isinstance(qs, list):
+            if len(qs) > 1:
+                errors.append(
+                    "HITL_VIOLATION_BULK_DECISION: Batched questions detected. Present strictly one decision at a time."
+                )
+                return errors
+            if len(qs) == 0:
+                errors.append("HITL_VIOLATION_INVALID_PAYLOAD: Empty questions list in payload.")
+                return errors
+            item = qs[0]
+        else:
+            errors.append("HITL_VIOLATION_INVALID_PAYLOAD: 'questions' field must be a list.")
             return errors
-
-    item = payload[0] if isinstance(payload, list) and len(payload) == 1 else payload
+    else:
+        item = payload[0] if isinstance(payload, list) and len(payload) == 1 else payload
 
     if not isinstance(item, dict):
         errors.append("HITL_VIOLATION_INVALID_PAYLOAD: Decision payload must be a dictionary.")

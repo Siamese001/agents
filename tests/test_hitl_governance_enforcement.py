@@ -393,6 +393,10 @@ class HitlGovernanceEnforcementTests(unittest.TestCase):
         self.assertEqual(validate_hitl_presentation(clean_payload, enforce_visibility_and_jargon=True), [])
         self.assertEqual(scan_question_jargon(clean_payload["question"]), [])
 
+        # Standard ask_question envelope with a single question also validates cleanly
+        envelope_payload = {"questions": [clean_payload]}
+        self.assertEqual(validate_hitl_presentation(envelope_payload, enforce_visibility_and_jargon=True), [])
+
         # Compound question with single '?' but conjunctive secondary clause fails bundled check
         compound_payload = {
             "question": "We are ready to update the schedule; additionally, which retry timing should we use?",

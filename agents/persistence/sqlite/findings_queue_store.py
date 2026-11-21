@@ -440,6 +440,14 @@ class SqliteFindingsQueueStore:
             ).fetchone()
             return self._row_to_record(updated)
 
+    def get_finding(self, finding_id: str) -> FindingRecord | None:
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT * FROM eval_findings WHERE finding_id = ?",
+                (finding_id,),
+            ).fetchone()
+        return self._row_to_record(row) if row is not None else None
+
     def list_findings(
         self,
         *,

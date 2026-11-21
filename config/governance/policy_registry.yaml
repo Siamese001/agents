@@ -253,3 +253,12 @@ policies:
     enforcer: "tools/audit_governance_harmonization.py"
     rule_reference: ".agents/skills/governance-harmonizer/SKILL.md"
 
+  - id: "INV-FLYWHEEL-AUTO-REMEDIATE"
+    title: "Flywheel Hybrid Auto-Apply & Atomic HITL Defect Remediation"
+    category: "ai_sdlc"
+    threshold: 1
+    unit: "one_at_a_time_enforcement"
+    description: "Auto-apply verified Tier A bounded tuning when confidence margin > 20% and surface Tier B, Tier C, and close-margin updates strictly one at a time via validated plain-English ask_question payloads before executing, pinning, and promoting."
+    enforcer: "agents/learning/flywheel_hitl_dispatcher.py"
+    rule_reference: ".agents/rules/flywheel-remediation-governance.md"
+
