@@ -237,6 +237,10 @@ _MECHANISM_INVENTORY_REWRITES: tuple[tuple[re.Pattern[str], str], ...] = (
     ),
     (re.compile(r"\bsandboxed\s+execution\b", re.IGNORECASE), "isolated execution"),
     (re.compile(r"\bsandboxed\b", re.IGNORECASE), "isolated"),
+    (
+        re.compile(r"\baudit[-\s]?grade\s+opentelemetry\s+lineage\b", re.IGNORECASE),
+        "audit-grade execution lineage",
+    ),
     (re.compile(r"\bopentelemetry\s+lineage\b", re.IGNORECASE), "audit lineage"),
     (re.compile(r"\btelemetry\s+lineage\b", re.IGNORECASE), "execution lineage"),
     (re.compile(r"\breplayable\s+runtime\s+traceability\b", re.IGNORECASE), "auditable runtime traceability"),
@@ -245,7 +249,8 @@ _MECHANISM_INVENTORY_REWRITES: tuple[tuple[re.Pattern[str], str], ...] = (
 
 
 def _normalize_mechanism_repair_text(text: str) -> str:
-    out = re.sub(r"\s{2,}", " ", text).strip()
+    out = re.sub(r"\baudit[-\s]?grade\s+audit\s+lineage\b", "audit-grade execution lineage", text, flags=re.IGNORECASE)
+    out = re.sub(r"\s{2,}", " ", out).strip()
     return re.sub(r"\s+([.,;:])", r"\1", out)
 
 
