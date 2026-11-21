@@ -151,10 +151,11 @@ def run_executive_summary_v2(
     display_text, claim_ledger = turn.resume_display_text, turn.claim_ledger
 
     if outcome.attempts_used > 1:
-        for hist in outcome.attempt_history[:-1]:
-            record_repair(artifact_dir, kind=KIND_REGEN_LLM, operation="v2_bounded_fresh_turn_rewrite", reason=str(hist.get("stage") or "v2_rewrite"), replaced_l2=True, detail={"section_id": LANE_KEY})
-        set_authoritative_attempt(artifact_dir, outcome.attempts_used, reason="v2_bounded_fresh_turn_rewrite")
-        _write_json(artifact_dir / "heal_receipt.json", {"schema_version": "executive_summary_v2_heal_receipt_v1", "section_id": LANE_KEY, "run_id": run_id, "attempts_used": outcome.attempts_used, "attempt_history": outcome.attempt_history, "zero_post_llm_prose_mutation": True})
+        if outcome.winning_attempt > 1:
+            for hist in outcome.attempt_history[: outcome.winning_attempt - 1]:
+                record_repair(artifact_dir, kind=KIND_REGEN_LLM, operation="v2_bounded_fresh_turn_rewrite", reason=str(hist.get("stage") or "v2_rewrite"), replaced_l2=True, detail={"section_id": LANE_KEY})
+            set_authoritative_attempt(artifact_dir, outcome.winning_attempt, reason="v2_bounded_fresh_turn_rewrite")
+        _write_json(artifact_dir / "heal_receipt.json", {"schema_version": "executive_summary_v2_heal_receipt_v1", "section_id": LANE_KEY, "run_id": run_id, "attempts_used": outcome.attempts_used, "winning_attempt": outcome.winning_attempt, "attempt_history": outcome.attempt_history, "zero_post_llm_prose_mutation": True})
 
     _wg.write_text(artifact_dir / "resume_display_text.txt", display_text + ("\n" if display_text else ""), encoding="utf-8")
     _write_json(artifact_dir / "claim_ledger.json", claim_ledger)

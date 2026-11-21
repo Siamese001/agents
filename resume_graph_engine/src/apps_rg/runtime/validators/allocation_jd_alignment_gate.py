@@ -35,6 +35,22 @@ def is_regulated_finance_or_insurance_target(
     blob = f"{target_role} {jd_text} {briefing_text}".lower()
     padded = f" {re.sub(r'[^a-z0-9]+', ' ', blob)} "
     finance_tokens = (
+        " bank ",
+        " banking ",
+        " financial services ",
+        " financial institution ",
+        " commercial banking ",
+        " retail banking ",
+        " wealth management ",
+        " asset management ",
+        " investment management ",
+        " capital markets ",
+        " mortgage ",
+        " lending ",
+        " model risk ",
+        " occ ",
+        " fdic ",
+        " federal reserve ",
         " insurance ",
         " brokerage ",
         " underwriting ",
