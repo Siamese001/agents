@@ -143,7 +143,7 @@ def generate_executive_summary_v2_turn(
         max_tokens=resolve_scratch_max_output_tokens(), model=section_model, provider_requested=str(provider_name), temperature_bounds=EXEC_SUMMARY_TEMP_RANGE,
     )
     prov_res = generate_section(tag_reasoning_lane(req_payload, LANE_KEY), artifact_dir=artifact_dir, run_id=run_id, provider_profile=str(provider_name))
-    raw_out, status = str(prov_res.raw_text or ""), str(prov_res.runtime_generation_status or "BLOCKED")
+    raw_out, status = str(prov_res.raw_model_output or ""), str(prov_res.runtime_generation_status or "BLOCKED")
     parsed, disp, ledger, parse_err = parse_strict_json_without_mutation(raw_out) if status == "REAL_LLM" and raw_out.strip() else (None, "", [], str(prov_res.exact_provider_error or "provider_blocked"))
     req_dict = prov_req.to_dict() if hasattr(prov_req, "to_dict") else {"provider_requested": provider_name, "model": section_model}
     res_dict = prov_res.to_dict() if hasattr(prov_res, "to_dict") else {"provider_available": bool(prov_res.provider_available), "model": prov_res.model or section_model, "exact_provider_error": prov_res.exact_provider_error, "runtime_generation_status": status}

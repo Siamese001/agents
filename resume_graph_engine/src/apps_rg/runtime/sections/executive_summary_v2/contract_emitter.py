@@ -66,7 +66,7 @@ def run_executive_summary_v2(
     run_id = str(runtime_payload["run_id"])
     provider_name = str(getattr(args, "provider", "external_claude") or "external_claude")
     temperature = float(getattr(args, "temperature", EXEC_SUMMARY_TEMP_DEFAULT) or EXEC_SUMMARY_TEMP_DEFAULT)
-    judge_mode = str(getattr(args, "judge_mode", None) or ("mocked" if provider_name == "mock" else "live"))
+    judge_mode = str(getattr(args, "judge_mode", None) or ("mocked" if provider_name == "mock" else "blocked_if_unavailable"))
 
     init_ledger(artifact_dir, section_id=LANE_KEY, run_id=run_id)
     _write_json(artifact_dir / "targeting_ingress_receipt.json", vctx.targeting_ingress.to_dict())
