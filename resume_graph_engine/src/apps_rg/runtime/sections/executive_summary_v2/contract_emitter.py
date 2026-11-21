@@ -84,6 +84,8 @@ def run_executive_summary_v2(
     if provider_name == "mock":
         runtime_payload["product_visible"] = False
     runtime_payload["provider_lane"] = provider_name
+    if isinstance(gtc := vctx.proof_pool_metadata.get("graph_targeting_capsule"), dict):
+        runtime_payload["graph_targeting_capsule"] = gtc
 
     graph_lane_path = ensure_section_c0_graph_lane_receipt(artifact_dir, runtime_payload=runtime_payload, section_id=LANE_KEY)
     runtime_payload["c0_graph_lane_receipt_ref"] = graph_lane_path.name

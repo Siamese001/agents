@@ -99,8 +99,10 @@ def evaluate_blind_dual_judges(
         proof_pool_metadata=proof_pool_metadata, repo_root=APPS_RG_SRC_ROOT,
     )
     write_executive_summary_judge_packet(artifact_dir / ("judge_packet.json" if attempt == 1 else f"judge_packet_attempt_{attempt}.json"), packet)
+    write_executive_summary_judge_packet(artifact_dir / "executive_summary_judge_packet.json", packet)
     if attempt > 1:
         write_executive_summary_judge_packet(artifact_dir / "judge_packet.json", packet)
+        write_executive_summary_judge_packet(artifact_dir / "executive_summary_judge_packet_post_x2.json", packet)
     eff_mode = "mocked" if str(judge_mode).strip().lower() == "mocked" else "blocked_if_unavailable"
     raw_outputs = run_llm_judges(
         resume_display_text=turn.resume_display_text,
