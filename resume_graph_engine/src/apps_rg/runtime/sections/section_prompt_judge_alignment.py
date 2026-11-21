@@ -317,7 +317,7 @@ def collect_section_prompt_corpus(section_id: str) -> str:
         parts.append(_PA_CORE_LAW.read_text(encoding="utf-8"))
     _append_pa_runtime_snippet(section_id, parts)
     if section_id == "executive_summary":
-        tmpl = _REPO_ROOT / "apps_rg/prompt_assembly/templates/executive_summary.generate_scratch_v1.yaml"
+        tmpl = _REPO_ROOT / "apps_rg/prompt_assembly/templates/executive_summary_v2.yaml"
         if tmpl.is_file():
             parts.append(tmpl.read_text(encoding="utf-8"))
     return "\n".join(parts)

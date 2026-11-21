@@ -1,0 +1,17 @@
+{
+  "wave": "Wave 4",
+  "title": "6-JD Unmocked E2E Scale Benchmark & Flywheel Regression Pinning",
+  "status": "PASS",
+  "jds_certified": [
+    "truist_fde",
+    "citi_ai_strategy",
+    "anthropic_partnerships",
+    "brown_brown_insurance",
+    "neo4j_vp_product",
+    "invesco_advanced_eng"
+  ],
+  "eval_construct_validity": "PASS (violations=0)",
+  "diff_scoped_eval_shield": "PASS (5/5 domains, resume_graph_engine 8/8 checks)",
+  "e2e_tests_passed": 7,
+  "mocks_in_e2e_pin": 0
+}

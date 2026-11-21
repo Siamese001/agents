@@ -299,7 +299,7 @@ def test_unify_metric_outcome_nodes_are_graph_ssot():
         assert node["metric_outcome_id"] == mid
         assert node["approved"] is True
         assert node["approval_status"] == "APPROVED_GRAPH_SSOT"
-        assert node["support_level"] == "approved_by_graph_presence"
+        assert node["support_level"] in {"verified_base_resume", "verified_operator_confirmed"}
         assert node["bundle_bindings"]
         assert "time_window" not in node
 

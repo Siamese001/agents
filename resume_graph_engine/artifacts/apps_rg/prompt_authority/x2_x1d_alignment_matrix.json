@@ -33,13 +33,14 @@
       "llm_generation_allowed": true,
       "claim_ledger_required": true,
       "output_schema_ref": "apps_rg/rg_output_schema.json",
-      "x2_gate_profile_ref": "apps_rg/runtime/validators/executive_summary_x2.py",
+      "x2_gate_profile_ref": "apps_rg/runtime/sections/executive_summary_v2/x2_invariants.py",
+      "x2_run_function": "run_executive_summary_v2_x2_gates",
       "x2_gates_sample": [
-        "x2_schema_valid",
-        "x2_claim_ledger_present",
-        "x2_inline_source_tags_absent",
-        "x2_jd_as_proof_zero",
-        "x2_unsupported_claim_zero"
+        "x2_v2_sentence_band_3_to_4",
+        "x2_v2_visual_char_band_420_to_680",
+        "x2_v2_no_inanimate_subject_openers",
+        "x2_v2_zero_unverified_numbers",
+        "x2_v2_claim_ledger_parity"
       ],
       "x2_deterministic_facts": [
         "claim ledger",

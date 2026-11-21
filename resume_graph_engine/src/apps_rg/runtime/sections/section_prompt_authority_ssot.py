@@ -229,13 +229,6 @@ def _executable_sources_for_section(section_id: str) -> list[dict[str, str]]:
                 "ref": "apps_rg/prompt_assembly/templates/ibm_position_narrative_v1.yaml",
             }
         )
-    if section_id == "executive_summary":
-        sources.append(
-            {
-                "kind": "pa_u0_snippet",
-                "ref": "apps_rg.runtime.sections.executive_summary_pa.format_graph_only_quality_guardrails_block",
-            }
-        )
     if section_id == "competencies":
         sources.append(
             {

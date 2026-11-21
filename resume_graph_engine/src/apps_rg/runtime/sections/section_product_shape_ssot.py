@@ -231,43 +231,35 @@ class SectionProductShape:
 def _exec_summary_shape() -> SectionProductShape:
     return SectionProductShape(
         section_id="executive_summary",
-        template_ref="apps_rg/prompt_assembly/templates/executive_summary.generate_scratch_v1.yaml",
-        x2_module_ref="apps_rg/runtime/validators/executive_summary_x2.py",
+        template_ref="apps_rg/prompt_assembly/templates/executive_summary_v2.yaml",
+        x2_module_ref="apps_rg/runtime/sections/executive_summary_v2/x2_invariants.py",
         display_field="resume_display_text",
         shape_summary=(
             f"{EXEC_SUMMARY_MIN_SENTENCES}-{EXEC_SUMMARY_MAX_SENTENCES} sentences; "
             f"{EXEC_SUMMARY_MIN_CHARS}-{EXEC_SUMMARY_MAX_CHARS} chars (3.5-5 wrapped lines); "
             f"max {EXEC_SUMMARY_MAX_CHARS_PER_SENTENCE} chars/sentence; "
             f"max {EXEC_SUMMARY_MAX_WORDS} words overflow cap; "
-            "fit_to_evidence; claim_ledger required (one row per sentence); no inline source tags in display text"
+            "fit_to_evidence; human executive actor in all sentences; claim_ledger required (one row per sentence); zero post-LLM prose mutation"
         ),
         bounds_gate_ids=(
-            "x2_exec_summary_sentence_band_3_to_4",
-            "x2_exec_summary_visual_char_band",
-            "x2_exec_summary_paragraph_max_words",
-            "x2_exec_summary_evidence_utilization",
+            "x2_v2_non_empty_display_text",
+            "x2_v2_sentence_band_3_to_4",
+            "x2_v2_visual_char_band_420_to_680",
         ),
         proof_gate_ids=(
-            "x2_exec_summary_jd_alignment_proof_flags",
-            "x2_claim_ledger_row_count_matches_sentence_count",
-            "x2_self_check_claim_ledger_consistent",
-            "x2_claim_field_maps_to_display_sentence",
-            "x2_claim_ledger_claim_text_non_empty",
-            "x2_claim_ledger_orphan_zero",
-            "x2_exec_summary_prompt_template_authority",
-            "x2_exec_summary_display_roundtrip_integrity",
-            "x2_exec_summary_cross_sentence_metric_dedup",
-            "x2_exec_summary_c03_selected_fact_ids_claimable_subset_allowed_fact_ids",
-            "x2_exec_summary_allowed_fact_utilization",
+            "x2_v2_claim_ledger_parity",
+            "x2_v2_zero_unverified_numbers",
+            "x2_v2_zero_unverified_vendors_or_employers",
+            "x2_v2_no_jd_phrase_copy",
         ),
         style_gate_ids=(
-            "x2_first_person_zero",
-            "x2_em_dash_count_zero",
-            "x2_exec_summary_no_mechanism_inventory",
-            "x2_exec_summary_no_credential_dump",
-            "x2_exec_summary_no_ai_bridge_crutches",
-            "x2_exec_summary_no_abstract_noun_soup",
-            "x2_exec_summary_rhythm_and_cadence_variety",
+            "x2_v2_no_first_person_pronouns",
+            "x2_v2_no_em_dash_or_ai_punctuation",
+            "x2_v2_no_ai_bridge_crutches",
+            "x2_v2_no_abstract_noun_soup",
+            "x2_v2_no_inanimate_subject_openers",
+            "x2_v2_cadence_and_opener_variety",
+            "x2_v2_no_undefined_mga_acronym",
         ),
         required_any_text_patterns=(
             r"3\s*(?:to|-|–)\s*4\s+(?:crisp\s+|period-delimited\s+)?sentences",
@@ -289,9 +281,9 @@ def _exec_summary_shape() -> SectionProductShape:
             f"sentence_band={EXEC_SUMMARY_MIN_SENTENCES}-{EXEC_SUMMARY_MAX_SENTENCES}",
             f"char_band={EXEC_SUMMARY_MIN_CHARS}-{EXEC_SUMMARY_MAX_CHARS}",
             f"max_words={EXEC_SUMMARY_MAX_WORDS}",
-            "x2_exec_summary_visual_char_band",
-            "x2_exec_summary_paragraph_max_words",
-            "x2_exec_summary_evidence_utilization",
+            "x2_v2_visual_char_band_420_to_680",
+            "x2_v2_no_inanimate_subject_openers",
+            "x2_v2_zero_unverified_numbers",
             "legacy 6-sentence wall-of-text retired",
         ),
     )

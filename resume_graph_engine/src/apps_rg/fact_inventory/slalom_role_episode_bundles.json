@@ -65,7 +65,7 @@
       "claim_action": "Architected and led production agentic AI client delivery and typed A2A multi-agent orchestration engagements",
       "claim_scope": "Enterprise AI delivery spanning a $3.5M multi-agent modernization program, dynamic fault-code grid restoration correlating SCADA and IBM Maximo history, and customer outage self-service with Salesforce escalation workflows.",
       "claim_outcome": "Moved fragmented AI pilots into governed production across 11 core workstreams with zero red escalations, enabled 20% target call-center deflection in outage self-service cohorts, and compressed prototype-to-production delivery cycles.",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "executive_scope_signals": [
         "Architected and delivered production multi-agent orchestration across a $3.5M enterprise modernization program, dynamic SCADA/Maximo grid-restoration engine, and customer outage self-service MVP targeting 20% call-center deflection",
         "Replaced ad-hoc agent prototypes with typed A2A orchestration contracts, deterministic route policies, and feature-velocity benchmarks across 11 core delivery workstreams with zero red escalations"
@@ -103,10 +103,13 @@
         "headline",
         "executive_summary"
       ],
-      "external_claim_policy": "approved_by_graph_presence",
+      "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes."
+      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes.",
+      "provenance_source_refs": [
+        "fact_slalom_001"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_slalom_nextgen_ai_solutions",
@@ -119,7 +122,7 @@
       "claim_action": "Commercialized enterprise AI-PDLC standards and value-modeled agentic charter blueprints into repeatable production offerings",
       "claim_scope": "Enterprise AI-PDLC operating model, $6.77M quarterly AI engineering delivery SOW, Volume-x-Price labor efficiency and NAV break-even charter valuation, regulatory compliance automation, and production Documentum classification.",
       "claim_outcome": "Expanded quarterly AI engineering delivery SOW to $6.77M, converted fragmented pilots into value-modeled product charters, and shipped production regulatory compliance and Documentum classification under human-in-the-loop cost controls.",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "executive_scope_signals": [
         "Commercialized an enterprise AI-PDLC operating model and Volume-x-Price / NAV charter valuation framework across 33 AI and analytics charters, driving $25M+ in cumulative SOW portfolio value ($6.77M quarterly AI engineering SOW)",
         "Delivered production GCP regulatory compliance intelligence and automated document classification writing directly to enterprise content management (Documentum) under human-in-the-loop cost and confidence controls"
@@ -156,10 +159,13 @@
         "headline",
         "executive_summary"
       ],
-      "external_claim_policy": "approved_by_graph_presence",
+      "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes."
+      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes.",
+      "provenance_source_refs": [
+        "fact_slalom_002"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_slalom_governed_runtime_scaling",
@@ -172,7 +178,7 @@
       "claim_action": "Engineered outcome-based agentic evaluation harnesses, deterministic validation meshes, and audit-grade execution lineage",
       "claim_scope": "Enterprise runtime safety, sandboxed egress controls, ground-truth evaluation harnesses, and distributed telemetry across regulated energy and consulting AI platforms.",
       "claim_outcome": "Achieved 100% deterministic gate conformance, 100% citation accuracy, 100% abstention precision, and 100% provenance coverage with zero leakage across regulated production workflows.",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "executive_scope_signals": [
         "Built outcome-based agentic evaluation harnesses and fail-closed validation meshes delivering 100% deterministic gate conformance, 100% citation accuracy, and 100% abstention precision in regulated enterprise environments",
         "Replaced manual turn-by-turn spot checks with automated ground-truth verification, sandboxed egress controls, and replayable OpenTelemetry audit lineage"
@@ -210,10 +216,13 @@
         "headline",
         "executive_summary"
       ],
-      "external_claim_policy": "approved_by_graph_presence",
+      "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes."
+      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes.",
+      "provenance_source_refs": [
+        "fact_slalom_003"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_slalom_ecosystem_accelerators",
@@ -226,7 +235,7 @@
       "claim_action": "Led strategic AI partner co-sell, licensing expansion, and joint feature enablement across Google Cloud (GCP Gemini Enterprise & Vertex AI), Anthropic (Claude Code & Managed Agents), OpenAI (Codex & Frontier), AWS, Azure, and Databricks",
       "claim_scope": "Google Cloud Gemini Enterprise seat scaling (750 to 5,750+ seats toward 10,000+ with 2,000 Plus tier, deployment vouchers, and partner rebates), Vertex AI / Agent Designer / NotebookLM / Deep Research / Model Armor enablement, Anthropic Claude $2.4M enterprise enablement workstream and 45-day Claude Code FDX pods on GCP, and OpenAI Presence + Codex continuous-improvement loops.",
       "claim_outcome": "Scaled Google Cloud Gemini Enterprise licensing past 5,750 seats, launched a $2.4M Anthropic Claude enterprise enablement workstream with 45-day Claude Code pods, cut human handoffs 15 percentage points in 10 days (75% automated resolution) via OpenAI Codex, and compressed client adoption from months to weeks.",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "executive_scope_signals": [
         "Directed Google Cloud (GCP) partnership licensing and feature adoption, scaling Gemini Enterprise from 750 to 5,750+ seats toward 10,000+ (including 2,000 Plus seats), structuring partner rebates and deployment vouchers, and enabling Vertex AI, Agent Designer, NotebookLM, Deep Research, and GE 101-301 curricula",
         "Spearheaded Anthropic partnership motions including a $2.4M ($2,376K NAV) enterprise AI enablement workstream, 45-day parallel Claude Code Forward Deployed Experience pods on shared GCP Landing Zones, and Claude Managed Agents in Slalom Traverse",
@@ -268,10 +277,14 @@
         "headline",
         "executive_summary"
       ],
-      "external_claim_policy": "approved_by_graph_presence",
+      "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes."
+      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes.",
+      "provenance_source_refs": [
+        "exp_slalom_001",
+        "fact_slalom_004"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_slalom_visual_asset_intelligence",
@@ -284,7 +297,7 @@
       "claim_action": "Architected and remediated a production multi-modal visual asset intelligence platform for power generation equipment nameplates",
       "claim_scope": "Six-figure commercial SOW automating field-to-office turbine nameplate extraction across generation sites using single-call vision-LLM reading, deterministic Python business-rule adjudication, vendor allowlists, and IBM Maximo integration.",
       "claim_outcome": "Achieved 90% primary-field extraction accuracy and 92% OCR accuracy on golden validation datasets while enforcing a 100% full-plate accuracy high-confidence auto-acceptance standard into IBM Maximo, cutting manual technician review while preventing serial-number misreads.",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "executive_scope_signals": [
         "Directed architecture and functional remediation of a six-figure visual asset intelligence SOW, reaching 90% primary-field accuracy and 92% OCR accuracy across power generation field imagery",
         "Established a 100% full-plate accuracy high-confidence auto-acceptance gate into IBM Maximo while routing medium/low-confidence items to human review, preventing costly asset-data corruption"
@@ -319,10 +332,13 @@
         "competencies",
         "executive_summary"
       ],
-      "external_claim_policy": "approved_by_graph_presence",
+      "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes."
+      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes.",
+      "provenance_source_refs": [
+        "fact_slalom_005"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_slalom_engineering_practice_leadership",
@@ -335,7 +351,7 @@
       "claim_action": "Led 105 software engineers and data leaders across 33 enterprise AI charters, converting fixed-capacity staffing into outcome-governed delivery",
       "claim_scope": "105 software engineers and data leaders spanning 33 AI and analytics charters (power generation, renewables/nuclear, power delivery, regulatory compliance, customer operations, corporate services) and $25M+ in cumulative multi-SOW value.",
       "claim_outcome": "Stewarded $25M+ in cumulative SOW portfolio value ($6.77M quarterly AI engineering SOW), sustained 11 core outcome-led workstreams with zero red escalations across quarterly transitions, and elevated client positioning from staff augmentation to strategic AI engineering transformation partner.",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "executive_scope_signals": [
         "Directed 105 software engineers and data leaders across 33 enterprise AI and analytics charters (29 active across 6 outcome-led pods and 26 co-delivery charters) and $25M+ in cumulative SOW portfolio value for a Fortune 200 utility client",
         "Sustained 11 core outcome-led engineering workstreams with zero red escalations while shifting client commercial posture from fixed-capacity hours to outcome-governed AI product engineering"
@@ -369,10 +385,13 @@
         "competencies",
         "executive_summary"
       ],
-      "external_claim_policy": "approved_by_graph_presence",
+      "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes."
+      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes.",
+      "provenance_source_refs": [
+        "fact_slalom_006"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_slalom_live_copilot_acoustic_airgap",
@@ -385,7 +404,7 @@
       "claim_action": "Built and deployed a privacy-isolated live executive advisory copilot and self-healing multimodal synthesis pipeline",
       "claim_scope": "Production decision-intelligence platform serving a 50-user enterprise consulting account team with 100% local speech capture, sub-250ms speculative context prefetching, pre-egress PII/credential sanitization, and 3-stage forensic synthesis.",
       "claim_outcome": "Eliminated post-meeting commitment and risk evaporation across a 50-user enterprise account team, delivering sub-250ms real-time executive guidance and 0% silent signal loss under strict acoustic airgap privacy.",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "executive_scope_signals": [
         "Built and deployed a production local-first multimodal AI advisory copilot delivering sub-250ms real-time executive guidance under 100% local acoustic privacy for a 50-user enterprise consulting team",
         "Automated post-meeting synthesis into forensic transcripts, executive briefs, and structured knowledge-graph signals with automated self-healing and 0% silent signal loss"
@@ -431,10 +450,14 @@
         "headline",
         "executive_summary"
       ],
-      "external_claim_policy": "approved_by_graph_presence",
+      "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Enterprise multimodal AI advisory workflows and synthesis pipelines attributed to Slalom."
+      "notes": "Enterprise multimodal AI advisory workflows and synthesis pipelines attributed to Slalom.",
+      "provenance_source_refs": [
+        "fact_slalom_007",
+        "fact_slalom_008"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_slalom_bitemporal_graphrag_uwg",
@@ -447,7 +470,7 @@
       "claim_action": "Architected a production bi-temporal enterprise knowledge graph, hybrid GraphRAG retrieval engine, and fail-closed write-custody gateway",
       "claim_scope": "Bi-temporal knowledge-graph context grounding across 3,500+ governed entities and 576 workstreams, multi-hop hybrid vector-lexical GraphRAG retrieval, cryptographic caching, and auditable write-custody controls.",
       "claim_outcome": "Delivered 100% provenance coverage, 100% citation accuracy, 100% currentness accuracy, 0% orphan-node drift, and zero silent data corruption for high-stakes executive decision briefings.",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "executive_scope_signals": [
         "Architected a production bi-temporal enterprise knowledge graph (3,500+ governed entities, 576 workstreams) powering hybrid GraphRAG executive briefings with 100% provenance coverage and 100% currentness accuracy",
         "Enforced zero-bypass write custody with 5-check physical integrity verification and atomic generational promotion, eliminating silent data corruption across regulated knowledge stores"
@@ -494,10 +517,14 @@
         "headline",
         "executive_summary"
       ],
-      "external_claim_policy": "approved_by_graph_presence",
+      "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Enterprise lakehouse and knowledge-graph retrieval platform architecture attributed to Slalom."
+      "notes": "Enterprise lakehouse and knowledge-graph retrieval platform architecture attributed to Slalom.",
+      "provenance_source_refs": [
+        "fact_slalom_009",
+        "fact_slalom_011"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_slalom_dialectical_decision_bayesian_hitl",
@@ -510,7 +537,7 @@
       "claim_action": "Engineered a multi-role strategic decision engine, cross-provider LLM judge panels, and confidence-calibrated Bayesian HITL escalation gates",
       "claim_scope": "Regulated enterprise decision synthesis and model-risk governance pairing 18 specialized reasoning roles, orthogonal cross-provider evaluation judges, and Bayesian posterior ambiguity gating (20% margin, 65% floor).",
       "claim_outcome": "Cut executive review bottlenecks by auto-resolving high-conviction decisions while escalating genuine ambiguities, achieving 99% policy-gate auditability, 100% abstention precision, and zero ungrounded claim releases.",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "executive_scope_signals": [
         "Built a 7-wave, 18-role strategic decision intelligence engine with independent cross-provider LLM judge panels that eliminated ungrounded executive recommendations",
         "Operationalized confidence-calibrated Bayesian HITL escalation (20% ambiguity margin, 65% confidence floor), cutting manual review bottlenecks while maintaining 99% policy-gate auditability and 100% abstention precision"
@@ -556,10 +583,13 @@
         "headline",
         "executive_summary"
       ],
-      "external_claim_policy": "approved_by_graph_presence",
+      "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Regulated data governance quality, model-risk evaluation, and HITL controls attributed to Slalom."
+      "notes": "Regulated data governance quality, model-risk evaluation, and HITL controls attributed to Slalom.",
+      "provenance_source_refs": [
+        "fact_slalom_010"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_slalom_autonomous_agentic_sdlc_mcp",
@@ -572,7 +602,7 @@
       "claim_action": "Built a production 7-layer agentic software delivery platform, autonomous governance agent mesh, MCP tool servers, and 50-user intelligence portal",
       "claim_scope": "End-to-end autonomous engineering control plane spanning 26 governance sidecar agents, 38 fail-closed release gates, custom MCP servers, worktree-isolated merge pipelines, memory-governed test orchestration, and a 50-user enterprise portal.",
       "claim_outcome": "Compressed engineering turnaround and eliminated silent governance drift across live consulting operations, delivering a 50-user executive intelligence portal and continuous closed-loop improvement across 8 production telemetry surfaces.",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "executive_scope_signals": [
         "Built a production autonomous engineering control plane with 26 governance sidecar agents, 38 fail-closed release gates, and warm in-process MCP servers that compressed delivery turnaround and eliminated silent drift",
         "Deployed a 50-user enterprise decision-intelligence portal backed by closed-loop system learning across 8 production telemetry surfaces (retrieval precision, HITL priors, judge rubrics, and cost-latency routing)"
@@ -629,10 +659,13 @@
         "headline",
         "executive_summary"
       ],
-      "external_claim_policy": "approved_by_graph_presence",
+      "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Cloud operating model transformation and forward-deployed agentic SDLC engineering attributed to Slalom."
+      "notes": "Cloud operating model transformation and forward-deployed agentic SDLC engineering attributed to Slalom.",
+      "provenance_source_refs": [
+        "fact_slalom_012"
+      ]
     }
   ],
   "metric_outcome_nodes": {
@@ -643,7 +676,7 @@
       "employer": "Slalom",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_slalom_agentic_client_delivery"
       ],
@@ -660,7 +693,12 @@
         "headline",
         "executive_summary"
       ],
-      "employer_node_id": "employment_exp_slalom_001"
+      "employer_node_id": "employment_exp_slalom_001",
+      "provenance_source_refs": [
+        "exp_slalom_001",
+        "slalom_graph_delta_proposal",
+        "master_skills_arsenal_ledger"
+      ]
     },
     "metric_slalom_a2a_orchestration_contract_surface": {
       "metric_outcome_id": "metric_slalom_a2a_orchestration_contract_surface",
@@ -669,7 +707,7 @@
       "employer": "Slalom",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_slalom_agentic_client_delivery"
       ],
@@ -686,7 +724,12 @@
         "headline",
         "executive_summary"
       ],
-      "employer_node_id": "employment_exp_slalom_001"
+      "employer_node_id": "employment_exp_slalom_001",
+      "provenance_source_refs": [
+        "exp_slalom_001",
+        "slalom_graph_delta_proposal",
+        "master_skills_arsenal_ledger"
+      ]
     },
     "metric_slalom_delivery_cycle_compression_pct": {
       "metric_outcome_id": "metric_slalom_delivery_cycle_compression_pct",
@@ -695,7 +738,7 @@
       "employer": "Slalom",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_slalom_agentic_client_delivery"
       ],
@@ -711,7 +754,12 @@
         "headline",
         "executive_summary"
       ],
-      "employer_node_id": "employment_exp_slalom_001"
+      "employer_node_id": "employment_exp_slalom_001",
+      "provenance_source_refs": [
+        "exp_slalom_001",
+        "slalom_graph_delta_proposal",
+        "master_skills_arsenal_ledger"
+      ]
     },
     "metric_slalom_nextgen_ai_practice_pipeline_expansion": {
       "metric_outcome_id": "metric_slalom_nextgen_ai_practice_pipeline_expansion",
@@ -720,7 +768,7 @@
       "employer": "Slalom",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_slalom_nextgen_ai_solutions"
       ],
@@ -736,7 +784,12 @@
         "headline",
         "executive_summary"
       ],
-      "employer_node_id": "employment_exp_slalom_001"
+      "employer_node_id": "employment_exp_slalom_001",
+      "provenance_source_refs": [
+        "exp_slalom_001",
+        "slalom_graph_delta_proposal",
+        "master_skills_arsenal_ledger"
+      ]
     },
     "metric_slalom_frontier_model_solution_patterns": {
       "metric_outcome_id": "metric_slalom_frontier_model_solution_patterns",
@@ -745,7 +798,7 @@
       "employer": "Slalom",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_slalom_nextgen_ai_solutions"
       ],
@@ -762,7 +815,12 @@
         "headline",
         "executive_summary"
       ],
-      "employer_node_id": "employment_exp_slalom_001"
+      "employer_node_id": "employment_exp_slalom_001",
+      "provenance_source_refs": [
+        "exp_slalom_001",
+        "slalom_graph_delta_proposal",
+        "master_skills_arsenal_ledger"
+      ]
     },
     "metric_slalom_enterprise_ai_adoption_rate": {
       "metric_outcome_id": "metric_slalom_enterprise_ai_adoption_rate",
@@ -771,7 +829,7 @@
       "employer": "Slalom",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_slalom_nextgen_ai_solutions"
       ],
@@ -787,7 +845,12 @@
         "headline",
         "executive_summary"
       ],
-      "employer_node_id": "employment_exp_slalom_001"
+      "employer_node_id": "employment_exp_slalom_001",
+      "provenance_source_refs": [
+        "exp_slalom_001",
+        "slalom_graph_delta_proposal",
+        "master_skills_arsenal_ledger"
+      ]
     },
     "metric_slalom_governed_runtime_telemetry_coverage": {
       "metric_outcome_id": "metric_slalom_governed_runtime_telemetry_coverage",
@@ -796,7 +859,7 @@
       "employer": "Slalom",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_slalom_governed_runtime_scaling"
       ],
@@ -812,7 +875,12 @@
         "headline",
         "executive_summary"
       ],
-      "employer_node_id": "employment_exp_slalom_001"
+      "employer_node_id": "employment_exp_slalom_001",
+      "provenance_source_refs": [
+        "exp_slalom_001",
+        "slalom_graph_delta_proposal",
+        "master_skills_arsenal_ledger"
+      ]
     },
     "metric_slalom_validation_gate_mesh_conformance_pct": {
       "metric_outcome_id": "metric_slalom_validation_gate_mesh_conformance_pct",
@@ -821,7 +889,7 @@
       "employer": "Slalom",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_slalom_governed_runtime_scaling"
       ],
@@ -837,7 +905,12 @@
         "headline",
         "executive_summary"
       ],
-      "employer_node_id": "employment_exp_slalom_001"
+      "employer_node_id": "employment_exp_slalom_001",
+      "provenance_source_refs": [
+        "exp_slalom_001",
+        "slalom_graph_delta_proposal",
+        "master_skills_arsenal_ledger"
+      ]
     },
     "metric_slalom_audit_grade_lineage_assurance": {
       "metric_outcome_id": "metric_slalom_audit_grade_lineage_assurance",
@@ -846,7 +919,7 @@
       "employer": "Slalom",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_slalom_governed_runtime_scaling"
       ],
@@ -862,7 +935,12 @@
         "headline",
         "executive_summary"
       ],
-      "employer_node_id": "employment_exp_slalom_001"
+      "employer_node_id": "employment_exp_slalom_001",
+      "provenance_source_refs": [
+        "exp_slalom_001",
+        "slalom_graph_delta_proposal",
+        "master_skills_arsenal_ledger"
+      ]
     },
     "metric_slalom_accelerator_adoption_acceleration_months_to_weeks": {
       "metric_outcome_id": "metric_slalom_accelerator_adoption_acceleration_months_to_weeks",
@@ -871,7 +949,7 @@
       "employer": "Slalom",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_slalom_ecosystem_accelerators"
       ],
@@ -891,7 +969,11 @@
         "headline",
         "executive_summary"
       ],
-      "employer_node_id": "employment_exp_slalom_001"
+      "employer_node_id": "employment_exp_slalom_001",
+      "provenance_source_refs": [
+        "exp_slalom_001",
+        "amit_ayer_base_resume_v1"
+      ]
     },
     "metric_slalom_cloud_partner_cosell_initiatives": {
       "metric_outcome_id": "metric_slalom_cloud_partner_cosell_initiatives",
@@ -900,7 +982,7 @@
       "employer": "Slalom",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_slalom_ecosystem_accelerators"
       ],
@@ -923,7 +1005,12 @@
         "headline",
         "executive_summary"
       ],
-      "employer_node_id": "employment_exp_slalom_001"
+      "employer_node_id": "employment_exp_slalom_001",
+      "provenance_source_refs": [
+        "exp_slalom_001",
+        "slalom_graph_delta_proposal",
+        "master_skills_arsenal_ledger"
+      ]
     },
     "metric_slalom_reusable_ip_asset_library_count": {
       "metric_outcome_id": "metric_slalom_reusable_ip_asset_library_count",
@@ -932,7 +1019,7 @@
       "employer": "Slalom",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_slalom_ecosystem_accelerators"
       ],
@@ -951,7 +1038,12 @@
         "headline",
         "executive_summary"
       ],
-      "employer_node_id": "employment_exp_slalom_001"
+      "employer_node_id": "employment_exp_slalom_001",
+      "provenance_source_refs": [
+        "exp_slalom_001",
+        "slalom_graph_delta_proposal",
+        "master_skills_arsenal_ledger"
+      ]
     },
     "metric_slalom_visual_asset_intelligence_sow_delivery": {
       "metric_outcome_id": "metric_slalom_visual_asset_intelligence_sow_delivery",
@@ -960,7 +1052,7 @@
       "employer": "Slalom",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_slalom_visual_asset_intelligence"
       ],
@@ -978,7 +1070,11 @@
         "competencies",
         "executive_summary"
       ],
-      "employer_node_id": "employment_exp_slalom_001"
+      "employer_node_id": "employment_exp_slalom_001",
+      "provenance_source_refs": [
+        "exp_slalom_001",
+        "amit_ayer_base_resume_v1"
+      ]
     },
     "metric_slalom_consulting_engineering_footprint_scale": {
       "metric_outcome_id": "metric_slalom_consulting_engineering_footprint_scale",
@@ -987,7 +1083,7 @@
       "employer": "Slalom",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_slalom_engineering_practice_leadership"
       ],
@@ -1006,7 +1102,11 @@
         "competencies",
         "executive_summary"
       ],
-      "employer_node_id": "employment_exp_slalom_001"
+      "employer_node_id": "employment_exp_slalom_001",
+      "provenance_source_refs": [
+        "exp_slalom_001",
+        "amit_ayer_base_resume_v1"
+      ]
     },
     "metric_slalom_acoustic_airgap_pcm_spooler_200ms": {
       "metric_outcome_id": "metric_slalom_acoustic_airgap_pcm_spooler_200ms",
@@ -1016,7 +1116,7 @@
       "employer_node_id": "employment_exp_slalom_001",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_slalom_live_copilot_acoustic_airgap"
       ],
@@ -1033,6 +1133,11 @@
         "headline",
         "competencies",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_slalom_001",
+        "slalom_graph_delta_proposal",
+        "master_skills_arsenal_ledger"
       ]
     },
     "metric_slalom_dual_track_copilot_flash_snap_250ms": {
@@ -1043,7 +1148,7 @@
       "employer_node_id": "employment_exp_slalom_001",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_slalom_live_copilot_acoustic_airgap"
       ],
@@ -1060,6 +1165,11 @@
         "headline",
         "competencies",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_slalom_001",
+        "slalom_graph_delta_proposal",
+        "master_skills_arsenal_ledger"
       ]
     },
     "metric_slalom_multimodal_3stage_self_healing_zero_loss": {
@@ -1070,7 +1180,7 @@
       "employer_node_id": "employment_exp_slalom_001",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_slalom_live_copilot_acoustic_airgap"
       ],
@@ -1087,6 +1197,11 @@
         "headline",
         "competencies",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_slalom_001",
+        "slalom_graph_delta_proposal",
+        "master_skills_arsenal_ledger"
       ]
     },
     "metric_slalom_hybrid_bgem3_fts5_11gate_retrieval": {
@@ -1097,7 +1212,7 @@
       "employer_node_id": "employment_exp_slalom_001",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_slalom_bitemporal_graphrag_uwg"
       ],
@@ -1114,6 +1229,11 @@
         "headline",
         "competencies",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_slalom_001",
+        "slalom_graph_delta_proposal",
+        "master_skills_arsenal_ledger"
       ]
     },
     "metric_slalom_merkle_subgraph_cache_kv_alignment": {
@@ -1124,7 +1244,7 @@
       "employer_node_id": "employment_exp_slalom_001",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_slalom_bitemporal_graphrag_uwg"
       ],
@@ -1141,6 +1261,11 @@
         "headline",
         "competencies",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_slalom_001",
+        "slalom_graph_delta_proposal",
+        "master_skills_arsenal_ledger"
       ]
     },
     "metric_slalom_uwg_5check_physical_disk_proof": {
@@ -1151,7 +1276,7 @@
       "employer_node_id": "employment_exp_slalom_001",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_slalom_bitemporal_graphrag_uwg"
       ],
@@ -1168,6 +1293,11 @@
         "headline",
         "competencies",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_slalom_001",
+        "slalom_graph_delta_proposal",
+        "master_skills_arsenal_ledger"
       ]
     },
     "metric_slalom_decision_engine_18roles_6modalities_w1w7": {
@@ -1178,7 +1308,7 @@
       "employer_node_id": "employment_exp_slalom_001",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_slalom_dialectical_decision_bayesian_hitl"
       ],
@@ -1195,6 +1325,11 @@
         "headline",
         "competencies",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_slalom_001",
+        "slalom_graph_delta_proposal",
+        "master_skills_arsenal_ledger"
       ]
     },
     "metric_slalom_bayesian_hitl_20pct_ambiguity_margin": {
@@ -1205,7 +1340,7 @@
       "employer_node_id": "employment_exp_slalom_001",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_slalom_dialectical_decision_bayesian_hitl"
       ],
@@ -1222,6 +1357,11 @@
         "headline",
         "competencies",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_slalom_001",
+        "slalom_graph_delta_proposal",
+        "master_skills_arsenal_ledger"
       ]
     },
     "metric_slalom_dialectical_judge_rubric_calibration": {
@@ -1232,7 +1372,7 @@
       "employer_node_id": "employment_exp_slalom_001",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_slalom_dialectical_decision_bayesian_hitl"
       ],
@@ -1249,6 +1389,11 @@
         "headline",
         "competencies",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_slalom_001",
+        "slalom_graph_delta_proposal",
+        "master_skills_arsenal_ledger"
       ]
     },
     "metric_slalom_7layer_119package_dag_architecture": {
@@ -1259,7 +1404,7 @@
       "employer_node_id": "employment_exp_slalom_001",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_slalom_autonomous_agentic_sdlc_mcp"
       ],
@@ -1276,6 +1421,11 @@
         "headline",
         "competencies",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_slalom_001",
+        "slalom_graph_delta_proposal",
+        "master_skills_arsenal_ledger"
       ]
     },
     "metric_slalom_18agent_6stage_32gate_autonomous_sdlc": {
@@ -1286,7 +1436,7 @@
       "employer_node_id": "employment_exp_slalom_001",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_slalom_autonomous_agentic_sdlc_mcp"
       ],
@@ -1303,6 +1453,11 @@
         "headline",
         "competencies",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_slalom_001",
+        "slalom_graph_delta_proposal",
+        "master_skills_arsenal_ledger"
       ]
     },
     "metric_slalom_8surface_closed_loop_system_learning": {
@@ -1313,7 +1468,7 @@
       "employer_node_id": "employment_exp_slalom_001",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_slalom_autonomous_agentic_sdlc_mcp"
       ],
@@ -1330,6 +1485,11 @@
         "headline",
         "competencies",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_slalom_001",
+        "slalom_graph_delta_proposal",
+        "master_skills_arsenal_ledger"
       ]
     }
   }

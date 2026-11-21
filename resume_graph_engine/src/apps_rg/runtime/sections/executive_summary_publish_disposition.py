@@ -5,11 +5,28 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from apps_rg.runtime.sections.executive_summary_judge_remediation import (
-    all_model_backed_judges_pass,
-    _is_model_backed_soft_fail,
-    _normalize_judge_list,
+from apps_rg.runtime.sections.executive_summary_v2.blind_judge_and_loop import (
+    judge_row_passes_4_7_human_bar,
 )
+
+
+def _normalize_judge_list(x1d_judges: list[Any] | None) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    for j in x1d_judges or []:
+        if isinstance(j, dict):
+            out.append(dict(j))
+        elif hasattr(j, "to_dict"):
+            out.append(dict(j.to_dict()))
+    return out
+
+
+def _is_model_backed_soft_fail(judge: dict[str, Any]) -> bool:
+    return judge.get("evaluator_mode") == "MODEL_BACKED" and not judge_row_passes_4_7_human_bar(judge)
+
+
+def all_model_backed_judges_pass(x1d_judges: list[dict[str, Any]]) -> bool:
+    norm = [j for j in _normalize_judge_list(x1d_judges) if j.get("evaluator_mode") == "MODEL_BACKED"]
+    return len(norm) >= 2 and all(judge_row_passes_4_7_human_bar(j) for j in norm)
 
 
 def best_effort_publish_allowed_from_env() -> bool:

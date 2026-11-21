@@ -201,7 +201,16 @@ def _candidate_sets_from_section_plans(
             roots = [row for row in bucket["root"] if row.get("authority_pass") is True]
             skills = [row for row in bucket["leaf_skill"] if row.get("authority_pass") is True]
             facts = [row for row in bucket["source_fact"] if row.get("authority_pass") is True]
-            metrics = [row for row in bucket["metric_outcome"] if row.get("authority_pass") is True]
+            metrics = [
+                row
+                for row in bucket["metric_outcome"]
+                if row.get("authority_pass") is True
+                and row.get("approved", True) is True
+                and (
+                    not row.get("section_eligibility")
+                    or slot.section_id in {str(v).strip() for v in (row.get("section_eligibility") or []) if str(v).strip()}
+                )
+            ]
             if not roots or not skills or not facts:
                 continue
             root = roots[0]

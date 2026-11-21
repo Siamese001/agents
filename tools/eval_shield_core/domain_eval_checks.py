@@ -38,13 +38,11 @@ def check_resume_graph_engine_domain(repo_root: Path, *, inject_fault: bool = Fa
         validate_resume_graph_allocation_plan,
     )
     from apps_rg.runtime.judges.executive_summary_judge_packet import (
+        GRAPH_ONLY_GRADE_ONLY_RUBRIC,
         render_judge_prompt_from_packet,
     )
-    from apps_rg.runtime.validators.exec_summary_x2.sentence_metric_checks import (
-        check_exec_summary_sentence_band_3_to_4,
-    )
-    from apps_rg.runtime.validators.exec_summary_x2.shape_and_credential_checks import (
-        check_exec_summary_no_ai_bridge_crutches,
+    from apps_rg.runtime.sections.executive_summary_v2.x2_invariants import (
+        evaluate_executive_summary_v2_x2,
     )
 
     failures: list[str] = []
@@ -54,11 +52,12 @@ def check_resume_graph_engine_domain(repo_root: Path, *, inject_fault: bool = Fa
     rg_root = repo_root / "resume_graph_engine"
     jd_path = rg_root / "src" / "apps_rg" / "config" / "targeting" / "truist_head_forward_deployed_engineering_jd.txt"
     brief_path = rg_root / "src" / "apps_rg" / "config" / "targeting" / "truist_head_forward_deployed_engineering_briefing.md"
+    jd_text = jd_path.read_text(encoding="utf-8")
 
     bundle = build_whole_resume_graph_allocation(
         repo_root=rg_root,
         target_role="Head of Forward Deployed Engineering",
-        jd_text=jd_path.read_text(encoding="utf-8"),
+        jd_text=jd_text,
         briefing_text=brief_path.read_text(encoding="utf-8"),
     )
     plan = bundle["allocation_plan"]
@@ -75,29 +74,59 @@ def check_resume_graph_engine_domain(repo_root: Path, *, inject_fault: bool = Fa
         failures.append("off_domain_employer_leaked_into_banking_executive_summary")
 
     good_text = (
-        "Engineering executive scaling governed agentic AI platforms from core architecture into audited production. "
-        "Owned a multi-layer agentic control plane with deterministic route policy and sandboxed execution. "
-        "Engineered fail-closed validation meshes holding enterprise AI workloads to 100% deterministic gate conformance. "
-        "Directed enterprise cloud and AI solution blueprints across regulated financial institutions."
+        "Enterprise AI and Cloud Architecture Leader with 20+ years scaling regulated transformations across Fortune 500 banking and financial platforms. "
+        "Built and led a 100+ person Cloud and AI practice delivering governed multi-agent data and cloud modernization programs across enterprise accounts. "
+        "Engineered validation workflows holding enterprise AI workloads to 100% deterministic gate conformance. "
+        "Partnered with C-suite technology executives to ship cloud-native platforms with strict auditability."
     )
-    crutch_text = (
-        "Engineering executive scaling governed agentic AI platforms. "
-        "Building on that architecture, scaled regulated enterprise workflows. "
-        "In parallel, drove platform modernization across accounts."
+    good_ledger = [
+        {"claim_text": "s1", "source_fact_ids": ["f1"]},
+        {"claim_text": "s2", "source_fact_ids": ["f1"]},
+        {"claim_text": "s3", "source_fact_ids": ["f1"]},
+        {"claim_text": "s4", "source_fact_ids": ["f1"]},
+    ]
+    good_gates = evaluate_executive_summary_v2_x2(
+        resume_display_text=good_text,
+        claim_ledger=good_ledger,
+        parsed_output={"resume_display_text": good_text},
+        allowed_fact_ids={"f1"},
+        verified_numbers=frozenset({"20", "500", "100", "100%"}),
+        verified_corpus_lower="20+ years fortune 500 100+ 100% agentic cloud",
+        target_company="Truist",
+        jd_text="banking fde",
     )
-    ok_band, err_band = check_exec_summary_sentence_band_3_to_4(good_text)
-    if not ok_band:
-        failures.append(f"good_sentence_band_failed:{err_band}")
-    ok_good_crutch, err_good_crutch = check_exec_summary_no_ai_bridge_crutches(good_text)
-    if not ok_good_crutch:
-        failures.append(f"good_text_false_positive_crutch:{err_good_crutch}")
-    ok_bad_crutch, _ = check_exec_summary_no_ai_bridge_crutches(crutch_text)
-    if ok_bad_crutch:
+    if any(not g["pass"] for g in good_gates):
+        failures.append(f"good_v2_x2_failed:{[g['gate_id'] for g in good_gates if not g['pass']]}")
+
+    bad_text = (
+        "Engineering executive scaling governed agentic AI platforms across accounts. "
+        "Platform ownership covered deterministic route policy and Confluent Kafka pipelines with 24% lift. "
+        "In parallel, field delivery scaled regulated enterprise workflows across banking teams."
+    )
+    bad_gates = {
+        g["gate_id"]: g["pass"]
+        for g in evaluate_executive_summary_v2_x2(
+            resume_display_text=bad_text,
+            claim_ledger=good_ledger[:3],
+            parsed_output={"resume_display_text": bad_text},
+            allowed_fact_ids={"f1"},
+            verified_numbers=frozenset({"100%"}),
+            verified_corpus_lower="100% agentic cloud",
+            target_company="Truist",
+            jd_text="banking fde",
+        )
+    }
+    if bad_gates.get("x2_v2_no_inanimate_subject_openers") is not False:
+        failures.append("fault_injected_inanimate_opener_not_rejected")
+    if bad_gates.get("x2_v2_no_ai_bridge_crutches") is not False:
         failures.append("fault_injected_ai_crutch_not_rejected")
+    if bad_gates.get("x2_v2_zero_unverified_vendors_or_employers") is not False:
+        failures.append("fault_injected_unverified_vendor_not_rejected")
 
     rendered_blind = render_judge_prompt_from_packet(
         {
             "section_id": "executive_summary",
+            "rubric": GRAPH_ONLY_GRADE_ONLY_RUBRIC,
             "candidate_output": {"resume_display_text": good_text, "claim_ledger": []},
             "allowed_facts": [],
             "deterministic_gate_summary": {"all_passed": True, "passed_count": 99, "failed_gate_ids": []},
@@ -106,11 +135,13 @@ def check_resume_graph_engine_domain(repo_root: Path, *, inject_fault: bool = Fa
     )
     if "deterministic_gate_summary" in rendered_blind or '"all_passed": true' in rendered_blind:
         failures.append("blind_judge_leaked_deterministic_gate_summary")
+    if "INANIMATE_SUBJECT_DATASHEET_BAN" not in rendered_blind:
+        failures.append("blind_judge_missing_inanimate_subject_ban")
 
     return {
         "domain": "resume_graph_engine",
         "status": "PASS" if not failures else "FAIL",
-        "checks_run": 5,
+        "checks_run": 8,
         "failures": failures,
     }
 

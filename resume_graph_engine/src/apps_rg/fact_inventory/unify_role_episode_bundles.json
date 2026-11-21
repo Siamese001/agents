@@ -71,7 +71,7 @@
       "claim_action": "Architected and owned a multi-layer agentic AI platform control plane with deterministic route policy, GraphRAG grounding, and sandboxed tool execution",
       "claim_scope": "Production-grade agentic AI Solution Accelerator within a consulting firm; SVP Engineering ownership of runtime control plane, GraphRAG grounding, multi-agent orchestration, and governed execution for regulated financial institutions.",
       "claim_outcome": "Delivered policy-gated, replayable multi-agent execution with audit-grade proof bundles across regulated enterprise deployments.",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "executive_scope_signals": [
         "Owned SVP-level engineering roadmap and control-plane architecture for production-grade agentic AI platform delivery",
         "Set architecture authority for governed multi-agent execution, deterministic routing, GraphRAG grounding, and runtime proof lineage"
@@ -132,7 +132,10 @@
       "external_claim_policy": "skill_projection_not_proof",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes."
+      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes.",
+      "provenance_source_refs": [
+        "fact_engineering_platform_001"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_unify_dependency_graph_accelerator",
@@ -145,7 +148,7 @@
       "claim_action": "Built a dependency-graph intelligence accelerator mapping 120+ service dependencies and pre-merge semantic boundary checks",
       "claim_scope": "Built and applied software dependency graph intelligence to accelerate legacy-system analysis and expose dependency chains across 120+ service dependencies",
       "claim_outcome": "Improved architecture visibility and refactor blast-radius control across 120+ service dependencies with 18 architecture violation patterns gated pre-merge.",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "executive_scope_signals": [
         "Directed dependency-graph-driven modernization of legacy systems toward agentic architecture",
         "Architecture visibility tooling reducing refactor risk across enterprise codebases"
@@ -181,7 +184,10 @@
       "external_claim_policy": "skill_projection_not_proof",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Promoted to ACTIVE_CONFIRMED external episode grounded in fact_engineering_platform_002 and approved graph metric outcome nodes."
+      "notes": "Promoted to ACTIVE_CONFIRMED external episode grounded in fact_engineering_platform_002 and approved graph metric outcome nodes.",
+      "provenance_source_refs": [
+        "fact_engineering_platform_002"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_unify_runtime_reliability_governance",
@@ -194,7 +200,7 @@
       "claim_action": "Engineered runtime reliability governance, automated evaluation harnesses, OpenTelemetry observability, and deterministic rollback controls",
       "claim_scope": "Runtime reliability and governance for production agentic systems; evaluation gates, telemetry, and rollback controls.",
       "claim_outcome": "Eliminated silent runtime regressions and established audit-grade observability and safe rollback across production AI workloads.",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "executive_scope_signals": [
         "Owned runtime reliability and governance for production agentic AI execution",
         "Established evaluation gates, telemetry instrumentation, and rollback controls"
@@ -229,7 +235,10 @@
       "external_claim_policy": "skill_projection_not_proof",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes."
+      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes.",
+      "provenance_source_refs": [
+        "fact_engineering_platform_003"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_unify_production_adoption_lifecycle",
@@ -242,7 +251,7 @@
       "claim_action": "Standardized the end-to-end AI systems delivery lifecycle and production-readiness gate framework from lab prototype to live deployment",
       "claim_scope": "Standardized AI systems lifecycle; lab-to-production acceleration with deterministic auditability.",
       "claim_outcome": "Compressed lab-to-production deployment cycles from six months to three weeks while enforcing repeatable readiness gates.",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "executive_scope_signals": [
         "Standardized the AI systems lifecycle from intake through production monitoring",
         "Accelerated lab-to-production cycle time for client AI deployments"
@@ -276,7 +285,10 @@
       "external_claim_policy": "approved_metric_linked",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes."
+      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes.",
+      "provenance_source_refs": [
+        "fact_engineering_platform_004"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_unify_distributed_ecosystem_engineering",
@@ -289,7 +301,7 @@
       "claim_action": "Architected distributed cloud and data execution infrastructure integrating high-availability services and governed enterprise data pipelines",
       "claim_scope": "Distributed cloud/data execution infrastructure; AWS, Databricks Lakehouse, vector services, identity controls, high availability.",
       "claim_outcome": "Enabled resilient, high-availability enterprise AI execution across multi-cloud and regulated data estates.",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "executive_scope_signals": [
         "Architected distributed cloud and data execution infrastructure for agentic workloads",
         "Owned high-availability execution layers and parallel decision workflows"
@@ -326,7 +338,10 @@
       "external_claim_policy": "skill_projection_not_proof",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes."
+      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes.",
+      "provenance_source_refs": [
+        "fact_engineering_platform_005"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_unify_platform_commercialization_leadership",
@@ -339,7 +354,7 @@
       "claim_action": "Productized core agentic AI platform capabilities into repeatable commercial IP and scaled the engineering organization from 8 to 28",
       "claim_scope": "Platform productization and commercialization; reusable IP, margin expansion, engineering organization scale-out.",
       "claim_outcome": "Generated $22M in IP-led revenue, expanded gross margins by 20%, and scaled high-leverage product engineering capacity 3.5x.",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "executive_scope_signals": [
         "Converted bespoke client delivery into reusable platform IP deployed across enterprise lines of business",
         "Scaled the engineering organization and the platform operating model"
@@ -378,7 +393,10 @@
       "external_claim_policy": "approved_metric_linked",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes."
+      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes.",
+      "provenance_source_refs": [
+        "fact_engineering_platform_006"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_unify_partner_channel_cosell",
@@ -391,7 +409,7 @@
       "claim_action": "Built and scaled AI partner co-sell channel motions, joint solution blueprints, and field enablement assets across cloud alliances",
       "claim_scope": "Global AI channel program from inception: co-developed analytics frameworks with strategic partners, co-sell bundling with cloud/streaming vendors, consumption-based SaaS licensing driving partner-derived revenue and renewals.",
       "claim_outcome": "Drove $3M in partner-derived revenue and lifted enterprise deal expansion 30% through co-sell bundling.",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "executive_scope_signals": [
         "Built a global AI channel program from inception with strategic partners",
         "Drove partner-derived revenue through co-sell bundling and consumption-based licensing"
@@ -445,7 +463,13 @@
       "external_claim_policy": "approved_metric_linked",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Partnerships/co-sell is a primary Unify theme that JD-fit selection surfaces for partner-facing roles (operator 2026-06-11). Unify-attributed partner facts; graph skills grounded in the Unify AI-platform window."
+      "notes": "Partnerships/co-sell is a primary Unify theme that JD-fit selection surfaces for partner-facing roles (operator 2026-06-11). Unify-attributed partner facts; graph skills grounded in the Unify AI-platform window.",
+      "provenance_source_refs": [
+        "exp_unify_001",
+        "fact_partnerships_gtm_001",
+        "fact_partnerships_gtm_003",
+        "fact_partnerships_gtm_004"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_unify_enterprise_adoption_revenue",
@@ -458,7 +482,7 @@
       "claim_action": "Directed CFO-aligned enterprise AI adoption motions and consumption-renewal telemetry across strategic commercial accounts",
       "claim_scope": "Enterprise AI adoption aligned to CFO priorities driving $5M ACV; consumption-based SaaS licensing shortening sales cycles and sustaining high renewals.",
       "claim_outcome": "Delivered $5M in CFO-aligned enterprise ACV and sustained 93% consumption licensing renewals.",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "executive_scope_signals": [
         "Drove enterprise AI adoption by aligning generative-AI workflows to CFO priorities",
         "Grew commercial revenue and renewals via consumption-based licensing"
@@ -502,7 +526,13 @@
       "external_claim_policy": "approved_metric_linked",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Second Unify commercial bundle so partnerships/revenue can reach ~2 of 6 unify bullets for partner-facing JDs (operator split ~30%). Unify-attributed revenue facts."
+      "notes": "Second Unify commercial bundle so partnerships/revenue can reach ~2 of 6 unify bullets for partner-facing JDs (operator split ~30%). Unify-attributed revenue facts.",
+      "provenance_source_refs": [
+        "exp_unify_001",
+        "fact_sales_accounts_001",
+        "fact_revenue_ops_003",
+        "fact_exec_002"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_unify_regulated_enterprise_ai_governance",
@@ -515,7 +545,7 @@
       "claim_action": "Established regulated financial-services AI governance, model-risk controls, and automated compliance verification workflows",
       "claim_scope": "Steered enterprise AI rollout for regulated banking and financial-services clients, establishing data usage controls, compliance checkpoints, executive AI governance councils, and LLM document intelligence that lowered regulatory findings by 35% and accelerated regulatory submissions by 40%.",
       "claim_outcome": "Accelerated model-risk approval and audit readiness across banking and insurance enterprise AI deployments.",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "executive_scope_signals": [
         "Steered enterprise AI governance and model-risk controls for regulated banking and financial-services deployments",
         "Automated compliance reviews and regulatory submissions using governed LLM document intelligence"
@@ -558,7 +588,12 @@
       "external_claim_policy": "approved_metric_linked",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Grounded in Unify-attributed governance facts fact_governance_001, fact_governance_002, and fact_governance_005."
+      "notes": "Grounded in Unify-attributed governance facts fact_governance_001, fact_governance_002, and fact_governance_005.",
+      "provenance_source_refs": [
+        "fact_governance_001",
+        "fact_governance_002",
+        "fact_governance_005"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_unify_hyperscaler_joint_solution_architecture",
@@ -571,7 +606,7 @@
       "claim_action": "Co-architected joint hyperscaler reference solutions and cloud-native AI deployment blueprints with strategic platform partners",
       "claim_scope": "Forged joint solution roadmaps with cloud and AI vendors, enabled GSI delivery ecosystems, and translated complex AI, data, and cloud architectures into executive value propositions and measurable ROI across enterprise pre-sales pursuits.",
       "claim_outcome": "Shortened enterprise technical validation cycles and unlocked repeatable partner-led modernization pipeline.",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "executive_scope_signals": [
         "Aligned hyperscaler and AI vendor solution roadmaps with enterprise pre-sales pursuits and GSI enablement",
         "Translated complex AI, data, and cloud architectures into C-suite value propositions and measurable ROI"
@@ -614,7 +649,12 @@
       "external_claim_policy": "skill_projection_not_proof",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Grounded in fact_partnerships_gtm_001, fact_partnerships_gtm_004, and fact_solutions_001."
+      "notes": "Grounded in fact_partnerships_gtm_001, fact_partnerships_gtm_004, and fact_solutions_001.",
+      "provenance_source_refs": [
+        "fact_partnerships_gtm_001",
+        "fact_partnerships_gtm_004",
+        "fact_solutions_001"
+      ]
     }
   ],
   "metric_surface_policy": {
@@ -636,7 +676,7 @@
       "employer": "Unify Consulting",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_unify_platform_commercialization_leadership"
       ],
@@ -652,6 +692,9 @@
         "competencies",
         "headline",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_unify_001"
       ]
     },
     "metric_unify_20pct_gross_margin_expansion": {
@@ -661,7 +704,7 @@
       "employer": "Unify Consulting",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_unify_platform_commercialization_leadership"
       ],
@@ -676,6 +719,9 @@
         "competencies",
         "headline",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_unify_001"
       ]
     },
     "metric_unify_team_scaled_8_to_28": {
@@ -685,7 +731,7 @@
       "employer": "Unify Consulting",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_unify_platform_commercialization_leadership"
       ],
@@ -700,6 +746,9 @@
         "competencies",
         "headline",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_unify_001"
       ]
     },
     "metric_unify_cycle_six_months_to_three_weeks": {
@@ -709,7 +758,7 @@
       "employer": "Unify Consulting",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_unify_production_adoption_lifecycle"
       ],
@@ -725,6 +774,9 @@
         "competencies",
         "headline",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_unify_001"
       ]
     },
     "metric_unify_policy_gated_agent_execution_surface": {
@@ -734,7 +786,7 @@
       "employer": "Unify Consulting",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_unify_agentic_platform_architecture"
       ],
@@ -750,6 +802,9 @@
         "competencies",
         "headline",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_unify_001"
       ]
     },
     "metric_unify_replayable_runtime_traceability": {
@@ -759,7 +814,7 @@
       "employer": "Unify Consulting",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_unify_agentic_platform_architecture"
       ],
@@ -774,6 +829,9 @@
         "competencies",
         "headline",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_unify_001"
       ]
     },
     "metric_unify_dependency_graph_refactor_blast_radius_visibility": {
@@ -783,7 +841,7 @@
       "employer": "Unify Consulting",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_unify_dependency_graph_accelerator"
       ],
@@ -798,6 +856,9 @@
         "competencies",
         "headline",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_unify_001"
       ]
     },
     "metric_unify_semantic_edge_refactor_governance_controls": {
@@ -807,7 +868,7 @@
       "employer": "Unify Consulting",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_unify_dependency_graph_accelerator"
       ],
@@ -822,6 +883,9 @@
         "competencies",
         "headline",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_unify_001"
       ]
     },
     "metric_unify_eval_telemetry_rollback_control_set": {
@@ -831,7 +895,7 @@
       "employer": "Unify Consulting",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_unify_runtime_reliability_governance"
       ],
@@ -847,6 +911,9 @@
         "competencies",
         "headline",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_unify_001"
       ]
     },
     "metric_unify_audit_grade_runtime_observability_coverage": {
@@ -856,7 +923,7 @@
       "employer": "Unify Consulting",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_unify_runtime_reliability_governance"
       ],
@@ -871,6 +938,9 @@
         "competencies",
         "headline",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_unify_001"
       ]
     },
     "metric_unify_production_readiness_gate_set": {
@@ -880,7 +950,7 @@
       "employer": "Unify Consulting",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_unify_production_adoption_lifecycle"
       ],
@@ -895,6 +965,9 @@
         "competencies",
         "headline",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_unify_001"
       ]
     },
     "metric_unify_cloud_data_runtime_integration_patterns": {
@@ -904,7 +977,7 @@
       "employer": "Unify Consulting",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_unify_distributed_ecosystem_engineering"
       ],
@@ -920,6 +993,9 @@
         "competencies",
         "headline",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_unify_001"
       ]
     },
     "metric_unify_high_availability_distributed_service_patterns": {
@@ -929,7 +1005,7 @@
       "employer": "Unify Consulting",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_unify_distributed_ecosystem_engineering"
       ],
@@ -944,6 +1020,9 @@
         "competencies",
         "headline",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_unify_001"
       ]
     },
     "metric_unify_partner_cosell_solution_motion_count": {
@@ -953,7 +1032,7 @@
       "employer": "Unify Consulting",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_unify_partner_channel_cosell"
       ],
@@ -968,6 +1047,9 @@
         "competencies",
         "headline",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_unify_001"
       ]
     },
     "metric_unify_partner_enablement_asset_set": {
@@ -977,7 +1059,7 @@
       "employer": "Unify Consulting",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_unify_partner_channel_cosell"
       ],
@@ -993,6 +1075,9 @@
         "competencies",
         "headline",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_unify_001"
       ]
     },
     "metric_unify_cfo_aligned_adoption_motion_count": {
@@ -1002,7 +1087,7 @@
       "employer": "Unify Consulting",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_unify_enterprise_adoption_revenue"
       ],
@@ -1017,6 +1102,9 @@
         "competencies",
         "headline",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_unify_001"
       ]
     },
     "metric_unify_consumption_renewal_signal_instrumentation": {
@@ -1026,7 +1114,7 @@
       "employer": "Unify Consulting",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_unify_enterprise_adoption_revenue"
       ],
@@ -1042,6 +1130,9 @@
         "competencies",
         "headline",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_unify_001"
       ]
     },
     "metric_unify_agentic_l0_route_policy_dispatch_surface": {
@@ -1051,7 +1142,7 @@
       "employer": "Unify Consulting",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_unify_agentic_platform_architecture"
       ],
@@ -1066,6 +1157,9 @@
         "competencies",
         "headline",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_unify_001"
       ]
     },
     "metric_unify_agentic_multi_agent_orchestration_contract_surface": {
@@ -1075,7 +1169,7 @@
       "employer": "Unify Consulting",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_unify_agentic_platform_architecture"
       ],
@@ -1090,6 +1184,9 @@
         "competencies",
         "headline",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_unify_001"
       ]
     },
     "metric_unify_agentic_graphrag_context_pack_grounding_surface": {
@@ -1099,7 +1196,7 @@
       "employer": "Unify Consulting",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_unify_agentic_platform_architecture"
       ],
@@ -1114,6 +1211,9 @@
         "competencies",
         "headline",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_unify_001"
       ]
     },
     "metric_unify_agentic_tool_sandbox_egress_policy_surface": {
@@ -1123,7 +1223,7 @@
       "employer": "Unify Consulting",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_unify_agentic_platform_architecture"
       ],
@@ -1139,6 +1239,9 @@
         "competencies",
         "headline",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_unify_001"
       ]
     },
     "metric_unify_agentic_runtime_gate_verdict_contract_surface": {
@@ -1148,7 +1251,7 @@
       "employer": "Unify Consulting",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_unify_agentic_platform_architecture"
       ],
@@ -1163,6 +1266,9 @@
         "competencies",
         "headline",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_unify_001"
       ]
     },
     "metric_unify_agentic_human_override_escalation_surface": {
@@ -1172,7 +1278,7 @@
       "employer": "Unify Consulting",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_unify_agentic_platform_architecture"
       ],
@@ -1188,6 +1294,9 @@
         "competencies",
         "headline",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_unify_001"
       ]
     },
     "metric_unify_agentic_replay_key_audit_manifest_surface": {
@@ -1197,7 +1306,7 @@
       "employer": "Unify Consulting",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_unify_agentic_platform_architecture"
       ],
@@ -1213,6 +1322,9 @@
         "competencies",
         "headline",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_unify_001"
       ]
     },
     "metric_unify_agentic_runtime_proof_bundle_lineage_surface": {
@@ -1222,7 +1334,7 @@
       "employer": "Unify Consulting",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_unify_agentic_platform_architecture"
       ],
@@ -1238,6 +1350,9 @@
         "competencies",
         "headline",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_unify_001"
       ]
     },
     "metric_unify_partner_derived_revenue_3m": {
@@ -1247,7 +1362,7 @@
       "employer": "Unify Consulting",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_unify_partner_channel_cosell"
       ],
@@ -1263,6 +1378,10 @@
         "competencies",
         "headline",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_unify_001",
+        "fact_partnerships_gtm_001"
       ]
     },
     "metric_unify_cosell_bundling_upsell_30pct": {
@@ -1272,7 +1391,7 @@
       "employer": "Unify Consulting",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_unify_partner_channel_cosell"
       ],
@@ -1288,6 +1407,10 @@
         "competencies",
         "headline",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_unify_001",
+        "fact_sales_accounts_005"
       ]
     },
     "metric_unify_cfo_aligned_enterprise_adoption_5m_acv": {
@@ -1297,7 +1420,7 @@
       "employer": "Unify Consulting",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_unify_enterprise_adoption_revenue"
       ],
@@ -1313,6 +1436,10 @@
         "competencies",
         "headline",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_unify_001",
+        "fact_sales_accounts_001"
       ]
     },
     "metric_unify_consumption_licensing_renewal_93pct": {
@@ -1322,7 +1449,7 @@
       "employer": "Unify Consulting",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_unify_enterprise_adoption_revenue"
       ],
@@ -1338,6 +1465,10 @@
         "competencies",
         "headline",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_unify_001",
+        "fact_sales_accounts_004"
       ]
     },
     "metric_unify_banking_regulatory_findings_reduction_35pct": {
@@ -1347,7 +1478,7 @@
       "employer": "Unify Consulting",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_unify_regulated_enterprise_ai_governance"
       ],
@@ -1363,6 +1494,10 @@
         "competencies",
         "headline",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_unify_001",
+        "fact_governance_001"
       ]
     },
     "metric_unify_compliance_submission_acceleration_40pct": {
@@ -1372,7 +1507,7 @@
       "employer": "Unify Consulting",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_unify_regulated_enterprise_ai_governance"
       ],
@@ -1388,6 +1523,10 @@
         "competencies",
         "headline",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_unify_001",
+        "fact_governance_002"
       ]
     },
     "metric_unify_hyperscaler_joint_solution_roadmaps": {
@@ -1397,7 +1536,7 @@
       "employer": "Unify Consulting",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_unify_hyperscaler_joint_solution_architecture"
       ],
@@ -1413,6 +1552,10 @@
         "competencies",
         "headline",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_unify_001",
+        "fact_partnerships_gtm_004"
       ]
     },
     "metric_unify_presales_executive_architecture_alignment": {
@@ -1422,7 +1565,7 @@
       "employer": "Unify Consulting",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_unify_hyperscaler_joint_solution_architecture"
       ],
@@ -1438,6 +1581,10 @@
         "competencies",
         "headline",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_unify_001",
+        "fact_solutions_001"
       ]
     }
   },

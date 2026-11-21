@@ -14,9 +14,6 @@ from apps_rg.runtime.judges.executive_summary_x1d_dimension_verdicts import (
     infer_dimension_verdicts_from_judge_blob,
     write_x1d_dimension_matrix_artifact,
 )
-from apps_rg.runtime.sections.executive_summary_judge_remediation import (
-    build_judge_remediation_user_message,
-)
 
 
 def _all_pass_gates() -> dict[str, dict[str, bool]]:
@@ -151,23 +148,3 @@ def test_write_matrix_artifact(tmp_path) -> None:
     path = write_x1d_dimension_matrix_artifact(tmp_path / "x1d_dimension_matrix.json", judges)
     body = json.loads(open(path, encoding="utf-8").read())
     assert body["schema"] == "executive_summary_x1d_dimension_matrix_v1"
-
-
-def test_regen_message_includes_dimension_block() -> None:
-    judges = [
-        {
-            "evaluator_mode": "MODEL_BACKED",
-            "provider_key": "gemini_pro",
-            "provider_name": "Gemini",
-            "pass": False,
-            "normalized_score": 0.6,
-            "normalized_threshold": 0.94,
-            "dimension_verdicts": {
-                "spoken_executive_authenticity": {"pass": False, "severity": "major", "codes": ["ai_bridge_crutch"]},
-                **{d: {"pass": True, "severity": "none", "codes": []} for d in EXEC_SUMMARY_RUBRIC_DIMENSION_IDS if d != "spoken_executive_authenticity"},
-            },
-        },
-    ]
-    msg = build_judge_remediation_user_message(x1d_judges=judges, unused_fact_ids=[], allowed_fact_count=4)
-    assert "REGEN_DELTA" in msg
-    assert "spoken_executive_authenticity" in msg

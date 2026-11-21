@@ -46,6 +46,8 @@ BLOCKED_SUPPORT_LEVELS = frozenset(
         "STYLE_ONLY",
         "BLOCKED",
         "USER_CONFIRMED_PENDING_SOURCE",
+        "QUARANTINED_UNVERIFIED_SYNTHETIC",
+        "APPROVED_BY_GRAPH_PRESENCE",
     }
 )
 BLOCKED_POLICY_TOKENS = (
@@ -58,6 +60,8 @@ BLOCKED_POLICY_TOKENS = (
     "do_not_promote",
     "blocked",
     "forbidden",
+    "quarantined",
+    "approved_by_graph_presence",
 )
 
 

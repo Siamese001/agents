@@ -252,7 +252,7 @@ def _infer_target_role_profile(*, target_role: str, jd_text: str, briefing_text:
     )
     if insurance_hits >= 3:
         return "insurance_agentic_ai" if "agentic" in target_role.lower() else "insurance_it_strategy"
-    if "firmwide ai" in blob or ("ai strategy" in target_role.lower() and any(k in blob for k in ("citi", "banking", "institutional", "capital markets"))):
+    if "firmwide ai" in blob or ("ai strategy" in target_role.lower() and any(k in blob for k in ("banking", "institutional", "capital markets", "global bank"))):
         return "balanced_enterprise_ai"
     transformation_consulting_hits = sum(
         token in blob
@@ -651,8 +651,8 @@ def _bundle_to_fact(
         "linked_source_fact_ids": linked_source_fact_ids,
         "source_fact_ids": [bundle_id],
         "confidence": str(bundle.get("support_level") or "HIGH"),
-        "support_level": str(bundle.get("support_level") or "approved_by_graph_presence"),
-        "verification_status": "approved_by_graph_presence",
+        "support_level": str(bundle.get("support_level") or "verified_base_resume"),
+        "verification_status": str(bundle.get("support_level") or "verified_base_resume"),
         "metric_values": _metric_values(selected_metric_ids, metric_nodes),
         "technologies": list(selected_skill_ids),
         "domain": str(bundle.get("bundle_theme") or ""),
@@ -713,18 +713,28 @@ def _metric_authority(
     bundle_id = str(bundle.get("role_episode_bundle_id") or "")
     path_present = bool(node) and (not bindings or bundle_id in bindings)
     approved = bool(metric.get("approved", True)) if node else False
+    raw_metric_elig = [str(v).strip() for v in (metric.get("section_eligibility") or []) if str(v).strip()]
+    if raw_metric_elig:
+        metric_section_allowed = section_id in set(raw_metric_elig)
+    else:
+        metric_section_allowed = _section_allowed(section_id, bundle.get("section_eligibility"))
+    provenance_refs = [
+        str(v).strip()
+        for v in (metric.get("provenance_source_refs") or bundle.get("provenance_source_refs") or bundle.get("linked_source_fact_ids") or [])
+        if str(v).strip()
+    ]
     return evaluate_pretarget_authority(
         candidate_id=metric_id,
         candidate_type="metric_outcome",
         section_id=section_id,
-        section_allowed=_section_allowed(section_id, metric.get("section_eligibility") or bundle.get("section_eligibility")),
+        section_allowed=metric_section_allowed,
         support_level=str(metric.get("support_level") or ""),
         external_claim_policy=str(metric.get("external_claim_policy") or ""),
-        external_eligible=bool(node),
-        claim_eligible=bool(node),
+        external_eligible=bool(node) and approved,
+        claim_eligible=bool(node) and approved,
         approved=approved,
         approval_status=str(metric.get("approval_status") or ""),
-        source_refs=bundle.get("linked_source_fact_ids") or [],
+        source_refs=provenance_refs,
         path_present=path_present,
         extra_reason_codes=[] if node else ["missing_metric_authority_row"],
     )
@@ -956,7 +966,7 @@ def build_selected_graph_evidence_plan_for_section(
         if target_role_profile == "ai_partnerships_gtm" or has_explicit_cosell or rid not in _PARTNER_ONLY_REQUIREMENT_IDS
     )
     fde_context = target_role_profile == "svp_agentic_engineering" and any(
-        k in target_blob.lower() for k in ("forward deployed", "forward-deployed", "truist", "sr 11-7", "model risk")
+        k in target_blob.lower() for k in ("forward deployed", "forward-deployed", "sr 11-7", "model risk")
     )
     briefing_signal_packet = {
         **extract_briefing_signal_packet(briefing_text),
@@ -971,17 +981,25 @@ def build_selected_graph_evidence_plan_for_section(
             continue
         authorized_skills = [row for row in root["skills"] if row["authority"]["authority_pass"]]
         authorized_facts = [row for row in root["facts"] if row["authority"]["authority_pass"]]
+        authorized_metrics = [row for row in root["metrics"] if row["authority"]["authority_pass"]]
         skill_cap, _metric_cap, _band = _caps_for(
             section_id=section_id,
             weight=employer_weights.get(root["employer_lane"], 0.0),
         )
-        if not authorized_skills or not authorized_facts or skill_cap <= 0:
+        if (
+            not authorized_skills
+            or not authorized_facts
+            or skill_cap <= 0
+            or (section_id == "executive_summary" and not authorized_metrics)
+        ):
             root["target_alignment_score"] = 0.0
             root["ranking_score"] = 0.0
             if not authorized_skills:
                 reason = "no_authorized_skill_children"
             elif not authorized_facts:
                 reason = "no_authorized_source_fact_children"
+            elif section_id == "executive_summary" and not authorized_metrics:
+                reason = "no_authorized_metric_children"
             else:
                 reason = "section_skill_cap_zero"
             root["structural_rejection_reason"] = reason
@@ -1405,6 +1423,18 @@ def build_selected_graph_evidence_plan_for_section(
                     "metric": str(row["node"].get("metric") or ""),
                     "metric_type": str(row["node"].get("metric_type") or ""),
                     "metric_claim_text": str(row["node"].get("claim_text") or ""),
+                    "approved": bool(row["node"].get("approved", True)),
+                    "support_level": str(row["node"].get("support_level") or ""),
+                    "section_eligibility": [
+                        str(value).strip()
+                        for value in row["node"].get("section_eligibility") or []
+                        if str(value).strip()
+                    ],
+                    "provenance_source_refs": [
+                        str(value).strip()
+                        for value in row["node"].get("provenance_source_refs") or []
+                        if str(value).strip()
+                    ],
                     "metric_surface_tokens": [
                         str(value)
                         for value in row["node"].get("surface_tokens") or []

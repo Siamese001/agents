@@ -8,7 +8,7 @@ from typing import Any
 
 import pytest
 
-from apps_rg.runtime.dispatch.executive_summary_pa import compile_executive_summary_prompt
+from apps_rg.runtime.sections.executive_summary_pa import compile_executive_summary_prompt
 from apps_rg.runtime.dispatch.headline_pa import compile_headline_prompt
 from apps_rg.runtime.dispatch.ibm_bullets_pa import compile_ibm_bullets_prompt
 from apps_rg.runtime.dispatch.ibm_narrative_pa import compile_ibm_narrative_prompt

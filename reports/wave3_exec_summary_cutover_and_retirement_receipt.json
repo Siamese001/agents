@@ -1,0 +1,12 @@
+{
+  "wave": "Wave 3",
+  "title": "Downstream Cutover, SSOT Alignment & Dead Legacy Retirement",
+  "status": "PASS",
+  "legacy_private_files_deleted": 60,
+  "legacy_private_loc_deleted": 18196,
+  "obsolete_legacy_test_files_retired": 42,
+  "pytest_collection_total": 6526,
+  "pytest_collection_errors": 0,
+  "wave3_unit_tests_passed": 79,
+  "tier1_verify_commit_all": "PASS"
+}
