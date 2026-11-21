@@ -217,3 +217,39 @@ policies:
     enforcer: "tools/zero_bugfix_constraint_gate.py"
     rule_reference: ".agents/rules/work-item-classification.md"
 
+  - id: "INV-RISK-TIERED-CHANGE-LANES"
+    title: "Fail-Closed 3-Lane Risk Classification (Lane 0 / 1 / 2)"
+    category: "ai_sdlc"
+    threshold: 2
+    unit: "default_unrecognized_lane"
+    description: "All file diffs classify deterministically into Lane 0, Lane 1, or Lane 2 with unrecognized paths escalating fail-closed to Lane 2 and self-referential governance controls locked to Lane 2."
+    enforcer: "tools/change_lane_classifier.py"
+    rule_reference: ".agents/rules/risk-tiered-change-lanes.md"
+
+  - id: "INV-EVALS-CONSTRUCT-VALIDITY-GATE"
+    title: "Zero-Mock Eval Shield & Construct Validity Gate"
+    category: "ai_sdlc"
+    threshold: 0
+    unit: "construct_validity_violations"
+    description: "Smoke harnesses, diff-scoped eval shields, and pinned E2E suites must execute real unmocked code with zero vacuous pass stubs or upward score clamping."
+    enforcer: "tools/audit_eval_construct_validity.py"
+    rule_reference: ".agents/rules/e2e-and-edge-case-coverage.md"
+
+  - id: "INV-ANTI-OVERFITTING-MULTI-JD"
+    title: "Zero Single-JD or Company-Specific Overfitting Branches"
+    category: "ai_sdlc"
+    threshold: 0
+    unit: "unbaselined_overfitting_branches"
+    description: "Production runtime code must derive outputs from generalizable role profiles and verified evidence without hardcoded target-company conditional branches."
+    enforcer: "tools/lint_no_jd_overfitting.py"
+    rule_reference: ".agents/rules/production-derivation-and-anti-overfitting.md"
+
+  - id: "INV-GOVERNANCE-HARMONIZATION-GATE"
+    title: "Cross-Surface Governance Harmonization & SSOT Drift Gate"
+    category: "ai_sdlc"
+    threshold: 0
+    unit: "critical_drift_findings"
+    description: "Rules, skills, hooks, policy registries, and Python gate thresholds must stay harmonized with zero critical drift or broken script references."
+    enforcer: "tools/audit_governance_harmonization.py"
+    rule_reference: ".agents/skills/governance-harmonizer/SKILL.md"
+

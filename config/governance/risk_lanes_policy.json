@@ -1,0 +1,120 @@
+{
+  "schema_version": "1.0.0",
+  "description": "Fail-closed 3-lane risk classification policy for Antigravity Agents AI-SDLC governance.",
+  "default_unrecognized_lane": 2,
+  "self_referential_immutable_paths": [
+    "config/governance/risk_lanes_policy.json",
+    "tools/change_lane_classifier.py",
+    "tools/verify_commit.py",
+    "tools/verify_main_readiness.py",
+    "tools/pr_governance.py"
+  ],
+  "soft_caps": {
+    "max_non_generated_loc_per_merge": 0,
+    "advisory_max_production_files": 8,
+    "advisory_max_code_churn_loc": 500,
+    "advisory_max_domains": 2,
+    "advisory_warn_on_lane2_governance_escalation": true,
+    "max_active_worktrees": 50
+  },
+  "lanes": {
+    "0": {
+      "name": "Lane 0 (Low Risk)",
+      "description": "Documentation, reports, and isolated tests without production pipeline modifications.",
+      "readiness_stages": [
+        "1. Tier 1 Structural Governance",
+        "4. Declarative Contracts & Schemas",
+        "7. Eval Construct Validity & Unmocked E2E Pinning",
+        "9. Governance Harmonization & SSOT Drift Audit"
+      ],
+      "globs": [
+        "docs/**",
+        "README.md",
+        "CHANGELOG.md",
+        "reports/**",
+        "plans/**",
+        "tests/**",
+        "resume_graph_engine/tests/**",
+        "outreach_engine/tests/**",
+        "apps_research/tests/**",
+        "resume_engine/tests/**",
+        "infrastructure/tests/**"
+      ]
+    },
+    "1": {
+      "name": "Lane 1 (Medium Risk)",
+      "description": "Standard pipeline application code, diagnostics, utilities, and non-critical runtime adapters.",
+      "readiness_stages": [
+        "1. Tier 1 Structural Governance",
+        "2. Architecture & Service Boundaries",
+        "3. Adversarial Purity & Derivation Integrity",
+        "4. Declarative Contracts & Schemas",
+        "6. Resume & Outreach Eval Harness & Promotion Gate",
+        "7. Eval Construct Validity & Unmocked E2E Pinning",
+        "8. Diff-Scoped Unmocked Domain Eval Shield",
+        "9. Governance Harmonization & SSOT Drift Audit"
+      ],
+      "globs": [
+        "agents/**",
+        "apps_eval/**",
+        "apps_model_telemetry/**",
+        "apps_research/**",
+        "outreach_engine/**",
+        "resume_engine/**",
+        "resume_graph_engine/src/**",
+        "infrastructure/**",
+        "scripts/**",
+        "ops_scripts/**",
+        "tools/**",
+        "config/**",
+        "pytest.ini",
+        "pyproject.toml"
+      ]
+    },
+    "2": {
+      "name": "Lane 2 (High / Critical Risk)",
+      "description": "Fact inventories, C0 allocation & graph projection, X2/X3 validators, LLM judges, provider routing, and governance controls.",
+      "readiness_stages": [
+        "1. Tier 1 Structural Governance",
+        "2. Architecture & Service Boundaries",
+        "3. Adversarial Purity & Derivation Integrity",
+        "4. Declarative Contracts & Schemas",
+        "5. PR Merge Queue & Trunk Lock Governance",
+        "6. Resume & Outreach Eval Harness & Promotion Gate",
+        "7. Eval Construct Validity & Unmocked E2E Pinning",
+        "8. Diff-Scoped Unmocked Domain Eval Shield",
+        "9. Governance Harmonization & SSOT Drift Audit"
+      ],
+      "globs": [
+        "AGENTS.md",
+        ".agents/**",
+        ".antigravity/**",
+        ".githooks/**",
+        ".mcp.json",
+        "config/governance/**",
+        "config/model_catalog.json",
+        "resume_graph_engine/src/apps_rg/fact_inventory/**",
+        "resume_graph_engine/src/apps_rg/runtime/c0/**",
+        "resume_graph_engine/src/apps_rg/runtime/validators/**",
+        "resume_graph_engine/src/apps_rg/runtime/judges/**",
+        "resume_graph_engine/src/apps_rg/runtime/providers/**",
+        "resume_graph_engine/src/apps_rg/config/provider_profiles.yaml",
+        "resume_graph_engine/src/apps_rg/config/domain_contract/**",
+        "resume_graph_engine/config/models/**",
+        "tools/verify_*.py",
+        "tools/pr_governance*.py",
+        "tools/change_lane_classifier.py",
+        "tools/hook_dispatch.py",
+        "tools/validate_turn_gates.py",
+        "tools/validate_implementation_plan.py",
+        "tools/audit_eval_construct_validity.py",
+        "tools/verify_fix_eval_pinning.py",
+        "tools/run_diff_scoped_eval_shield.py",
+        "tools/audit_governance_harmonization.py",
+        "tools/lint_no_jd_overfitting.py",
+        "tools/ssot_boundary_auditor.py",
+        "tools/hitl_governance.py"
+      ]
+    }
+  }
+}

@@ -114,6 +114,7 @@ def verify_main_readiness(
     fail_fast: bool = False,
     recheck_failed_only: bool = False,
     dry_run: bool = False,
+    full: bool = False,
 ) -> int:
     python_bin = repo_root / ".venv" / "bin" / "python"
     if not python_bin.exists():
@@ -126,6 +127,27 @@ def verify_main_readiness(
         slug = slugify_branch(eff_branch)
     except Exception:
         slug = eff_branch.replace("/", "_")
+
+    # Classify effective risk lane (Lane 0 / Lane 1 / Lane 2, fail-closed).
+    effective_lane = 2
+    lane_name = "Lane 2 (High / Critical Risk)"
+    required_stage_set: set[str] | None = None
+    batch_advisories: list[dict[str, Any]] = []
+    changed_paths: list[str] = []
+    try:
+        from tools.change_lane_classifier import classify_paths, collect_git_changed_paths
+
+        changed_paths, churn_loc = collect_git_changed_paths(repo_root, staged=False, base_ref="main")
+        if changed_paths:
+            lane_report = classify_paths(changed_paths, repo_root=repo_root, churn_loc=churn_loc)
+            effective_lane = int(lane_report.get("effective_lane", 2))
+            lane_name = str(lane_report.get("lane_name") or lane_name)
+            batch_advisories = list(lane_report.get("advisories") or [])
+            req_list = list(lane_report.get("required_readiness_stages") or [])
+            if not full and effective_lane < 2 and req_list:
+                required_stage_set = set(req_list)
+    except (ImportError, OSError, ValueError, KeyError):
+        effective_lane = 2
 
     receipt_dir = repo_root / "reports" / "readiness"
     receipt_path = receipt_dir / f"local_main_readiness_{slug}_receipt.json"
@@ -141,7 +163,14 @@ def verify_main_readiness(
     print("=" * 76)
     print("  LOCAL PR / MAIN READINESS GATE (Tier 2)")
     print("  Invariant: Does the structurally legal system actually work?")
+    print(f"  Risk Lane: {lane_name} (Lane {effective_lane}, full={full}, paths={len(changed_paths)})")
+    for adv in batch_advisories:
+        print(f"  [ADVISORY:{adv.get('code')}] {adv.get('message')}")
     print("=" * 76 + "\n")
+
+    shield_cmd = [str(python_bin), "tools/run_diff_scoped_eval_shield.py"]
+    if full or effective_lane >= 2 or not changed_paths:
+        shield_cmd.append("--all")
 
     stage_defs: list[tuple[str, list[str] | None, str, int]] = [
         (
@@ -192,9 +221,39 @@ def verify_main_readiness(
             "Resume & Outreach Eval Harness & Promotion Gate",
             180,
         ),
+        (
+            "7. Eval Construct Validity & Unmocked E2E Pinning",
+            [str(python_bin), "tools/audit_eval_construct_validity.py", "--verify-strict", "--include-e2e-pin"]
+            if (repo_root / "tools" / "audit_eval_construct_validity.py").exists()
+            else None,
+            "Eval Construct Validity & Unmocked E2E Pinning Gate",
+            60,
+        ),
+        (
+            "8. Diff-Scoped Unmocked Domain Eval Shield",
+            shield_cmd
+            if (repo_root / "tools" / "run_diff_scoped_eval_shield.py").exists()
+            else None,
+            "Diff-Scoped Unmocked Domain Eval Shield",
+            120,
+        ),
+        (
+            "9. Governance Harmonization & SSOT Drift Audit",
+            [str(python_bin), "tools/audit_governance_harmonization.py", "--strict"]
+            if (repo_root / "tools" / "audit_governance_harmonization.py").exists()
+            else None,
+            "Governance Harmonization & SSOT Drift Audit",
+            60,
+        ),
     ]
 
     for stage_name, argv, desc, timeout_s in stage_defs:
+        if required_stage_set is not None and stage_name not in required_stage_set:
+            print(f"--> [LANE_EXEMPT] {desc} (Lane {effective_lane} exemption)")
+            categories[stage_name] = (True, f"Exempt under Lane {effective_lane}")
+            stage_records.append({"stage_name": stage_name, "status": "LANE_EXEMPT"})
+            continue
+
         if stage_name in prior_passed:
             print(f"--> [REUSED_PASS] {desc} (skipped via --recheck-failed-only)")
             categories[stage_name] = (True, "Reused prior PASS stage receipt")
@@ -221,6 +280,9 @@ def verify_main_readiness(
             "branch": eff_branch,
             "head_commit_sha": head_sha,
             "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "effective_lane": effective_lane,
+            "lane_name": lane_name,
+            "batch_advisories": batch_advisories,
             "total_stages": len(stage_defs),
             "stages_evaluated": len(stage_records),
             "stages": stage_records,
@@ -273,6 +335,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         fail_fast=args.fail_fast,
         recheck_failed_only=args.recheck_failed_only,
         dry_run=args.dry_run,
+        full=args.full,
     )
 
 

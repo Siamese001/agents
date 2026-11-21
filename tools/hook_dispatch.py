@@ -544,6 +544,19 @@ def handle_pre_file_write(payload: Dict[str, Any], repo_root: Path) -> int:
         if sub_blocked:
             return emit_decision("deny", reason=sub_reason)
 
+        # AI-SDLC self-referential fail-closed guard on risk_lanes_policy.json
+        norm_target = target_file.replace("\\", "/")
+        if norm_target.endswith("config/governance/risk_lanes_policy.json"):
+            content_blob = str(args.get("Content") or args.get("CodeContent") or args.get("Replacement") or "")
+            if '"default_unrecognized_lane"' in content_blob and '"default_unrecognized_lane": 2' not in content_blob:
+                return emit_decision(
+                    "deny",
+                    reason=(
+                        "[Antigravity Hook BLOCK] config/governance/risk_lanes_policy.json "
+                        "must preserve fail-closed 'default_unrecognized_lane: 2' (INV-RISK-TIERED-CHANGE-LANES)."
+                    ),
+                )
+
     return emit_decision("allow")
 
 

@@ -219,6 +219,19 @@ def cmd_review(args: argparse.Namespace) -> int:
         return 1
     print("✅ In-memory merge tree check: CLEAN (no merge conflicts).")
 
+    # Surface non-blocking AI-SDLC risk-lane classification and batch advisories
+    try:
+        from tools.change_lane_classifier import classify_paths, collect_git_changed_paths
+
+        diff_paths, churn_loc = collect_git_changed_paths(wt_dir, staged=False, base_ref="main")
+        if diff_paths:
+            lane_info = classify_paths(diff_paths, repo_root=wt_dir, churn_loc=churn_loc)
+            print(f"Risk Classification: {lane_info['lane_name']} (Lane {lane_info['effective_lane']}, {len(diff_paths)} file(s)).")
+            for adv in lane_info.get("advisories", []):
+                print(f"  [ADVISORY:{adv['code']}] {adv['message']}")
+    except (ImportError, OSError, ValueError, KeyError):
+        pass
+
     # Run readiness suite
     py = resolve_python()
     readiness_script = wt_dir / "tools" / "verify_main_readiness.py"
