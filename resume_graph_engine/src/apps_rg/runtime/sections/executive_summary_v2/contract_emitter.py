@@ -41,12 +41,11 @@ from apps_rg.runtime.spine.c0_fec_compose import merge_compiled_prompt_artifact_
 from apps_rg.runtime.spine.section_c0_graph_lane_ensure import ensure_section_c0_graph_lane_receipt
 from apps_rg.runtime.spine.section_x3_finalize import finalize_section_lane_x3, persist_section_x3_mirror
 from apps_rg.runtime.targeting_context_authority import generation_material_context_from_bundle, judge_material_context_from_packet, require_material_targeting_bundle
-
+from apps_rg.runtime.validators.proof_pool_source_fact_validation import evaluate_proof_pool_source_fact_gate, write_x2_source_fact_pool_receipt
 from .blind_judge_and_loop import run_bounded_v2_generation_and_judge_loop
-from .evidence_firewall import APPS_RG_SRC_ROOT, LANE_KEY, PROMPT_ID, REPO_ROOT, load_verified_executive_summary_context, sha16
+from .evidence_firewall import APPS_RG_SRC_ROOT, LANE_KEY, PROMPT_ID, load_verified_executive_summary_context, sha16
 from .prompt_and_generate import EXEC_SUMMARY_TEMP_DEFAULT, TEMPLATE_PATH, build_v2_prompt_messages
 from .x2_invariants import run_executive_summary_v2_x2_gates, split_sentences
-
 
 def _write_json(path: Path, data: Any) -> None:
     _wg.ensure_dir(path.parent)
@@ -158,19 +157,18 @@ def run_executive_summary_v2(
         _write_json(artifact_dir / "heal_receipt.json", {"schema_version": "executive_summary_v2_heal_receipt_v1", "section_id": LANE_KEY, "run_id": run_id, "attempts_used": outcome.attempts_used, "winning_attempt": outcome.winning_attempt, "attempt_history": outcome.attempt_history, "zero_post_llm_prose_mutation": True})
 
     _wg.write_text(artifact_dir / "resume_display_text.txt", display_text + ("\n" if display_text else ""), encoding="utf-8")
+    _wg.write_text(artifact_dir / "raw_model_output.txt", turn.raw_output or "", encoding="utf-8")
     _write_json(artifact_dir / "claim_ledger.json", claim_ledger)
     _write_json(artifact_dir / "selected_fact_plan.json", vctx.selected_fact_plan)
     _write_json(artifact_dir / "provider_request.json", turn.provider_request_data)
     _write_json(artifact_dir / "provider_response.json", turn.provider_result_data)
     _write_json(artifact_dir / "parsed_output.json", turn.parsed_output or {})
-
     parse_status, invalid_reason = classify_ledger_parse_state(turn.parsed_output, parse_error=turn.parse_error, raw_output=turn.raw_output)
     canon_doc = build_canonical_claim_ledger_v2_payload(normalize_exec_summary_claim_ledger(claim_ledger), parse_status=parse_status, invalid_reason=invalid_reason)
     _write_json(artifact_dir / "canonical_claim_ledger_v2.json", canon_doc)
     _write_json(artifact_dir / "x1d_llm_judge_outputs.json", {"judges": x1d, "judge_count": len(x1d)})
     if x1d:
         write_x1d_dimension_matrix_artifact(artifact_dir / "x1d_dimension_matrix.json", x1d)
-
     output_hash, ledger_hash, allowed_hash = sha16(display_text), sha16(json.dumps(claim_ledger, sort_keys=True)), sha16(json.dumps(sorted(vctx.allowed_fact_ids)))
     sentences = split_sentences(display_text)
     coverage = {"sentence_count": len(sentences), "claim_ledger_rows": len(claim_ledger), "covered_sentences": min(len(sentences), len(claim_ledger))}
@@ -190,15 +188,21 @@ def run_executive_summary_v2(
     }
     attach_ledger_summary_to_l2(l2_output, artifact_dir)
     _write_json(artifact_dir / "l2_output.json", l2_output)
-
     x2 = [g for g in run_executive_summary_v2_x2_gates(
         resume_display_text=display_text, claim_ledger=claim_ledger, parsed_output=turn.parsed_output,
         allowed_fact_ids=vctx.allowed_fact_ids, verified_numbers=vctx.verified_numbers,
         verified_corpus_lower=vctx.verified_corpus_lower, target_company=str(runtime_payload.get("target_company") or ""),
-        jd_text=str(runtime_payload.get("jd_text") or ""), x1d_judges=x1d,
+        jd_text=str(runtime_payload.get("jd_text") or ""), target_role=str(runtime_payload.get("target_title") or ""),
+        briefing_text=str(runtime_payload.get("briefing") or ""), x1d_judges=x1d,
     )]
     write_section_x2_gate_outputs(artifact_dir, LANE_KEY, x2, runtime_payload=runtime_payload)
     x2_final = list(json.loads((artifact_dir / "x2_gate_outputs.json").read_text(encoding="utf-8")).get("gates") or x2)
+    cited_ids = [str(s) for r in claim_ledger if isinstance(r, dict) for s in (r.get("source_fact_ids") or []) if str(s).strip()]
+    _, pool_env, _ = evaluate_proof_pool_source_fact_gate(
+        section_id=LANE_KEY, collected_ids=cited_ids, allowed_fact_ids=vctx.allowed_fact_ids,
+        proof_pool_metadata=vctx.proof_pool_metadata, proof_pool_ref=str(vctx.pool.proof_pool_ref or ""), proof_pool_digest=str(vctx.pool.proof_pool_digest or ""),
+    )
+    write_x2_source_fact_pool_receipt(artifact_dir, pool_env)
 
     usage_doc = build_section_input_usage_ledger_v1(
         section_id=LANE_KEY, run_id=run_id, request_id=str(runtime_payload.get("request_id") or run_id),
@@ -239,11 +243,12 @@ def run_executive_summary_v2(
     attach_lane_proof_bundle_fields(l2_output, runtime_generation_status=turn.runtime_generation_status, bundle=proof_bundle)
     l2_output = merge_resume_graph_claim_binding_fields(l2_output, artifact_dir=artifact_dir)
     _write_json(artifact_dir / "l2_output.json", l2_output)
-
+    rl2 = {"provider_attempted": provider_name, "runtime_generation_status": turn.runtime_generation_status, "prompt_hash": turn.prompt_hash, "model": turn.model_name, "raw_model_output": turn.raw_output, "product_quality_status": product_quality_status, "x3_code": x3.get("x3_code") if isinstance(x3, dict) else None, "section_id": LANE_KEY}
+    attach_lane_proof_bundle_fields(rl2, runtime_generation_status=turn.runtime_generation_status, bundle=proof_bundle)
+    _write_json(artifact_dir / "real_l2_generation_result.json", rl2)
     finalize_section_l2_after_output(artifact_dir, LANE_KEY, runtime_payload)
     finalize_section_runtime_exhaust_before_l6(artifact_dir, LANE_KEY, runtime_payload, repo_root=APPS_RG_SRC_ROOT)
     gate_section_l6_shadow_after_exhaust(artifact_dir, runtime_payload)
-
     l6 = build_l6_shadow_package(artifact_dir=artifact_dir, repo_root=APPS_RG_SRC_ROOT, prompt_id=PROMPT_ID, temperature=temperature, max_tokens=None)
     _write_json(artifact_dir / "l6_shadow_eval_package.json", l6)
     post_rt = artifact_dir / "post_runtime"
