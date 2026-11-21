@@ -751,6 +751,8 @@ Build core foundation.
 
     def test_pre_edit_plan_allows_explanation_markdown(self) -> None:
         """Ordinary docs whose names contain 'plan' (like explanation.md) must never be blocked as wave plans."""
+        import tempfile
+
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp_root = Path(tmpdir)
             payload = {
