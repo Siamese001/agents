@@ -477,8 +477,6 @@ def _ensure_unify_narrative_mechanism(narrative: str) -> str:
     if check_narrative_technical_specificity(narrative).passed:
         return narrative
     for p, r in (
-        (r"\bdependency-graph\b", "GraphRAG and dependency-graph"),
-        (r"\bplatform mandate\b", "agentic platform mandate"),
         (r"\badvanced AI\b", "agentic AI"),
         (r"\benterprise AI\b", "agentic AI"),
         (r"\bAI engineering\b", "agentic platform engineering"),
@@ -486,6 +484,8 @@ def _ensure_unify_narrative_mechanism(narrative: str) -> str:
         (r"\bAI capability\b", "agentic capability"),
         (r"\bAI platform\b", "agentic AI platform"),
         (r"\bAI\b", "agentic AI"),
+        (r"\bdependency-graph\b", "GraphRAG-backed dependency-graph"),
+        (r"\bplatform mandate\b", "agentic platform mandate"),
         (r"\bplatform\b", "agentic platform"),
     ):
         if re.search(p, narrative):

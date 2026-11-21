@@ -338,7 +338,7 @@ def test_contract_emitter_writes_all_15_required_lane_contract_artifacts(tmp_pat
             messages=[{"role": "user", "content": "product_test"}],
             compiled_prompt="product_test",
             prompt_hash="phash_product_test",
-            model_name="claude-opus-4-7",
+            model_name="gemini-4-neon-medium",
             temperature=0.45,
             runtime_generation_status="REAL_LLM",
             raw_output=raw,
@@ -346,8 +346,8 @@ def test_contract_emitter_writes_all_15_required_lane_contract_artifacts(tmp_pat
             resume_display_text=POSITIVE_HUMAN_EXEC_SUMMARY,
             claim_ledger=led,
             parse_error="",
-            provider_request_data={"provider": "external_claude", "model": "claude-opus-4-7"},
-            provider_result_data={"provider_available": True, "usage": {"input_tokens": 900, "output_tokens": 220, "total_tokens": 1120}},
+            provider_request_data={"provider": "external_claude", "model": "claude-sonnet-5-5-high"},
+            provider_result_data={"provider_available": True, "model": "gemini-4-neon-medium", "usage": {"input_tokens": 900, "output_tokens": 220, "total_tokens": 1120}},
         )
 
     def _stub_product_judges(**kwargs: Any) -> tuple[list[dict[str, Any]], dict[str, Any]]:
