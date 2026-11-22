@@ -49,11 +49,11 @@ GUARDED_THRESHOLD_NAMES: dict[str, tuple[str, int]] = {
     "MAX_PLAN_WORDS": ("config/governance/policy_registry.yaml", 0),
     "EXEC_SUMMARY_MAX_WORDS": (
         "resume_graph_engine/src/apps_rg/runtime/validators/executive_summary_x2.py",
-        150,
+        110,
     ),
     "EXEC_SUMMARY_MAX_WORDS_PER_SENTENCE": (
         "resume_graph_engine/src/apps_rg/runtime/validators/executive_summary_x2.py",
-        45,
+        32,
     ),
     "NARRATIVE_MAX_WORDS": (
         "resume_graph_engine/src/apps_rg/runtime/sections/section_product_shape_ssot.py",
@@ -356,12 +356,13 @@ def scan_hardcoded_threshold_literals(
                     field_name = node.target.id
                     if field_name in ("max_sentence_length", "max_words_per_sentence") and isinstance(node.value, ast.Constant) and isinstance(node.value.value, int):
                         val = node.value.value
-                        if "executive_summary" in rel and val != 45:
+                        canon_sent_words = guarded_map.get("EXEC_SUMMARY_MAX_WORDS_PER_SENTENCE", (set(), 32))[1]
+                        if "executive_summary" in rel and val != canon_sent_words:
                             findings.append({
                                 "category": "CONFLICTING_POLICY_DEFAULT", "file": rel, "line": node.lineno,
                                 "symbol": field_name, "observed": val,
-                                "canonical_owner": "EXEC_SUMMARY_MAX_WORDS_PER_SENTENCE", "canonical_value": 45,
-                                "detail": f"{rel}:{node.lineno} sets {field_name}={val} != EXEC_SUMMARY_MAX_WORDS_PER_SENTENCE (45)",
+                                "canonical_owner": "EXEC_SUMMARY_MAX_WORDS_PER_SENTENCE", "canonical_value": canon_sent_words,
+                                "detail": f"{rel}:{node.lineno} sets {field_name}={val} != EXEC_SUMMARY_MAX_WORDS_PER_SENTENCE ({canon_sent_words})",
                             })
                 elif isinstance(node, ast.Dict):
                     for k_node, v_node in zip(node.keys, node.values):
@@ -379,6 +380,8 @@ def scan_hardcoded_threshold_literals(
 def scan_prompt_code_parity(repo_root: Path) -> list[dict[str, Any]]:
     """Detect prompt strings or templates whose numeric word bounds diverge from runtime validators."""
     findings: list[dict[str, Any]] = []
+    guarded_map = _load_guarded_thresholds(repo_root)
+    canon_exec_max_words = guarded_map.get("EXEC_SUMMARY_MAX_WORDS", (set(), 110))[1]
     repair_targets = _iter_target_py_files(
         repo_root,
         "resume_graph_engine/src/apps_rg/runtime/sections/executive_summary/word_budget_repair.py",
@@ -387,11 +390,11 @@ def scan_prompt_code_parity(repo_root: Path) -> list[dict[str, Any]]:
     for rel, fpath in repair_targets:
         for lineno, line in enumerate(fpath.read_text(encoding="utf-8", errors="replace").splitlines(), start=1):
             m = re.search(r"\b(\d{2,3})\s*-\s*(\d{2,3})\s+words\b", line)
-            if m and int(m.group(2)) != 150:
+            if m and int(m.group(2)) != canon_exec_max_words:
                 findings.append({
                     "category": "PROMPT_VALIDATOR_BOUND_DRIFT", "file": rel, "line": lineno,
-                    "observed_range": f"{m.group(1)}-{m.group(2)} words", "canonical_value": 150,
-                    "detail": f"{rel}:{lineno} hardcodes repair target '{m.group(0)}' instead of referencing EXEC_SUMMARY_MAX_WORDS (150)",
+                    "observed_range": f"{m.group(1)}-{m.group(2)} words", "canonical_value": canon_exec_max_words,
+                    "detail": f"{rel}:{lineno} hardcodes repair target '{m.group(0)}' instead of referencing EXEC_SUMMARY_MAX_WORDS ({canon_exec_max_words})",
                 })
 
     brief_tpl = repo_root / "apps_research/prompt_assembly/templates/company_brief_synthesis_v1.yaml"

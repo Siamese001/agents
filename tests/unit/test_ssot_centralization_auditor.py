@@ -221,3 +221,39 @@ def test_include_ratchet_backlog_blocks_zero_defect_fast_exit_when_ratchets_exis
     assert rep_backlog["is_clean"] is False
     assert rep_backlog["status"] == "BACKLOG_ACTION_REQUIRED"
     assert rep_backlog["ratchet_backlog"]["total_backlog_items"] == 1
+
+
+def test_live_provider_profiles_registry_sync_and_r1b_env_centralization() -> None:
+    import yaml  # type: ignore
+    from apps_rg.runtime.validators.executive_summary_x2 import (
+        EXEC_SUMMARY_MAX_SENTENCES,
+        EXEC_SUMMARY_MAX_WORDS,
+        EXEC_SUMMARY_MAX_WORDS_PER_SENTENCE,
+        EXEC_SUMMARY_MIN_SENTENCES,
+    )
+    from tools.ssot_hardcoding_scanner import scan_ast_hygiene_and_env_sprawl
+    from tools.ssot_sprawl_scanner import scan_cross_format_bound_drift, scan_shadow_config_drift
+
+    assert scan_shadow_config_drift(REPO_ROOT) == []
+
+    reg = yaml.safe_load((REPO_ROOT / "config" / "governance" / "centralization_registry.yaml").read_text(encoding="utf-8"))
+    syms = reg["domain_threshold_owners"]["resume_executive_summary_shape"]["canonical_symbols"]
+    assert syms["EXEC_SUMMARY_MAX_WORDS"] == EXEC_SUMMARY_MAX_WORDS
+    assert syms["EXEC_SUMMARY_MAX_WORDS_PER_SENTENCE"] == EXEC_SUMMARY_MAX_WORDS_PER_SENTENCE
+    assert syms["EXEC_SUMMARY_MIN_SENTENCES"] == EXEC_SUMMARY_MIN_SENTENCES
+    assert syms["EXEC_SUMMARY_MAX_SENTENCES"] == EXEC_SUMMARY_MAX_SENTENCES
+
+    bound_drifts = scan_cross_format_bound_drift(REPO_ROOT)
+    drifted_files = {f["file"] for f in bound_drifts}
+    assert "resume_graph_engine/src/apps_rg/rg_output_schema.json" not in drifted_files
+    assert "resume_graph_engine/src/apps_rg/rg_style_profile.yaml" not in drifted_files
+    assert "resume_graph_engine/src/apps_rg/prompt_assembly/section_contracts/executive_summary_contract.yaml" not in drifted_files
+
+    ratchet = json.loads((REPO_ROOT / "config" / "governance" / "env_lookup_ratchet.json").read_text(encoding="utf-8"))
+    file_counts = ratchet.get("file_counts", {})
+    assert not any(k.startswith("resume_graph_engine/src/apps_rg/cache/") for k in file_counts)
+
+    hygiene = scan_ast_hygiene_and_env_sprawl(REPO_ROOT)
+    flagged_files = {f["file"] for f in hygiene}
+    assert "resume_graph_engine/src/apps_rg/__main__.py" not in flagged_files
+    assert not any(p.startswith("resume_graph_engine/src/apps_rg/cache/") for p in flagged_files)

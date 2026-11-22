@@ -5,10 +5,6 @@
   "file_counts": {
     "resume_graph_engine/src/apps_rg/__init__.py": 2,
     "resume_graph_engine/src/apps_rg/bare_pipeline.py": 11,
-    "resume_graph_engine/src/apps_rg/cache/r1b_adapter.py": 4,
-    "resume_graph_engine/src/apps_rg/cache/r1b_chroma_read_surface_projection.py": 3,
-    "resume_graph_engine/src/apps_rg/cache/r1b_derived_index.py": 3,
-    "resume_graph_engine/src/apps_rg/cache/r1b_store.py": 3,
     "resume_graph_engine/src/apps_rg/enforcement/HardenedanthropicexecutorStrategy.py": 1,
     "resume_graph_engine/src/apps_rg/evals/authoritative/controller.py": 1,
     "resume_graph_engine/src/apps_rg/evals/c03_graph_evidence_cluster_human_intake.py": 1,

@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import json
-import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+from infrastructure.config.env_loader import get_env_bool, get_env_str
 
 from apps_rg.cache.r1b_constants import (
     DURABLE_WRITE_VIA_UWG,
@@ -22,10 +23,10 @@ def _utc_now() -> str:
 
 
 def default_store_root(repo_root: Path | None = None) -> Path:
-    env = os.environ.get("APPS_RG_R1B_CACHE_ROOT", "").strip()
+    env = get_env_str("APPS_RG_R1B_CACHE_ROOT").strip()
     # A product whole-run never accepts a caller-controlled cache-root
     # override. Unit and offline harnesses may still isolate their fixtures.
-    product_envelope = os.environ.get("APPS_RG_WHOLE_RUN_ENVELOPE", "").strip().lower()
+    product_envelope = get_env_str("APPS_RG_WHOLE_RUN_ENVELOPE").strip().lower()
     if env and product_envelope not in {"1", "true", "yes"}:
         p = Path(env)
         return p if p.is_absolute() else (Path.cwd() / p).resolve()
@@ -43,12 +44,7 @@ def _find_repo_root() -> Path:
 
 def assert_fixture_store_not_used_for_runtime_lookup(*, purpose: str = "") -> None:
     """Fail closed if production code attempts to use fixture mirror as routing truth."""
-    if os.environ.get("APPS_RG_R1B_ALLOW_FIXTURE_FALLBACK_FOR_TESTS", "").strip().lower() in {
-        "1",
-        "true",
-        "yes",
-        "on",
-    }:
+    if get_env_bool("APPS_RG_R1B_ALLOW_FIXTURE_FALLBACK_FOR_TESTS", default=False):
         return
     label = f" for {purpose}" if purpose else ""
     raise RuntimeError(

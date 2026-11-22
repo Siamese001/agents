@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-import os
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+from infrastructure.config.env_loader import get_env_bool, get_env_str
 
 from apps_rg.cache.r1b_constants import (
     C0_FACT_VECTORS_COLLECTION,
@@ -83,8 +84,8 @@ def _fixture_fallback_enabled_for_tests(*, explicit_private_flag: bool) -> bool:
     insufficient. This keeps fixture mirrors from becoming runtime truth by
     accident.
     """
-    env_enabled = os.environ.get("APPS_RG_R1B_ALLOW_FIXTURE_FALLBACK_FOR_TESTS", "").strip().lower()
-    return bool(explicit_private_flag and env_enabled in {"1", "true", "yes", "on"})
+    env_enabled = get_env_bool("APPS_RG_R1B_ALLOW_FIXTURE_FALLBACK_FOR_TESTS", default=False)
+    return bool(explicit_private_flag and env_enabled)
 
 
 def _derived_index_unavailable_report() -> list[dict[str, Any]]:
@@ -511,8 +512,8 @@ def resolve_r1b_projection_root(
     store_root: Path | str | None = None,
     artifact_dir: Path | str | None = None,
 ) -> Path:
-    env = os.environ.get("APPS_RG_R1B_CACHE_ROOT", "").strip()
-    product_envelope = os.environ.get("APPS_RG_WHOLE_RUN_ENVELOPE", "").strip().lower()
+    env = get_env_str("APPS_RG_R1B_CACHE_ROOT").strip()
+    product_envelope = get_env_str("APPS_RG_WHOLE_RUN_ENVELOPE").strip().lower()
     if env and product_envelope not in {"1", "true", "yes"}:
         p = Path(env)
         return p if p.is_absolute() else (Path.cwd() / p).resolve()
