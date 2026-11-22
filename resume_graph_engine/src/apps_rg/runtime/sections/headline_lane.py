@@ -2438,9 +2438,7 @@ def run_headline_execution(
         reasoning_effort=getattr(args, "reasoning_effort", None),
         force_new_seed=bool(getattr(args, "force_new_seed", False)),
     )
-    provider_payload["reasoning_effort"] = (
-        str(getattr(args, "reasoning_effort", "") or "").strip().lower() or "low"
-    )
+    provider_payload["reasoning_effort"] = "low"
     provider_request_data = provider_req.to_dict()
     write_json(artifact_dir / "provider_request.json", provider_request_data)
     req_model = str(provider_request_data.get("model") or section_model)

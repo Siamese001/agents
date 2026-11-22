@@ -3473,6 +3473,37 @@ def test_competencies_compact_sc_preserves_mandatory_skills_and_label_alias() ->
     assert v3_cat["category_label"] == "Context Engineering & GraphRAG"
 
 
+def test_headline_voice_repair_ignores_pipe_separators_and_recovery_uses_low_effort(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from apps_rg.runtime.orchestration.ResumeRunRecoveryAgent import ResumeRunRecoveryAgent
+    from apps_rg.runtime.sections import ExecutiveVoiceRepairAgent as evra
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test-live")
+    monkeypatch.setattr(
+        evra,
+        "_call_llm_repair",
+        lambda sec, prompt, model="": {
+            "repaired_headline": "SVP Engineering | Production Agentic AI Platforms | Regulated Cloud Systems | Enterprise Architecture"
+        },
+    )
+    updated, receipt = evra.repair_section_with_executive_voice_agent(
+        section_id="headline",
+        candidate_data={"headline_line": "VP Engineering | Bad | Draft | Here"},
+        diagnostic={"repair_needed": True, "findings": ["Fix noun stack"]},
+        mock_mode=False,
+    )
+    assert receipt.repair_succeeded is True
+    assert "Production Agentic AI Platforms" in updated["headline_line"]
+
+    agent = ResumeRunRecoveryAgent(artifact_dir=tmp_path, repo_root=tmp_path)
+    plan_ov = agent._call_strategy_re_planner(
+        {"failing_lanes_diagnostics": {"headline": "Non-authorizing X3"}}
+    )
+    assert plan_ov["lane_overrides"]["headline"]["reasoning_effort"] == "low"
+
+
+
 
 
 
