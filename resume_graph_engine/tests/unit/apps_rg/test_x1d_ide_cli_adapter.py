@@ -286,3 +286,23 @@ def test_unparseable_response_is_blocked_with_parse_status(ide_on, monkeypatch, 
     monkeypatch.setattr(ide, "run_agy", fake)
     out = x._call_gemini(ide.IDE_CLI_SESSION_MARKER, "P", "m", "h", "gemini_pro", artifact_base=tmp_path, thinking_level="high")
     assert out.provider_blocked and out.score is None and out.evaluator_mode.startswith("BLOCKED")
+
+
+def test_call_ide_cli_judge_exposes_return_annotation_and_returns_judge_output(monkeypatch, tmp_path: Path) -> None:
+    import inspect
+
+    sig = inspect.signature(ide.call_ide_cli_judge)
+    assert sig.return_annotation is not inspect.Signature.empty
+    assert "JudgeOutput" in str(sig.return_annotation)
+
+    _fake_agy(monkeypatch)
+    out = ide.call_ide_cli_judge(
+        prompt="JUDGE PROMPT",
+        model="gemini-4-argon-high",
+        input_hash="hash_typed",
+        provider_key="gemini_pro",
+        artifact_base=tmp_path,
+        section_id="executive_summary",
+    )
+    assert isinstance(out, x.JudgeOutput)
+    assert out.evaluator_mode == "MODEL_BACKED"
