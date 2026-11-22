@@ -16,6 +16,7 @@ from apps_rg.runtime.orchestration.section_lane_concurrency import (
     load_section_dag_manifest,
     phase1_parallel_enabled,
     section_dag_dependencies,
+    topological_lane_order,
 )
 from apps_rg.runtime.orchestration.section_lane_executor import LaneExecutionContext
 from apps_rg.runtime.runtime_proof_layout import MODULAR_R4_SECTIONS_ROOT_ENV
@@ -494,3 +495,23 @@ def test_serial_dispatch_blocks_only_descendants_of_failed_lane() -> None:
     assert "executive_summary" in calls
     assert "unify_narrative" not in calls
     assert out["unify_narrative"].exec_status == "pre_run_blocked:UPSTREAM_DEPENDENCY_FAILED"
+
+
+def test_topological_lane_order_preserves_generated_lanes_and_reorders_custom_dag() -> None:
+    from apps_rg.runtime.internal.generated_lane_contract import GENERATED_LANES
+
+    assert topological_lane_order(GENERATED_LANES) == GENERATED_LANES
+    custom = {
+        "competencies": ("executive_summary",),
+        "executive_summary": ("headline",),
+        "headline": (),
+    }
+    assert topological_lane_order(
+        ("competencies", "executive_summary", "headline"),
+        deps_by_lane=custom,
+    ) == ("headline", "executive_summary", "competencies")
+    with pytest.raises(ValueError, match="Cycle detected"):
+        topological_lane_order(
+            ("a", "b"),
+            deps_by_lane={"a": ("b",), "b": ("a",)},
+        )

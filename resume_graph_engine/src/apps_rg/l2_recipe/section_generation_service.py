@@ -45,6 +45,7 @@ from apps_rg.runtime.orchestration.section_lane_concurrency import (
     phase1_parallel_enabled,
     resolve_max_parallel,
     section_dag_dependencies,
+    topological_lane_order,
 )
 from apps_rg.runtime.orchestration.section_lane_executor import (
     LaneExecutionContext,
@@ -562,7 +563,7 @@ class SectionGenerationService:
             else:
                 failed_lanes: dict[str, str] = {}
                 deps_by_lane = section_dag_dependencies(lanes=GENERATED_LANES)
-                for lane in GENERATED_LANES:
+                for lane in topological_lane_order(GENERATED_LANES, deps_by_lane=deps_by_lane):
                     os.environ[MODULAR_R4_SECTIONS_ROOT_ENV] = str(sections_root.resolve())
                     failed_deps = [dep for dep in deps_by_lane.get(lane, ()) if dep in failed_lanes]
                     if failed_deps:
@@ -624,8 +625,12 @@ class SectionGenerationService:
                         if outcome.exec_status.startswith("error:")
                         else EvaluationService.phase1_lane_dispatch_status(lane_dispatch_results[lane])
                     )
-                    if outcome.exec_status.startswith("error:") or phase1_dispatch_hard_failed(
-                        lane_dispatch_results[lane]
+                    if (
+                        outcome.exec_status.startswith("error:")
+                        or phase1_dispatch_hard_failed(lane_dispatch_results[lane])
+                        or str(lane_dispatch_results[lane].get("exit_status") or "").strip().lower()
+                        in {"error", "failed", "failure"}
+                        or str(lane_exec_status.get(lane) or "").startswith("dispatch_error:")
                     ):
                         failed_lanes[lane] = f"dispatch_failed:{lane}:{lane_exec_status[lane]}"
 

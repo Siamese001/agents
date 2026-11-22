@@ -10,11 +10,13 @@ from unittest.mock import patch
 
 import pytest
 
+from apps_rg.l2_recipe.modular_lane_adapter import ModularLaneTargeting
 from apps_rg.l2_recipe.modular_resume_generation import (
     ModularResumeInputPackage,
     ModularResumeProfile,
     run_modular_resume_generation,
 )
+from apps_rg.l2_recipe.section_generation_service import SectionGenerationService
 from apps_rg.runtime.internal.generated_lane_rollup import GENERATED_LANES
 from apps_rg.runtime.runtime_proof_layout import MODULAR_R4_SECTIONS_ROOT_ENV
 from tests.helpers.standalone_repo_view import materialize_standalone_repo_view
@@ -208,3 +210,138 @@ def test_serial_phase1_isolates_hard_fault_to_dag_dependents(
     assert pre_fail["blocker"] == "MISSING_NOT_ATTEMPTED"
     assert pre_fail["lane_exec_status"] == "pre_run_blocked:PHASE1_PRIOR_LANE_FAILED"
     assert pre_fail["dispatch_result"]["blocked_by"] == ["ibm_bullets"]
+
+
+def test_serial_phase1_exit_error_without_fault_blocks_direct_dag_dependent(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """In serial Phase-1 mode, exit_status='error' without fault must still block DAG dependents."""
+    monkeypatch.setenv("APPS_RG_TEST_HARNESS", "1")
+    monkeypatch.setenv("APPS_RG_PARALLEL_PHASE1_LANES", "0")
+    monkeypatch.setenv("APPS_RG_SECTION_CACHE_DISABLE", "1")
+    repo = materialize_standalone_repo_view(tmp_path)
+    art = repo / f"phase1_serial_x3_block_{uuid.uuid4().hex[:10]}"
+    modular_root = art / "modular_r4"
+    art.mkdir(parents=True, exist_ok=True)
+    dispatched: list[str] = []
+
+    def _stub_lane_dispatch(**kwargs: object) -> dict[str, object]:
+        lane = str(kwargs.get("section") or "")
+        dispatched.append(lane)
+        sections_root = Path(os.environ[MODULAR_R4_SECTIONS_ROOT_ENV])
+        if lane == "ibm_bullets":
+            return {
+                "exit_status": "error",
+                "outcome_authorized": False,
+                "x3_disposition": "X3_BLOCK",
+                "fault": "",
+            }
+        _write_lane_product_bundle(repo, sections_root, lane)
+        return {
+            "exit_status": "success",
+            "outcome_authorized": True,
+            "x3_disposition": "X3_ALLOW",
+            "fault": "",
+        }
+
+    with patch(
+        "apps_rg.runtime.validators.companion_bullet_finalization.companion_accepted_in_modular_sections_root",
+        return_value=True,
+    ):
+        _run_dirs, lane_exec_status, _records, *_rest = SectionGenerationService.execute_phase1_lanes(
+            repo=repo,
+            art=art,
+            modular_root=modular_root,
+            run_id="pytest_serial_x3_block",
+            input_package=ModularResumeInputPackage(repo_root=repo),
+            profile=ModularResumeProfile(
+                phase1_invoke_real_lanes=True,
+                parallel_phase1_lanes=False,
+                run_phase0_synthetic_assembly=False,
+                validate_rg_output_fixture=False,
+            ),
+            lane_targeting=ModularLaneTargeting(),
+            dispatch_fn=_stub_lane_dispatch,
+        )
+
+    assert "ibm_bullets" in dispatched
+    assert "ibm_narrative" not in dispatched
+    assert lane_exec_status["ibm_bullets"] == "dispatch_error:lane_exit_error"
+    assert lane_exec_status["ibm_narrative"] == "pre_run_blocked:PHASE1_PRIOR_LANE_FAILED"
+    for independent in ("competencies", "unify_bullets", "unify_narrative", "executive_summary", "headline"):
+        assert independent in dispatched
+        assert lane_exec_status[independent] == "ok"
+
+
+def test_serial_phase1_exit_error_without_fault_blocks_transitive_dag_chain(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Serial Phase-1 orders lanes topologically and propagates exit_status='error' transitively A -> B -> C."""
+    monkeypatch.setenv("APPS_RG_TEST_HARNESS", "1")
+    monkeypatch.setenv("APPS_RG_PARALLEL_PHASE1_LANES", "0")
+    monkeypatch.setenv("APPS_RG_SECTION_CACHE_DISABLE", "1")
+    repo = materialize_standalone_repo_view(tmp_path)
+    art = repo / f"phase1_serial_transitive_{uuid.uuid4().hex[:10]}"
+    modular_root = art / "modular_r4"
+    art.mkdir(parents=True, exist_ok=True)
+    dispatched: list[str] = []
+
+    custom_deps = {lane: () for lane in GENERATED_LANES}
+    # Inverted relative to GENERATED_LANES order (headline -> executive_summary -> competencies)
+    custom_deps["executive_summary"] = ("headline",)
+    custom_deps["competencies"] = ("executive_summary",)
+
+    def _stub_lane_dispatch(**kwargs: object) -> dict[str, object]:
+        lane = str(kwargs.get("section") or "")
+        dispatched.append(lane)
+        sections_root = Path(os.environ[MODULAR_R4_SECTIONS_ROOT_ENV])
+        if lane == "headline":
+            return {
+                "exit_status": "error",
+                "outcome_authorized": False,
+                "x3_disposition": "X3_BLOCK",
+                "fault": "",
+            }
+        _write_lane_product_bundle(repo, sections_root, lane)
+        return {
+            "exit_status": "success",
+            "outcome_authorized": True,
+            "x3_disposition": "X3_ALLOW",
+            "fault": "",
+        }
+
+    with (
+        patch(
+            "apps_rg.l2_recipe.section_generation_service.section_dag_dependencies",
+            return_value=custom_deps,
+        ),
+        patch(
+            "apps_rg.runtime.validators.companion_bullet_finalization.companion_accepted_in_modular_sections_root",
+            return_value=True,
+        ),
+    ):
+        _run_dirs, lane_exec_status, _records, *_rest = SectionGenerationService.execute_phase1_lanes(
+            repo=repo,
+            art=art,
+            modular_root=modular_root,
+            run_id="pytest_serial_transitive",
+            input_package=ModularResumeInputPackage(repo_root=repo),
+            profile=ModularResumeProfile(
+                phase1_invoke_real_lanes=True,
+                parallel_phase1_lanes=False,
+                run_phase0_synthetic_assembly=False,
+                validate_rg_output_fixture=False,
+            ),
+            lane_targeting=ModularLaneTargeting(),
+            dispatch_fn=_stub_lane_dispatch,
+        )
+
+    assert "headline" in dispatched
+    assert "executive_summary" not in dispatched
+    assert "competencies" not in dispatched
+    assert lane_exec_status["headline"] == "dispatch_error:lane_exit_error"
+    assert lane_exec_status["executive_summary"] == "pre_run_blocked:PHASE1_PRIOR_LANE_FAILED"
+    assert lane_exec_status["competencies"] == "pre_run_blocked:PHASE1_PRIOR_LANE_FAILED"
+    for independent in ("ibm_bullets", "ibm_narrative", "unify_bullets", "unify_narrative"):
+        assert independent in dispatched
+        assert lane_exec_status[independent] == "ok"
