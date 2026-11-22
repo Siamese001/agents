@@ -232,6 +232,12 @@ def evaluate_final_headline_pre_judge_contract(
         and any(str(fid) in allowed_fact_ids for fid in (r.get("source_fact_ids") or []))
         for r in dict_rows
     )
+    from apps_rg.runtime.validators.headline_x2 import headline_executive_abstraction_report
+
+    abs_report = headline_executive_abstraction_report(hl) if pipe_ok else {}
+    missing_abs = list(abs_report.get("segments_missing_executive_abstraction") or [])
+    standalone_vendor = list(abs_report.get("standalone_vendor_architecture_segments") or [])
+    vendor_no_abs = list(abs_report.get("vendor_terms_without_executive_abstraction") or [])
     issues: list[str] = []
     if not pipe_ok:
         issues.append("invalid_pipe_segment_count")
@@ -246,6 +252,12 @@ def evaluate_final_headline_pre_judge_contract(
             issues.append(f"segment_overlap:{ov}")
         if not (clarity.get("opaque_segments") or clarity.get("semantic_overlap_issues")):
             issues.append("clarity_gate_failed")
+    for seg_m in missing_abs:
+        issues.append(f"missing_executive_abstraction:{seg_m}")
+    for seg_v in standalone_vendor:
+        issues.append(f"standalone_vendor_architecture:{seg_v}")
+    for seg_v2 in vendor_no_abs:
+        issues.append(f"vendor_without_abstraction:{seg_v2}")
     if not ledger_rows_ok:
         issues.append("claim_ledger_ungrounded_or_malformed")
     if not grounding_ok:

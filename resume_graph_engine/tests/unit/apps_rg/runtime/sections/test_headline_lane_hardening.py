@@ -807,7 +807,11 @@ class TestHeadlineContentSignalRepairRung:
         assert receipt["headline_post"] == GOV_HL
         assert receipt["families_matched_post"]
         assert receipt["trigger"]["headline_pre"] == PRE_HL_NO_GOV
-        assert receipt["trigger"]["required_families"] == ["runtime_governance", "regulated_ai_systems"]
+        assert receipt["trigger"]["required_families"] == [
+            "runtime_governance",
+            "regulated_ai_systems",
+            "csuite_transformation_advisory",
+        ]
         assert receipt["bounded"] == {"max_attempts": 3, "attempts_used": 1}
         assert any(
             e.get("operation") == "headline_content_signal_repair"
@@ -1240,7 +1244,7 @@ LIVE_NARROWING_HL = "SVP Engineering | Retrieval Telemetry Governance | AI Lifec
 # No governance signal + 2 families + narrowing label -> governance+narrowing combo.
 GOV_PLUS_NARROWING_HL = "SVP Engineering | Distributed AI Infrastructure | Digital Transformation Programs | Platform Productization"
 # All three arms fire.
-TRIPLE_ARM_HL = "SVP Engineering | Digital Transformation Leadership | Enterprise Delivery Programs | Innovation Leadership Excellence"
+TRIPLE_ARM_HL = "SVP Engineering | Digital Transformation Leadership | Program Management Excellence | Innovation Team Leadership"
 # Regen with governance + 2 families but STILL carrying a narrowing label -> rejected.
 NARROWING_REGEN_STILL_DIRTY_HL = "SVP Engineering | Runtime Governance Gates | Agentic AI Platforms | Digital Transformation Leadership"
 
