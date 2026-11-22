@@ -19,7 +19,8 @@
         "x2_v2_inanimate_subject_opener_and_crutch_bilateral",
         "x2_v2_unverified_vendor_rejected",
         "blind_judge_omits_deterministic_gate_summary_and_bans_inanimate_openers",
-        "ibm_narrative_never_injects_unsupported_aws_and_cli_trace_preserves_artifact_dir"
+        "ibm_narrative_never_injects_unsupported_aws_and_cli_trace_preserves_artifact_dir",
+        "evaluate_product_run_surfaces_specific_failure_reasons_and_real_x3"
       ]
     },
     {
@@ -64,7 +65,8 @@
         "blind_judge_strips_priming_and_rejects_self_grading",
         "non_compensating_case_flip_detection",
         "trajectory_oscillation_loop_rejected",
-        "eval_case_unlabeled_view_strips_expected_contract"
+        "eval_case_unlabeled_view_strips_expected_contract",
+        "product_run_flywheel_records_specific_failure_and_auto_resolves_on_pass"
       ]
     },
     {

@@ -465,6 +465,16 @@ class EvalFlywheelEngine:
                     metadata={"x3_disposition": x3_disposition, "source": "product_run_observer"},
                 )
                 traj_engine.record_exemplar(ex)
+                for row in fb_store.get_failure_statistics():
+                    constraint = str(row.get("normalized_constraint") or "")
+                    if constraint.startswith(f"{app_id.lower()}:") and float(row.get("success_rate") or 0.0) < 1.0:
+                        fb_store.record_resolution(
+                            str(row["signature_hash"]),
+                            run_id=run_id,
+                            action_taken="PRODUCT_RUN_VERIFIED_PASS",
+                            repair_hint=f"Verified passing product run {run_id} for {app_id}.",
+                            outcome="SUCCESS",
+                        )
         finally:
             fb_store.close()
         self._update_calibration_history([(f"{app_id}:product_run_score", float(score), run_id)])
