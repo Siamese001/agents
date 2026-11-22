@@ -69,7 +69,13 @@ def _materialize_bullet_generation(
     allowed: list[str],
     graph_packet_digest: str,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    model_bullets = _normalize_bullets(parsed or {}, cfg=cfg, allowed=allowed)
+    allow_prose_mutation = provider_runtime_generation_status != "REAL_LLM"
+    model_bullets = _normalize_bullets(
+        parsed or {},
+        cfg=cfg,
+        allowed=allowed,
+        allow_prose_mutation=allow_prose_mutation,
+    )
     llm_status = _llm_generation_status(
         provider_runtime_generation_status=provider_runtime_generation_status,
         parsed=parsed,
@@ -227,10 +233,16 @@ def _normalize_role_episode_bullet_pool_parsed(
     *,
     cfg: RoleEpisodeLaneConfig,
     allowed: list[str],
+    allow_prose_mutation: bool = True,
 ) -> dict[str, Any]:
     """Normalize one SC path into the employment-pool shape for InsurTech/EY bullets."""
     out = dict(parsed or {})
-    bullets = _normalize_bullets(out, cfg=cfg, allowed=allowed)
+    bullets = _normalize_bullets(
+        out,
+        cfg=cfg,
+        allowed=allowed,
+        allow_prose_mutation=allow_prose_mutation,
+    )
     out["bullets"] = bullets
     out["claim_ledger"] = _claim_ledger_from_bullets(bullets)
     out.setdefault("jd_alignment", {"targeting_only": True, "jd_used_as_proof": False})

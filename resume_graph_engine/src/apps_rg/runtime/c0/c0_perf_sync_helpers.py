@@ -17,6 +17,10 @@ _QUERY_VECTOR_LOCK = threading.Lock()
 _QUERY_VECTOR_CACHE: dict[tuple[str, str], list[float]] = {}
 _QUERY_VECTOR_INFLIGHT: dict[tuple[str, str], threading.Event] = {}
 _MAX_QUERY_VECTOR_CACHE = 512
+_BOUNDED_SECTION_RETRIEVAL_LOCK = threading.Lock()
+_BOUNDED_SECTION_RETRIEVAL_CACHE: dict[tuple[str, int, str, str], tuple[Any, ...]] = {}
+_BOUNDED_SECTION_RETRIEVAL_INFLIGHT: dict[tuple[str, int, str, str], threading.Event] = {}
+_MAX_BOUNDED_SECTION_RETRIEVAL_CACHE = 128
 
 _SECTION_EMBEDDING_TOP_K_CAPS: dict[str, int] = {
     "executive_summary": 96,
@@ -202,6 +206,99 @@ def reset_c0_shared_retrieval_caches_for_tests() -> None:
     with _QUERY_VECTOR_LOCK:
         _QUERY_VECTOR_CACHE.clear()
         _QUERY_VECTOR_INFLIGHT.clear()
+    with _BOUNDED_SECTION_RETRIEVAL_LOCK:
+        _BOUNDED_SECTION_RETRIEVAL_CACHE.clear()
+        _BOUNDED_SECTION_RETRIEVAL_INFLIGHT.clear()
+
+
+def get_or_compute_bounded_section_retrieval(
+    *,
+    chroma_path: str,
+    collection_count: int,
+    section_id_filter: str | None,
+    app_payload: Mapping[str, Any],
+    evidence_digest: str,
+    timestamp_iso: str,
+    compute_fn: Any,
+) -> tuple[list[Any], list[Any], str, list[str], list[tuple[str, float]], list[Any]]:
+    """Single-flight bounded section retrieval cache keyed by chroma count + section + targeting payload."""
+    import copy
+    import dataclasses
+    import json
+
+    resolved_dir = str(Path(chroma_path).resolve())
+    payload_sig = hashlib.sha256(
+        json.dumps(
+            {
+                "jd_text": app_payload.get("jd_text") or app_payload.get("job_description_text") or "",
+                "target_role": app_payload.get("target_role") or app_payload.get("target_title") or "",
+                "target_company": app_payload.get("target_company") or "",
+                "briefing": app_payload.get("briefing") or app_payload.get("manual_brief") or "",
+                "section_id": app_payload.get("section_id") or "",
+                "role_family": app_payload.get("role_family") or "",
+                "seniority_level": app_payload.get("seniority_level") or "",
+            },
+            sort_keys=True,
+            default=str,
+        ).encode("utf-8")
+    ).hexdigest()
+    key = (resolved_dir, int(collection_count), str(section_id_filter or ""), payload_sig)
+
+    def _restamp(cached_tuple: tuple[Any, ...]) -> tuple[list[Any], list[Any], str, list[str], list[tuple[str, float]], list[Any]]:
+        items_raw, verdicts_raw, status, sparse_refs, score_prof, traces_raw = cached_tuple
+        items = [
+            dataclasses.replace(it, retrieval_timestamp=timestamp_iso)
+            if dataclasses.is_dataclass(it) and hasattr(it, "retrieval_timestamp")
+            else copy.deepcopy(it)
+            for it in items_raw
+        ]
+        verdicts = [
+            dataclasses.replace(v, evaluated_at=timestamp_iso, evidence_digest=evidence_digest)
+            if dataclasses.is_dataclass(v) and hasattr(v, "evaluated_at") and hasattr(v, "evidence_digest")
+            else copy.deepcopy(v)
+            for v in verdicts_raw
+        ]
+        traces = [
+            dataclasses.replace(tr, evaluated_at=timestamp_iso)
+            if dataclasses.is_dataclass(tr) and hasattr(tr, "evaluated_at")
+            else copy.deepcopy(tr)
+            for tr in traces_raw
+        ]
+        return items, verdicts, str(status), list(sparse_refs), list(score_prof), traces
+
+    wait_ev: threading.Event | None = None
+    own_ev: threading.Event | None = None
+    with _BOUNDED_SECTION_RETRIEVAL_LOCK:
+        hit = _BOUNDED_SECTION_RETRIEVAL_CACHE.get(key)
+        if hit is not None:
+            return _restamp(hit)
+        inflight = _BOUNDED_SECTION_RETRIEVAL_INFLIGHT.get(key)
+        if inflight is not None:
+            wait_ev = inflight
+        else:
+            own_ev = threading.Event()
+            _BOUNDED_SECTION_RETRIEVAL_INFLIGHT[key] = own_ev
+
+    if wait_ev is not None:
+        wait_ev.wait(timeout=30.0)
+        with _BOUNDED_SECTION_RETRIEVAL_LOCK:
+            hit = _BOUNDED_SECTION_RETRIEVAL_CACHE.get(key)
+        if hit is not None:
+            return _restamp(hit)
+        return compute_fn()
+
+    try:
+        computed = compute_fn()
+        with _BOUNDED_SECTION_RETRIEVAL_LOCK:
+            if len(_BOUNDED_SECTION_RETRIEVAL_CACHE) >= _MAX_BOUNDED_SECTION_RETRIEVAL_CACHE:
+                _BOUNDED_SECTION_RETRIEVAL_CACHE.clear()
+            _BOUNDED_SECTION_RETRIEVAL_CACHE[key] = computed
+        return computed
+    finally:
+        with _BOUNDED_SECTION_RETRIEVAL_LOCK:
+            ev = _BOUNDED_SECTION_RETRIEVAL_INFLIGHT.pop(key, None)
+            if ev is not None:
+                ev.set()
 
 
 def resolve_section_embedding_top_k(authority_section_id: str, assertion_count: int) -> int:

@@ -19,7 +19,13 @@ from .lane_config import (
 )
 from .narrative_binding import _strip_targeting_only_experience_claims
 
-def _normalize_bullets(parsed: dict[str, Any], *, cfg: RoleEpisodeLaneConfig, allowed: list[str]) -> list[dict[str, Any]]:
+def _normalize_bullets(
+    parsed: dict[str, Any],
+    *,
+    cfg: RoleEpisodeLaneConfig,
+    allowed: list[str],
+    allow_prose_mutation: bool = True,
+) -> list[dict[str, Any]]:
     rows = parsed.get("bullets") if isinstance(parsed, dict) else None
     expected_bullet_count = FINAL_BULLET_COUNT.get(cfg.section_id, ROLE_EPISODE_FINAL_BULLET_COUNT)
     count = expected_bullet_count if expected_bullet_count > 0 else (len(rows) if isinstance(rows, list) else 0)
@@ -28,14 +34,16 @@ def _normalize_bullets(parsed: dict[str, Any], *, cfg: RoleEpisodeLaneConfig, al
         for idx, row in enumerate(rows[:count]):
             if not isinstance(row, dict):
                 continue
-            text, _hits = _strip_targeting_only_experience_claims(
-                str(row.get("bullet_text") or row.get("text") or "")
-            )
-            from apps_rg.runtime.sections.cross_section_signal_guards import (
-                rewrite_generic_consulting_phrases,
-            )
+            raw_txt = str(row.get("bullet_text") or row.get("text") or "")
+            if allow_prose_mutation:
+                text, _hits = _strip_targeting_only_experience_claims(raw_txt, allow_prose_mutation=True)
+                from apps_rg.runtime.sections.cross_section_signal_guards import (
+                    rewrite_generic_consulting_phrases,
+                )
 
-            text = rewrite_generic_consulting_phrases(text)
+                text = rewrite_generic_consulting_phrases(text)
+            else:
+                text = raw_txt
             text = _bullet_sentence(text)
             if not text:
                 continue

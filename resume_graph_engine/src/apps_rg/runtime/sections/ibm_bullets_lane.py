@@ -41,7 +41,10 @@ from apps_rg.runtime.jd_resolution import resolve_jd_for_lanes
 from apps_rg.runtime.judges.ibm_bullets_x1d import run_ibm_bullets_judges
 from apps_rg.runtime.reasoning.bullet_fact_entailment import build_slot_entailment_corpus
 from apps_rg.runtime.reasoning.bullet_lane_generation import generate_bullet_lane_with_sc_and_claude
-from apps_rg.runtime.reasoning.bullet_pool_reselection import run_bullet_judge_reselection
+from apps_rg.runtime.reasoning.bullet_pool_reselection import (
+    run_bullet_judge_llm_rewrite,
+    run_bullet_judge_reselection,
+)
 from apps_rg.runtime.resume_resolution import load_lane_base_resume_json
 from apps_rg.runtime.runtime_proof_layout import finalize_runtime_proof_run, prepare_runtime_proof_run_dir
 from apps_rg.runtime.section_l2_lane_integration import finalize_section_l2_after_output
@@ -297,6 +300,43 @@ def run_ibm_bullets_execution(
         x1d = _resel.x1d
         usage_doc = _resel.usage_doc
         canon_doc = _resel.canon_doc
+    _llm_rw, _new_raw = run_bullet_judge_llm_rewrite(
+        artifact_dir=artifact_dir,
+        section_id="ibm_bullets",
+        run_id=str(runtime_payload["run_id"]),
+        provider_name=str(args.provider),
+        provider_payload=provider_payload,
+        base_messages=list(ctx.get("messages") or []),
+        prior_raw_output=str(ctx.get("raw_output") or ""),
+        required_bullet_ids=tuple(active_bullet_ids),
+        parsed=parsed,
+        bullets=bullets,
+        claim_ledger=claim_ledger,
+        parsed_for_x2=parsed_for_x2,
+        x1d=x1d,
+        x2=x2,
+        usage_doc=usage_doc,
+        canon_doc=canon_doc,
+        runtime_generation_status=runtime_generation_status,
+        judge_mode=judge_mode,
+        parse_json_fn=parse_model_json,
+        post_chain=_resel_post_chain,
+        rebuild_state=_resel_rebuild_state,
+        run_x2=_resel_run_x2,
+        run_judges=_resel_run_judges,
+        write_usage_ledger=_resel_write_usage,
+        write_lane_artifacts=_resel_write_artifacts,
+    )
+    if _llm_rw.fired:
+        parsed = _llm_rw.parsed
+        bullets = _llm_rw.bullets
+        claim_ledger = _llm_rw.claim_ledger
+        parsed_for_x2 = _llm_rw.parsed_for_x2
+        x2 = _llm_rw.x2
+        x1d = _llm_rw.x1d
+        usage_doc = _llm_rw.usage_doc
+        canon_doc = _llm_rw.canon_doc
+        ctx["raw_output"] = _new_raw
     from apps_rg.runtime.section_repair_lane_integration import finalize_lane_product_quality
 
     product_quality_status, product_quality_reason = finalize_lane_product_quality(

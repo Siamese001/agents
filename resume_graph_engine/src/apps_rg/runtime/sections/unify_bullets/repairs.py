@@ -195,11 +195,6 @@ def normalize_unify_parsed_without_ledger_synthesis(
     _enforce_unify_metric_outcome_surfaces(out, runtime_payload)
     _repair_unify_archive_verbatim_overlap(out, runtime_payload)
     _repair_unify_bullet_evidence_density(out)
-    from apps_rg.runtime.sections.cross_section_signal_guards import (
-        apply_bullet_consulting_clean,
-    )
-
-    apply_bullet_consulting_clean(out)
     _sync_unify_claim_ledger_to_bullets(out, remap=legacy_remap, allowed=allowed)
     from apps_rg.runtime.reasoning.employment_bullet_output_sanitize import (
         strip_employment_bullet_intensity_model,

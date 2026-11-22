@@ -656,11 +656,6 @@ def normalize_parsed_output(
     parsed.setdefault("gap_notes", [])
     parsed.setdefault("change_log", [])
     parsed.setdefault("self_check", {"normalized_by_dispatch": True})
-    from apps_rg.runtime.sections.cross_section_signal_guards import (
-        apply_bullet_consulting_clean,
-    )
-
-    apply_bullet_consulting_clean(parsed)
     from apps_rg.runtime.reasoning.employment_bullet_output_sanitize import (
         strip_employment_bullet_intensity_model,
     )

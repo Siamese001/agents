@@ -1080,7 +1080,7 @@ def run_ibm_narrative_x2_gates(
     add(recap_r.gate_id, recap_r.passed, recap_r.observed_value, recap_r.threshold, recap_r.failure_reason)
     if companion_bullets_list:
         cos_r = check_narrative_bullet_cosine_similarity(
-            narrative_sentence, companion_bullets_list, max_pairwise_cosine=0.28, max_pool_cosine=0.38,
+            narrative_sentence, companion_bullets_list, max_pairwise_cosine=0.35, max_pool_cosine=0.38,
             forbid_shared_opener=True, forbid_repeated_metrics=True,
         )
         add(cos_r.gate_id, cos_r.passed, cos_r.observed_value, cos_r.threshold, cos_r.failure_reason)

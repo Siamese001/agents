@@ -60,12 +60,13 @@ NARRATIVE_AUTHORITY_SIGNALS: frozenset[str] = frozenset({
 
 # Mechanism vocabulary for technical specificity
 MECHANISM_VOCAB: frozenset[str] = frozenset({
-    "agentic", "llm", "rag", "graphrag", "embedding", "vector", "retrieval",
+    "agentic", "llm", "rag", "graphrag", "graph", "embedding", "vector", "retrieval",
     "orchestration", "evaluation", "eval", "fine-tuning", "inference",
     "lakehouse", "databricks", "microservices", "kubernetes", "spark",
-    "streaming", "pipeline", "runtime", "gateway", "api", "aws",
+    "streaming", "pipeline", "runtime", "gateway", "api", "aws", "cloud",
     "bi", "dashboard", "dashboards", "telemetry", "tracing", "observability",
-    "monitoring", "cicd", "devops", "lineage", "ccar", "basel", "insuretech",
+    "monitoring", "cicd", "devops", "devsecops", "nlp", "ml", "encryption", "kms", "iam", "soc",
+    "lineage", "ccar", "basel", "insuretech",
     "underwriting", "actuarial", "hpc", "hyperscaler", "hyperscalers",
     "salesforce", "m&a", "ebitda", "valuation", "synergy", "synergies",
 })

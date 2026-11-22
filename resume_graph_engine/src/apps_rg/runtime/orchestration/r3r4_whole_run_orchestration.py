@@ -2137,7 +2137,11 @@ def run_whole_run_with_route_governance(
         if exec_summary_blocked
         else str(whole_run_exit.get("x3_disposition") or "X3A_DENY_REROUTE")
     )
-    if not _product_x3_authorizes(effective_x3) or exec_summary_blocked:
+    if (
+        not _product_x3_authorizes(effective_x3)
+        or exec_summary_blocked
+        or str(whole_run_exit.get("status") or "").upper() != "PASS"
+    ):
         try:
             from apps_rg.runtime.orchestration.ResumeRunRecoveryAgent import (
                 ResumeRunRecoveryAgent,
@@ -2157,12 +2161,64 @@ def run_whole_run_with_route_governance(
                     raw_request=raw_request,
                     validated_request=validated_request,
                 )
-                if not exec_summary_blocked and _product_x3_authorizes(effective_x3):
-                    result = dataclasses.replace(result, fault="", x3_disposition=effective_x3) if dataclasses.is_dataclass(result) else result
+                if (
+                    not exec_summary_blocked
+                    and _product_x3_authorizes(effective_x3)
+                    and str(whole_run_exit.get("status") or "").upper() == "PASS"
+                ):
+                    result = (
+                        dataclasses.replace(result, fault="", x3_disposition=effective_x3)
+                        if dataclasses.is_dataclass(result)
+                        else result
+                    )
+                    from apps_rg.runtime.final_resume_outputs import emit_final_resume_product_outputs
+                    from apps_rg.runtime.orchestration.patch_product_closeout import (
+                        refresh_root_spine_bundle_after_patch as _r,
+                    )
+
+                    _r(art, x3_disposition=effective_x3)
+                    emit_final_resume_product_outputs(art, repo_root=repo, required=True)
                     final_resume_outputs_pre_emitted = True
-                    from apps_rg.runtime.orchestration.patch_product_closeout import refresh_root_spine_bundle_after_patch as _r
-                    _r(art, x3_disposition=effective_x3); emit_core_runtime_authority(art)
-                    whole_run_exit = emit_whole_run_exit_review_packet(artifact_dir=art, identity=whole_run_exit_identity)
+                    stage_ledger.record(
+                        stage_id="L2",
+                        status="PASS",
+                        output_refs={"terminal_ret_packet": "terminal_ret_packet.json"},
+                    )
+                    stage_ledger.record(
+                        stage_id="X1",
+                        status="PASS",
+                        output_refs={"exit_review_packet": "exit_review_packet.json"},
+                    )
+                    stage_ledger.record(
+                        stage_id="X2",
+                        status="PASS",
+                        reason_code="EXIT_X2_AGGREGATED",
+                        output_refs={"runtime_execution_witness": "runtime_execution_witness.json"},
+                    )
+                    stage_ledger.record(
+                        stage_id="X3",
+                        status="PASS",
+                        reason_code=str(effective_x3),
+                        output_refs={"x3_disposition_receipt": "x3_disposition_receipt.json"},
+                    )
+                    stage_ledger.record(
+                        stage_id="CANDIDATE",
+                        status="PASS",
+                        output_refs={"apps_rg_output_manifest": "apps_rg_output_manifest.json"},
+                    )
+                    if is_integrated_whole_run_artifact_dir(art):
+                        try:
+                            from apps_rg.runtime.full_run_section_status import emit_full_run_section_status
+
+                            status_emit = emit_full_run_section_status(art, repo_root=repo, print_stdout=False)
+                            section_status_md = str(status_emit["markdown_path"])
+                        except OSError:
+                            pass
+                    emit_core_runtime_authority(art)
+                    whole_run_exit = emit_whole_run_exit_review_packet(
+                        artifact_dir=art,
+                        identity=whole_run_exit_identity,
+                    )
         except Exception:  # guardian: allow-broad-exception -- recovery failure must fail closed to original exit
             pass
     pre_uwg_eligible = (

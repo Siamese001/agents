@@ -106,6 +106,74 @@ class ResumeRunRecoveryAgent:
         directives = self._call_strategy_re_planner(diagnostic_findings)
         return directives
 
+    def _load_assembly_coherence_failures(self) -> tuple[set[str], dict[str, str]]:
+        """Inspect final_resume_assembly X2 and 12th-stage coherence judge outputs for implicated lanes."""
+        from apps_rg.runtime.internal.generated_lane_rollup import GENERATED_LANES
+
+        implicated: set[str] = set()
+        notes: dict[str, str] = {}
+        asm_dir = self.artifact_dir / "modular_r4" / "final_resume_assembly"
+        if not asm_dir.is_dir():
+            return implicated, notes
+
+        x2_path = asm_dir / "final_resume_x2_gate_outputs.json"
+        if x2_path.is_file():
+            try:
+                x2_doc = json.loads(x2_path.read_text(encoding="utf-8"))
+                gates = x2_doc.get("gates") if isinstance(x2_doc, Mapping) else x2_doc
+                for g in gates if isinstance(gates, list) else []:
+                    if not isinstance(g, Mapping) or bool(g.get("pass", True)):
+                        continue
+                    gid = str(g.get("gate_id") or "")
+                    reason = str(g.get("failure_reason") or gid)
+                    matched = [ln for ln in GENERATED_LANES if ln in gid or ln in reason]
+                    for ln in matched:
+                        implicated.add(ln)
+                        notes[ln] = f"Failed cross-section X2 gate {gid}: {reason[:160]}"
+            except (OSError, json.JSONDecodeError, TypeError, ValueError):
+                pass
+
+        coh_path = asm_dir / "x1d_full_resume_judge_outputs.json"
+        if coh_path.is_file():
+            try:
+                coh_doc = json.loads(coh_path.read_text(encoding="utf-8"))
+                if isinstance(coh_doc, Mapping) and coh_doc.get("full_resume_coherence_pass") is False:
+                    judges = coh_doc.get("judges") if isinstance(coh_doc.get("judges"), list) else []
+                    findings = [
+                        str(f)
+                        for j in judges
+                        if isinstance(j, Mapping) and not bool(j.get("pass", True))
+                        for f in (j.get("findings") or [])
+                    ]
+                    blob = " ".join(findings).lower()
+                    emp_aliases = {
+                        "executive_summary": ("executive summary", "executive_summary", "summary"),
+                        "headline": ("headline",),
+                        "competencies": ("competencies", "core competencies"),
+                        "slalom_narrative": ("slalom narrative", "slalom_narrative"),
+                        "slalom_bullets": ("slalom bullet", "slalom_bullets"),
+                        "unify_narrative": ("unify narrative", "unify_narrative"),
+                        "unify_bullets": ("unify bullet", "unify_bullets"),
+                        "ibm_narrative": ("ibm narrative", "ibm_narrative"),
+                        "ibm_bullets": ("ibm bullet", "ibm_bullets"),
+                        "insurtech_narrative": ("insurtech narrative", "insurtech_narrative"),
+                        "insurtech_bullets": ("insurtech bullet", "insurtech_bullets"),
+                    }
+                    coh_matched = [
+                        ln
+                        for ln, toks in emp_aliases.items()
+                        if any(tok in blob for tok in toks)
+                    ]
+                    if not coh_matched:
+                        coh_matched = ["executive_summary"]
+                    critique = "; ".join(findings[:4]) or "12th-stage full_resume_llm_coherence failed"
+                    for ln in coh_matched:
+                        implicated.add(ln)
+                        notes.setdefault(ln, f"12th-stage coherence critique: {critique[:200]}")
+            except (OSError, json.JSONDecodeError, TypeError, ValueError):
+                pass
+        return implicated, notes
+
     def _call_diagnostic_agent(self, lanes: list[str], exit_data: dict[str, Any]) -> dict[str, Any]:
         """Execute Agent A: Forensic Diagnostic over whole-run exit signals and lane rows."""
         signals = exit_data.get("signals") if isinstance(exit_data.get("signals"), Mapping) else {}
@@ -115,6 +183,7 @@ class ResumeRunRecoveryAgent:
             for r in lane_rows
             if isinstance(r, Mapping) and str(r.get("lane") or "").strip()
         }
+        _asm_lanes, asm_notes = self._load_assembly_coherence_failures()
         failing_diagnostics: dict[str, str] = {}
         root_causes: set[str] = set()
         for lane in lanes:
@@ -124,6 +193,9 @@ class ResumeRunRecoveryAgent:
             if x2_failed > 0:
                 failing_diagnostics[lane] = f"Failed X2 deterministic gate ({x2_failed} violations)"
                 root_causes.add("X2_SHAPE_OR_GROUNDING_VIOLATION")
+            elif lane in asm_notes:
+                failing_diagnostics[lane] = asm_notes[lane]
+                root_causes.add("WHOLE_RESUME_COHERENCE_OR_CROSS_SECTION_VIOLATION")
             else:
                 failing_diagnostics[lane] = f"Non-authorizing X3 disposition ({x3_code})"
                 root_causes.add("EVIDENCE_DEFICIT")
@@ -209,6 +281,12 @@ class ResumeRunRecoveryAgent:
 
         if exec_summary_block and bool(exec_summary_block.get("blocked")):
             failing.add("executive_summary")
+
+        exit_x3 = str(whole_run_exit.get("x3_disposition") or "").strip()
+        exit_status = str(whole_run_exit.get("status") or "").strip().upper()
+        if (exit_x3 and exit_x3 not in AUTHORIZING_X3_CODES) or (exit_status and exit_status != "PASS"):
+            asm_lanes, _ = self._load_assembly_coherence_failures()
+            failing.update(asm_lanes)
 
         # Canonical ordering
         from apps_rg.runtime.internal.generated_lane_rollup import GENERATED_LANES
@@ -297,6 +375,9 @@ class ResumeRunRecoveryAgent:
             details["rca_diagnostic_loop"] = recovery_directives
 
             target_failing = failing_lanes
+            asm_forced_lanes, _ = self._load_assembly_coherence_failures()
+            if exec_summary_blocked:
+                asm_forced_lanes.add("executive_summary")
             try:
                 from apps_rg.runtime.orchestration.patch_run import classify_all_lane_states
                 from apps_rg.runtime.runtime_proof_layout import find_repo_root
@@ -305,7 +386,7 @@ class ResumeRunRecoveryAgent:
                 lane_states = classify_all_lane_states(repo, self.artifact_dir)
                 target_failing = [
                     lane for lane in failing_lanes
-                    if not bool(lane_states.get(lane, {}).get("authorized"))
+                    if lane in asm_forced_lanes or not bool(lane_states.get(lane, {}).get("authorized"))
                 ]
             except (OSError, ValueError, TypeError, KeyError, RuntimeError):
                 pass

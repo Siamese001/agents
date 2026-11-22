@@ -216,17 +216,33 @@ _TARGETING_ONLY_EXPERIENCE_MARKERS: tuple[tuple[str, re.Pattern[str]], ...] = (
 )
 
 
-def _targeting_only_experience_hits(text: str) -> list[str]:
-    return [
+def _targeting_only_experience_hits(text: str, *, target_company: str = "") -> list[str]:
+    s = str(text or "")
+    hits = [
         label
         for label, pattern in _TARGETING_ONLY_EXPERIENCE_MARKERS
-        if pattern.search(str(text or ""))
+        if pattern.search(s)
     ]
+    tc = str(target_company or "").strip()
+    if tc and len(tc) >= 3 and "target_company_name" not in hits:
+        tc_head = tc.split()[0].strip(",.")
+        for cand in {tc, tc_head}:
+            if len(cand) >= 3 and re.search(rf"\b(?:for|at|to)\s+{re.escape(cand)}\b", s, re.IGNORECASE):
+                hits.append("target_company_name")
+                break
+    return hits
 
 
-def _strip_targeting_only_experience_claims(text: str) -> tuple[str, list[str]]:
-    """Remove JD/briefing-only tail claims without inventing replacement proof."""
+def _strip_targeting_only_experience_claims(
+    text: str,
+    *,
+    target_company: str = "",
+    allow_prose_mutation: bool = True,
+) -> tuple[str, list[str]]:
+    """Remove JD/briefing-only tail claims when allow_prose_mutation=True; detect-only on REAL_LLM."""
     original = str(text or "")
+    if not allow_prose_mutation:
+        return original, _targeting_only_experience_hits(original, target_company=target_company)
     cleaned = original
     for pattern in _TARGETING_ONLY_TAIL_REPAIRS:
         cleaned = pattern.sub("", cleaned)
@@ -239,11 +255,14 @@ def _strip_targeting_only_experience_claims(text: str) -> tuple[str, list[str]]:
     cleaned = re.sub(r"\s+([.,;:])", r"\1", cleaned).strip(" ,;:")
     if cleaned != original and cleaned:
         cleaned = _bullet_sentence(cleaned)
-    return (cleaned or original), _targeting_only_experience_hits(cleaned or original)
+    return (cleaned or original), _targeting_only_experience_hits(cleaned or original, target_company=target_company)
 
 
-def _narrative_from_parsed(parsed: dict[str, Any]) -> str:
+def _narrative_from_parsed(parsed: dict[str, Any], *, allow_prose_mutation: bool = True) -> str:
     text = parsed.get("narrative_sentence") if isinstance(parsed, dict) else None
-    cleaned, _hits = _strip_targeting_only_experience_claims(str(text or ""))
+    cleaned, _hits = _strip_targeting_only_experience_claims(
+        str(text or ""),
+        allow_prose_mutation=allow_prose_mutation,
+    )
     return _sentence(cleaned)
 

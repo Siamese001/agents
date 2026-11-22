@@ -630,15 +630,67 @@ def repair_section_with_executive_voice_agent(
 
     elif sec == "competencies":
         comps_in = list(candidate_data.get("competencies") or [])
-        has_structured_terms = any(isinstance(t, dict) for c in comps_in if isinstance(c, dict) for t in (c.get("terms") or []))
-        if has_structured_terms:
-            updated_data, ok, mech = _mock_repair(sec, candidate_data, diagnostic)
-        else:
-            prompt = _build_competencies_repair_prompt(comps_in, diagnostic, allowed_facts, targeting_context)
-            resp = _call_llm_repair(sec, prompt, model=DEFAULT_REPAIR_MODEL)
-            if resp and isinstance(resp.get("repaired_competencies"), list) and 6 <= len(resp["repaired_competencies"]) <= 8:
-                updated_data["competencies"] = resp["repaired_competencies"]
+        prompt = _build_competencies_repair_prompt(comps_in, diagnostic, allowed_facts, targeting_context)
+        resp = _call_llm_repair(sec, prompt, model=DEFAULT_REPAIR_MODEL)
+        repaired_list = resp.get("repaired_competencies") if isinstance(resp, dict) else None
+        if isinstance(repaired_list, list) and 6 <= len(repaired_list) <= 8:
+            has_structured_terms = any(
+                isinstance(t, dict)
+                for c in comps_in
+                if isinstance(c, dict)
+                for t in (c.get("terms") or [])
+            )
+            if has_structured_terms and len(repaired_list) == len(comps_in):
+                merged_comps: list[dict[str, Any]] = []
+                for orig_cat, rep_cat in zip(comps_in, repaired_list, strict=True):
+                    if not isinstance(orig_cat, dict) or not isinstance(rep_cat, dict):
+                        merged_comps = []
+                        break
+                    cat_label = (
+                        str(rep_cat.get("category") or rep_cat.get("category_label") or orig_cat.get("category_label") or orig_cat.get("category") or "")
+                        .replace("—", ":")
+                        .strip()
+                    )
+                    new_skills = [
+                        str(s.get("term") or s.get("text") if isinstance(s, dict) else s).replace("—", ":").strip()
+                        for s in (rep_cat.get("skills") or rep_cat.get("terms") or [])
+                        if str(s.get("term") or s.get("text") if isinstance(s, dict) else s).strip()
+                    ]
+                    orig_terms = [t for t in (orig_cat.get("terms") or []) if isinstance(t, dict)]
+                    cat_fact_ids: list[str] = []
+                    for ot in orig_terms:
+                        for fid in ot.get("source_fact_ids") or []:
+                            sf = str(fid).strip()
+                            if sf and sf not in cat_fact_ids:
+                                cat_fact_ids.append(sf)
+                    if not new_skills or not cat_fact_ids:
+                        merged_comps = []
+                        break
+                    rebuilt_terms: list[dict[str, Any]] = []
+                    for idx_t, skill_str in enumerate(new_skills[:4]):
+                        template_t = dict(orig_terms[idx_t]) if idx_t < len(orig_terms) else {"source_fact_ids": list(cat_fact_ids[:2])}
+                        template_t["term"] = skill_str
+                        if "text" in template_t:
+                            template_t["text"] = skill_str
+                        if not template_t.get("source_fact_ids"):
+                            template_t["source_fact_ids"] = list(cat_fact_ids[:2])
+                        rebuilt_terms.append(template_t)
+                    updated_cat = dict(orig_cat)
+                    updated_cat["category"] = cat_label
+                    updated_cat["category_label"] = cat_label
+                    if "resume_display_label" in updated_cat:
+                        updated_cat["resume_display_label"] = cat_label
+                    updated_cat["terms"] = rebuilt_terms
+                    updated_cat["skills"] = [t["term"] for t in rebuilt_terms]
+                    merged_comps.append(updated_cat)
+                if merged_comps:
+                    updated_data["competencies"] = merged_comps
+                    ok = True
+                    mech = "llm_repair_agent"
+            elif not has_structured_terms:
+                updated_data["competencies"] = repaired_list
                 ok = True
+                mech = "llm_repair_agent"
 
     if not ok:
         if mock_mode or is_test:

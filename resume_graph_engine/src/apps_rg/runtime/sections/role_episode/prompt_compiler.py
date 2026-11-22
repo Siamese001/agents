@@ -105,7 +105,7 @@ def _compiled_prompt(cfg: RoleEpisodeLaneConfig, runtime_payload: dict[str, Any]
         "Do NOT repeat numeric metrics from the companion bullets (e.g. 105, 100%) and do NOT list bullet phrases in a comma-packed inventory. "
         "Do NOT use targeting buzzwords like 'frontier AI' as an experience claim (use 'enterprise AI' or 'next-generation AI'). "
         "Synthesize the delivered value and business outcome by connecting the candidate's bound graph capabilities to the target JD's strategic priorities, "
-        "keeping pairwise cosine similarity against every companion bullet low (<= 0.28)."
+        "keeping pairwise cosine similarity against every companion bullet low (<= 0.35)."
     )
 
     companion_text = str(runtime_payload.get("companion_bullet_texts") or "").strip()
@@ -140,7 +140,7 @@ def _compiled_prompt(cfg: RoleEpisodeLaneConfig, runtime_payload: dict[str, Any]
             else "Use JD_TEXT, BRIEFING, GRAPH_SKILL_EVIDENCE, and ACCEPTED_COMPANION_BULLETS to synthesize "
             "one value-outcome-oriented executive sentence grounded in the candidate's allowed graph bundles: state concretely what was built, commercialized, or delivered and what business or operational outcome it drove (never generic practice-leadership-only phrasing). Do NOT copy verbatim "
             "fact claim_text lists or companion bullet metrics; retain graph anchor vocabulary across cited "
-            "source_fact_ids while keeping pairwise cosine similarity against each companion bullet <= 0.28. "
+            "source_fact_ids while keeping pairwise cosine similarity against each companion bullet <= 0.35. "
             "targeting_only=true; jd_used_as_proof=false."
         )
         return "\n".join([b for b in [f"Section: {cfg.section_id}", role_methodology, instruction, jd_block, evidence_block, companion_block, shape, "Allowed facts (claim proof — source_fact_ids must cite only these):", *fact_lines] if b])

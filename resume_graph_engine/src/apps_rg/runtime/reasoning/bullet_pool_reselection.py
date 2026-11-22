@@ -905,6 +905,222 @@ def run_bullet_judge_reselection(
     )
 
 
+def run_bullet_judge_llm_rewrite(
+    *,
+    artifact_dir: Path,
+    section_id: str,
+    run_id: str,
+    provider_name: str,
+    provider_payload: dict[str, Any],
+    base_messages: list[dict[str, str]],
+    prior_raw_output: str,
+    required_bullet_ids: tuple[str, ...],
+    parsed: dict[str, Any] | None,
+    bullets: list[dict[str, Any]],
+    claim_ledger: list[dict[str, Any]],
+    parsed_for_x2: dict[str, Any] | None,
+    x1d: list[dict[str, Any]],
+    x2: list[dict[str, Any]],
+    usage_doc: dict[str, Any],
+    canon_doc: dict[str, Any],
+    runtime_generation_status: str,
+    judge_mode: str,
+    parse_json_fn: Callable[[str], tuple[dict[str, Any] | None, str]],
+    post_chain: Callable[[dict[str, Any]], dict[str, Any]],
+    rebuild_state: Callable[[dict[str, Any]], LaneRebuildState],
+    run_x2: Callable[[LaneRebuildState, list[dict[str, Any]]], list[dict[str, Any]]],
+    run_judges: Callable[[LaneRebuildState, list[str]], list[dict[str, Any]]],
+    write_usage_ledger: Callable[[LaneRebuildState], None],
+    write_lane_artifacts: Callable[[LaneRebuildState, list[dict[str, Any]]], None],
+) -> tuple[ReselectionResult, str]:
+    """Bounded 1-attempt fresh-turn LLM rewrite when X2 or proof X1D judges remain failing on REAL_LLM."""
+    artifact_dir = Path(artifact_dir)
+    receipt_path = artifact_dir / f"{section_id}_judge_rewrite_receipt.json"
+    x2_failed = [g for g in x2 if not g.get("pass", True)]
+    proof_failing_rows = [
+        j for j in x1d if not j.get("advisory_only") and not _is_synthetic_selector_row(j) and not bool(j.get("pass", True))
+    ]
+    if (
+        runtime_generation_status != "REAL_LLM"
+        or judge_mode == "mocked"
+        or (not x2_failed and not proof_failing_rows)
+    ):
+        noop_res = ReselectionResult(
+            fired=False,
+            outcome=OUTCOME_NOT_FIRED,
+            receipt={},
+            parsed=parsed,
+            bullets=bullets,
+            claim_ledger=claim_ledger,
+            parsed_for_x2=parsed_for_x2,
+            x2=x2,
+            x1d=x1d,
+            usage_doc=usage_doc,
+            canon_doc=canon_doc,
+            display_text=None,
+            receipt_written=False,
+        )
+        return noop_res, prior_raw_output
+
+    from apps_rg.runtime.providers.section_provider_call import call_section_model_provider
+    from apps_rg.runtime.section_repair_ledger import KIND_REGEN_LLM, load_ledger, set_authoritative_attempt
+    from apps_rg.runtime.sections.section_generation import tag_reasoning_lane
+
+    x2_msgs = [
+        f"{g.get('gate_id')}: {g.get('failure_reason') or g.get('observed_value')}"
+        for g in x2_failed
+    ]
+    x1d_msgs = [
+        f"{j.get('provider_key')}(score={j.get('score')}): {f}"
+        for j in proof_failing_rows
+        for f in (j.get("findings") or [])
+    ]
+    critique = "; ".join((x2_msgs + x1d_msgs)[:6]) or (
+        f"Tighten action-to-mechanism-to-outcome specificity grounded strictly in assigned {section_id} slot facts."
+    )
+    rewrite_msgs = [
+        *list(base_messages),
+        {"role": "assistant", "content": str(prior_raw_output or "")},
+        {
+            "role": "user",
+            "content": (
+                f"X1D_JUDGE_REVISION: validation/judge review rejected the {section_id} draft: [{critique}]. "
+                f"Rewrite all {len(required_bullet_ids)} required bullet slots ({', '.join(required_bullet_ids)}) "
+                "using ONLY their assigned ALLOWED_SOURCE_FACT_IDS and verified slot metrics, keeping pairwise "
+                "within-section cosine <= 0.35 and zero generic consulting phrases. Return one compact JSON object only."
+            ),
+        },
+    ]
+    rw_res = call_section_model_provider(
+        str(provider_name),
+        tag_reasoning_lane({**provider_payload, "messages": rewrite_msgs}, section_id),
+        artifact_dir=artifact_dir,
+        run_id=str(run_id),
+    )
+    rw_receipt: dict[str, Any] = {
+        "schema_version": f"{section_id}_judge_rewrite_receipt_v1",
+        "section_id": section_id,
+        "run_id": run_id,
+        "attempted": True,
+        "accepted": False,
+        "trigger": "x2_failure" if x2_failed else "x1d_judge_feedback",
+        "critique": critique,
+    }
+    usage_ledger_path = artifact_dir / "section_input_usage_ledger.json"
+    usage_snapshot = _snapshot_bytes(usage_ledger_path)
+    if rw_res.runtime_generation_status == "REAL_LLM":
+        cand_raw = str(rw_res.raw_model_output or "")
+        cand_in, _ = parse_json_fn(cand_raw)
+        if isinstance(cand_in, dict):
+            cand_parsed = post_chain(cand_in) or cand_in
+            cand_state = rebuild_state(cand_parsed)
+            write_usage_ledger(cand_state)
+            cand_x2 = run_x2(cand_state, x1d)
+            if not [g for g in cand_x2 if not g.get("pass", True)]:
+                policy = get_section_judge_policy(section_id)
+                req_keys = [
+                    str(j.get("provider_key") or "")
+                    for j in x1d
+                    if not j.get("advisory_only")
+                    and not _is_synthetic_selector_row(j)
+                    and str(j.get("provider_key") or "")
+                ] or list(policy.required_judge_providers or ())
+                cand_proof_x1d = [dict(r) for r in run_judges(cand_state, list(dict.fromkeys(req_keys)))]
+                advisory_rows = [
+                    j for j in x1d if j.get("advisory_only") or _is_synthetic_selector_row(j)
+                ]
+                cand_x1d = cand_proof_x1d + advisory_rows
+                old_proof = [
+                    j for j in x1d if not j.get("advisory_only") and not _is_synthetic_selector_row(j)
+                ]
+                old_rank = (
+                    sum(1 for j in old_proof if j.get("pass")),
+                    min((float(j.get("score") or 0.0) for j in old_proof), default=0.0),
+                )
+                new_rank = (
+                    sum(1 for j in cand_proof_x1d if j.get("pass")),
+                    min((float(j.get("score") or 0.0) for j in cand_proof_x1d), default=0.0),
+                )
+                rw_receipt["old_rank"] = list(old_rank)
+                rw_receipt["new_rank"] = list(new_rank)
+                new_all_pass = bool(cand_proof_x1d) and all(bool(j.get("pass")) for j in cand_proof_x1d)
+                if (bool(x2_failed) and new_all_pass) or new_rank > old_rank:
+                    write_lane_artifacts(cand_state, cand_x2)
+                    _write_json(
+                        artifact_dir / "x1d_llm_judge_outputs.json",
+                        {"judges": cand_x1d, "llm_rewrite_applied": True},
+                    )
+                    record_repair(
+                        artifact_dir,
+                        kind=KIND_REGEN_LLM,
+                        operation=f"{section_id}_judge_feedback_rewrite",
+                        reason=rw_receipt["trigger"],
+                        replaced_l2=True,
+                    )
+                    cur_led = load_ledger(artifact_dir) or {}
+                    next_att = max(
+                        2,
+                        1 + sum(
+                            1
+                            for r in (cur_led.get("repairs") or [])
+                            if isinstance(r, dict) and r.get("replaced_l2")
+                        ),
+                    )
+                    set_authoritative_attempt(
+                        artifact_dir,
+                        next_att,
+                        reason=f"{section_id}_judge_feedback_rewrite",
+                    )
+                    rw_receipt["accepted"] = True
+                    _write_json(receipt_path, rw_receipt)
+                    return (
+                        ReselectionResult(
+                            fired=True,
+                            outcome=OUTCOME_REJUDGE_PASS if new_all_pass else OUTCOME_REJUDGE_FAIL_FINAL,
+                            receipt=rw_receipt,
+                            parsed=cand_state.parsed,
+                            bullets=cand_state.bullets,
+                            claim_ledger=cand_state.claim_ledger,
+                            parsed_for_x2=cand_state.parsed_for_x2,
+                            x2=cand_x2,
+                            x1d=cand_x1d,
+                            usage_doc=cand_state.usage_doc,
+                            canon_doc=cand_state.canon_doc,
+                            display_text=cand_state.display_text,
+                            receipt_written=True,
+                        ),
+                        cand_raw,
+                    )
+                _restore_bytes(usage_ledger_path, usage_snapshot)
+                rw_receipt["rejected_reason"] = "rejudge_not_improved"
+            else:
+                _restore_bytes(usage_ledger_path, usage_snapshot)
+                rw_receipt["rejected_reason"] = "x2_failed_after_rewrite"
+        else:
+            rw_receipt["rejected_reason"] = "parse_failed"
+    else:
+        rw_receipt["rejected_reason"] = f"provider_not_real_llm:{rw_res.runtime_generation_status}"
+    _write_json(receipt_path, rw_receipt)
+    return (
+        ReselectionResult(
+            fired=False,
+            outcome=OUTCOME_REJUDGE_FAIL_FINAL,
+            receipt=rw_receipt,
+            parsed=parsed,
+            bullets=bullets,
+            claim_ledger=claim_ledger,
+            parsed_for_x2=parsed_for_x2,
+            x2=x2,
+            x1d=x1d,
+            usage_doc=usage_doc,
+            canon_doc=canon_doc,
+            display_text=None,
+            receipt_written=True,
+        ),
+        prior_raw_output,
+    )
+
+
 __all__ = [
     "LaneRebuildState",
     "OUTCOME_DISABLED",
@@ -933,5 +1149,6 @@ __all__ = [
     "apply_reselection",
     "build_reselection_plan",
     "load_pool_alternates",
+    "run_bullet_judge_llm_rewrite",
     "run_bullet_judge_reselection",
 ]

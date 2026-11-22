@@ -221,15 +221,18 @@ def call_ide_cli_generation(
     cli_slug = resolve_ide_cli_generation_slug(requested_model)
     effort_raw = str(request.get("reasoning_effort") or "").strip().lower()
     effort = effort_raw if effort_raw in {"low", "medium", "high", "xhigh"} else None
+    approved_models = ide_cli_generation_models()
     if downgrade_high_effort and cli_slug.endswith("-high"):
         cli_slug = cli_slug[:-5] + "-medium"
     elif effort in {"low", "medium"} and cli_slug.endswith("-high"):
-        stepped_slug = cli_slug[:-5] + f"-{effort}"
-        if stepped_slug in ide_cli_generation_models():
+        base_prefix = cli_slug[:-5]
+        stepped_slug = f"{base_prefix}-{effort}"
+        if stepped_slug in approved_models or any(m.startswith(base_prefix + "-") for m in approved_models):
             cli_slug = stepped_slug
     elif effort == "low" and cli_slug.endswith("-medium"):
-        stepped_slug = cli_slug[:-7] + "-low"
-        if stepped_slug in ide_cli_generation_models():
+        base_prefix = cli_slug[:-7]
+        stepped_slug = f"{base_prefix}-low"
+        if stepped_slug in approved_models or any(m.startswith(base_prefix + "-") for m in approved_models):
             cli_slug = stepped_slug
     prompt = build_ide_cli_generation_prompt(
         system=body.get("system"),
