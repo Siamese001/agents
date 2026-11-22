@@ -362,7 +362,7 @@ def run_competencies_lane_execution(
         provider_requested=str(args.provider),
         compiled_prompt_artifact=section_compiled.artifact,
         anthropic_workload_kind="SELF_CONSISTENCY",
-        reasoning_effort=getattr(args, "reasoning_effort", None),
+        reasoning_effort=getattr(args, "reasoning_effort", None) or "low",
         force_new_seed=bool(getattr(args, "force_new_seed", False)),
     )
     provider_request_data = provider_req.to_dict()
@@ -1227,6 +1227,13 @@ def run_competencies_lane_execution(
         if not g.get("pass")
         and str(g.get("gate_id") or "") not in {"x2_x1d_required_judges_present", "x2_x1d_schema_valid"}
     ]
+    if (
+        isinstance(parsed, dict)
+        and isinstance(parsed.get("competencies_allocation_claim_reconciliation"), dict)
+        and parsed["competencies_allocation_claim_reconciliation"].get("pass") is False
+        and "x2_resume_graph_claim_binding" not in pre_x2_failed
+    ):
+        pre_x2_failed.append("x2_resume_graph_claim_binding")
 
     if (
         pre_x2_failed
@@ -1330,6 +1337,12 @@ def run_competencies_lane_execution(
                 if not g.get("pass")
                 and str(g.get("gate_id") or "") not in {"x2_x1d_required_judges_present", "x2_x1d_schema_valid"}
             ]
+            if (
+                isinstance(c_alloc_rec, dict)
+                and c_alloc_rec.get("pass") is False
+                and "x2_resume_graph_claim_binding" not in c_pre_failed
+            ):
+                c_pre_failed.append("x2_resume_graph_claim_binding")
             if not c_pre_failed:
                 _pre_fail_reason = "; ".join(pre_x2_failed)[:160] or "pre_x2_failed"
                 _commit_comp_candidate(

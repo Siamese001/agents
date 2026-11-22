@@ -246,7 +246,7 @@ def build_competencies_assembly_input(
     alloc_block = ""
     if alloc_rows:
         alloc_lines = [
-            "\nMANDATORY_ALLOCATED_GRAPH_SKILLS (every row below MUST be represented by at least one 5-7 word noun-phrase term citing its exact fact_id and incorporating its skill keywords; also ensure NO non-stopword repeats >3 times across all terms):"
+            "\nMANDATORY_ALLOCATED_GRAPH_SKILLS (HARD X2 GATE x2_resume_graph_claim_binding — emit ALL 8 required competency_bundle_id categories, and for EVERY row below, include one 5-7 word capability noun phrase carrying the EXACT \"allocation_claim_unit_id\", \"source_skill_ids\", and \"source_fact_id\" shown below; also ensure NO non-stopword repeats >3 times across the entire section):"
         ]
         for arow in alloc_rows:
             if not isinstance(arow, dict):
@@ -256,7 +256,9 @@ def build_competencies_assembly_input(
             fid = str(arow.get("fact_id") or "").strip()
             kw_hint = skid.replace("skill:", "").replace("skill_", "").replace(":", " ").replace("_", " ").strip()
             if cuid or skid:
-                alloc_lines.append(f"- {cuid}: skill_id={skid} (keywords: {kw_hint}) -> cite source_fact_id=\"{fid}\"")
+                alloc_lines.append(
+                    f'- allocation_claim_unit_id="{cuid}", source_skill_ids=["{skid}"], source_fact_id="{fid}" (concept: {kw_hint})'
+                )
         if len(alloc_lines) > 1:
             alloc_block = "\n".join(alloc_lines) + "\n"
 
@@ -306,8 +308,10 @@ def build_competencies_assembly_input(
         "  - terms: array of EXACTLY 3 to 6 entries (MINIMUM 3 per category — a category with "
         "fewer than 3 terms fails the deterministic min-items gate and BLOCKS the section); "
         "EACH entry MUST be an object with keys "
-        "\"text\" (compact phrase), \"source_fact_id\" (single bul_* primary), "
-        "\"source_fact_ids\" (non-empty bul_* array including the primary), "
+        "\"text\" (compact phrase), \"source_fact_id\" (single bul_* or fact_* primary), "
+        "\"source_fact_ids\" (non-empty array including the primary), "
+        "optional \"source_skill_ids\" (array of graph skill_* ids), "
+        "optional \"allocation_claim_unit_id\" (EXACT \"competencies:skill:NN\" id when fulfilling a row in MANDATORY_ALLOCATED_GRAPH_SKILLS), "
         "optional \"jd_signal_ids\" (ranking only).\n"
         "    Phrasing: prefer 5-7 word executive noun phrases with specific mechanisms; "
         "shorter terms are allowed only for resume-grounded technical names, "
