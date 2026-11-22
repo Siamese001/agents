@@ -351,8 +351,8 @@ def execute_headline_judges_with_final_display_gate(
     hl_targeting_context = {
         "target_title": target_title,
         "target_company": target_company,
-        "jd_text": str(runtime_payload.get("jd_text") or ""),
-        "briefing": str(runtime_payload.get("briefing") or ""),
+        "jd_text": str(runtime_payload.get("jd_text") or "").strip()[:1500],
+        "briefing": str(runtime_payload.get("briefing") or "").strip()[:800],
         "targeting_only": True,
     }
     x1d = [

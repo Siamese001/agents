@@ -149,6 +149,8 @@ def _resolve_ide_cli_judge(
         caps = try_model_capabilities(model_id)
         if caps is None:
             raise ModelCapabilityError(f"MODEL_CAPABILITY_NOT_REGISTERED: {model_id}")
+        if provider_key != "gemini_pro" and "low" in (caps.reasoning_efforts or ()):
+            effort = "low"
         assert_model_request_capabilities(
             model_id,
             provider=caps.provider,

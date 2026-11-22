@@ -144,7 +144,7 @@ def generate_executive_summary_v2_turn(
     prov_req, req_payload = build_section_request(
         messages=messages, prompt_hash=prompt_hash, input_payload_hash=input_payload_hash, temperature=bounded_temp,
         max_tokens=resolve_scratch_max_output_tokens(), model=section_model, provider_requested=str(provider_name),
-        temperature_bounds=EXEC_SUMMARY_TEMP_RANGE, reasoning_effort=reasoning_effort or None, force_new_seed=force_new_seed,
+        temperature_bounds=EXEC_SUMMARY_TEMP_RANGE, reasoning_effort=reasoning_effort or "low", force_new_seed=force_new_seed,
     )
     prov_res = generate_section(tag_reasoning_lane(req_payload, LANE_KEY), artifact_dir=artifact_dir, run_id=run_id, provider_profile=str(provider_name))
     raw_out, status = str(prov_res.raw_model_output or ""), str(prov_res.runtime_generation_status or "BLOCKED")

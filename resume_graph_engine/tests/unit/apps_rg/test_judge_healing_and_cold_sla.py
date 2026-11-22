@@ -393,8 +393,10 @@ def test_ide_cli_effort_forwarding_and_low_effort_slug_stepping(
     )
     assert out.pass_ is True
     assert judge_calls[0]["effort"] == "low"
+    assert judge_calls[0]["model"] == "gemini-3.8-flash-low"
     req_file = next(p for p in tmp_path.iterdir() if "provider_request" in p.name)
     assert json.loads(req_file.read_text(encoding="utf-8"))["reasoning_effort"] == "low"
+    assert json.loads(req_file.read_text(encoding="utf-8"))["resolved_model"] == "gemini-3.8-flash-low"
 
     # 2. Generation low-effort sibling stepping (gemini-4-neon-medium -> gemini-4-neon-low without mutating YAML)
     gen_calls: list[dict[str, Any]] = []
@@ -3333,6 +3335,72 @@ def test_competencies_evra_active_allocation_accept_persists_receipts_and_reject
     assert rej_voice["rejected_reason"] == "rejudge_not_improved"
     for fname, before_bytes in snap_bytes.items():
         assert (rej_dir / fname).read_bytes() == before_bytes
+
+
+def test_competencies_frozen_single_path_with_governed_baseline_skips_llm_selector(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from apps_rg.runtime.judges.bullet_pool_claude_selector import REQUIRED_COMPETENCY_BUNDLE_BY_FAMILY
+    from apps_rg.runtime.judges.section_judge_profile import resolve_section_proof_judge_model
+
+    req_bundles = list(REQUIRED_COMPETENCY_BUNDLE_BY_FAMILY.values())
+    cats = [
+        {
+            "category_label": f"Governance Domain {idx}",
+            "competency_bundle_id": bid,
+            "terms": [{"term": "agentic ai platform governance", "source_fact_ids": ["bul_unify_001"]}],
+        }
+        for idx, bid in enumerate(req_bundles, 1)
+    ]
+    baseline_cats = [{**c, "candidate_origin": "governed_required_bundle_baseline"} for c in cats]
+    real_path = SelfConsistencyPath(
+        path_index=0,
+        temperature=0.35,
+        runtime_generation_status="REAL_LLM",
+        raw_output=json.dumps({"competencies": cats}),
+        parsed={"competencies": cats, "categories": cats, "claim_ledger": []},
+        parse_error="",
+        provider_result=None,
+    )
+    gov_path = SelfConsistencyPath(
+        path_index=999,
+        temperature=0.0,
+        runtime_generation_status="GOVERNED_GRAPH_BASELINE",
+        raw_output="",
+        parsed={"competencies": baseline_cats, "categories": baseline_cats, "claim_ledger": []},
+        parse_error="",
+        provider_result=None,
+    )
+
+    def _boom(*_a: Any, **_k: Any) -> Any:
+        raise AssertionError("LLM selector must not run on frozen 1-path competencies + governed baseline")
+
+    monkeypatch.setattr("apps_rg.runtime.judges.bullet_pool_claude_selector._call_anthropic_pool_selector", _boom)
+    res = run_claude_bullet_pool_selection(
+        section_id="competencies",
+        slot_kind="competencies",
+        paths=[real_path, gov_path],
+        targeting_context={
+            "frozen_allocation_materialized": True,
+            "allowed_fact_ids": ["bul_unify_001"],
+            "resume_support_blob_lower": "agentic ai platform governance",
+        },
+        artifact_dir=tmp_path,
+        mode="blocked_if_unavailable",
+        min_score_threshold=0.5,
+    )
+    assert len(res.merged_parsed.get("competencies") or []) == len(req_bundles)
+    timing = json.loads((tmp_path / "bullet_pool_claude_selector_timing.json").read_text(encoding="utf-8"))
+    assert timing["passthrough"] is True
+    assert timing["candidate_paths"] == 1
+
+    monkeypatch.setenv("APPS_RG_JUDGE_TRANSPORT", "ide_cli")
+    monkeypatch.setattr(ide_judge, "ide_cli_unavailable_reason", lambda environ=None: "")
+    slot1 = resolve_section_proof_judge_model("executive_summary", "gemini_pro")
+    slot2 = resolve_section_proof_judge_model("executive_summary", "openai_chatgpt")
+    assert slot1.reasoning_effort == "high"
+    assert slot2.reasoning_effort == "low"
+
 
 
 

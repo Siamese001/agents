@@ -255,8 +255,8 @@ def build_headline_assembly_input(
 
     t_title = str(runtime_payload.get("target_title") or "")
     t_company = str(runtime_payload.get("target_company") or "")
-    jd = str(runtime_payload.get("jd_text") or "")
-    briefing = str(runtime_payload.get("briefing") or "")
+    jd = str(runtime_payload.get("jd_text") or "").strip()[:900]
+    briefing = str(runtime_payload.get("briefing") or "").strip()[:500]
 
     positioning_block = ""
     pp_meta = runtime_payload.get("proof_pool_metadata") if isinstance(runtime_payload.get("proof_pool_metadata"), dict) else {}

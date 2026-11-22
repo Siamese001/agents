@@ -436,6 +436,12 @@ class TestResumeRunRecoveryAgent(unittest.TestCase):
             "apps_rg.runtime.orchestration.patch_run.find_repo_root",
             return_value=repo,
         ), patch(
+            "apps_rg.runtime.runtime_boundary.configure_apps_rg_runtime_boundary",
+            return_value=object(),
+        ), patch(
+            "apps_rg.runtime.runtime_boundary.assert_apps_rg_runtime_boundary",
+            return_value=object(),
+        ), patch(
             "apps_rg.runtime.embedding_settings.bootstrap_apps_rg_embedding_env",
             return_value={},
         ), patch(

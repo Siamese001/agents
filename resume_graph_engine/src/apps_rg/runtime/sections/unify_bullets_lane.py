@@ -207,7 +207,7 @@ def run_unify_bullets_execution(
         provider_requested=str(args.provider),
         compiled_prompt_artifact=section_compiled.artifact,
         anthropic_workload_kind="SELF_CONSISTENCY",
-        reasoning_effort=getattr(args, "reasoning_effort", None),
+        reasoning_effort=getattr(args, "reasoning_effort", None) or "low",
         force_new_seed=bool(getattr(args, "force_new_seed", False)),
     )
     provider_payload = tag_reasoning_lane(provider_payload, LANE_KEY)

@@ -292,7 +292,26 @@ def test_bounded_loop_skips_judge_on_x2_fail_and_forwards_decisive_judge_feedbac
     assert all(judge_row_passes_4_7_human_bar(r) for r in outcome.final_x1d_rows)
 
 
-def test_contract_emitter_writes_all_15_required_lane_contract_artifacts(tmp_path: Path) -> None:
+def test_contract_emitter_writes_all_15_required_lane_contract_artifacts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import subprocess as _sp
+
+    local_chroma = REPO_ROOT / "resume_graph_engine" / "artifacts" / "apps_rg" / "cache" / "chromadb"
+    if not (local_chroma / "chroma.sqlite3").is_file():
+        proc = _sp.run(
+            ["git", "-C", str(REPO_ROOT), "rev-parse", "--git-common-dir"],
+            capture_output=True, text=True, check=False, shell=False, timeout=10,
+        )
+        if proc.returncode == 0 and proc.stdout.strip():
+            common_git = Path(proc.stdout.strip())
+            if not common_git.is_absolute():
+                common_git = (REPO_ROOT / common_git).resolve()
+            primary_chroma = common_git.parent / "resume_graph_engine" / "artifacts" / "apps_rg" / "cache" / "chromadb"
+            if (primary_chroma / "chroma.sqlite3").is_file():
+                local_chroma = primary_chroma
+    monkeypatch.setenv("CHROMA_PERSIST_DIR", str(local_chroma))
+
     contract = json.loads(LANE_CONTRACT_PATH.read_text(encoding="utf-8"))
     fmap = contract["artifact_role_filename_map"]
     required_files = [

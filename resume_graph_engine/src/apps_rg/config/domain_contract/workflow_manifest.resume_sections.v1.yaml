@@ -57,7 +57,7 @@ waves:
     description: graph-allocated independent sections (competencies, bullets, executive_summary, headline), parallel-eligible
     lanes: [competencies, slalom_bullets, unify_bullets, ibm_bullets, insurtech_bullets, executive_summary, headline]
     max_parallel_env: APPS_RG_PHASE1_MAX_PARALLEL
-    default_max_parallel: 6
+    default_max_parallel: 7
   - id: 1
     description: downstream narratives (after finalized companion bullets)
     lanes: [slalom_narrative, unify_narrative, ibm_narrative, insurtech_narrative]

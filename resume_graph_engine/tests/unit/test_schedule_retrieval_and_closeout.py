@@ -56,9 +56,9 @@ def test_three_stage_schedule_and_six_worker_cap(monkeypatch: pytest.MonkeyPatch
     waves = build_phase1_waves()
     assert len(waves) == 2, f"expected 2-stage schedule, got {len(waves)}: {waves}"
     assert waves[0].wave_id == 0
-    assert waves[0].max_parallel == 6
-    assert ModularResumeProfile().phase1_max_parallel == 6
-    assert resolve_max_parallel() == 6
+    assert waves[0].max_parallel == 7
+    assert ModularResumeProfile().phase1_max_parallel == 7
+    assert resolve_max_parallel() == 7
 
     assert set(waves[0].lanes) == {
         "competencies",
