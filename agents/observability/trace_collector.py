@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import threading
@@ -23,6 +24,8 @@ _SECRET_RE = re.compile(
 DEFAULT_TRACES_REL_PATH = Path("artifacts/learning/run_traces.jsonl")
 DEFAULT_CURSOR_REL_PATH = Path("artifacts/learning/run_traces_cursor.json")
 MAX_DEDUP_IDS = 1000
+
+logger = logging.getLogger(__name__)
 
 
 def scrub_pii_text(text: str) -> str:
@@ -142,8 +145,8 @@ class RunTraceCollector:
                     "line_number": int(data.get("line_number", 0)),
                     "recent_trace_ids": list(data.get("recent_trace_ids") or []),
                 }
-        except (OSError, ValueError, TypeError):
-            pass
+        except (OSError, ValueError, TypeError) as exc:
+            logger.warning("Resetting unreadable trace cursor at %s: %s", self.cursor_path, exc)
         return {"byte_offset": 0, "line_number": 0, "recent_trace_ids": []}
 
     def _save_cursor_atomic(self, cursor: dict[str, Any]) -> None:

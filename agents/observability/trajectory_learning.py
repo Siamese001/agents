@@ -9,6 +9,7 @@ for prompt grounding and few-shot reasoning.
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass, field
 import hashlib
 from pathlib import Path
@@ -22,6 +23,8 @@ from agents.persistence.ports import EventStore
 DEFAULT_TRAJECTORY_STORE_PATH = (
     resolve_primary_repo_root() / "artifacts" / "learning" / "trajectory_exemplars.json"
 )
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, slots=True)
@@ -74,7 +77,8 @@ class TrajectoryLearningEngine:
             return 0
         try:
             raw = json.loads(src.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
+        except (OSError, json.JSONDecodeError) as exc:
+            logger.warning("Failed to load trajectory exemplars from %s: %s", src, exc)
             return 0
         items = raw.get("exemplars", []) if isinstance(raw, dict) else []
         loaded = 0
