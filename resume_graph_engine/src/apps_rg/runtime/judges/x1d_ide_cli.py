@@ -150,6 +150,9 @@ def call_ide_cli_judge(
         "Return ONLY the JSON object that matches the required schema. Do not use any tools."
     )
     schema = response_schema or x.build_judge_response_schema()
+    norm_effort = str(reasoning_effort or "").strip().lower() or None
+    if norm_effort not in {"low", "medium", "high", "xhigh", "max"}:
+        norm_effort = None
     req_path = x._artifact_path(provider_key, "provider_request", artifact_base=artifact_base)
     x._write_artifact(
         req_path,
@@ -159,6 +162,7 @@ def call_ide_cli_judge(
             "section_id": sid,
             "resolved_model": model,
             "model_requested": model_requested or model,
+            "reasoning_effort": norm_effort,
             "attempt": attempt,
             "input_hash": input_hash,
             "prompt_chars": len(full_prompt),
@@ -170,7 +174,14 @@ def call_ide_cli_judge(
         },
     )
     try:
-        res = run_agy(full_prompt, model=model, json_schema=schema, timeout_s=_timeout_s(), agy_bin=agy_bin)
+        res = run_agy(
+            full_prompt,
+            model=model,
+            json_schema=schema,
+            effort=norm_effort,
+            timeout_s=_timeout_s(),
+            agy_bin=agy_bin,
+        )
     except AgyTransportError as exc:
         blocked = x._make_blocked_output(
             provider_key,

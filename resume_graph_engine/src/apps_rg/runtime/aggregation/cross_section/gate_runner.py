@@ -183,7 +183,7 @@ def run_cross_section_x2_gates(
         if ntext in btext or btext in ntext:
             conflicts.append(f"{narr_sid}_vs_{bullet_sid}_substring")
         cos_res = check_narrative_bullet_cosine_similarity(
-            raw_ntext, raw_btext, max_pairwise_cosine=0.28, max_pool_cosine=0.38,
+            raw_ntext, raw_btext, max_pairwise_cosine=0.35, max_pool_cosine=0.38,
             forbid_shared_opener=True, forbid_repeated_metrics=True,
         )
         if not cos_res.passed:

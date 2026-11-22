@@ -357,8 +357,11 @@ def call_section_model_provider(
     elif profile == ProviderProfile.EXTERNAL_OPENAI:
         openai_model = external_openai_generation_model(section_id=sid or None)
     requested_model = claude_model or openai_model
-    reasoning_effort = resolve_section_generation_effort(
-        sid or None, provider_profile=profile
+    payload_effort = str(provider_payload.get("reasoning_effort") or "").strip().lower()
+    reasoning_effort = (
+        payload_effort
+        if payload_effort in {"low", "medium", "high", "xhigh", "max"}
+        else resolve_section_generation_effort(sid or None, provider_profile=profile)
     )
     anthropic_payload, anthropic_cache_seed, anthropic_cache_strategy = _resolve_anthropic_cache_payload(
         provider_payload,

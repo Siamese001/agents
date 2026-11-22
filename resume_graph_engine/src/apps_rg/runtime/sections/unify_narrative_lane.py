@@ -472,7 +472,10 @@ def build_prompt_messages(
     ).artifact.messages
 
 
-def _ensure_unify_narrative_mechanism(narrative: str) -> str:
+def _ensure_unify_narrative_mechanism(narrative: str, *, allow_prose_mutation: bool = True) -> str:
+    """Offline fallback helper; disabled on REAL_LLM under INV-NO-POST-LLM-PROSE-MUTATORS."""
+    if not allow_prose_mutation:
+        return narrative
     from apps_rg.runtime.validators.narrative_quality_x2 import check_narrative_technical_specificity
     if check_narrative_technical_specificity(narrative).passed:
         return narrative
@@ -543,8 +546,10 @@ def normalize_unify_narrative_parsed(
     parsed: dict[str, Any] | None,
     runtime_payload: dict[str, Any],
     companion_text: str = "",
+    *,
+    allow_prose_mutation: bool = True,
 ) -> dict[str, Any] | None:  # guardian: allow-default-fallback -- P2 burndown: fail-soft optional boundary
-    """Normalize narrative + ledger IDs only — never fabricate claim_ledger from narrative or all bullet IDs."""
+    """Normalize narrative + ledger IDs; skip post-LLM prose mutation when allow_prose_mutation=False."""
     if not parsed:
         return parsed
     out = dict(parsed)
@@ -555,92 +560,79 @@ def normalize_unify_narrative_parsed(
     if narrative and not narrative.endswith((".", "!", "?")):
         narrative += "."
     out["narrative_sentence"] = narrative
-    metric_collapsed = _collapse_unify_narrative_metric_recap(narrative, companion_text)
-    if metric_collapsed != narrative:
-        out["narrative_sentence"] = metric_collapsed
-        ledger = out.get("claim_ledger")
-        if isinstance(ledger, list):
-            for entry in ledger:
-                if not isinstance(entry, dict):
-                    continue
-                claim_text = str(entry.get("claim_text") or "").strip()
-                if not claim_text or claim_text == narrative:
-                    entry["claim_text"] = metric_collapsed
-        out.setdefault("change_log", [])
-        if isinstance(out["change_log"], list):
-            out["change_log"].append(
-                {
-                    "operation": "companion_metric_budget_deterministic_trim",
-                    "reason": "companion_bullets_carry_full_unify_metric_bundle",
-                }
-            )
-        out.setdefault("self_check", {})
-        if isinstance(out["self_check"], dict):
-            out["self_check"]["companion_metric_budget_trimmed"] = True
-        narrative = metric_collapsed
-    companion_collapsed = _collapse_unify_narrative_companion_copy(narrative, companion_text)
-    if companion_collapsed != narrative:
-        old_narrative = narrative
-        out["narrative_sentence"] = companion_collapsed
-        ledger = out.get("claim_ledger")
-        if isinstance(ledger, list):
-            for entry in ledger:
-                if not isinstance(entry, dict):
-                    continue
-                claim_text = str(entry.get("claim_text") or "").strip()
-                if claim_text and claim_text == old_narrative:
-                    entry["claim_text"] = companion_collapsed
-        out.setdefault("change_log", [])
-        if isinstance(out["change_log"], list):
-            out["change_log"].append(
-                {
-                    "operation": "companion_ngram_overlap_deterministic_trim",
-                    "reason": "unify_narrative_no_companion_ngram_copy",
-                }
-            )
-        out.setdefault("self_check", {})
-        if isinstance(out["self_check"], dict):
-            out["self_check"]["companion_ngram_overlap_trimmed"] = True
-        narrative = companion_collapsed
-    comma_collapsed = _collapse_unify_narrative_comma_stack(narrative)
-    if comma_collapsed != narrative:
-        old_narrative = narrative
-        out["narrative_sentence"] = comma_collapsed
-        ledger = out.get("claim_ledger")
-        if isinstance(ledger, list):
-            for entry in ledger:
-                if not isinstance(entry, dict):
-                    continue
-                claim_text = str(entry.get("claim_text") or "").strip()
-                if claim_text and claim_text == old_narrative:
-                    entry["claim_text"] = comma_collapsed
-        out.setdefault("change_log", [])
-        if isinstance(out["change_log"], list):
-            out["change_log"].append(
-                {
-                    "operation": "comma_stack_deterministic_trim",
-                    "reason": "x2_no_six_bullet_summary",
-                }
-            )
-        out.setdefault("self_check", {})
-        if isinstance(out["self_check"], dict):
-            out["self_check"]["comma_stack_trimmed"] = True
-        narrative = comma_collapsed
-    mech_grounded = _ensure_unify_narrative_mechanism(narrative)
-    if mech_grounded != narrative:
-        old_narrative = narrative
-        out["narrative_sentence"] = mech_grounded
-        ledger = out.get("claim_ledger")
-        if isinstance(ledger, list):
-            for entry in ledger:
-                if isinstance(entry, dict) and str(entry.get("claim_text") or "").strip() == old_narrative:
-                    entry["claim_text"] = mech_grounded
-        out.setdefault("change_log", []).append(
-            {"operation": "mechanism_floor_deterministic_grounding", "reason": "x2_narrative_technical_specificity_floor"}
-        )
-        out.setdefault("self_check", {})["mechanism_floor_grounded"] = True
-        narrative = mech_grounded
-    narrative = apply_narrative_consulting_clean(out, narrative)
+    if allow_prose_mutation:
+        metric_collapsed = _collapse_unify_narrative_metric_recap(narrative, companion_text)
+        if metric_collapsed != narrative:
+            out["narrative_sentence"] = metric_collapsed
+            ledger = out.get("claim_ledger")
+            if isinstance(ledger, list):
+                for entry in ledger:
+                    if not isinstance(entry, dict):
+                        continue
+                    claim_text = str(entry.get("claim_text") or "").strip()
+                    if not claim_text or claim_text == narrative:
+                        entry["claim_text"] = metric_collapsed
+            out.setdefault("change_log", [])
+            if isinstance(out["change_log"], list):
+                out["change_log"].append(
+                    {
+                        "operation": "companion_metric_budget_deterministic_trim",
+                        "reason": "companion_bullets_carry_full_unify_metric_bundle",
+                    }
+                )
+            out.setdefault("self_check", {})
+            if isinstance(out["self_check"], dict):
+                out["self_check"]["companion_metric_budget_trimmed"] = True
+            narrative = metric_collapsed
+        companion_collapsed = _collapse_unify_narrative_companion_copy(narrative, companion_text)
+        if companion_collapsed != narrative:
+            old_narrative = narrative
+            out["narrative_sentence"] = companion_collapsed
+            ledger = out.get("claim_ledger")
+            if isinstance(ledger, list):
+                for entry in ledger:
+                    if not isinstance(entry, dict):
+                        continue
+                    claim_text = str(entry.get("claim_text") or "").strip()
+                    if claim_text and claim_text == old_narrative:
+                        entry["claim_text"] = companion_collapsed
+            out.setdefault("change_log", [])
+            if isinstance(out["change_log"], list):
+                out["change_log"].append(
+                    {
+                        "operation": "companion_ngram_overlap_deterministic_trim",
+                        "reason": "unify_narrative_no_companion_ngram_copy",
+                    }
+                )
+            out.setdefault("self_check", {})
+            if isinstance(out["self_check"], dict):
+                out["self_check"]["companion_ngram_overlap_trimmed"] = True
+            narrative = companion_collapsed
+        comma_collapsed = _collapse_unify_narrative_comma_stack(narrative)
+        if comma_collapsed != narrative:
+            old_narrative = narrative
+            out["narrative_sentence"] = comma_collapsed
+            ledger = out.get("claim_ledger")
+            if isinstance(ledger, list):
+                for entry in ledger:
+                    if not isinstance(entry, dict):
+                        continue
+                    claim_text = str(entry.get("claim_text") or "").strip()
+                    if claim_text and claim_text == old_narrative:
+                        entry["claim_text"] = comma_collapsed
+            out.setdefault("change_log", [])
+            if isinstance(out["change_log"], list):
+                out["change_log"].append(
+                    {
+                        "operation": "comma_stack_deterministic_trim",
+                        "reason": "x2_no_six_bullet_summary",
+                    }
+                )
+            out.setdefault("self_check", {})
+            if isinstance(out["self_check"], dict):
+                out["self_check"]["comma_stack_trimmed"] = True
+            narrative = comma_collapsed
+        narrative = apply_narrative_consulting_clean(out, narrative)
     if not isinstance(out.get("selected_fact_plan"), dict):
         out["selected_fact_plan"] = runtime_payload["selected_fact_plan"]
     allowed = {str(x) for x in (runtime_payload.get("allowed_fact_ids") or [])}
@@ -805,6 +797,270 @@ def retry_provider_for_parse(
     new_raw = result.raw_model_output
     new_parsed, new_err = parse_model_json(new_raw)
     return new_raw, new_parsed, new_err
+
+
+def _unify_narrative_pre_judge_issues(narrative: str, companion_text: str) -> list[str]:
+    from apps_rg.runtime.sections.cross_section_signal_guards import detect_generic_consulting_phrases
+    from apps_rg.runtime.validators.narrative_quality_x2 import (
+        check_narrative_bullet_cosine_similarity,
+        check_narrative_no_consulting_language,
+        check_narrative_seniority_floor,
+        check_narrative_technical_specificity,
+    )
+
+    issues: list[str] = []
+    if not narrative:
+        return ["empty_narrative"]
+    sen = check_narrative_seniority_floor(narrative)
+    if not sen.passed:
+        issues.append(str(sen.failure_reason or "seniority_floor_failed"))
+    cons = check_narrative_no_consulting_language(narrative)
+    gen_cons = detect_generic_consulting_phrases(narrative)
+    if not cons.passed or gen_cons:
+        issues.append(f"consulting_language_detected:{sorted(set(gen_cons + list(cons.signals or [])))}")
+    spec = check_narrative_technical_specificity(narrative)
+    if not spec.passed:
+        issues.append(str(spec.failure_reason or "technical_specificity_failed"))
+    comp_lines = [ln.strip() for ln in str(companion_text or "").splitlines() if ln.strip()]
+    if comp_lines:
+        cos = check_narrative_bullet_cosine_similarity(
+            narrative, comp_lines, max_pairwise_cosine=0.35, max_pool_cosine=0.38,
+            forbid_shared_opener=True, forbid_repeated_metrics=True,
+        )
+        if not cos.passed:
+            issues.append(str(cos.failure_reason or "cosine_similarity_failed"))
+    return issues
+
+
+def apply_unify_narrative_in_lane_healing(
+    *,
+    messages: list[dict[str, str]],
+    provider_payload: dict[str, Any],
+    provider_name: str,
+    raw_output: str,
+    parsed: dict[str, Any] | None,
+    runtime_payload: dict[str, Any],
+    artifact_dir: Path,
+    runtime_generation_status: str,
+    companion_text: str,
+    judge_keys: list[str],
+    judge_mode: str,
+    allowed_fact_packet: dict[str, Any],
+    targeting_context: dict[str, Any],
+) -> tuple[str, dict[str, Any] | None, list[dict[str, Any]], bool]:
+    """Bounded 1-attempt fresh-turn LLM healing on deterministic prose or X1D judge failure."""
+    from apps_rg.runtime.providers.section_provider_call import call_section_model_provider
+    from apps_rg.runtime.section_repair_ledger import KIND_REGEN_LLM, load_ledger, record_repair, set_authoritative_attempt
+
+    narrative = str((parsed or {}).get("narrative_sentence") or "").strip()
+    claim_ledger = list((parsed or {}).get("claim_ledger") or [])
+    receipt: dict[str, Any] = {
+        "schema_version": "unify_narrative_judge_rewrite_receipt_v1",
+        "section_id": "unify_narrative",
+        "run_id": str(runtime_payload.get("run_id") or ""),
+        "attempted": False,
+        "accepted": False,
+        "trigger": None,
+        "rejected_reason": None,
+    }
+
+    if not isinstance(parsed, dict) or runtime_generation_status != "REAL_LLM" or judge_mode == "mocked":
+        x1d = [
+            j.to_dict()
+            for j in run_unify_narrative_judges(
+                narrative_sentence=narrative,
+                claim_ledger=claim_ledger,
+                judge_keys=judge_keys,
+                companion_bullets_context=companion_text,
+                mode=judge_mode,
+                artifact_base=artifact_dir,
+                allowed_fact_packet=allowed_fact_packet,
+                targeting_context=targeting_context,
+            )
+        ]
+        receipt["rejected_reason"] = "not_real_llm_or_mock_judges"
+        write_json(artifact_dir / "unify_narrative_judge_rewrite_receipt.json", receipt)
+        return raw_output, parsed, x1d, False
+
+    pre_issues = _unify_narrative_pre_judge_issues(narrative, companion_text)
+    if pre_issues:
+        receipt["attempted"] = True
+        receipt["trigger"] = "deterministic_pre_judge"
+        receipt["pre_issues"] = pre_issues
+        rewrite_msgs = [
+            *messages,
+            {"role": "assistant", "content": raw_output},
+            {
+                "role": "user",
+                "content": (
+                    f"DETERMINISTIC_X2_REVISION: the draft failed section invariants: [{'; '.join(pre_issues)}]. "
+                    "Rewrite narrative_sentence and claim_ledger from scratch in one crisp active executive sentence "
+                    "framing the platform roadmap, governed agentic runtime architecture, and IP commercialization at "
+                    "Unify Consulting. Use zero generic consulting phrases ('consulting delivery', 'best practices', "
+                    "'stakeholder management'), cite only ALLOWED_SOURCE_FACT_IDS attested in the fact packet, include "
+                    "at least one explicit technical mechanism token grounded in those facts, avoid repeating companion "
+                    "bullet opener verbs or metric numbers, and keep pairwise content cosine <= 0.35 against every "
+                    "companion bullet. Return one complete compact JSON object only."
+                ),
+            },
+        ]
+        res = call_section_model_provider(
+            provider_name,
+            tag_reasoning_lane({**provider_payload, "messages": rewrite_msgs, "max_tokens": NARRATIVE_MAX_OUTPUT_TOKENS}, LANE_KEY),
+            artifact_dir=artifact_dir,
+            run_id=str(runtime_payload.get("run_id") or ""),
+        )
+        if res.runtime_generation_status == "REAL_LLM":
+            cand_raw = str(res.raw_model_output or "")
+            cand_in, _ = parse_model_json(cand_raw)
+            cand_parsed = (
+                normalize_unify_narrative_parsed(
+                    cand_in, runtime_payload, companion_text=companion_text, allow_prose_mutation=False
+                )
+                if cand_in
+                else None
+            )
+            cand_narr = str((cand_parsed or {}).get("narrative_sentence") or "").strip()
+            post_issues = _unify_narrative_pre_judge_issues(cand_narr, companion_text) if cand_parsed else ["parse_failed"]
+            if cand_parsed is not None and not post_issues:
+                raw_output, parsed, narrative = cand_raw, cand_parsed, cand_narr
+                claim_ledger = list(cand_parsed.get("claim_ledger") or [])
+                record_repair(artifact_dir, kind=KIND_REGEN_LLM, operation="unify_narrative_x2_prejudge_rewrite", reason="; ".join(pre_issues)[:160], replaced_l2=True)
+                cur_ledger = load_ledger(artifact_dir) or {}
+                next_att = 1 + sum(1 for r in (cur_ledger.get("repairs") or []) if r.get("kind") == KIND_REGEN_LLM and r.get("replaced_l2"))
+                set_authoritative_attempt(artifact_dir, next_att, reason="unify_narrative_x2_prejudge_rewrite")
+                receipt["accepted"] = True
+            else:
+                receipt["rejected_reason"] = f"prejudge_rewrite_still_invalid:{post_issues}"
+        else:
+            receipt["rejected_reason"] = f"provider_not_real_llm:{res.runtime_generation_status}"
+
+    still_broken = _unify_narrative_pre_judge_issues(narrative, companion_text)
+    if still_broken:
+        from apps_rg.runtime.judges.executive_summary_x1d import JudgeOutput
+        from apps_rg.runtime.judges.unify_narrative_x1d import JUDGE_RUBRIC_VERSION
+
+        blocked_x1d = [
+            JudgeOutput(
+                judge_id=f"x1d_{jk}_unify_narrative",
+                provider_name=jk,
+                provider_key=jk,
+                evaluator_mode="BLOCKED_PRE_JUDGE_GATE",
+                provider_status="BLOCKED_PRE_JUDGE_DETERMINISTIC_GATE",
+                model_name="deterministic_pre_judge_gate",
+                provider_available=False,
+                provider_blocked=True,
+                exact_provider_error="; ".join(still_broken),
+                rubric_version=JUDGE_RUBRIC_VERSION,
+                pass_=False,
+                decisive_failure=True,
+                findings=list(still_broken),
+                fail_reasons=list(still_broken),
+                section_id="unify_narrative",
+            ).to_dict()
+            for jk in (judge_keys or ["gemini_pro", "openai_chatgpt"])
+        ]
+        write_json(artifact_dir / "unify_narrative_judge_rewrite_receipt.json", receipt)
+        return raw_output, parsed, blocked_x1d, bool(receipt["accepted"])
+
+    x1d = [
+        j.to_dict()
+        for j in run_unify_narrative_judges(
+            narrative_sentence=narrative,
+            claim_ledger=claim_ledger,
+            judge_keys=judge_keys,
+            companion_bullets_context=companion_text,
+            mode=judge_mode,
+            artifact_base=artifact_dir,
+            allowed_fact_packet=allowed_fact_packet,
+            targeting_context=targeting_context,
+        )
+    ]
+    if receipt["attempted"] or not x1d or all(bool(j.get("pass")) for j in x1d):
+        if not receipt["attempted"]:
+            receipt["rejected_reason"] = "initial_judges_passed"
+        write_json(artifact_dir / "unify_narrative_judge_rewrite_receipt.json", receipt)
+        return raw_output, parsed, x1d, bool(receipt["accepted"])
+
+    receipt["attempted"] = True
+    receipt["trigger"] = "x1d_judge_feedback"
+    findings = [
+        f"{j.get('provider_key')}(score={j.get('score')}): {f}"
+        for j in x1d
+        if not j.get("pass")
+        for f in (j.get("findings") or [])
+    ]
+    critique = "; ".join(findings[:6]) or "Ground every mechanism and commercial claim strictly in allowed Unify facts."
+    receipt["judge_critique"] = critique
+    rewrite_msgs = [
+        *messages,
+        {"role": "assistant", "content": raw_output},
+        {
+            "role": "user",
+            "content": (
+                f"X1D_JUDGE_REVISION: independent judge review rejected the draft: [{critique}]. "
+                "Rewrite narrative_sentence and claim_ledger from scratch in one crisp executive sentence "
+                "framing the platform roadmap, governed agentic runtime architecture, and reusable IP commercialization "
+                "at Unify Consulting. Cite ONLY literal ALLOWED_SOURCE_FACT_IDS that directly entail every visible "
+                "mechanism and outcome, never invent unverified technologies, use zero generic consulting phrases, "
+                "and keep pairwise content cosine <= 0.35 against every companion bullet. Return one complete compact JSON object only."
+            ),
+        },
+    ]
+    res = call_section_model_provider(
+        provider_name,
+        tag_reasoning_lane({**provider_payload, "messages": rewrite_msgs, "max_tokens": NARRATIVE_MAX_OUTPUT_TOKENS}, LANE_KEY),
+        artifact_dir=artifact_dir,
+        run_id=str(runtime_payload.get("run_id") or ""),
+    )
+    if res.runtime_generation_status != "REAL_LLM":
+        receipt["rejected_reason"] = f"provider_not_real_llm:{res.runtime_generation_status}"
+        write_json(artifact_dir / "unify_narrative_judge_rewrite_receipt.json", receipt)
+        return raw_output, parsed, x1d, False
+    cand_raw = str(res.raw_model_output or "")
+    cand_in, _ = parse_model_json(cand_raw)
+    cand_parsed = (
+        normalize_unify_narrative_parsed(
+            cand_in, runtime_payload, companion_text=companion_text, allow_prose_mutation=False
+        )
+        if cand_in
+        else None
+    )
+    cand_narr = str((cand_parsed or {}).get("narrative_sentence") or "").strip()
+    post_issues = _unify_narrative_pre_judge_issues(cand_narr, companion_text) if cand_parsed else ["parse_failed"]
+    if cand_parsed is None or post_issues:
+        receipt["rejected_reason"] = f"judge_rewrite_failed_deterministic:{post_issues}"
+        write_json(artifact_dir / "unify_narrative_judge_rewrite_receipt.json", receipt)
+        return raw_output, parsed, x1d, False
+    cand_rows = list(cand_parsed.get("claim_ledger") or [])
+    cand_x1d = [
+        j.to_dict()
+        for j in run_unify_narrative_judges(
+            narrative_sentence=cand_narr,
+            claim_ledger=cand_rows,
+            judge_keys=judge_keys,
+            companion_bullets_context=companion_text,
+            mode=judge_mode,
+            artifact_base=artifact_dir,
+            allowed_fact_packet=allowed_fact_packet,
+            targeting_context=targeting_context,
+        )
+    ]
+    old_rank = (sum(1 for j in x1d if j.get("pass")), min((float(j.get("score") or 0.0) for j in x1d), default=0.0))
+    new_rank = (sum(1 for j in cand_x1d if j.get("pass")), min((float(j.get("score") or 0.0) for j in cand_x1d), default=0.0))
+    receipt["old_rank"] = list(old_rank)
+    receipt["new_rank"] = list(new_rank)
+    if new_rank <= old_rank:
+        receipt["rejected_reason"] = "rejudge_not_improved"
+        write_json(artifact_dir / "unify_narrative_judge_rewrite_receipt.json", receipt)
+        return raw_output, parsed, x1d, False
+    record_repair(artifact_dir, kind=KIND_REGEN_LLM, operation="unify_narrative_judge_feedback_rewrite", reason="x1d_judge_feedback", replaced_l2=True)
+    cur_ledger = load_ledger(artifact_dir) or {}
+    next_att = 1 + sum(1 for r in (cur_ledger.get("repairs") or []) if r.get("kind") == KIND_REGEN_LLM and r.get("replaced_l2"))
+    set_authoritative_attempt(artifact_dir, next_att, reason="unify_narrative_judge_feedback_rewrite")
+    receipt["accepted"] = True
+    write_json(artifact_dir / "unify_narrative_judge_rewrite_receipt.json", receipt)
+    return cand_raw, cand_parsed, cand_x1d, True
 
 
 def build_mock_output(runtime_payload: dict[str, Any]) -> dict[str, Any]:
@@ -1138,7 +1394,12 @@ def run_unify_narrative_execution(
                     replaced_l2=False,
                 )
         parsed = (
-            normalize_unify_narrative_parsed(parsed_in, runtime_payload, companion_text=companion_text)
+            normalize_unify_narrative_parsed(
+                parsed_in,
+                runtime_payload,
+                companion_text=companion_text,
+                allow_prose_mutation=(runtime_generation_status != "REAL_LLM"),
+            )
             if parsed_in
             else None
         )
@@ -1269,18 +1530,106 @@ def run_unify_narrative_execution(
         "allowed_fact_ids": sorted(str(x) for x in allowed_fact_ids),
         "facts": compact_allowed_facts,
     }
-    x1d = [
-        j.to_dict()
-        for j in run_unify_narrative_judges(
-            narrative_sentence=narrative,
-            claim_ledger=claim_ledger,
-            judge_keys=judge_keys,
-            companion_bullets_context=companion_text,
-            mode=judge_mode,
-            artifact_base=artifact_dir,
-            allowed_fact_packet=unify_allowed_fact_packet,
+    unify_targeting_context = {
+        "target_title": str(runtime_payload.get("target_title") or ""),
+        "target_company": str(runtime_payload.get("target_company") or ""),
+        "jd_text": str(runtime_payload.get("jd_text") or ""),
+        "briefing": str(runtime_payload.get("briefing") or ""),
+        "targeting_only": True,
+    }
+    raw_output, parsed, x1d, _unify_rewrite_accepted = apply_unify_narrative_in_lane_healing(
+        messages=messages,
+        provider_payload=provider_payload,
+        provider_name=str(args.provider),
+        raw_output=raw_output,
+        parsed=parsed,
+        runtime_payload=runtime_payload,
+        artifact_dir=artifact_dir,
+        runtime_generation_status=runtime_generation_status,
+        companion_text=companion_text,
+        judge_keys=judge_keys,
+        judge_mode=judge_mode,
+        allowed_fact_packet=unify_allowed_fact_packet,
+        targeting_context=unify_targeting_context,
+    )
+    if _unify_rewrite_accepted and isinstance(parsed, dict):
+        narrative = str(parsed.get("narrative_sentence") or "").strip()
+        claim_ledger = list(parsed.get("claim_ledger") or [])
+        parse_status, invalid_reason = classify_ledger_parse_state(
+            parsed,
+            parse_error="",
+            raw_output=raw_output,
+            lane_profile="unify_narrative",
         )
-    ]
+        norm_rows = normalize_exec_summary_claim_ledger(claim_ledger) if parse_status == "OK" else []
+        canon_doc = build_canonical_claim_ledger_v2_payload(
+            norm_rows,
+            parse_status=parse_status,
+            invalid_reason=invalid_reason if parse_status != "OK" else None,
+            claim_id_prefix="unify_narrative_claim",
+        )
+        coverage = build_sentence_claim_coverage(narrative, claim_ledger, allowed_fact_ids)
+        parsed_for_x2 = enrich_unify_narrative_parsed_for_x2(
+            parsed,
+            coverage=coverage,
+            input_payload_hash=input_payload_hash,
+            allowed_fact_ids=allowed_fact_ids,
+        )
+        raw_output_for_x2 = raw_output
+        if "```" in raw_output and isinstance(parsed_for_x2, dict):
+            raw_output_for_x2 = json.dumps(parsed_for_x2, ensure_ascii=False, separators=(",", ":"))
+        ja_raw = parsed.get("jd_alignment")
+        jd_alignment_out = {**_shell_jd_alignment(), **ja_raw} if isinstance(ja_raw, dict) else _shell_jd_alignment()
+        l2_output.update(
+            {
+                "narrative_sentence": narrative,
+                "selected_fact_plan": parsed.get("selected_fact_plan") or selected_fact_plan,
+                "claim_ledger": claim_ledger,
+                "jd_alignment": jd_alignment_out,
+                "gap_notes": parsed.get("gap_notes") or [],
+                "change_log": parsed.get("change_log") or [],
+                "self_check": parsed.get("self_check") or {"parse_error": ""},
+                "text_claim_coverage": coverage,
+                "output_payload_hash": (parsed_for_x2 or {}).get("output_payload_hash"),
+                "claim_ledger_hash": (parsed_for_x2 or {}).get("claim_ledger_hash"),
+                "allowed_fact_ids_hash": (parsed_for_x2 or {}).get("allowed_fact_ids_hash"),
+            }
+        )
+        if isinstance(provider_result_data, dict):
+            provider_result_data["raw_model_output"] = raw_output or ""
+            write_json(artifact_dir / "provider_response.json", provider_result_data)
+        _wg.write_text(artifact_dir / "raw_model_output.txt", raw_output or "", encoding="utf-8")
+        write_json(
+            artifact_dir / "parsed_output.json",
+            {"parsed": parsed, "parse_error": "", "parse_status": parse_status},
+        )
+        write_json(artifact_dir / "canonical_claim_ledger_v2.json", canon_doc)
+        write_json(artifact_dir / "l2_output.json", l2_output)
+        _wg.write_text(artifact_dir / "unify_narrative_output.txt", narrative + "\n", encoding="utf-8")
+        write_json(artifact_dir / "selected_fact_plan.json", l2_output["selected_fact_plan"])
+        write_json(artifact_dir / "claim_ledger.json", claim_ledger)
+        write_json(artifact_dir / "text_claim_coverage.json", coverage)
+        usage_doc = build_section_input_usage_ledger_v1(
+            section_id="unify_narrative",
+            run_id=str(runtime_payload["run_id"]),
+            request_id=req_id,
+            trace_root=trace_rr,
+            repo_root=REPO_ROOT,
+            artifact_dir=artifact_dir,
+            runtime_payload=runtime_payload,
+            selected_fact_plan=l2_output["selected_fact_plan"],
+            claim_ledger=claim_ledger,
+            allowed_fact_ids=allowed_fact_ids,
+            jd_text=str(runtime_payload.get("jd_text") or ""),
+            target_title=str(runtime_payload.get("target_title") or ""),
+            target_company=str(runtime_payload.get("target_company") or ""),
+            briefing_text=str(runtime_payload.get("briefing") or ""),
+            jd_alignment=l2_output.get("jd_alignment"),
+        )
+        write_json(
+            artifact_dir / "section_input_usage_ledger.json",
+            apply_proof_pool_to_usage_ledger(usage_doc, pool),
+        )
     write_json(artifact_dir / "x1d_llm_judge_outputs.json", {"judges": x1d})
 
     trace = attach_reasoning_to_prompt_trace(
@@ -1344,7 +1693,7 @@ def run_unify_narrative_execution(
             write_x2_source_fact_pool_receipt(artifact_dir, obs)
             break
     write_x2_gate_outputs(artifact_dir / "x2_gate_outputs.json", x2, section_id="unify_narrative")
-    from apps_rg.runtime.section_repair_ledger import load_ledger, record_x2_run
+    from apps_rg.runtime.section_repair_ledger import load_ledger, record_x2_run, set_authoritative_attempt
 
     _un_ledger = load_ledger(artifact_dir) or {}
     record_x2_run(
@@ -1353,6 +1702,17 @@ def run_unify_narrative_execution(
         after_l2_source=str(_un_ledger.get("authoritative_l2_source") or "initial_llm"),
         x2_gates=x2,
     )
+    if _unify_rewrite_accepted and not [g for g in x2 if not g["pass"]]:
+        _regen_count = sum(
+            1
+            for r in (_un_ledger.get("repairs") or [])
+            if isinstance(r, dict) and r.get("replaced_l2")
+        )
+        set_authoritative_attempt(
+            artifact_dir,
+            max(2, 1 + _regen_count),
+            reason="unify_narrative_rewrite_x2_pass",
+        )
     write_json(
         artifact_dir / "fact_check_result.json",
         {

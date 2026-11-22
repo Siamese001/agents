@@ -31,7 +31,7 @@ from typing import Any, Iterator
 
 AGY_CLI_ENV_VAR = "AGY_CLI_BIN"
 AGY_MAX_CONCURRENCY_ENV_VAR = "AGY_CLI_MAX_CONCURRENCY"
-DEFAULT_AGY_MAX_CONCURRENCY = 6
+DEFAULT_AGY_MAX_CONCURRENCY = 8
 _CONCURRENCY_LOCK = threading.Lock()
 _CONCURRENCY_LIMIT = DEFAULT_AGY_MAX_CONCURRENCY
 _CLI_CONCURRENCY_SEMAPHORE = threading.BoundedSemaphore(DEFAULT_AGY_MAX_CONCURRENCY)
@@ -233,8 +233,11 @@ def run_agy(
         settings = Path(tmp) / "no_tools_settings.json"
         settings.write_text(json.dumps(NO_TOOLS_SETTINGS), encoding="utf-8")
         argv = [binary, "-p", prompt, "--model", model, "--output-format", "stream-json", "--settings", str(settings)]
-        if effort and not model.endswith(("-low", "-medium", "-high", "-xhigh")):
-            argv += ["--effort", effort]
+        norm_effort = str(effort or "").strip().lower()
+        if norm_effort in {"low", "medium", "high", "xhigh", "max"} and not model.endswith(
+            ("-low", "-medium", "-high", "-xhigh", "-max")
+        ):
+            argv += ["--effort", norm_effort]
         if json_schema is not None:
             argv += ["--json-schema", json.dumps(json_schema)]
         try:

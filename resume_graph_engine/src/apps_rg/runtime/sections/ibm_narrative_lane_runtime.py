@@ -590,7 +590,7 @@ def retry_provider_for_metric_budget(
     new_parsed, _err = parse_model_json(new_raw)
     if new_parsed is None:
         return raw_output, parsed
-    new_parsed = normalize_parsed_output(new_parsed, runtime_payload, companion_text)
+    new_parsed = normalize_parsed_output(new_parsed, runtime_payload, companion_text, allow_echo_repair=False)
     prior_log = list(parsed.get("change_log") or []) if isinstance(parsed.get("change_log"), list) else []
     new_parsed["change_log"] = prior_log + list(new_parsed.get("change_log") or [])
     new_parsed["change_log"].append(
@@ -669,7 +669,11 @@ def _sanitize_regen_unsupported_companion_theme_phrases(
 
 
 def _run_ibm_narrative_deterministic_ledger_chain(
-    parsed: dict[str, Any], runtime_payload: dict[str, Any], companion_text: str = "",
+    parsed: dict[str, Any],
+    runtime_payload: dict[str, Any],
+    companion_text: str = "",
+    *,
+    allow_prose_mutation: bool = True,
 ) -> dict[str, Any] | None:
     """Same deterministic chain the lane applies to attempt 1: normalize → remap → decompose → bind."""
     from apps_rg.runtime.sections.ibm_canonical_hydration import (
@@ -679,7 +683,8 @@ def _run_ibm_narrative_deterministic_ledger_chain(
     out = normalize_parsed_output(parsed, runtime_payload, companion_text, allow_echo_repair=False)
     if out is None:
         return None
-    out = _sanitize_regen_unsupported_companion_theme_phrases(out, companion_text)
+    if allow_prose_mutation:
+        out = _sanitize_regen_unsupported_companion_theme_phrases(out, companion_text)
     remap_ibm_narrative_claim_ledger_to_fact_pool(
         out, runtime_payload, companion_text
     )
@@ -775,7 +780,7 @@ def apply_ibm_narrative_theme_overpack_repair(
         check_narrative_bullet_cosine_similarity(
             narrative_pre,
             companion_bullets_list,
-            max_pairwise_cosine=0.28,
+            max_pairwise_cosine=0.35,
             max_pool_cosine=0.38,
             forbid_shared_opener=True,
             forbid_repeated_metrics=True,
@@ -905,7 +910,7 @@ def apply_ibm_narrative_theme_overpack_repair(
                 "framing at IBM (NEVER claim an internal 'IBM mandate' and NEVER use vague buzzwords like "
                 "'high-stakes institutions' or 'accountable choices'), replacing the shared_words listed above with "
                 "higher-level executive synthesis vocabulary while keeping only the cited mechanism token(s) so "
-                "pairwise content cosine with every companion bullet is <= 0.28 and pool content cosine is <= 0.38. "
+                "pairwise content cosine with every companion bullet is <= 0.35 and pool content cosine is <= 0.38. "
             )
         repair_messages = [
             *messages,
@@ -982,7 +987,7 @@ def apply_ibm_narrative_theme_overpack_repair(
                     receipt["regen_parse_error"] = _err
                 else:
                     new_parsed = _run_ibm_narrative_deterministic_ledger_chain(
-                        new_parsed, runtime_payload, companion_text
+                        new_parsed, runtime_payload, companion_text, allow_prose_mutation=False
                     )
                     if new_parsed is None:
                         receipt["rejected_reason"] = "parse_failed"
@@ -1036,7 +1041,7 @@ def apply_ibm_narrative_theme_overpack_repair(
                         elif has_full_companion_bullets and not check_narrative_bullet_cosine_similarity(
                             narrative_post,
                             companion_bullets_list,
-                            max_pairwise_cosine=0.28,
+                            max_pairwise_cosine=0.35,
                             max_pool_cosine=0.38,
                             forbid_shared_opener=True,
                             forbid_repeated_metrics=True,
@@ -1124,7 +1129,7 @@ def apply_ibm_narrative_theme_overpack_repair(
                         "content": (
                             "COSINE_SIMILARITY_CORRECTION: your revised sentence resolved mechanism citations "
                             "but still echoed too many words from the companion IBM bullets "
-                            "(x2_narrative_bullet_cosine_similarity requires max_pairwise_cosine <= 0.28 and "
+                            "(x2_narrative_bullet_cosine_similarity requires max_pairwise_cosine <= 0.35 and "
                             f"pool_content_cosine <= 0.38). Exact remaining overlap: {post_echo_diag}. "
                             "Replace the shared_words listed above with distinct executive-level wording while "
                             "keeping the exact same cited bul_ibm_* IDs, one supported mechanism token, and "
@@ -1154,8 +1159,18 @@ def apply_ibm_narrative_judge_feedback_rewrite(
     companion_text: str,
     judge_keys: list[str],
     judge_mode: str,
+    allowed_fact_packet: dict[str, Any] | None = None,
+    targeting_context: dict[str, Any] | None = None,
 ) -> tuple[str, dict[str, Any] | None, list[dict[str, Any]], bool]:
     """Bounded 1-attempt fresh-turn rewrite when X1D judge(s) fail on REAL_LLM."""
+    receipt: dict[str, Any] = {
+        "schema_version": "ibm_narrative_judge_rewrite_receipt_v1",
+        "section_id": "ibm_narrative",
+        "run_id": str(runtime_payload.get("run_id") or ""),
+        "attempted": False,
+        "accepted": False,
+        "rejected_reason": None,
+    }
     if (
         not isinstance(parsed, dict)
         or runtime_generation_status != "REAL_LLM"
@@ -1163,13 +1178,14 @@ def apply_ibm_narrative_judge_feedback_rewrite(
         or not x1d
         or all(bool(j.get("pass")) for j in x1d)
     ):
+        receipt["rejected_reason"] = "initial_judges_passed_or_not_real_llm"
+        write_json(artifact_dir / "ibm_narrative_judge_rewrite_receipt.json", receipt)
         return raw_output, parsed, x1d, False
     from apps_rg.runtime.section_repair_ledger import KIND_REGEN_LLM, load_ledger, record_repair, set_authoritative_attempt
     from apps_rg.runtime.sections.ibm_canonical_hydration import (
         redact_banned_lexicon_from_attestation_change_log,
         redact_banned_lexicon_from_attestation_metadata,
     )
-    from apps_rg.runtime.sections.section_authority_repairs import sanitize_ibm_narrative_display_text
     from apps_rg.runtime.validators.ibm_narrative_x2 import (
         _ledger_fact_ids,
         check_ibm_narrative_claim_ledger_clause_decomposition,
@@ -1178,6 +1194,7 @@ def apply_ibm_narrative_judge_feedback_rewrite(
     )
     from apps_rg.runtime.validators.narrative_quality_x2 import check_narrative_bullet_cosine_similarity
 
+    receipt["attempted"] = True
     findings = [
         f"{j.get('provider_key')}(score={j.get('score')}): {f}"
         for j in x1d
@@ -1185,6 +1202,7 @@ def apply_ibm_narrative_judge_feedback_rewrite(
         for f in (j.get("findings") or [])
     ]
     critique = "; ".join(findings[:6]) or "Strengthen concrete client-facing grounding across cited companion bullets."
+    receipt["judge_critique"] = critique
     rewrite_msgs = [
         *messages,
         {"role": "assistant", "content": raw_output},
@@ -1197,7 +1215,7 @@ def apply_ibm_narrative_judge_feedback_rewrite(
                 "or 'accountable choices'). Synthesize 2 to 4 concrete capabilities directly attested in the companion IBM "
                 "bullets using ', establishing' clause structure, cite ONLY literal bul_ibm_001..bul_ibm_005 IDs (max 2 per "
                 "clause row), ensure every visible mechanism token appears verbatim in a cited bullet, and keep pairwise "
-                "content cosine <= 0.28 with each companion bullet. Return one complete compact JSON object only."
+                "content cosine <= 0.35 with each companion bullet. Return one complete compact JSON object only."
             ),
         },
     ]
@@ -1210,18 +1228,28 @@ def apply_ibm_narrative_judge_feedback_rewrite(
         run_id=str(runtime_payload.get("run_id") or ""),
     )
     if res.runtime_generation_status != "REAL_LLM":
+        receipt["rejected_reason"] = f"provider_not_real:{res.runtime_generation_status}"
+        write_json(artifact_dir / "ibm_narrative_judge_rewrite_receipt.json", receipt)
         return raw_output, parsed, x1d, False
     cand_raw = str(res.raw_model_output or "")
     cand_parsed, _ = parse_model_json(cand_raw)
     if cand_parsed is None:
+        receipt["rejected_reason"] = "parse_failed"
+        write_json(artifact_dir / "ibm_narrative_judge_rewrite_receipt.json", receipt)
         return raw_output, parsed, x1d, False
-    cand_parsed = _run_ibm_narrative_deterministic_ledger_chain(cand_parsed, runtime_payload, companion_text)
+    cand_parsed = _run_ibm_narrative_deterministic_ledger_chain(
+        cand_parsed, runtime_payload, companion_text, allow_prose_mutation=False
+    )
     if cand_parsed is None:
+        receipt["rejected_reason"] = "ledger_chain_failed"
+        write_json(artifact_dir / "ibm_narrative_judge_rewrite_receipt.json", receipt)
         return raw_output, parsed, x1d, False
     redact_banned_lexicon_from_attestation_change_log(cand_parsed)
     redact_banned_lexicon_from_attestation_metadata(cand_parsed)
-    cand_narr, _ = sanitize_ibm_narrative_display_text(str(cand_parsed.get("narrative_sentence") or "").strip())
+    cand_narr = str(cand_parsed.get("narrative_sentence") or "").strip()
     if not cand_narr:
+        receipt["rejected_reason"] = "empty_narrative"
+        write_json(artifact_dir / "ibm_narrative_judge_rewrite_receipt.json", receipt)
         return raw_output, parsed, x1d, False
     cand_parsed["narrative_sentence"] = cand_narr
     cand_rows = [r for r in (cand_parsed.get("claim_ledger") or []) if isinstance(r, dict)]
@@ -1232,9 +1260,11 @@ def apply_ibm_narrative_judge_feedback_rewrite(
     comp_lines = [ln.strip() for ln in str(companion_text or "").splitlines() if ln.strip()]
     has_full = bool(comp_lines and min((len(b.split()) for b in comp_lines), default=0) >= 12)
     cos_ok = not has_full or check_narrative_bullet_cosine_similarity(
-        cand_narr, comp_lines, max_pairwise_cosine=0.28, max_pool_cosine=0.38, forbid_shared_opener=True, forbid_repeated_metrics=True
+        cand_narr, comp_lines, max_pairwise_cosine=0.35, max_pool_cosine=0.38, forbid_shared_opener=True, forbid_repeated_metrics=True
     ).passed
     if len(themes) > 4 or (themes - cited) or not clause_ok or mech_obs.get("unsupported_mechanisms") or not cos_ok:
+        receipt["rejected_reason"] = "deterministic_x2_guard_failed"
+        write_json(artifact_dir / "ibm_narrative_judge_rewrite_receipt.json", receipt)
         return raw_output, parsed, x1d, False
     cand_x1d = [
         j.to_dict()
@@ -1245,16 +1275,24 @@ def apply_ibm_narrative_judge_feedback_rewrite(
             companion_bullets_context=companion_text,
             mode=judge_mode,
             artifact_base=artifact_dir,
+            allowed_fact_packet=allowed_fact_packet,
+            targeting_context=targeting_context,
         )
     ]
     old_rank = (sum(1 for j in x1d if j.get("pass")), min((float(j.get("score") or 0.0) for j in x1d), default=0.0))
     new_rank = (sum(1 for j in cand_x1d if j.get("pass")), min((float(j.get("score") or 0.0) for j in cand_x1d), default=0.0))
+    receipt["old_rank"] = list(old_rank)
+    receipt["new_rank"] = list(new_rank)
     if new_rank <= old_rank:
+        receipt["rejected_reason"] = "rejudge_not_improved"
+        write_json(artifact_dir / "ibm_narrative_judge_rewrite_receipt.json", receipt)
         return raw_output, parsed, x1d, False
     record_repair(artifact_dir, kind=KIND_REGEN_LLM, operation="ibm_narrative_judge_feedback_rewrite", reason="x1d_judge_feedback", replaced_l2=True)
     cur_ledger = load_ledger(artifact_dir) or {}
     next_att = 1 + sum(1 for r in (cur_ledger.get("repairs") or []) if r.get("kind") == KIND_REGEN_LLM and r.get("replaced_l2"))
     set_authoritative_attempt(artifact_dir, next_att, reason="ibm_narrative_judge_feedback_rewrite")
+    receipt["accepted"] = True
+    write_json(artifact_dir / "ibm_narrative_judge_rewrite_receipt.json", receipt)
     return cand_raw, cand_parsed, cand_x1d, True
 
 

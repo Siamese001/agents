@@ -299,6 +299,21 @@ def run_unify_generation_and_x2_stage(
     from apps_rg.runtime.section_judge_policy import get_section_judge_policy
 
     judge_keys = list(get_section_judge_policy(LANE_KEY).required_judge_providers)
+    unify_allowed_fact_packet = {
+        "allowed_fact_ids": sorted(str(x) for x in allowed_fact_ids),
+        "facts": [
+            {
+                "fact_id": f.get("fact_id"),
+                "role_episode_bundle_id": f.get("role_episode_bundle_id"),
+                "claim_text": f.get("claim_text"),
+                "domain": f.get("domain"),
+                "allowed_graph_evidence_ids": f.get("allowed_graph_evidence_ids"),
+                "raw_chunk": str(f.get("raw_chunk") or "")[:1500],
+            }
+            for f in list((l2_output.get("selected_fact_plan") or {}).get("facts") or [])
+            if isinstance(f, dict)
+        ],
+    }
     proof_x1d = [
         j.to_dict()
         for j in parent_attr("run_unify_bullets_judges", run_unify_bullets_judges)(
@@ -307,11 +322,13 @@ def run_unify_generation_and_x2_stage(
             judge_keys=judge_keys,
             mode=judge_mode,
             artifact_base=artifact_dir,
+            allowed_fact_packet=unify_allowed_fact_packet,
             targeting_context={
                 "target_title": str(runtime_payload.get("target_title") or ""),
                 "target_company": str(runtime_payload.get("target_company") or ""),
                 "jd_text": str(runtime_payload.get("jd_text") or ""),
                 "briefing": str(runtime_payload.get("briefing") or ""),
+                "targeting_only": True,
             },
         )
     ]
@@ -390,6 +407,7 @@ def run_unify_generation_and_x2_stage(
         {
             "req_model": req_model,
             "judge_mode": judge_mode,
+            "allowed_fact_packet": unify_allowed_fact_packet,
             "provider_result_data": provider_result_data,
             "raw_output": raw_output,
             "runtime_generation_status": runtime_generation_status,

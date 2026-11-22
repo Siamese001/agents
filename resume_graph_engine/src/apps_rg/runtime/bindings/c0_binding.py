@@ -1563,6 +1563,7 @@ def _perform_bounded_section_retrieval(
 
     # Dense path health: invalid/missing persist dir or collection must be UNKNOWN,
     # not EMPTY (bounded-section contract tests + operator clarity).
+    _verified_count: int | None = None
     if chroma_collection is None and chroma_path:
         try:
             _probe_client = _persistent_chroma_client(chroma_path)
@@ -1571,7 +1572,8 @@ def _perform_bounded_section_retrieval(
             )
 
             _probe_client = ensure_apps_rg_chroma_client(chroma_path)
-            _probe_client.get_collection(profile.collection_name)
+            _probe_coll = _probe_client.get_collection(profile.collection_name)
+            _verified_count = int(_probe_coll.count())
         except Exception:  # guardian: allow-broad-exception -- P2 burndown: fail-soft optional boundary
             verdict = GateVerdict(
                 gate_id="G_SECTION_RETRIEVAL",
@@ -1585,6 +1587,26 @@ def _perform_bounded_section_retrieval(
                 evidence_digest=evidence_digest,
             )
             return [], [verdict], "UNKNOWN", [], [], []
+
+    if chroma_collection is None and chroma_path and _verified_count is not None and not app_payload.get("_uncached_bounded_retrieval"):
+        from apps_rg.runtime.c0.c0_perf_sync_helpers import get_or_compute_bounded_section_retrieval
+
+        return get_or_compute_bounded_section_retrieval(
+            chroma_path=chroma_path,
+            collection_count=_verified_count,
+            section_id_filter=section_id_filter,
+            app_payload=app_payload,
+            evidence_digest=evidence_digest,
+            timestamp_iso=timestamp_iso,
+            compute_fn=lambda: _perform_bounded_section_retrieval(
+                chroma_path,
+                {**app_payload, "_uncached_bounded_retrieval": True},
+                evidence_digest,
+                timestamp_iso,
+                chroma_collection=None,
+                section_id_filter=section_id_filter,
+            ),
+        )
 
     from apps_rg.runtime.embedding_settings import (
         assert_dense_retrieval_allowed,

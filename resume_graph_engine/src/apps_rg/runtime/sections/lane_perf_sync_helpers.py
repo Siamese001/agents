@@ -308,6 +308,13 @@ def execute_headline_judges_with_final_display_gate(
         ]
         return headline_line, claim_ledger, canon_doc, coverage, blocked
 
+    hl_targeting_context = {
+        "target_title": target_title,
+        "target_company": target_company,
+        "jd_text": str(runtime_payload.get("jd_text") or ""),
+        "briefing": str(runtime_payload.get("briefing") or ""),
+        "targeting_only": True,
+    }
     x1d = [
         j.to_dict()
         for j in run_judges_fn(
@@ -319,6 +326,7 @@ def execute_headline_judges_with_final_display_gate(
             artifact_base=artifact_dir,
             deterministic_gate_summary=pre_gate,
             allowed_fact_packet=allowed_fact_packet,
+            targeting_context=hl_targeting_context,
         )
     ]
     hl_diag = extract_x1d_diagnostic(x1d, "headline")
@@ -403,6 +411,7 @@ def execute_headline_judges_with_final_display_gate(
                         artifact_base=artifact_dir,
                         deterministic_gate_summary=rep_gate,
                         allowed_fact_packet=allowed_fact_packet,
+                        targeting_context=hl_targeting_context,
                     )
                 ]
             else:

@@ -347,6 +347,7 @@ def _proof_authorized_narrative_from_selection(
     allowed: list[str],
     section_id: str = "",
     companion_bullet_texts: str = "",
+    allow_prose_mutation: bool = True,
 ) -> tuple[str, list[str], str, bool]:
     proof_by_id = _proof_fact_by_id(facts, allowed)
     source_ids = _source_ids_from_parsed_claim_ledger(parsed, allowed)
@@ -354,22 +355,31 @@ def _proof_authorized_narrative_from_selection(
     if not source_ids:
         source_ids = [fid for fid in allowed if fid in proof_by_id][:1]
         selected_source = "selected_fact_plan_order"
-    candidate_text = _narrative_from_parsed(parsed)
+    candidate_text = _narrative_from_parsed(parsed, allow_prose_mutation=allow_prose_mutation)
     if candidate_text:
-        for _t_label, _t_pat in _TARGETING_ONLY_EXPERIENCE_MARKERS:
-            if _t_pat.search(candidate_text):
-                if _t_label == "frontier_ai_as_experience":
-                    candidate_text = _t_pat.sub("enterprise AI", candidate_text)
-                elif _t_label == "partner_led_deployment_as_experience":
-                    candidate_text = re.sub(
-                        r"\bpartner-led\s+deployments\b",
-                        "client deployments",
-                        re.sub(r"\bpartner-led\s+deployment\b", "client deployment", candidate_text, flags=re.IGNORECASE),
-                        flags=re.IGNORECASE,
-                    )
-        candidate_text = repair_narrative_bullet_echo_from_graph(
-            candidate_text, facts=facts, companion_bullet_texts=companion_bullet_texts, section_id=section_id,
-        )
+        if allow_prose_mutation:
+            for _t_label, _t_pat in _TARGETING_ONLY_EXPERIENCE_MARKERS:
+                if _t_pat.search(candidate_text):
+                    if _t_label == "frontier_ai_as_experience":
+                        candidate_text = _t_pat.sub("enterprise AI", candidate_text)
+                    elif _t_label == "partner_led_deployment_as_experience":
+                        candidate_text = re.sub(
+                            r"\bpartner-led\s+deployments\b",
+                            "client deployments",
+                            re.sub(
+                                r"\bpartner-led\s+deployment\b",
+                                "client deployment",
+                                candidate_text,
+                                flags=re.IGNORECASE,
+                            ),
+                            flags=re.IGNORECASE,
+                        )
+            candidate_text = repair_narrative_bullet_echo_from_graph(
+                candidate_text,
+                facts=facts,
+                companion_bullet_texts=companion_bullet_texts,
+                section_id=section_id,
+            )
         for fid in source_ids:
             fact = proof_by_id.get(fid)
             if fact:
@@ -387,9 +397,13 @@ def _proof_authorized_narrative_from_selection(
         if fact:
             text = _sentence(_proof_fact_text(fact))
             if text:
-                text = repair_narrative_bullet_echo_from_graph(
-                    text, facts=facts, companion_bullet_texts=companion_bullet_texts, section_id=section_id,
-                )
+                if allow_prose_mutation:
+                    text = repair_narrative_bullet_echo_from_graph(
+                        text,
+                        facts=facts,
+                        companion_bullet_texts=companion_bullet_texts,
+                        section_id=section_id,
+                    )
                 return text, [fid], selected_source, False
     return "", [], selected_source, False
 

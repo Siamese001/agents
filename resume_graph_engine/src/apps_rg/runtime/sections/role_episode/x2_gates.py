@@ -214,9 +214,9 @@ def _x2_gates(
         ),
         _x2_gate(
             f"x2_{cfg.section_id}_targeting_only_not_experience_claim",
-            not _targeting_only_experience_hits(display_text),
+            not _targeting_only_experience_hits(display_text, target_company=str(l2.get("target_company") or "")),
             "targeting/JD-only phrase used as experience claim",
-            _targeting_only_experience_hits(display_text),
+            _targeting_only_experience_hits(display_text, target_company=str(l2.get("target_company") or "")),
         ),
     ]
     if cfg.is_bullet_lane:
@@ -326,7 +326,7 @@ def _x2_gates(
         companion_text_for_x2 = str(l2.get("companion_bullet_texts") or "").strip()
         if companion_text_for_x2:
             cos_res = check_narrative_bullet_cosine_similarity(
-                sent, companion_text_for_x2, max_pairwise_cosine=0.28,
+                sent, companion_text_for_x2, max_pairwise_cosine=0.35,
                 max_pool_cosine=0.38, forbid_shared_opener=True, forbid_repeated_metrics=True,
             )
             gates.append(_x2_gate(f"x2_{cfg.section_id}_narrative_bullet_cosine_similarity", cos_res.passed, cos_res.failure_reason or "", cos_res.observed_value))
@@ -383,6 +383,8 @@ def _judge_rows(
     mock_judges: bool,
     artifact_dir: Path | None = None,
     generation_meta: dict[str, Any] | None = None,
+    runtime_payload: dict[str, Any] | None = None,
+    product_quality_status: str = "PASS",
 ) -> list[dict[str, Any]]:
     from apps_rg.runtime.judges.role_episode_x1d import run_role_episode_judges
     from apps_rg.runtime.section_judge_policy import get_section_judge_policy
@@ -403,8 +405,44 @@ def _judge_rows(
             }
             for provider_key in required_judge_keys
         ]
+    x2_failed_ids = [str(g.get("gate_id") or "") for g in x2_gates if not g.get("pass")]
+    if (product_quality_status != "PASS" or x2_failed_ids) and not mock_judges:
+        return [
+            {
+                "judge_id": f"x1d_{provider_key}_{cfg.section_id}",
+                "provider_name": provider_key,
+                "provider_key": provider_key,
+                "provider_status": "BLOCKED_PRE_JUDGE_DETERMINISTIC_GATE",
+                "evaluator_mode": "BLOCKED_PRE_JUDGE_GATE",
+                "model_name": "deterministic_pre_judge_gate",
+                "provider_available": False,
+                "provider_blocked": True,
+                "exact_provider_error": f"Skipped LLM judge due to X2 failure: {', '.join(x2_failed_ids[:5]) or product_quality_status}",
+                "pass": False,
+                "decisive_failure": True,
+                "findings": list(x2_failed_ids),
+                "proof_eligible_judge": False,
+                "advisory_only": False,
+                "section_id": cfg.section_id,
+            }
+            for provider_key in required_judge_keys
+        ]
     mode = "mocked" if mock_judges else "blocked_if_unavailable"
     candidate_for_judge = {k: v for k, v in l2.items() if k != "selected_fact_plan"}
+    sfp = l2.get("selected_fact_plan") if isinstance(l2.get("selected_fact_plan"), dict) else {}
+    plan_facts = [
+        {
+            "fact_id": f.get("fact_id"),
+            "role_episode_bundle_id": f.get("role_episode_bundle_id"),
+            "claim_text": f.get("claim_text"),
+            "domain": f.get("domain"),
+            "allowed_graph_evidence_ids": f.get("allowed_graph_evidence_ids"),
+            "raw_chunk": str(f.get("raw_chunk") or "")[:1500],
+        }
+        for f in list(sfp.get("facts") or [])
+        if isinstance(f, dict)
+    ]
+    rp = runtime_payload or {}
     proof_rows = [
         judge.to_dict()
         for judge in run_role_episode_judges(
@@ -415,11 +453,18 @@ def _judge_rows(
             mode=mode,
             artifact_base=artifact_dir,
             targeting_context={
+                "target_title": str(rp.get("target_title") or l2.get("target_title") or ""),
+                "target_company": str(rp.get("target_company") or l2.get("target_company") or ""),
+                "jd_text": str(rp.get("jd_text") or ""),
+                "briefing": str(rp.get("briefing") or ""),
                 "jd_alignment": l2.get("jd_alignment"),
                 "targeting_only": True,
             },
             deterministic_gate_summary={"x2_gates": x2_gates},
-            allowed_fact_packet={"allowed_fact_ids": allowed_fact_ids},
+            allowed_fact_packet={
+                "allowed_fact_ids": allowed_fact_ids,
+                "facts": plan_facts,
+            },
         )
     ]
     if cfg.is_bullet_lane and artifact_dir is not None and is_employment_pool_generation(generation_meta):

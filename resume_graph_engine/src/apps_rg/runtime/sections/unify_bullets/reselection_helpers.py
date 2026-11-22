@@ -146,6 +146,14 @@ def build_unify_reselection_callbacks(
                 judge_keys=list(keys),
                 mode=judge_mode,
                 artifact_base=artifact_dir,
+                allowed_fact_packet=ctx.get("allowed_fact_packet"),
+                targeting_context={
+                    "target_title": str(runtime_payload.get("target_title") or ""),
+                    "target_company": str(runtime_payload.get("target_company") or ""),
+                    "jd_text": str(runtime_payload.get("jd_text") or ""),
+                    "briefing": str(runtime_payload.get("briefing") or ""),
+                    "targeting_only": True,
+                },
             )
         ]
 

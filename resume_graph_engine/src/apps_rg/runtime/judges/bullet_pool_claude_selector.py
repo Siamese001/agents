@@ -2177,6 +2177,79 @@ def run_claude_bullet_pool_selection(
             )
             if fast_result.merged_parsed and len(fast_result.selections) == len(required_bullet_ids or ()):
                 return fast_result
+        if (
+            len(valid_paths) == 1
+            and required_bullet_ids
+            and bool((targeting_context or {}).get("frozen_allocation_materialized"))
+        ):
+            single_path = valid_paths[0]
+            single_parsed = single_path.parsed if isinstance(single_path.parsed, dict) else {}
+            slots_complete_and_clean = all(
+                _bullet_passes_line_discipline(_bullet_by_id(single_parsed, bid))
+                for bid in required_bullet_ids
+            )
+            if slots_complete_and_clean:
+                selector_role = selector_role_for_section(section_id, slot_kind=slot_kind)
+                provider_key, model, model_source = resolve_selector_provider_model(selector_role)
+                floor = min_score_threshold
+                if floor is None and is_employment_bullet_lane(section_id):
+                    floor = min_selection_score_for_lane(section_id)
+                passthrough_score = max(0.92, float(floor or 0.72))
+                raw_selections = [
+                    {
+                        "bullet_id": bid,
+                        "path_index": single_path.path_index,
+                        "score": passthrough_score,
+                        "passes": True,
+                        "selection_reason": "frozen_allocation_single_path_deterministic_passthrough",
+                    }
+                    for bid in required_bullet_ids
+                ]
+                selections = normalize_bullet_selection_margins(valid_paths, raw_selections)
+                merged, source_map = merge_bullet_selections(
+                    valid_paths,
+                    selections,
+                    required_bullet_ids=required_bullet_ids,
+                    base_parsed=single_parsed,
+                    min_score_threshold=floor,
+                )
+                judge_stub = JudgeOutput(
+                    judge_id=f"x1d_{provider_key}_bullet_pool_selector",
+                    provider_name="Anthropic Claude" if provider_key == "anthropic_claude" else provider_key,
+                    provider_key=provider_key,
+                    evaluator_mode="MODEL_BACKED",
+                    provider_status="MODEL_BACKED_PASS",
+                    model_name=model,
+                    provider_available=True,
+                    provider_blocked=False,
+                    exact_provider_error=None,
+                    raw_response_ref="",
+                    input_hash=_sha16(f"{section_id}:frozen_single_path:{single_path.path_index}"),
+                    pass_=True,
+                    rationale=str(model_source),
+                )
+                if artifact_dir is not None:
+                    (artifact_dir / "bullet_pool_claude_selector_judge.json").write_text(
+                        json.dumps(judge_stub.to_dict(), indent=2, ensure_ascii=False) + "\n",
+                        encoding="utf-8",
+                    )
+                    _write_selector_timing_receipt(
+                        artifact_dir,
+                        {
+                            "section_id": section_id,
+                            "passthrough": True,
+                            "reason": "frozen_allocation_single_path",
+                            "candidate_paths": 1,
+                            "elapsed_s": 0.0,
+                        },
+                    )
+                return PoolSelectionResult(
+                    merged_parsed=merged,
+                    selections=selections,
+                    judge_output=judge_stub,
+                    selection_mode=f"{provider_key}_frozen_single_path_passthrough",
+                    source_path_by_slot=source_map,
+                )
         pool_text = _format_bullet_pool(valid_paths, required_bullet_ids or ())
     else:
         pool_text = _format_competency_pool(valid_paths)

@@ -304,34 +304,36 @@ def run_ibm_narrative_lane_execution(
                         replaced_l2=False,
                     )
             if parsed is not None:
-                parsed = _sanitize_regen_unsupported_companion_theme_phrases(
-                    normalize_parsed_output(
-                        parsed,
-                        runtime_payload,
-                        companion_text,
-                        allow_echo_repair=(runtime_generation_status != "REAL_LLM"),
-                    ),
+                parsed = normalize_parsed_output(
+                    parsed,
+                    runtime_payload,
                     companion_text,
+                    allow_echo_repair=(runtime_generation_status != "REAL_LLM"),
                 )
-                _pre_trim = str(parsed.get("narrative_sentence") or "")
-                apply_companion_metric_budget_trim(parsed, companion_text, runtime_payload=runtime_payload)
-                if str(parsed.get("narrative_sentence") or "") != _pre_trim:
-                    from apps_rg.runtime.section_repair_ledger import KIND_MECHANICAL, record_repair
-
-                    record_repair(
-                        artifact_dir, kind=KIND_MECHANICAL,
-                        operation="companion_metric_budget_deterministic_trim",
-                        reason="deterministic_pre_x2", replaced_l2=False,
+                if runtime_generation_status != "REAL_LLM":
+                    parsed = _sanitize_regen_unsupported_companion_theme_phrases(
+                        parsed,
+                        companion_text,
                     )
-                parsed = _sanitize_regen_unsupported_companion_theme_phrases(
-                    normalize_parsed_output(
-                        parsed,
-                        runtime_payload,
+                    _pre_trim = str(parsed.get("narrative_sentence") or "")
+                    apply_companion_metric_budget_trim(parsed, companion_text, runtime_payload=runtime_payload)
+                    if str(parsed.get("narrative_sentence") or "") != _pre_trim:
+                        from apps_rg.runtime.section_repair_ledger import KIND_MECHANICAL, record_repair
+
+                        record_repair(
+                            artifact_dir, kind=KIND_MECHANICAL,
+                            operation="companion_metric_budget_deterministic_trim",
+                            reason="deterministic_pre_x2", replaced_l2=False,
+                        )
+                    parsed = _sanitize_regen_unsupported_companion_theme_phrases(
+                        normalize_parsed_output(
+                            parsed,
+                            runtime_payload,
+                            companion_text,
+                            allow_echo_repair=True,
+                        ),
                         companion_text,
-                        allow_echo_repair=(runtime_generation_status != "REAL_LLM"),
-                    ),
-                    companion_text,
-                )
+                    )
                 remap_ibm_narrative_claim_ledger_to_fact_pool(parsed, runtime_payload, companion_text)
                 from apps_rg.runtime.sections.ibm_canonical_hydration import (
                     decompose_ibm_narrative_claim_ledger_by_clause,
@@ -412,60 +414,36 @@ def run_ibm_narrative_lane_execution(
             parse_error = result.exact_provider_error or "provider blocked"
 
     narrative = str((parsed or {}).get("narrative_sentence") or "").strip()
-    if narrative:
-        from apps_rg.runtime.sections.section_authority_repairs import (
-            sanitize_ibm_narrative_display_text,
-        )
-
-        narrative, _sanitized = sanitize_ibm_narrative_display_text(narrative)
-        if parsed is not None and isinstance(parsed, dict):
-            parsed["narrative_sentence"] = narrative
-            if _sanitized:
-                # Meta-tail deletion changes the visible claim boundary. Rebuild
-                # clause rows from the final materialized sentence so no stale
-                # pre-sanitization claim text can survive into graph binding.
-                from apps_rg.runtime.sections.ibm_canonical_hydration import (
-                    bind_missing_ibm_narrative_theme_citations as _rebind_themes,
-                    decompose_ibm_narrative_claim_ledger_by_clause as _redecompose_ledger,
-                )
-
-                _allowed = {
-                    str(x) for x in (runtime_payload.get("allowed_fact_ids") or [])
-                }
-                _redecompose_ledger(
-                    parsed,
-                    narrative_sentence=narrative,
-                    allowed_fact_ids=_allowed,
-                    companion_bullet_texts=companion_text,
-                )
-                _rebind_themes(
-                    parsed,
-                    allowed_fact_ids=_allowed,
-                    companion_bullet_texts=companion_text,
-                )
-                from apps_rg.runtime.section_repair_ledger import KIND_MECHANICAL, record_repair
-
-                record_repair(
-                    artifact_dir,
-                    kind=KIND_MECHANICAL,
-                    operation="sanitize_meta_disclaimer_tail",
-                    reason="x2_ibm_narrative_no_meta_disclaimer_in_display",
-                    replaced_l2=False,
-                )
-                clog = list(parsed.get("change_log") or [])
-                clog.append(
-                    {
-                        "operation": "sanitize_meta_disclaimer_tail",
-                        "reason": "x2_ibm_narrative_no_meta_disclaimer_in_display",
-                    }
-                )
-                parsed["change_log"] = clog
     claim_ledger = list((parsed or {}).get("claim_ledger") or [])
     model_name = None
     if provider_result_data:
         model_name = provider_result_data.get("model")
     elif provider_request_data:
         model_name = provider_request_data.get("model")
+
+    plan_facts_raw = list((runtime_payload.get("selected_fact_plan") or {}).get("facts") or [])
+    ibm_allowed_fact_packet = {
+        "allowed_fact_ids": sorted(str(x) for x in allowed_fact_ids),
+        "facts": [
+            {
+                "fact_id": f.get("fact_id"),
+                "role_episode_bundle_id": f.get("role_episode_bundle_id"),
+                "claim_text": f.get("claim_text"),
+                "domain": f.get("domain"),
+                "allowed_graph_evidence_ids": f.get("allowed_graph_evidence_ids"),
+                "raw_chunk": str(f.get("raw_chunk") or "")[:1500],
+            }
+            for f in plan_facts_raw
+            if isinstance(f, dict)
+        ],
+    }
+    ibm_targeting_context = {
+        "target_title": str(runtime_payload.get("target_title") or ""),
+        "target_company": str(runtime_payload.get("target_company") or ""),
+        "jd_text": str(runtime_payload.get("jd_text") or ""),
+        "briefing": str(runtime_payload.get("briefing") or ""),
+        "targeting_only": True,
+    }
 
     judge_mode = "mocked" if judge_allowed_mock else "blocked_if_unavailable"
     if preflight_blocked and not judge_allowed_mock:
@@ -484,6 +462,8 @@ def run_ibm_narrative_lane_execution(
                 companion_bullets_context=companion_text,
                 mode=judge_mode,
                 artifact_base=artifact_dir,
+                allowed_fact_packet=ibm_allowed_fact_packet,
+                targeting_context=ibm_targeting_context,
             )
         ]
         from apps_rg.runtime.sections.ibm_narrative_lane_runtime import (
@@ -502,11 +482,16 @@ def run_ibm_narrative_lane_execution(
             companion_text=companion_text,
             judge_keys=judge_keys,
             judge_mode=judge_mode,
+            allowed_fact_packet=ibm_allowed_fact_packet,
+            targeting_context=ibm_targeting_context,
         )
         if _judge_rewrite_accepted and isinstance(parsed, dict):
             narrative = str(parsed.get("narrative_sentence") or "").strip()
             claim_ledger = list(parsed.get("claim_ledger") or [])
             _theme_repair_accepted = True
+    if _theme_repair_accepted and isinstance(provider_result_data, dict):
+        provider_result_data["raw_model_output"] = raw_output or ""
+        write_json(artifact_dir / "provider_response.json", provider_result_data)
     write_json(artifact_dir / "x1d_llm_judge_outputs.json", {"judges": x1d})
 
     parse_status, invalid_reason = classify_ledger_parse_state(
