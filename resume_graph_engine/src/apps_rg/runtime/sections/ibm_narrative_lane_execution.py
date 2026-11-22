@@ -134,6 +134,9 @@ def run_ibm_narrative_lane_execution(
     )
     if blocked is not None:
         return blocked
+    runtime_payload["allowed_fact_ids"] = sorted(
+        set(runtime_payload.get("allowed_fact_ids") or []) | set(allowed_fact_ids)
+    )
 
     input_payload_hash = sha16(json.dumps(runtime_payload, sort_keys=True))
     section_compiled = compile_ibm_narrative_prompt(
@@ -605,8 +608,10 @@ def run_ibm_narrative_lane_execution(
                 "role": "user",
                 "content": (
                     f"DETERMINISTIC_X2_REVISION: the draft failed section invariants: [{', '.join(pre_x2_failed[:8])}]. "
-                    "Rewrite narrative_sentence and claim_ledger from scratch in one crisp client-facing executive sentence "
-                    "at IBM. Synthesize 2 to 4 concrete capabilities directly attested in the companion IBM bullets using "
+                    "Rewrite narrative_sentence and claim_ledger from scratch in one crisp executive sentence "
+                    "at IBM synthesizing 2 to 4 concrete delivered technical capabilities attested in the companion IBM bullets "
+                    "(cloud modernization, governed data/lineage, ML decision-support, or DevSecOps across regulated financial and "
+                    "insurance platforms; NEVER practice-leadership-only or generic advisory filler) using "
                     "', establishing' clause structure, cite ONLY literal bul_ibm_001..bul_ibm_005 IDs (max 2 per clause row), "
                     "ensure every visible mechanism token appears verbatim in a cited bullet, and keep pairwise content cosine <= 0.35 "
                     "with each companion bullet. Return one complete compact JSON object only."

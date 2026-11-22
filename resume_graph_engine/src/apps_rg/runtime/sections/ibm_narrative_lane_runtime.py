@@ -908,11 +908,12 @@ def apply_ibm_narrative_theme_overpack_repair(
                 "COSINE_ECHO_REVISION (x2_narrative_bullet_cosine_similarity): "
                 f"{cosine_res_pre.failure_reason if cosine_res_pre is not None else 'narrative echoes companion bullets'}. "
                 f"Offending overlap breakdown: {echo_diag}. "
-                "Rewrite narrative_sentence using concrete client-facing enterprise advisory and solution-leadership "
-                "framing at IBM (NEVER claim an internal 'IBM mandate' and NEVER use vague buzzwords like "
-                "'high-stakes institutions' or 'accountable choices'), replacing the shared_words listed above with "
-                "higher-level executive synthesis vocabulary while keeping only the cited mechanism token(s) so "
-                "pairwise content cosine with every companion bullet is <= 0.35 and pool content cosine is <= 0.38. "
+                "Rewrite narrative_sentence to synthesize concrete delivered technical and operational capabilities at IBM "
+                "(such as governed cloud modernization, enterprise data/lineage, ML decision-support, or DevSecOps foundations "
+                "across regulated financial and insurance platforms, NEVER practice-leadership-only or generic advisory filler "
+                "and NEVER claiming an internal 'IBM mandate'), replacing the shared_words listed above with higher-altitude "
+                "architectural synthesis vocabulary while keeping cited mechanism token(s) so pairwise content cosine with "
+                "every companion bullet is <= 0.35 and pool content cosine is <= 0.38. "
             )
         repair_messages = [
             *messages,
@@ -1135,8 +1136,9 @@ def apply_ibm_narrative_theme_overpack_repair(
                             f"pool_content_cosine <= 0.38). Exact remaining overlap: {post_echo_diag}. "
                             "Replace the shared_words listed above with distinct executive-level wording while "
                             "keeping the exact same cited bul_ibm_* IDs, one supported mechanism token, and "
-                            "client-facing enterprise advisory framing at IBM (never claim an internal 'IBM mandate' "
-                            "or vague filler). Preserve one sentence and the ', establishing' clause split. "
+                            "concrete delivered technical/operational capabilities at IBM across regulated financial and insurance platforms "
+                            "(never claim an internal 'IBM mandate' and never write practice-leadership-only or generic advisory filler). "
+                            "Preserve one sentence and the ', establishing' clause split. "
                             "Return one complete compact JSON object only."
                         ),
                     },
@@ -1204,83 +1206,142 @@ def apply_ibm_narrative_judge_feedback_rewrite(
         if not j.get("pass")
         for f in (j.get("findings") or [])
     ]
-    critique = "; ".join(findings[:6]) or "Strengthen concrete client-facing grounding across cited companion bullets."
+    critique = "; ".join(findings[:6]) or "Strengthen concrete delivered IBM technical grounding across cited companion bullets."
     receipt["judge_critique"] = critique
-    rewrite_msgs = [
+    from apps_rg.runtime.sections.ibm_narrative_pa import _companion_mechanism_terms
+
+    supported_mechs = _companion_mechanism_terms(companion_text)
+    mech_hint = f"Supported companion mechanism tokens: {', '.join(supported_mechs)}. " if supported_mechs else ""
+    comp_lines = [ln.strip() for ln in str(companion_text or "").splitlines() if ln.strip()]
+    has_full = bool(comp_lines and min((len(b.split()) for b in comp_lines), default=0) >= 12)
+    usage_ledger_path = artifact_dir / "section_input_usage_ledger.json"
+    usage_snap: bytes | None = usage_ledger_path.read_bytes() if usage_ledger_path.is_file() else None
+
+    attempt_msgs = [
         *messages,
         {"role": "assistant", "content": raw_output},
         {
             "role": "user",
             "content": (
                 f"X1D_JUDGE_REVISION: independent judge review rejected the draft: [{critique}]. "
-                "Rewrite narrative_sentence and claim_ledger from scratch in one crisp client-facing executive sentence "
-                "at IBM (NEVER frame as an internal 'IBM mandate' and NEVER use vague filler like 'high-stakes institutions' "
-                "or 'accountable choices'). Synthesize 2 to 4 concrete capabilities directly attested in the companion IBM "
-                "bullets using ', establishing' clause structure, cite ONLY literal bul_ibm_001..bul_ibm_005 IDs (max 2 per "
-                "clause row), ensure every visible mechanism token appears verbatim in a cited bullet, and keep pairwise "
-                "content cosine <= 0.35 with each companion bullet. Return one complete compact JSON object only."
+                "Rewrite narrative_sentence and claim_ledger from scratch in one crisp executive sentence "
+                "at IBM synthesizing 2 to 4 concrete delivered technical and operational capabilities attested in the "
+                "companion IBM bullets (such as governed cloud modernization, enterprise data/lineage, ML decision-support, "
+                "or DevSecOps foundations across regulated financial and insurance platforms; NEVER write practice-leadership-only "
+                "or generic advisory filler like 'cloud advisory' or 'solution pathways', NEVER claim an internal 'IBM mandate', "
+                "and NEVER use vague buzzwords like 'high-stakes institutions' or 'accountable choices'). "
+                f"{mech_hint}"
+                "Use ', establishing' clause structure, cite ONLY literal bul_ibm_001..bul_ibm_005 IDs (max 2 per clause row; "
+                "NEVER cite reb_ibm_* or fact_* IDs in claim_ledger), ensure every visible mechanism token appears verbatim in "
+                "a cited bullet, and keep pairwise content cosine <= 0.35 (pool <= 0.38) with companion bullets. "
+                "Return one complete compact JSON object with keys: narrative_sentence, selected_fact_plan, claim_ledger, "
+                "jd_alignment, gap_notes, change_log, self_check."
             ),
         },
     ]
-    res = generate_section(
-        tag_reasoning_lane(
-            {**provider_payload, "messages": rewrite_msgs, "max_tokens": _theme_repair_regen_max_tokens(raw_output)},
-            LANE_KEY,
-        ),
-        artifact_dir=artifact_dir,
-        run_id=str(runtime_payload.get("run_id") or ""),
-    )
-    if res.runtime_generation_status != "REAL_LLM":
-        receipt["rejected_reason"] = f"provider_not_real:{res.runtime_generation_status}"
-        write_json(artifact_dir / "ibm_narrative_judge_rewrite_receipt.json", receipt)
-        return raw_output, parsed, x1d, False
-    cand_raw = str(res.raw_model_output or "")
-    cand_parsed, _ = parse_model_json(cand_raw)
-    if cand_parsed is None:
-        receipt["rejected_reason"] = "parse_failed"
-        write_json(artifact_dir / "ibm_narrative_judge_rewrite_receipt.json", receipt)
-        return raw_output, parsed, x1d, False
-    cand_parsed = _run_ibm_narrative_deterministic_ledger_chain(
-        cand_parsed, runtime_payload, companion_text, allow_prose_mutation=False
-    )
-    if cand_parsed is None:
-        receipt["rejected_reason"] = "ledger_chain_failed"
-        write_json(artifact_dir / "ibm_narrative_judge_rewrite_receipt.json", receipt)
-        return raw_output, parsed, x1d, False
-    redact_banned_lexicon_from_attestation_change_log(cand_parsed)
-    redact_banned_lexicon_from_attestation_metadata(cand_parsed)
-    cand_narr = str(cand_parsed.get("narrative_sentence") or "").strip()
-    if not cand_narr:
-        receipt["rejected_reason"] = "empty_narrative"
-        write_json(artifact_dir / "ibm_narrative_judge_rewrite_receipt.json", receipt)
-        return raw_output, parsed, x1d, False
-    cand_parsed["narrative_sentence"] = cand_narr
-    cand_rows = [r for r in (cand_parsed.get("claim_ledger") or []) if isinstance(r, dict)]
-    usage_ledger_path = artifact_dir / "section_input_usage_ledger.json"
-    usage_snap: bytes | None = None
-    if x2_check_fn is not None:
-        usage_snap = usage_ledger_path.read_bytes() if usage_ledger_path.is_file() else None
-        cand_x2_failed = x2_check_fn(cand_parsed, cand_raw)
-        if cand_x2_failed:
-            if usage_snap is not None:
-                usage_ledger_path.write_bytes(usage_snap)
-            receipt["rejected_reason"] = f"deterministic_x2_guard_failed:{cand_x2_failed}"
+
+    valid_cand_raw: str | None = None
+    valid_cand_parsed: dict[str, Any] | None = None
+    valid_cand_narr: str = ""
+    valid_cand_rows: list[dict[str, Any]] = []
+    for rw_attempt in range(1, 3):
+        res = generate_section(
+            tag_reasoning_lane(
+                {**provider_payload, "messages": attempt_msgs, "max_tokens": _theme_repair_regen_max_tokens(raw_output)},
+                LANE_KEY,
+            ),
+            artifact_dir=artifact_dir,
+            run_id=str(runtime_payload.get("run_id") or ""),
+        )
+        if res.runtime_generation_status != "REAL_LLM":
+            receipt["rejected_reason"] = f"provider_not_real:{res.runtime_generation_status}"
             write_json(artifact_dir / "ibm_narrative_judge_rewrite_receipt.json", receipt)
             return raw_output, parsed, x1d, False
-    else:
-        themes = ibm_narrative_material_fact_ids_for_sentence(cand_narr, companion_text)
-        cited = {s for s in _ledger_fact_ids(cand_rows) if s.startswith("bul_ibm_")}
-        clause_ok, _ = check_ibm_narrative_claim_ledger_clause_decomposition(cand_narr, cand_rows)
-        mech_obs = ibm_narrative_mechanism_support_observation(cand_narr, cand_rows, companion_text)
-        comp_lines = [ln.strip() for ln in str(companion_text or "").splitlines() if ln.strip()]
-        has_full = bool(comp_lines and min((len(b.split()) for b in comp_lines), default=0) >= 12)
-        cos_ok = not has_full or check_narrative_bullet_cosine_similarity(
-            cand_narr, comp_lines, max_pairwise_cosine=0.35, max_pool_cosine=0.38, forbid_shared_opener=True, forbid_repeated_metrics=True
-        ).passed
-        if len(themes) > 4 or (themes - cited) or not clause_ok or mech_obs.get("unsupported_mechanisms") or not cos_ok:
-            receipt["rejected_reason"] = "deterministic_x2_guard_failed"
-            write_json(artifact_dir / "ibm_narrative_judge_rewrite_receipt.json", receipt)
-            return raw_output, parsed, x1d, False
+        cand_raw = str(res.raw_model_output or "")
+        cand_parsed, _ = parse_model_json(cand_raw)
+        if cand_parsed is None:
+            receipt["rejected_reason"] = "parse_failed"
+            continue
+        if not isinstance(cand_parsed.get("selected_fact_plan"), dict) and isinstance(parsed.get("selected_fact_plan"), dict):
+            cand_parsed["selected_fact_plan"] = dict(parsed["selected_fact_plan"])
+        if not isinstance(cand_parsed.get("jd_alignment"), dict) and isinstance(parsed.get("jd_alignment"), dict):
+            cand_parsed["jd_alignment"] = dict(parsed["jd_alignment"])
+        # Strip any non-bul_ibm_* tokens leaked from judge critique before running the deterministic ledger chain
+        raw_cl = cand_parsed.get("claim_ledger")
+        if isinstance(raw_cl, list):
+            for row in raw_cl:
+                if isinstance(row, dict) and isinstance(row.get("source_fact_ids"), list):
+                    bul_only = [str(fid) for fid in row["source_fact_ids"] if re.match(r"^bul_ibm_00[1-5]$", str(fid).strip())]
+                    if bul_only:
+                        row["source_fact_ids"] = bul_only[:2]
+        cand_parsed = _run_ibm_narrative_deterministic_ledger_chain(
+            cand_parsed, runtime_payload, companion_text, allow_prose_mutation=False
+        )
+        if cand_parsed is None:
+            receipt["rejected_reason"] = "ledger_chain_failed"
+            continue
+        redact_banned_lexicon_from_attestation_change_log(cand_parsed)
+        redact_banned_lexicon_from_attestation_metadata(cand_parsed)
+        cand_narr = str(cand_parsed.get("narrative_sentence") or "").strip()
+        if not cand_narr:
+            receipt["rejected_reason"] = "empty_narrative"
+            continue
+        cand_parsed["narrative_sentence"] = cand_narr
+        cand_rows = [r for r in (cand_parsed.get("claim_ledger") or []) if isinstance(r, dict)]
+        cited_buls = sorted({s for s in _ledger_fact_ids(cand_rows) if s.startswith("bul_ibm_")})
+        if isinstance(cand_parsed.get("selected_fact_plan"), dict) and cited_buls:
+            cand_parsed["selected_fact_plan"] = {
+                **cand_parsed["selected_fact_plan"],
+                "theme_families": cited_buls,
+            }
+        if x2_check_fn is not None:
+            cand_x2_failed = x2_check_fn(cand_parsed, cand_raw)
+            if cand_x2_failed:
+                if usage_snap is not None:
+                    usage_ledger_path.write_bytes(usage_snap)
+                receipt["rejected_reason"] = f"deterministic_x2_guard_failed:{cand_x2_failed}"
+                if rw_attempt < 2:
+                    cos_diag = _cosine_echo_diagnostic_summary(cand_narr, comp_lines) if comp_lines else ""
+                    mech_obs = ibm_narrative_mechanism_support_observation(cand_narr, cand_rows, companion_text)
+                    attempt_msgs = [
+                        *attempt_msgs,
+                        {"role": "assistant", "content": cand_raw},
+                        {
+                            "role": "user",
+                            "content": (
+                                f"X2_GUARD_CORRECTION: your rewrite failed section invariants {cand_x2_failed}. "
+                                f"Cosine overlap: {cos_diag}. Unsupported mechanisms: {mech_obs.get('unsupported_mechanisms')}. "
+                                "Keep concrete delivered IBM capabilities (governed cloud, data/lineage, ML, DevSecOps across "
+                                "regulated financial/insurance platforms; zero advisory-only filler), replace shared_words so "
+                                "pairwise cosine <= 0.35, cite ONLY bul_ibm_001..bul_ibm_005 (<=2 per clause row) matching "
+                                "every visible mechanism, and return one complete compact JSON object."
+                            ),
+                        },
+                    ]
+                    continue
+                write_json(artifact_dir / "ibm_narrative_judge_rewrite_receipt.json", receipt)
+                return raw_output, parsed, x1d, False
+        else:
+            themes = ibm_narrative_material_fact_ids_for_sentence(cand_narr, companion_text)
+            cited = {s for s in _ledger_fact_ids(cand_rows) if s.startswith("bul_ibm_")}
+            clause_ok, _ = check_ibm_narrative_claim_ledger_clause_decomposition(cand_narr, cand_rows)
+            mech_obs = ibm_narrative_mechanism_support_observation(cand_narr, cand_rows, companion_text)
+            cos_ok = not has_full or check_narrative_bullet_cosine_similarity(
+                cand_narr, comp_lines, max_pairwise_cosine=0.35, max_pool_cosine=0.38, forbid_shared_opener=True, forbid_repeated_metrics=True
+            ).passed
+            if len(themes) > 4 or (themes - cited) or not clause_ok or mech_obs.get("unsupported_mechanisms") or not cos_ok:
+                receipt["rejected_reason"] = "deterministic_x2_guard_failed"
+                if rw_attempt < 2:
+                    continue
+                write_json(artifact_dir / "ibm_narrative_judge_rewrite_receipt.json", receipt)
+                return raw_output, parsed, x1d, False
+        valid_cand_raw, valid_cand_parsed, valid_cand_narr, valid_cand_rows = cand_raw, cand_parsed, cand_narr, cand_rows
+        break
+
+    if valid_cand_parsed is None or valid_cand_raw is None:
+        write_json(artifact_dir / "ibm_narrative_judge_rewrite_receipt.json", receipt)
+        return raw_output, parsed, x1d, False
+    cand_raw, cand_parsed, cand_narr, cand_rows = valid_cand_raw, valid_cand_parsed, valid_cand_narr, valid_cand_rows
     cand_x1d = [
         j.to_dict()
         for j in run_ibm_narrative_judges(
