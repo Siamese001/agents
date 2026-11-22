@@ -316,3 +316,13 @@ policies:
     enforcer: "tools/run_diff_scoped_eval_shield.py"
     rule_reference: ".agents/rules/e2e-and-edge-case-coverage.md"
 
+  - id: "INV-PROMPT-VALIDATOR-VOCAB-SYMMETRY"
+    title: "Prompt-to-Validator Shared Vocabulary SSOT Symmetry Gate"
+    category: "ai_sdlc"
+    threshold: 0
+    unit: "vocab_symmetry_violations"
+    description: "Prompt assembly producers, voice-repair prompts, and deterministic X2 validators in apps_rg must import shared vocabulary constants from prompt_validator_vocab_ssot.py with zero regex-mismatch or credential-token concept-hint leakage."
+    enforcer: "tools/lint_prompt_validator_vocab_symmetry.py"
+    rule_reference: ".agents/rules/resume-graph-engine.md"
+
+

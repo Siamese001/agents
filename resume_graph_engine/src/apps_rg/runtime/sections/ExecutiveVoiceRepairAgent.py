@@ -16,6 +16,16 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
+from apps_rg.runtime.contracts.prompt_validator_vocab_ssot import (
+    APPROVED_HEADLINE_SENIORITY_PREFIXES,
+    COMPETENCIES_FORBIDDEN_CREDENTIAL_TOKENS,
+    COMPETENCIES_TERM_MAX_WORDS,
+    COMPETENCIES_TERM_MIN_WORDS,
+    HEADLINE_EXECUTIVE_ABSTRACTION_NOUNS,
+    HEADLINE_FORBIDDEN_PLUMBING_LABELS,
+    HEADLINE_SIGNAL_FLOOR_GOVERNANCE_TOKENS,
+    HEADLINE_SIGNAL_FLOOR_PLATFORM_TOKENS,
+)
 from apps_rg.runtime.judges.x1d_panel_harness import extract_x1d_diagnostic
 
 EXECUTIVE_VOICE_REPAIR_AGENT_ENABLED_DEFAULT = True
@@ -157,6 +167,12 @@ def _build_headline_repair_prompt(
     briefing_excerpt = str(tc.get("briefing") or "").strip()[:600]
     facts_summary = _format_allowed_facts_for_prompt(allowed_facts, limit=20)
 
+    approved_prefixes_str = ", ".join(APPROVED_HEADLINE_SENIORITY_PREFIXES)
+    forbidden_plumbing_str = ", ".join(f"'{lbl}'" for lbl in HEADLINE_FORBIDDEN_PLUMBING_LABELS)
+    abstraction_nouns_str = ", ".join(HEADLINE_EXECUTIVE_ABSTRACTION_NOUNS[:-1]) + f", or {HEADLINE_EXECUTIVE_ABSTRACTION_NOUNS[-1]}"
+    platform_floor_str = ", ".join(f"'{tok}'" for tok in HEADLINE_SIGNAL_FLOOR_PLATFORM_TOKENS[:-1]) + f", or '{HEADLINE_SIGNAL_FLOOR_PLATFORM_TOKENS[-1]}'"
+    governance_floor_str = ", ".join(f"'{tok}'" for tok in HEADLINE_SIGNAL_FLOOR_GOVERNANCE_TOKENS[:-1]) + f", or '{HEADLINE_SIGNAL_FLOOR_GOVERNANCE_TOKENS[-1]}'"
+
     prompt = f"""You are an elite executive resume editor. Your task is to repair a Headline draft.
 
 TARGETING CONTEXT ONLY — NOT PROOF (evaluate alignment, never cite JD/briefing as candidate experience):
@@ -176,12 +192,12 @@ DIAGNOSTIC FEEDBACK:
 - Suggestions: {json.dumps(suggestions)}
 
 RULES:
-1. Exact format: "<Approved Seniority Prefix> | <Core Pillar 1> | <Core Pillar 2> | <Differentiating Impact>" (approved prefixes: SVP Engineering, SVP Enterprise Architecture, SVP AI Strategy, SVP IT Strategy, SVP Agentic Transformation, SVP Transformation, SVP Enterprise AI, SVP Technology Strategy, SVP Agentic AI Platforms, Partner, Executive Director, Managing Director).
+1. Exact format: "<Approved Seniority Prefix> | <Core Pillar 1> | <Core Pillar 2> | <Differentiating Impact>" (approved prefixes: {approved_prefixes_str}).
 2. Must contain exactly 4 pipe-delimited segments.
 3. Word count must be strictly between 10 and 13 words total.
-4. Avoid noun stacks, buzzword salads, narrow hardware/plumbing labels ('SCADA', 'Telemetry', 'Portal Agentic', 'Compliance AI Governance'), and clichés.
-5. Every X/Y/Z segment (segments 2, 3, and 4) MUST include an executive operating abstraction noun (Platforms, Architecture, Governance, Systems, Ecosystems, Solutions, Partnerships, Alliances, Delivery, Orchestration, Modernization, Transformation, Commercialization, Regulated, or Enterprise), with zero digits, $, %, or employer/company names.
-6. HARD SIGNAL FLOOR IN SEGMENTS 2..4: At least ONE of segments 2..4 MUST contain 'Platforms', 'Platform', 'Architecture', or 'Runtime' (e.g., 'Agentic AI Platforms', 'AI Platform Architecture', or 'Runtime Governance'), AND at least ONE of segments 2..4 MUST contain 'Governance', 'Governed', or 'Regulated' (e.g., 'Runtime Governance' or 'Governed AI Deployment').
+4. Avoid noun stacks, buzzword salads, narrow hardware/plumbing labels ({forbidden_plumbing_str}), and clichés.
+5. Every X/Y/Z segment (segments 2, 3, and 4) MUST include an executive operating abstraction noun ({abstraction_nouns_str}), with zero digits, $, %, or employer/company names.
+6. HARD SIGNAL FLOOR IN SEGMENTS 2..4: At least ONE of segments 2..4 MUST contain {platform_floor_str} (e.g., 'Agentic AI Platforms', 'AI Platform Architecture', or 'Runtime Governance'), AND at least ONE of segments 2..4 MUST contain {governance_floor_str} (e.g., 'Runtime Governance' or 'Governed AI Deployment').
 7. Do NOT repeat the token 'AI' in more than 2 of the 4 segments, never invert English modifier ordering (e.g., write 'AI Partner Ecosystems' or 'Platform Commercialization', never 'Licensing AI Platform' or 'Partner AI Ecosystem'), and align segments to the Target Role (e.g., for Applied AI Architecture & Partnerships, pair AI Platform Architecture + Partner Ecosystems + Runtime Governance rather than off-target financial vertical modernization).
 8. Ground all terms in the ALLOWED GROUNDED FACTS above and executive engineering leadership.
 
@@ -211,6 +227,7 @@ def _build_competencies_repair_prompt(
     facts_summary = _format_allowed_facts_for_prompt(allowed_facts, limit=30)
 
     comps_str = json.dumps(current_competencies, indent=2)
+    forbidden_cred_str = ", ".join(f"'{tok.capitalize()}'" for tok in COMPETENCIES_FORBIDDEN_CREDENTIAL_TOKENS)
 
     prompt = f"""You are an elite executive resume editor. Your task is to repair the Core Competencies grid.
 
@@ -232,8 +249,8 @@ DIAGNOSTIC FEEDBACK:
 
 RULES:
 1. Maintain 6 to 8 competency categories in target-relevance order (keep Cloud & Partner Ecosystems / Partner Applied AI Architecture FIRST for partnerships/alliances roles).
-2. Each category must have a crisp category label and 3 to 5 specific grounded competency noun phrases, and EVERY competency term MUST be 3 to 7 words (STRICT HARD MAX: 7 words per term — any 8+ word phrase fails x2_competency_term_compact_word_count!).
-3. No em-dashes (—) in labels; use clean colons or commas, NEVER use certification words ('Fundamentals', 'Accreditation', 'Practitioner', 'Certified'), and ensure NO non-stopword repeats >3 times across the entire table.
+2. Each category must have a crisp category label and 3 to 5 specific grounded competency noun phrases, and EVERY competency term MUST be {COMPETENCIES_TERM_MIN_WORDS} to {COMPETENCIES_TERM_MAX_WORDS} words (STRICT HARD MAX: {COMPETENCIES_TERM_MAX_WORDS} words per term — any {COMPETENCIES_TERM_MAX_WORDS + 1}+ word phrase fails x2_competency_term_compact_word_count!).
+3. No em-dashes (—) in labels; use clean colons or commas, NEVER use certification words ({forbidden_cred_str}), and ensure NO non-stopword repeats >3 times across the entire table.
 4. Replace generic table-stakes phrases (like 'stakeholder alignment across delivery teams') with concrete SVP-level AI/cloud architecture mechanisms grounded in ALLOWED GROUNDED FACTS.
 5. Preserve any existing allocation_claim_unit_id, source_skill_ids, competency_bundle_id, and frozen graph bindings when present.
 

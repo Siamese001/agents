@@ -18,9 +18,9 @@ from apps_rg.runtime.validators.executive_summary_x2 import (
     has_jd_phrase_copy,
     required_judges_for_section,
 )
-from apps_rg.runtime.sections.section_product_shape_ssot import (
-    HEADLINE_WORD_MAX,
-    HEADLINE_WORD_MIN,
+from apps_rg.runtime.contracts.prompt_validator_vocab_ssot import (
+    APPROVED_HEADLINE_SENIORITY_PREFIXES,
+    HEADLINE_EXECUTIVE_ABSTRACTION_RE,
 )
 from apps_rg.runtime.sections.section_product_shape_ssot import (
     HEADLINE_WORD_MAX,
@@ -68,17 +68,7 @@ _STANDALONE_VENDOR_ARCHITECTURE_RE = re.compile(
     re.IGNORECASE,
 )
 
-_EXECUTIVE_ABSTRACTION_RE = re.compile(
-    r"(?:\bplatforms?\b|\barchitecture\b|\barchitectures\b|\bgovernance\b|\bgoverned\b|"
-    r"\bmodernization\b|\bmodernizations?\b|\btransformations?\b|\bvalue\s+creation\b|"
-    r"\becosystems?\b|\bcommercialization\b|\bregulated\b|\bsystems?\b|"
-    r"\badoption\b|\boperating\s+model\b|\bco-?sell\b|\bmotions?\b|"
-    r"\bpartners?\b|\bpartnerships?\b|\balliances?\b|\benterprise\b|\bruntime\b|\binfrastructure\b|"
-    r"\bproductization\b|\bcontrols?\b|\bcloud\s+data\b|\baccelerators?\b|\badvisory\b|"
-    r"\bresilience\b|\breliability\b|\bdevsecops\b|\bdelivery\b|\bsolutions?\b|\benablement\b|"
-    r"\broadmaps?\b|\bstrategy\b|\bstrategies\b|\borchestration\b|\bdeployments?\b)",
-    re.IGNORECASE,
-)
+_EXECUTIVE_ABSTRACTION_RE = HEADLINE_EXECUTIVE_ABSTRACTION_RE
 
 _PREFERRED_HEADLINE_ABSTRACTIONS: tuple[str, ...] = (
     "Enterprise AI Platforms", "Cloud Data Platforms", "Runtime Governance Architecture",
@@ -859,20 +849,7 @@ def has_valid_headline_prefix(headline_line: str) -> bool:
         return False
     return any(
         h.startswith(f"{p} | ")
-        for p in (
-            "SVP Engineering",
-            "SVP Enterprise Architecture",
-            "SVP AI Strategy",
-            "SVP IT Strategy",
-            "SVP Agentic Transformation",
-            "SVP Transformation",
-            "SVP Enterprise AI",
-            "SVP Technology Strategy",
-            "SVP Agentic AI Platforms",
-            "Partner",
-            "Executive Director",
-            "Managing Director",
-        )
+        for p in APPROVED_HEADLINE_SENIORITY_PREFIXES
     ) or (
         (
             h.startswith("SVP ")

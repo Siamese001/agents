@@ -21,6 +21,11 @@ import yaml
 from apps_rg.prompt_assembly.contracts import EvidenceSource, PromptAssemblyInput
 from apps_rg.prompt_assembly.e0_examples import resolve_e0_for_section
 from apps_rg.runtime.bindings.section_prompt_adapter import SectionCompiledPrompt, compile_section_prompt
+from apps_rg.runtime.contracts.prompt_validator_vocab_ssot import (
+    COMPETENCIES_FORBIDDEN_CREDENTIAL_TOKENS,
+    COMPETENCIES_TERM_MAX_WORDS,
+    sanitize_allocated_skill_concept_hint,
+)
 from apps_rg.runtime.dispatch.input_authority_prompt_block import finalize_section_compiled_with_proof_pool
 
 
@@ -245,8 +250,9 @@ def build_competencies_assembly_input(
     alloc_rows = list((selected_graph_plan or {}).get("allocation_assignments") or []) if isinstance(selected_graph_plan, dict) else []
     alloc_block = ""
     if alloc_rows:
+        forbidden_cred_list = ", ".join(f"'{tok.capitalize()}'" for tok in COMPETENCIES_FORBIDDEN_CREDENTIAL_TOKENS[:-1]) + f", or '{COMPETENCIES_FORBIDDEN_CREDENTIAL_TOKENS[-1].capitalize()}'"
         alloc_lines = [
-            "\nMANDATORY_ALLOCATED_GRAPH_SKILLS (HARD X2 GATE x2_resume_graph_claim_binding — emit ALL 8 required competency_bundle_id categories, and for EVERY row below, include one 5-7 word capability noun phrase carrying the EXACT \"allocation_claim_unit_id\", \"source_skill_ids\", and \"source_fact_id\" shown below; NEVER use certification/credential words like 'Fundamentals', 'Accreditation', 'Practitioner', 'Certified', or 'Certificate' in term text, NEVER emit generic table-stakes filler like 'stakeholder alignment across delivery teams' (express executive architecture specificity instead, e.g., 'C-suite AI reference architecture & GTM alignment'), keep partner/deal-support/alliance GTM terms inside ccb_partner_applied_ai_architecture, and ensure NO non-stopword repeats >3 times across the entire section):"
+            f"\nMANDATORY_ALLOCATED_GRAPH_SKILLS (HARD X2 GATE x2_resume_graph_claim_binding — emit ALL 8 required competency_bundle_id categories, and for EVERY row below, include one 5-{COMPETENCIES_TERM_MAX_WORDS} word capability noun phrase carrying the EXACT \"allocation_claim_unit_id\", \"source_skill_ids\", and \"source_fact_id\" shown below; NEVER use certification/credential words like {forbidden_cred_list} in term text, NEVER emit generic table-stakes filler like 'stakeholder alignment across delivery teams' (express executive architecture specificity instead, e.g., 'C-suite AI reference architecture & GTM alignment'), keep partner/deal-support/alliance GTM terms inside ccb_partner_applied_ai_architecture, and ensure NO non-stopword repeats >3 times across the entire section):"
         ]
         for arow in alloc_rows:
             if not isinstance(arow, dict):
@@ -254,10 +260,7 @@ def build_competencies_assembly_input(
             cuid = str(arow.get("claim_unit_id") or "").strip()
             skid = str(arow.get("skill_id") or "").strip()
             fid = str(arow.get("fact_id") or "").strip()
-            kw_hint = skid.replace("skill:", "").replace("skill_", "").replace(":", " ").replace("_", " ").strip()
-            for _noise in ("sr w12 ", "p2 gtm ", "p2 tech ", " fundamentals", " accreditation", " practitioner", " certified"):
-                kw_hint = kw_hint.replace(_noise, " " if not _noise.startswith(" ") else "")
-            kw_hint = " ".join(kw_hint.split())
+            kw_hint = sanitize_allocated_skill_concept_hint(skid)
             if cuid or skid:
                 alloc_lines.append(
                     f'- allocation_claim_unit_id="{cuid}", source_skill_ids=["{skid}"], source_fact_id="{fid}" (capability concept: {kw_hint})'

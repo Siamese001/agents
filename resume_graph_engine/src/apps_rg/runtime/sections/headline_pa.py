@@ -17,6 +17,12 @@ import yaml
 
 from apps_rg.prompt_assembly.contracts import EvidenceSource, PromptAssemblyInput
 from apps_rg.runtime.bindings.section_prompt_adapter import SectionCompiledPrompt, compile_section_prompt
+from apps_rg.runtime.contracts.prompt_validator_vocab_ssot import (
+    HEADLINE_EXECUTIVE_ABSTRACTION_NOUNS,
+    HEADLINE_FORBIDDEN_PLUMBING_LABELS,
+    HEADLINE_SIGNAL_FLOOR_GOVERNANCE_TOKENS,
+    HEADLINE_SIGNAL_FLOOR_PLATFORM_TOKENS,
+)
 from apps_rg.runtime.dispatch.input_authority_prompt_block import (
     augment_section_compiled_with_input_authority,
     proof_pool_mode_from_metadata,
@@ -213,6 +219,10 @@ def _format_allocation_authority_block(
         else ""
     )
     prefix_wc = len(prefix.split())
+    forbidden_plumbing = ", ".join(f"'{lbl}'" for lbl in HEADLINE_FORBIDDEN_PLUMBING_LABELS)
+    abstraction_nouns = ", ".join(HEADLINE_EXECUTIVE_ABSTRACTION_NOUNS[:-1]) + f", or {HEADLINE_EXECUTIVE_ABSTRACTION_NOUNS[-1]}"
+    platform_floor = ", ".join(f"'{tok}'" for tok in HEADLINE_SIGNAL_FLOOR_PLATFORM_TOKENS[:-1]) + f", or '{HEADLINE_SIGNAL_FLOOR_PLATFORM_TOKENS[-1]}'"
+    governance_floor = ", ".join(f"'{tok}'" for tok in HEADLINE_SIGNAL_FLOOR_GOVERNANCE_TOKENS[:-1]) + f", or '{HEADLINE_SIGNAL_FLOOR_GOVERNANCE_TOKENS[-1]}'"
     return (
         "MANDATORY WHOLE-RESUME ALLOCATION BINDING: Every assigned headline allocation unit "
         f"({', '.join(headline_allocs)}) MUST be represented 1-to-1 across X, Y, and Z and its root_id "
@@ -220,15 +230,13 @@ def _format_allocation_authority_block(
         "and cite that segment's assigned root_id). Never exclude any assigned root_id to gap_notes, and "
         "never spend two segments on one root_id while dropping another."
         + rec_clause
-        + " FORBIDDEN BACK-OFFICE & PLUMBING LABELS: Never emit 'Three Lines Governance', 'Client Adoption Systems', "
-        "'SCADA Systems', 'Telemetry AI Platform', 'Portal Agentic Platform', or 'Compliance AI Governance'; "
+        + f" FORBIDDEN BACK-OFFICE & PLUMBING LABELS: Never emit {forbidden_plumbing}; "
         "express governance/insurance roots as 'Regulated AI Governance' or 'Runtime Governance Controls', "
         "and express modernization/platform/delivery roots as 'Agentic AI Platforms', 'Multi-Agent AI Delivery', "
         "'Cloud Data Modernization', or 'Enterprise AI Architecture'. Every X/Y/Z segment MUST include an executive "
-        "abstraction noun (Platforms, Architecture, Governance, Systems, Ecosystems, Solutions, Partnerships, Alliances, Delivery, Orchestration, "
-        "Modernization, Transformation, Commercialization, Regulated, or Enterprise). "
+        f"abstraction noun ({abstraction_nouns}). "
         "Do NOT repeat 'AI' in more than 2 of the 4 segments and never invert English modifier order (e.g., never write 'Licensing AI Platform' or 'Partner AI Ecosystem'; write 'AI Partner Ecosystems' or 'Platform Commercialization'). "
-        "At least ONE X/Y/Z segment (segments 2..4) MUST include 'Platforms', 'Platform', 'Architecture', or 'Runtime', AND at least ONE X/Y/Z segment MUST include 'Governance', 'Governed', or 'Regulated'. "
+        f"At least ONE X/Y/Z segment (segments 2..4) MUST include {platform_floor}, AND at least ONE X/Y/Z segment MUST include {governance_floor}. "
         f"STRICT COMPACT 4-SEGMENT ARITHMETIC: Prefix '{prefix}' is {prefix_wc} words, and every X/Y/Z segment "
         "MUST be 2 to 3 words (<= 3 words per segment, <= 12 words total, <= 95 characters total, zero dollar metrics; "
         "never emit 4-word segments, never stack redundant trailing nouns like 'Accelerators Platform' or "

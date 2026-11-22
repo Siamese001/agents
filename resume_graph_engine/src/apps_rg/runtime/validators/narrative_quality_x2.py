@@ -17,50 +17,20 @@ from collections import Counter
 from dataclasses import dataclass
 from typing import Any
 
+from apps_rg.runtime.contracts.prompt_validator_vocab_ssot import (
+    NARRATIVE_AUTHORITY_SIGNALS,
+    NARRATIVE_CONSULTING_PHRASES,
+    NARRATIVE_STRONG_VERBS,
+    NARRATIVE_WEAK_VERBS,
+)
 from apps_rg.runtime.validators.bullet_ngram_overlap_x2 import (
     compute_max_ngram_overlap,
     compute_max_ngram_overlap_multi_reference,
 )
 
 # ---------------------------------------------------------------------------
-# Weak verbs and consulting phrases
-# ---------------------------------------------------------------------------
-
-NARRATIVE_WEAK_VERBS: frozenset[str] = frozenset({
-    "supported", "helped", "assisted", "contributed", "participated",
-    "worked", "involved", "utilized", "leveraged",
-})
-
-NARRATIVE_CONSULTING_PHRASES: frozenset[str] = frozenset({
-    "drive strategic value", "ensure alignment", "leveraged best practices",
-    "worked closely with", "partnered with stakeholders", "aligned with the business",
-    "facilitating collaboration", "drove alignment", "drove strategic alignment",
-    "enabling the business", "providing thought leadership", "thought leadership",
-    "best practices",
-})
-
-# Strong verbs that signal senior executive ownership
-NARRATIVE_STRONG_VERBS: frozenset[str] = frozenset({
-    "owned", "drove", "scaled", "championed", "productized", "operationalized",
-    "established", "anchored", "stewarded", "originated", "architected",
-    "engineered", "directed", "structured", "converted", "deployed", "designed",
-    "launched", "modernized", "forged", "built", "standardized", "unified",
-    "accelerated", "transformed", "generated", "delivered", "implemented",
-    "oversaw", "managed", "steered", "pioneered", "defined", "spearheaded",
-    "led", "created", "advised", "guided",
-})
-
-# Authority scope signals
-NARRATIVE_AUTHORITY_SIGNALS: frozenset[str] = frozenset({
-    "platform", "platforms", "enterprise", "enterprises", "mandate", "mandates",
-    "roadmap", "roadmaps", "infrastructure", "organization", "organizations",
-    "architecture", "architectures", "governance", "production", "regulated",
-    "commercialization", "productization", "strategy", "operating", "model",
-    "c-suite", "board", "executive", "portfolio", "portfolios", "diligence",
-    "transformation", "transformations", "advisory", "systems", "programs", "leadership",
-})
-
 # Mechanism vocabulary for technical specificity
+# ---------------------------------------------------------------------------
 MECHANISM_VOCAB: frozenset[str] = frozenset({
     "agentic", "llm", "rag", "graphrag", "graph", "embedding", "vector", "retrieval",
     "orchestration", "evaluation", "eval", "fine-tuning", "inference",
