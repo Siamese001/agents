@@ -184,10 +184,27 @@ def check_resume_graph_engine_domain(repo_root: Path, *, inject_fault: bool = Fa
     if mech_check.get("unsupported_mechanisms"):
         failures.append(f"ibm_narrative_echo_fallback_injected_unsupported_mechanism:{mech_check['unsupported_mechanisms']}")
 
+    from apps_rg.runtime.contracts.prompt_validator_vocab_ssot import (
+        COMPETENCIES_FORBIDDEN_CREDENTIAL_TOKENS,
+        HEADLINE_EXECUTIVE_ABSTRACTION_NOUNS,
+        HEADLINE_EXECUTIVE_ABSTRACTION_RE,
+        sanitize_allocated_skill_concept_hint,
+    )
+
+    sanitized_cred = sanitize_allocated_skill_concept_hint(
+        "skill_sr_w12_databricks_lakehouse_fundamentals_certification"
+    )
+    if any(tok in sanitized_cred.split() for tok in COMPETENCIES_FORBIDDEN_CREDENTIAL_TOKENS):
+        failures.append(f"credential_token_leaked_in_concept_hint:{sanitized_cred}")
+    if any(not HEADLINE_EXECUTIVE_ABSTRACTION_RE.search(n) for n in HEADLINE_EXECUTIVE_ABSTRACTION_NOUNS):
+        failures.append("headline_abstraction_noun_regex_mismatch")
+    if HEADLINE_EXECUTIVE_ABSTRACTION_RE.search("Agile Scrum Ceremonies") is not None:
+        failures.append("fault_injected_non_executive_headline_segment_not_rejected")
+
     return {
         "domain": "resume_graph_engine",
         "status": "PASS" if not failures else "FAIL",
-        "checks_run": 10,
+        "checks_run": 13,
         "failures": failures,
     }
 
@@ -524,10 +541,16 @@ def check_governance_guards_domain(repo_root: Path, *, inject_fault: bool = Fals
         if int(policy.get("default_unrecognized_lane", 0)) != 2:
             failures.append("risk_lanes_policy_default_not_lane2")
 
+    from tools.lint_prompt_validator_vocab_symmetry import audit_prompt_validator_vocab_symmetry
+
+    vocab_errs = audit_prompt_validator_vocab_symmetry(repo_root)
+    if vocab_errs:
+        failures.append(f"prompt_validator_vocab_symmetry_failed:{vocab_errs}")
+
     return {
         "domain": "governance_guards",
         "status": "PASS" if not failures else "FAIL",
-        "checks_run": 4,
+        "checks_run": 5,
         "failures": failures,
     }
 

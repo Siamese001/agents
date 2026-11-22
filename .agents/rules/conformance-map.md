@@ -52,6 +52,7 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 | Rule | `.agents/rules/apps-research.md` | Fail-closed research targeting brief and handoff envelope |
 | Tool | `tools/lint_production_purity.py` | AST scanner detecting golden fixtures imported in production |
 | Tool | `tools/lint_no_jd_overfitting.py` | Tier 1 anti-overfitting linter with ratchet |
+| Tool | `tools/lint_prompt_validator_vocab_symmetry.py` | Tier 1 prompt-to-validator shared vocabulary symmetry gate (`INV-PROMPT-VALIDATOR-VOCAB-SYMMETRY`) |
 
 ### §"Pytest & Subsystems"
 | Type | Path | Coverage |

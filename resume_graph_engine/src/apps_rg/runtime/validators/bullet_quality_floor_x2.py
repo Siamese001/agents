@@ -19,42 +19,16 @@ from typing import Any
 from apps_rg.runtime.contracts.metric_lexical_primitives import (
     is_quantified_metric_outcome_text,
 )
+from apps_rg.runtime.contracts.prompt_validator_vocab_ssot import (
+    EXPERIENCE_STRONG_ACTION_VERBS,
+    EXPERIENCE_WEAK_ACTION_VERBS,
+)
 
 # ---------------------------------------------------------------------------
 # Seniority floor: strong action verbs and organizational scale signals
 # ---------------------------------------------------------------------------
 
-STRONG_ACTION_VERBS: frozenset[str] = frozenset({
-    "architected", "architect", "engineered", "engineer", "operationalized", "operationalize",
-    "directed", "direct", "structured", "converted", "convert", "deployed", "designed",
-    "established", "establish", "led", "lead", "built", "build", "launched", "launch",
-    "modernized", "modernize", "forged", "forge", "drove", "drive", "productized",
-    "productize", "standardized", "standardize", "unified", "unify", "accelerated",
-    "accelerate", "cut", "scaled", "scale", "transformed", "transform", "generated",
-    "generate", "delivered", "deliver", "created", "create", "implemented", "implement",
-    "developed", "develop", "oversaw", "oversee", "managed", "manage", "steered", "steer",
-    "instituted", "institute", "commercialized", "commercialize", "pioneered", "pioneer",
-    "defined", "define", "spearheaded", "spearhead", "owned", "own", "headed", "head",
-    "championed", "champion", "governed", "govern",
-    "embedded", "embed", "ran", "run", "set",
-    "aligned", "align", "advised", "advise", "translated", "translate",
-    "partnered", "partner", "served", "serve",
-    "achieved", "achieve", "unlocked", "unlock", "secured", "secure",
-    "captured", "capture", "realized", "realize", "expanded", "expand",
-    "grew", "grow", "increased", "increase", "reduced", "reduce",
-    "compressed", "compress", "sustained", "sustain", "orchestrated", "orchestrate",
-    "anchored", "anchor", "strengthened", "strengthen",
-    "eliminated", "eliminate", "enabled", "enable", "prevented", "prevent",
-    "mitigated", "mitigate", "protected", "protect", "safeguarded", "safeguard",
-    "enforced", "enforce", "remediated", "remediate", "hardened", "harden",
-    "improved", "improve", "lowered", "lower", "de-risked", "derisked",
-    "automated", "automate", "streamlined", "streamline", "consolidated", "consolidate",
-    "resolved", "resolve", "closed", "close",
-    "shortened", "shorten", "tightened", "tighten", "halved", "halve",
-    "trimmed", "trim", "curtailed", "curtail", "shaped", "shape", "codified", "codify",
-    "re-architected", "rearchitected", "re-engineered", "reengineered",
-    "re-platformed", "replatformed",
-})
+STRONG_ACTION_VERBS: frozenset[str] = EXPERIENCE_STRONG_ACTION_VERBS
 
 def _is_strong_action_verb(word: str) -> bool:
     w = word.lower().strip()
@@ -69,10 +43,7 @@ def _is_strong_action_verb(word: str) -> bool:
         return True
     return False
 
-WEAK_ACTION_VERBS: frozenset[str] = frozenset({
-    "supported", "helped", "assisted", "worked on", "participated", "contributed",
-    "involved in", "part of", "utilized",
-})
+WEAK_ACTION_VERBS: frozenset[str] = EXPERIENCE_WEAK_ACTION_VERBS
 
 SCALE_SIGNALS: frozenset[str] = frozenset({
     "fortune 500", "enterprise", "financial institutions", "regulated", "global",
