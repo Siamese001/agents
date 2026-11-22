@@ -129,3 +129,28 @@ def test_clean_sandbox_passes_sprawl_scan_and_preserves_analyze_drift_contract(t
     drift_rep = analyze_drift(tmp_path, include_sprawl=True)
     assert "unallowlisted_differing" in drift_rep
     assert drift_rep["sprawl_scan"]["is_clean"] is True
+
+
+def test_cross_format_bound_drift_checks_contract_length_section(tmp_path: Path) -> None:
+    gov_dir = tmp_path / "config" / "governance"
+    gov_dir.mkdir(parents=True, exist_ok=True)
+    (gov_dir / "centralization_registry.yaml").write_text(
+        "version: '1.0.0'\n"
+        "domain_threshold_owners:\n"
+        "  resume_executive_summary_shape:\n"
+        "    canonical_symbols:\n"
+        "      EXEC_SUMMARY_MAX_WORDS: 110\n"
+        "      EXEC_SUMMARY_MAX_WORDS_PER_SENTENCE: 32\n",
+        encoding="utf-8",
+    )
+    c_dir = tmp_path / "resume_graph_engine" / "src" / "apps_rg" / "prompt_assembly" / "section_contracts"
+    c_dir.mkdir(parents=True)
+    (c_dir / "executive_summary_contract.yaml").write_text(
+        "length:\n  paragraph_max_words: 150\n  max_words_per_sentence: 45\n",
+        encoding="utf-8",
+    )
+
+    findings = scan_cross_format_bound_drift(tmp_path)
+    keys = {f["key"] for f in findings}
+    assert "length.paragraph_max_words" in keys
+    assert "length.max_words_per_sentence" in keys

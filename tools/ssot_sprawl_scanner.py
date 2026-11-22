@@ -434,14 +434,18 @@ def scan_cross_format_bound_drift(repo_root: Path) -> list[dict[str, Any]]:
     reg = _load_structured(reg_path) or {}
     owners = reg.get("domain_threshold_owners", {})
     exec_owner = owners.get("resume_executive_summary_shape", {}).get("canonical_symbols", {})
-    canon_exec_max_words = int(exec_owner.get("EXEC_SUMMARY_MAX_WORDS", 150))
-    canon_exec_sent_words = int(exec_owner.get("EXEC_SUMMARY_MAX_WORDS_PER_SENTENCE", 45))
+    canon_exec_max_words = int(exec_owner.get("EXEC_SUMMARY_MAX_WORDS", 110))
+    canon_exec_sent_words = int(exec_owner.get("EXEC_SUMMARY_MAX_WORDS_PER_SENTENCE", 32))
 
     declarative_exec_checks = (
         ("resume_graph_engine/src/apps_rg/rg_style_profile.yaml", ("section_style", "summary", "max_words")),
         (
             "resume_graph_engine/src/apps_rg/rg_output_schema.json",
             ("definitions", "section_constraints", "properties", "summary", "max_words"),
+        ),
+        (
+            "resume_graph_engine/src/apps_rg/prompt_assembly/section_contracts/executive_summary_contract.yaml",
+            ("length", "paragraph_max_words"),
         ),
         (
             "resume_graph_engine/src/apps_rg/prompt_assembly/section_contracts/executive_summary_contract.yaml",
@@ -496,22 +500,23 @@ def scan_cross_format_bound_drift(repo_root: Path) -> list[dict[str, Any]]:
         repo_root / "resume_graph_engine/src/apps_rg/prompt_assembly/section_contracts/executive_summary_contract.yaml"
     )
     if contract_yaml:
-        sent_w = (contract_yaml.get("bounds") or {}).get("max_words_per_sentence")
-        if isinstance(sent_w, int) and sent_w != canon_exec_sent_words:
-            findings.append(
-                {
-                    "category": "CROSS_FORMAT_BOUND_DRIFT",
-                    "file": "resume_graph_engine/src/apps_rg/prompt_assembly/section_contracts/executive_summary_contract.yaml",
-                    "key": "bounds.max_words_per_sentence",
-                    "observed": sent_w,
-                    "canonical": canon_exec_sent_words,
-                    "owner": "EXEC_SUMMARY_MAX_WORDS_PER_SENTENCE",
-                    "detail": (
-                        f"executive_summary_contract.yaml sets max_words_per_sentence={sent_w} != "
-                        f"canonical {canon_exec_sent_words}"
-                    ),
-                }
-            )
+        for sec_key in ("length", "bounds"):
+            sent_w = (contract_yaml.get(sec_key) or {}).get("max_words_per_sentence")
+            if isinstance(sent_w, int) and sent_w != canon_exec_sent_words:
+                findings.append(
+                    {
+                        "category": "CROSS_FORMAT_BOUND_DRIFT",
+                        "file": "resume_graph_engine/src/apps_rg/prompt_assembly/section_contracts/executive_summary_contract.yaml",
+                        "key": f"{sec_key}.max_words_per_sentence",
+                        "observed": sent_w,
+                        "canonical": canon_exec_sent_words,
+                        "owner": "EXEC_SUMMARY_MAX_WORDS_PER_SENTENCE",
+                        "detail": (
+                            f"executive_summary_contract.yaml sets max_words_per_sentence={sent_w} != "
+                            f"canonical {canon_exec_sent_words}"
+                        ),
+                    }
+                )
 
     return findings
 

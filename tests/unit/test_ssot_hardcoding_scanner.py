@@ -280,3 +280,41 @@ def test_policy_registry_sync_and_prompt_parity_support_split_packages(tmp_path:
     (exec_pkg / "repair.py").write_text('PROMPT = "Target 105-120 words."\n', encoding="utf-8")
     parity_findings = scan_prompt_code_parity(tmp_path)
     assert any(f["category"] == "PROMPT_VALIDATOR_BOUND_DRIFT" and f["file"].endswith("executive_summary_lane/repair.py") for f in parity_findings)
+
+
+def test_dynamic_centralization_registry_resolution_for_exec_summary_bounds(tmp_path: Path) -> None:
+    gov_dir = tmp_path / "config" / "governance"
+    gov_dir.mkdir(parents=True)
+    (gov_dir / "centralization_registry.yaml").write_text(
+        "version: '1.0.0'\n"
+        "domain_threshold_owners:\n"
+        "  resume_executive_summary_shape:\n"
+        "    canonical_symbols:\n"
+        "      EXEC_SUMMARY_MAX_WORDS: 110\n"
+        "      EXEC_SUMMARY_MAX_WORDS_PER_SENTENCE: 32\n",
+        encoding="utf-8",
+    )
+    exec_dir = tmp_path / "resume_graph_engine" / "src" / "apps_rg" / "runtime" / "sections" / "executive_summary"
+    exec_dir.mkdir(parents=True)
+    (exec_dir / "policy.py").write_text(
+        "class VoiceRepairPolicy:\n"
+        "    max_words_per_sentence: int = 32\n",
+        encoding="utf-8",
+    )
+    (exec_dir / "word_budget_repair.py").write_text(
+        'PROMPT = "Rewrite at 85-110 words."\n',
+        encoding="utf-8",
+    )
+
+    assert scan_hardcoded_threshold_literals(tmp_path) == []
+    assert scan_prompt_code_parity(tmp_path) == []
+
+    (exec_dir / "policy.py").write_text(
+        "class VoiceRepairPolicy:\n"
+        "    max_words_per_sentence: int = 45\n",
+        encoding="utf-8",
+    )
+    findings = scan_hardcoded_threshold_literals(tmp_path)
+    assert len(findings) == 1
+    assert findings[0]["category"] == "CONFLICTING_POLICY_DEFAULT"
+    assert findings[0]["canonical_value"] == 32

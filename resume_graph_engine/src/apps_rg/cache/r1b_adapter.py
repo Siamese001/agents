@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import math
-import os
 import uuid
 from pathlib import Path
 from typing import Any
+
+from infrastructure.config.env_loader import get_env_bool, get_env_str
 
 from apps_rg.cache.r1b_commit_authority import (
     assess_r1b_commit_authority_from_run_dir,
@@ -37,8 +38,8 @@ def _clamp01(value: float) -> float:
 
 
 def _parse_float(env_name: str, default: float) -> float:
-    raw = os.environ.get(env_name)
-    if raw is None:
+    raw = get_env_str(env_name).strip()
+    if not raw:
         return default
     try:
         return float(raw)
@@ -47,8 +48,8 @@ def _parse_float(env_name: str, default: float) -> float:
 
 
 def _parse_int_positive(env_name: str, default: int) -> int:
-    raw = os.environ.get(env_name)
-    if raw is None:
+    raw = get_env_str(env_name).strip()
+    if not raw:
         return default
     try:
         value = int(float(raw))
@@ -74,9 +75,7 @@ def _store_root_for_runs_dir(runs_dir: str | Path | None) -> Path:
 
 
 def _fixture_mirror_enabled_for_tests(*, explicit_private_flag: bool) -> bool:
-    enabled = os.environ.get(
-        "APPS_RG_R1B_ALLOW_FIXTURE_FALLBACK_FOR_TESTS", ""
-    ).strip().lower() in {"1", "true", "yes", "on"}
+    enabled = get_env_bool("APPS_RG_R1B_ALLOW_FIXTURE_FALLBACK_FOR_TESTS", default=False)
     return bool(explicit_private_flag and enabled)
 
 
@@ -90,7 +89,7 @@ def check_r1b_for_apps_rg(
 
     if raw_request is None:
         return None
-    if os.environ.get("APPS_RG_R1B_DISABLED", "").strip().lower() in {
+    if get_env_str("APPS_RG_R1B_DISABLED").strip().lower() in {
         "1",
         "true",
         "yes",

@@ -13,11 +13,12 @@ from apps_rg.runtime.core_model_catalog import (
 
 import hashlib
 import json
-import os
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
+
+from infrastructure.config.env_loader import get_env_str
 
 from apps_rg.cache.r1b_constants import R1B_STORAGE_SUBSYSTEM, R1B_UWG_TARGET_SURFACE
 from apps_rg.cache.r1b_bge_embedding import (
@@ -61,7 +62,7 @@ def _sha256_file(path: Path) -> str:
 
 
 def _chroma_projection_enabled() -> bool:
-    return os.environ.get("APPS_RG_R1B_SKIP_CHROMA_PROJECTION", "").strip().lower() not in (
+    return get_env_str("APPS_RG_R1B_SKIP_CHROMA_PROJECTION").strip().lower() not in (
         "1",
         "true",
         "yes",
@@ -69,13 +70,13 @@ def _chroma_projection_enabled() -> bool:
 
 
 def _resolve_chroma_persist_dir(artifact_dir: Path) -> Path:
-    env = os.environ.get("APPS_RG_R1B_CHROMA_READ_SURFACE_ROOT", "").strip()
+    env = get_env_str("APPS_RG_R1B_CHROMA_READ_SURFACE_ROOT").strip()
     if env:
         root = Path(env)
         if not root.is_absolute():
             root = (Path.cwd() / root).resolve()
         return root
-    chroma = os.environ.get("CHROMA_PERSIST_DIR", "").strip()
+    chroma = get_env_str("CHROMA_PERSIST_DIR").strip()
     if chroma:
         return Path(chroma) / "r1b_semantic_cache_projection"
     return artifact_dir / "r1b_chroma_read_surface"

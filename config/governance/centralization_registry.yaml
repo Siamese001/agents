@@ -64,10 +64,10 @@ domain_threshold_owners:
       - "resume_graph_engine/src/apps_rg/runtime/sections/section_product_shape_ssot/"
       - "resume_graph_engine/src/apps_rg/runtime/sections/shape_ssot/"
     canonical_symbols:
-      EXEC_SUMMARY_MAX_WORDS: 150
-      EXEC_SUMMARY_MAX_WORDS_PER_SENTENCE: 45
-      EXEC_SUMMARY_MIN_SENTENCES: 6
-      EXEC_SUMMARY_MAX_SENTENCES: 6
+      EXEC_SUMMARY_MAX_WORDS: 110
+      EXEC_SUMMARY_MAX_WORDS_PER_SENTENCE: 32
+      EXEC_SUMMARY_MIN_SENTENCES: 3
+      EXEC_SUMMARY_MAX_SENTENCES: 4
     governed_surfaces:
       - "resume_graph_engine/src/apps_rg/rg_output_schema.json"
       - "resume_graph_engine/src/apps_rg/rg_style_profile.yaml"

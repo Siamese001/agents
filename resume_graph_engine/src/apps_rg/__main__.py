@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 from pathlib import Path
 from typing import Any, Sequence
+
+from infrastructure.config.env_loader import snapshot_process_env
 
 from apps_rg.runtime.bindings.l1_cognitive_treatment import L1_COGNITIVE_V2_CONTROL_ARM
 from apps_rg.runtime.env_bootstrap import bootstrap_apps_rg_env
@@ -559,7 +560,7 @@ def _run_preflight(prog: str, json_out: bool = False) -> int | None:
         if not _is_test_mode():
             from apps_rg.runtime.judges.x1d_ide_cli import verify_ide_cli_preflight
 
-            _LAST_IDE_CLI_PREFLIGHT_RECEIPT = verify_ide_cli_preflight(os.environ)
+            _LAST_IDE_CLI_PREFLIGHT_RECEIPT = verify_ide_cli_preflight(snapshot_process_env())
         return None
     except ImportError as err:
         if json_out:
