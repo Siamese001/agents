@@ -646,6 +646,35 @@ def run_competencies_lane_execution(
                 allowed_fact_ids=allowed_fact_ids,
                 selected_graph_evidence_plan=pp_meta.get("selected_graph_evidence_plan"),
             )
+            from apps_rg.runtime.sections.competency_capability_evidence import (
+                AGENTIC_ENGINEERING_COMPETENCIES_BUNDLE_ORDER as _AGENTIC_ORDER,
+                INSURANCE_IT_STRATEGY_COMPETENCIES_BUNDLE_ORDER as _INS_ORDER,
+                PARTNERSHIP_FIRST_COMPETENCIES_BUNDLE_ORDER as _PARTNER_ORDER,
+            )
+
+            _init_plan_meta = pp_meta.get("selected_graph_evidence_plan") if isinstance(pp_meta, dict) else {}
+            _init_prof = str(
+                ((_init_plan_meta or {}).get("target_role_profile") if isinstance(_init_plan_meta, dict) else "")
+                or (selected_fact_plan.get("target_role_profile") if isinstance(selected_fact_plan, dict) else "")
+                or ""
+            ).strip()
+            if _init_prof == "insurance_it_strategy":
+                _init_bundle_order = _INS_ORDER
+            elif _init_prof == "svp_agentic_engineering":
+                _init_bundle_order = _AGENTIC_ORDER
+            else:
+                _init_bundle_order = _PARTNER_ORDER
+            _init_order_map = {b_id: idx_b for idx_b, b_id in enumerate(_init_bundle_order)}
+            for _surf_k in ("competencies", "categories"):
+                _surf_list = parsed.get(_surf_k)
+                if isinstance(_surf_list, list) and len(_surf_list) > 1:
+                    _surf_list.sort(
+                        key=lambda c_obj: _init_order_map.get(
+                            str((c_obj or {}).get("competency_bundle_id") or "").strip(), 999
+                        )
+                        if isinstance(c_obj, dict)
+                        else 999
+                    )
             if _allow_comp_prose_mutation:
                 # W2.2 (typed-edge-role-facet-guardrails-a6f3d2): final floor-filler for
                 # graph-bundle categories in non-REAL_LLM runs only.
@@ -1447,25 +1476,33 @@ def run_competencies_lane_execution(
 
         comp_diag = extract_x1d_diagnostic(x1d, "competencies")
         if comp_diag.get("repair_needed") and any(not j.get("pass", True) for j in x1d):
-            repaired_comp_data, comp_repair_rec = repair_section_with_executive_voice_agent(
-                section_id="competencies",
-                candidate_data={"competencies": competencies, "claim_ledger": claim_ledger},
-                diagnostic=comp_diag,
-                allowed_facts=comp_allowed_fact_packet["facts"],
-                targeting_context=comp_targeting_context,
-                mock_mode=judge_allowed_mock,
-                artifact_dir=artifact_dir,
-            )
             voice_receipt: dict[str, Any] = {
                 "schema_version": "competencies_voice_repair_receipt_v1",
                 "section_id": "competencies",
-                "attempted": bool(comp_repair_rec.repair_attempted),
-                "repair_succeeded": bool(comp_repair_rec.repair_succeeded),
+                "attempted": False,
+                "repair_succeeded": False,
                 "accepted": False,
                 "rejected_reason": None,
             }
-            new_comps = repaired_comp_data.get("competencies") if comp_repair_rec.repair_succeeded else None
-            if isinstance(new_comps, list) and new_comps:
+            cur_v_comps = competencies
+            cur_v_ledger = claim_ledger
+            cur_v_diag = dict(comp_diag)
+            for _v_rw_idx in range(2):
+                repaired_comp_data, comp_repair_rec = repair_section_with_executive_voice_agent(
+                    section_id="competencies",
+                    candidate_data={"competencies": cur_v_comps, "claim_ledger": cur_v_ledger},
+                    diagnostic=cur_v_diag,
+                    allowed_facts=comp_allowed_fact_packet["facts"],
+                    targeting_context=comp_targeting_context,
+                    mock_mode=judge_allowed_mock,
+                    artifact_dir=artifact_dir,
+                )
+                voice_receipt["attempted"] = bool(voice_receipt["attempted"] or comp_repair_rec.repair_attempted)
+                voice_receipt["repair_succeeded"] = bool(comp_repair_rec.repair_succeeded)
+                new_comps = repaired_comp_data.get("competencies") if comp_repair_rec.repair_succeeded else None
+                if not isinstance(new_comps, list) or not new_comps:
+                    voice_receipt["rejected_reason"] = "repair_not_succeeded"
+                    break
                 usage_snap = usage_ledger_path.read_bytes() if usage_ledger_path.is_file() else None
                 c_parsed, c_disp, c_ledger, c_cov, c_canon, c_usage, c_raw, c_alloc_rec, c_disc_ledger = _build_comp_candidate_state(new_comps)
                 c_comps = c_parsed.get("competencies") or new_comps
@@ -1522,18 +1559,31 @@ def run_competencies_lane_execution(
                         )
                         x1d = cand_x1d
                         voice_receipt["accepted"] = True
+                        voice_receipt["rejected_reason"] = None
                     else:
                         if usage_snap is not None:
                             usage_ledger_path.write_bytes(usage_snap)
                         if comp_packet_snap is not None:
                             comp_packet_path.write_bytes(comp_packet_snap)
                         voice_receipt["rejected_reason"] = "rejudge_not_improved"
-                else:
-                    if usage_snap is not None:
-                        usage_ledger_path.write_bytes(usage_snap)
-                    voice_receipt["rejected_reason"] = "x2_failed_after_repair"
-            else:
-                voice_receipt["rejected_reason"] = "repair_not_succeeded"
+                    break
+                if usage_snap is not None:
+                    usage_ledger_path.write_bytes(usage_snap)
+                voice_receipt["rejected_reason"] = "x2_failed_after_repair"
+                if _v_rw_idx == 0:
+                    cur_v_comps = c_comps
+                    cur_v_ledger = c_ledger
+                    x2_details = [
+                        f"{g.get('gate_id')}: observed={g.get('observed_value')!r} ({g.get('failure_reason')})"
+                        for g in cand_x2
+                        if not g.get("pass") and not str(g.get("gate_id") or "").startswith("x2_x1d_")
+                    ]
+                    cur_v_diag = {
+                        **comp_diag,
+                        "findings": list(comp_diag.get("findings") or []) + x2_details,
+                        "remediation_suggestions": list(comp_diag.get("remediation_suggestions") or [])
+                        + ["Shorten every term strictly to 3 to 7 words (NEVER 8+ words) and keep <=3x word repetition across all categories."],
+                    }
             write_json(artifact_dir / "competencies_voice_repair_receipt.json", voice_receipt)
     write_json(
         artifact_dir / "x1d_llm_judge_outputs.json",

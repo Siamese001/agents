@@ -3746,6 +3746,27 @@ def test_experience_bullet_shortened_verb_and_headline_solution_delivery_abstrac
     )
 
 
+def test_competencies_partnership_bundle_order_and_compact_repair_prompt() -> None:
+    from apps_rg.runtime.sections.ExecutiveVoiceRepairAgent import _build_competencies_repair_prompt
+    from apps_rg.runtime.sections.competency_capability_evidence import (
+        AGENTIC_ENGINEERING_COMPETENCIES_BUNDLE_ORDER,
+        PARTNERSHIP_FIRST_COMPETENCIES_BUNDLE_ORDER,
+    )
+
+    assert PARTNERSHIP_FIRST_COMPETENCIES_BUNDLE_ORDER[0] == "ccb_partner_applied_ai_architecture"
+    assert AGENTIC_ENGINEERING_COMPETENCIES_BUNDLE_ORDER[0] == "ccb_agentic_platforms"
+
+    prompt = _build_competencies_repair_prompt(
+        [{"category_label": "Cloud & Partner Ecosystems", "competency_bundle_id": "ccb_partner_applied_ai_architecture", "terms": []}],
+        {"findings": ["x2_competency_term_compact_word_count"]},
+        allowed_facts=[],
+        targeting_context={"target_title": "Manager, Applied AI Architecture & Partnerships", "target_company": "Anthropic"},
+    )
+    assert "7 words per term" in prompt
+    assert "x2_competency_term_compact_word_count" in prompt
+
+
+
 
 
 

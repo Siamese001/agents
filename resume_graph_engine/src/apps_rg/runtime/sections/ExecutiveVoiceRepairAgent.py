@@ -231,11 +231,11 @@ DIAGNOSTIC FEEDBACK:
 - Suggestions: {json.dumps(suggestions)}
 
 RULES:
-1. Maintain 6 to 8 competency categories.
-2. Each category must have a crisp category label and 2-4 specific grounded competencies.
-3. No em-dashes (—) in labels; use clean colons or commas.
-4. Emphasize senior executive leadership, architecture governance, and modern AI/cloud systems grounded in ALLOWED GROUNDED FACTS.
-5. Preserve any existing allocation_claim_unit_id / competency_bundle_id / frozen graph bindings when present.
+1. Maintain 6 to 8 competency categories in target-relevance order (keep Cloud & Partner Ecosystems / Partner Applied AI Architecture FIRST for partnerships/alliances roles).
+2. Each category must have a crisp category label and 3 to 5 specific grounded competency noun phrases, and EVERY competency term MUST be 3 to 7 words (STRICT HARD MAX: 7 words per term — any 8+ word phrase fails x2_competency_term_compact_word_count!).
+3. No em-dashes (—) in labels; use clean colons or commas, NEVER use certification words ('Fundamentals', 'Accreditation', 'Practitioner', 'Certified'), and ensure NO non-stopword repeats >3 times across the entire table.
+4. Replace generic table-stakes phrases (like 'stakeholder alignment across delivery teams') with concrete SVP-level AI/cloud architecture mechanisms grounded in ALLOWED GROUNDED FACTS.
+5. Preserve any existing allocation_claim_unit_id, source_skill_ids, competency_bundle_id, and frozen graph bindings when present.
 
 OUTPUT FORMAT:
 Return a JSON object:
