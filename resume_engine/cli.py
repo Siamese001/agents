@@ -84,6 +84,12 @@ def _build_parser(prog: str = "python -m resume_engine") -> argparse.ArgumentPar
         default=False,
         help="Bypass whole-run and section caches and force a fresh live generation run.",
     )
+    run_parser.add_argument(
+        "--timeout",
+        type=float,
+        default=None,
+        help="Hard whole-run wall-clock timeout in seconds (default: 480s / 8 minutes).",
+    )
 
     # 2. eval
     eval_parser = subparsers.add_parser(

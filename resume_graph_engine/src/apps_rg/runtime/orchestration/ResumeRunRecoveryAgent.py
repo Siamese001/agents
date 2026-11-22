@@ -539,6 +539,16 @@ class ResumeRunRecoveryAgent:
             logger.info("Resume run recovery agent is disabled via APPS_RG_X3_RECOVERY_ENABLED.")
             return False
 
+        from apps_rg.runtime.providers.wallclock_http_guard import remaining_whole_run_budget_s
+
+        rem_budget = remaining_whole_run_budget_s()
+        if rem_budget is not None and rem_budget < 25.0:
+            logger.warning(
+                "Resume run recovery skipped: insufficient whole-run wall-clock budget remaining (%.1fs < 25.0s).",
+                rem_budget,
+            )
+            return False
+
         receipt_path = self._prior_receipt_path()
         if receipt_path.is_file():
             try:
