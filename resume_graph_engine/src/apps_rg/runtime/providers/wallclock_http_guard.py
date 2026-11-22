@@ -336,7 +336,7 @@ def resolve_section_lane_timeout_s(override: float | None = None) -> float:
     base = _env_or_ssot_seconds(
         "APPS_RG_SECTION_LANE_TIMEOUT_SECONDS",
         "section_dispatch.lane_timeout_seconds",
-        180.0,  # ssot: exempt(HARDCODED_TIMEOUT)
+        240.0,  # ssot: exempt(HARDCODED_TIMEOUT)
     )
     rem = remaining_whole_run_budget_s()
     if rem is not None and rem > 0:

@@ -1080,7 +1080,7 @@ def apply_unify_narrative_in_lane_healing(
     ]
     critique = "; ".join(findings[:6]) or "Ground every mechanism and commercial claim strictly in allowed Unify facts."
     receipt["judge_critique"] = critique
-    rewrite_msgs = [
+    attempt_msgs = [
         *messages,
         {"role": "assistant", "content": raw_output},
         {
@@ -1089,40 +1089,67 @@ def apply_unify_narrative_in_lane_healing(
                 f"X1D_JUDGE_REVISION: independent judge review rejected the draft: [{critique}]. "
                 "Rewrite narrative_sentence and claim_ledger from scratch in one crisp executive sentence "
                 "framing the platform roadmap, governed agentic runtime architecture, and reusable IP commercialization "
-                "at Unify Consulting. Cite ONLY literal ALLOWED_SOURCE_FACT_IDS that directly entail every visible "
-                "mechanism and outcome, never invent unverified technologies, use zero generic consulting phrases, "
-                "and keep pairwise content cosine <= 0.35 against every companion bullet. Return one complete compact JSON object only."
+                "at Unify Consulting proven across ACCEPTED_UNIFY_BULLETS. Cite ONLY literal ALLOWED_SOURCE_FACT_IDS "
+                "(e.g. bul_unify_001..bul_unify_006 and/or allocated reb_unify_* IDs) that directly entail every visible "
+                "mechanism and outcome, never invent unverified technologies or repeat bullet numbers, use zero generic "
+                "consulting phrases, avoid any 4-word overlap with companion bullets, and keep pairwise content cosine <= 0.35 "
+                "against every companion bullet. Return one complete compact JSON object only."
             ),
         },
     ]
-    res = call_section_model_provider(
-        provider_name,
-        tag_reasoning_lane({**provider_payload, "messages": rewrite_msgs, "max_tokens": NARRATIVE_MAX_OUTPUT_TOKENS}, LANE_KEY),
-        artifact_dir=artifact_dir,
-        run_id=str(runtime_payload.get("run_id") or ""),
-    )
-    if res.runtime_generation_status != "REAL_LLM":
-        judge_rewrite_rec["rejected_reason"] = f"provider_not_real_llm:{res.runtime_generation_status}"
-        receipt["rejected_reason"] = judge_rewrite_rec["rejected_reason"]
-        _sync_receipt()
-        write_json(artifact_dir / "unify_narrative_judge_rewrite_receipt.json", receipt)
-        return raw_output, parsed, x1d, bool(pre_judge_accepted)
-    cand_raw = str(res.raw_model_output or "")
-    cand_in, _ = parse_model_json(cand_raw)
-    cand_parsed = (
-        normalize_unify_narrative_parsed(
-            cand_in, runtime_payload, companion_text=companion_text, allow_prose_mutation=False
-        )
-        if cand_in
-        else None
-    )
-    cand_narr = str((cand_parsed or {}).get("narrative_sentence") or "").strip()
     usage_snap = usage_ledger_path.read_bytes() if usage_ledger_path.is_file() else None
-    post_issues = (
-        _eval_pre_judge_issues(cand_parsed, cand_raw, is_candidate=True)
-        if cand_parsed is not None
-        else ["parse_failed"]
-    )
+    cand_raw = ""
+    cand_parsed: dict[str, Any] | None = None
+    cand_narr = ""
+    post_issues: list[str] = []
+    for rw_idx in range(2):
+        res = call_section_model_provider(
+            provider_name,
+            tag_reasoning_lane({**provider_payload, "messages": attempt_msgs, "max_tokens": NARRATIVE_MAX_OUTPUT_TOKENS}, LANE_KEY),
+            artifact_dir=artifact_dir,
+            run_id=str(runtime_payload.get("run_id") or ""),
+        )
+        if res.runtime_generation_status != "REAL_LLM":
+            if usage_snap is not None:
+                usage_ledger_path.write_bytes(usage_snap)
+            judge_rewrite_rec["rejected_reason"] = f"provider_not_real_llm:{res.runtime_generation_status}"
+            receipt["rejected_reason"] = judge_rewrite_rec["rejected_reason"]
+            _sync_receipt()
+            write_json(artifact_dir / "unify_narrative_judge_rewrite_receipt.json", receipt)
+            return raw_output, parsed, x1d, bool(pre_judge_accepted)
+        cand_raw = str(res.raw_model_output or "")
+        cand_in, _ = parse_model_json(cand_raw)
+        cand_parsed = (
+            normalize_unify_narrative_parsed(
+                cand_in, runtime_payload, companion_text=companion_text, allow_prose_mutation=False
+            )
+            if cand_in
+            else None
+        )
+        cand_narr = str((cand_parsed or {}).get("narrative_sentence") or "").strip()
+        post_issues = (
+            _eval_pre_judge_issues(cand_parsed, cand_raw, is_candidate=True)
+            if cand_parsed is not None
+            else ["parse_failed"]
+        )
+        if cand_parsed is not None and not post_issues:
+            break
+        if usage_snap is not None:
+            usage_ledger_path.write_bytes(usage_snap)
+        if rw_idx < 1 and cand_raw:
+            attempt_msgs = [
+                *attempt_msgs,
+                {"role": "assistant", "content": cand_raw},
+                {
+                    "role": "user",
+                    "content": (
+                        f"X2_GUARD_CORRECTION: your rewrite failed section invariants: [{'; '.join(post_issues[:6])}]. "
+                        "Keep the overarching Unify AI platform commercialization and governed agentic runtime thesis, "
+                        "replace overlapping words/4-grams so pairwise cosine <= 0.35 against every companion bullet, "
+                        "cite ONLY literal ALLOWED_SOURCE_FACT_IDS (bul_unify_* / reb_unify_*), and return one compact JSON object."
+                    ),
+                },
+            ]
     if cand_parsed is None or post_issues:
         if usage_snap is not None:
             usage_ledger_path.write_bytes(usage_snap)
@@ -1278,14 +1305,19 @@ def run_unify_narrative_execution(
     candidate_name = str(
         base.get("candidate_name") or (base.get("header") or {}).get("name") or ""
     ).strip()
-    unify_header, _, _ = extract_unify_employment(base)
+    unify_header, canon_bullets, canon_allowed = extract_unify_employment(base)
+    canon_bullet_allowed = {
+        str(fid).strip()
+        for fid in canon_allowed
+        if str(fid).strip().startswith("bul_unify_")
+    }
     unify_facts = [_graph_evidence.plan_fact_to_employment_bullet_row(f) for f in pool.selected_fact_plan.get("facts", [])]
     selected_fact_plan = build_selected_fact_plan(
         unify_facts,
         role_narrative=str(unify_header.get("role_narrative") or ""),
         employment_fact_id=str(unify_header.get("fact_id") or "exp_unify_001"),
     )
-    allowed_fact_ids = pool.allowed_fact_ids
+    allowed_fact_ids = set(pool.allowed_fact_ids) | canon_bullet_allowed
     proof_pool_metadata = pool.proof_pool_metadata
     companion_context = load_companion_unify_bullets_context()
     companion_text = str(companion_context.get("text") or "")
@@ -1359,6 +1391,9 @@ def run_unify_narrative_execution(
     )
     if blocked is not None:
         return blocked
+    runtime_payload["allowed_fact_ids"] = sorted(
+        set(runtime_payload.get("allowed_fact_ids") or []) | set(allowed_fact_ids)
+    )
 
     input_payload_hash = sha16(json.dumps(runtime_payload, sort_keys=True))
     section_compiled = compile_unify_narrative_prompt(
@@ -1636,6 +1671,43 @@ def run_unify_narrative_execution(
         for f in plan_facts_raw
         if isinstance(f, dict)
     ]
+    from apps_rg.runtime.sections.unify_role_episode_evidence import UNIFY_BULLET_SLOT_BUNDLE_MAP
+
+    seen_packet_fids = {
+        str(f.get("fact_id") or "").strip()
+        for f in compact_allowed_facts
+        if isinstance(f, dict) and str(f.get("fact_id") or "").strip()
+    }
+    comp_by_bid: dict[str, str] = {}
+    for raw_ln in str(companion_text or "").splitlines():
+        ln = raw_ln.strip().lstrip("-*").strip()
+        if ":" in ln:
+            k, v = ln.split(":", 1)
+            ks = k.strip()
+            if ks.startswith("bul_unify_") and v.strip():
+                comp_by_bid[ks] = v.strip()
+    slot_map_res = (
+        (runtime_payload.get("proof_pool_metadata") or {}).get("unify_bullet_slot_bundle_map_resolved")
+        or UNIFY_BULLET_SLOT_BUNDLE_MAP
+    )
+    for c_row in canon_bullets:
+        if not isinstance(c_row, dict):
+            continue
+        bid = str(c_row.get("fact_id") or "").strip()
+        if not bid or bid in seen_packet_fids or bid not in allowed_fact_ids:
+            continue
+        seen_packet_fids.add(bid)
+        mapped_reb = str(slot_map_res.get(bid) or "").strip() if isinstance(slot_map_res, dict) else ""
+        compact_allowed_facts.append(
+            {
+                "fact_id": bid,
+                "role_episode_bundle_id": mapped_reb or None,
+                "claim_text": comp_by_bid.get(bid) or str(c_row.get("claim_text") or ""),
+                "domain": c_row.get("domain") or "Unify Consulting finalized companion bullet",
+                "allowed_graph_evidence_ids": [bid, *([mapped_reb] if mapped_reb else [])],
+                "raw_chunk": str(c_row.get("claim_text") or "")[:1500],
+            }
+        )
     unify_allowed_fact_packet = {
         "allowed_fact_ids": sorted(str(x) for x in allowed_fact_ids),
         "facts": compact_allowed_facts,
