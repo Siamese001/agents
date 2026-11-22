@@ -46,18 +46,16 @@ def content_signal_repair_env_state() -> str:
 
 def deterministic_clarity_trim_enabled(
     environ: Mapping[str, str] | None = None,
+    *,
+    allow_prose_mutation: bool = False,
 ) -> bool:
+    if not allow_prose_mutation:
+        return False
     env = get_runtime_environ() if environ is None else environ
     raw = str(env.get("APPS_RG_HEADLINE_DETERMINISTIC_CLARITY_TRIM") or "").strip().lower()
     if raw in ("1", "true", "yes", "on"):
         return True
-    if raw in ("0", "false", "no", "off"):
-        return False
-    return bool(
-        str(env.get("APPS_RG_PRODUCTION_RUN") or "").strip() == "1"
-        or str(env.get("APPS_RG_WHOLE_RUN_ENVELOPE") or "").strip() == "1"
-        or not str(env.get("PYTEST_CURRENT_TEST") or "").strip()
-    )
+    return False
 
 
 _FORBIDDEN_BACKOFFICE_HEADLINE_SEGMENTS: frozenset[str] = frozenset(

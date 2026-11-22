@@ -79,8 +79,6 @@ from apps_rg.runtime.sections.headline_repair_policy import (
     CONTENT_SIGNAL_REPAIR_MAX_ATTEMPTS,
     content_signal_repair_enabled,
     content_signal_repair_env_state,
-    deterministic_clarity_trim_enabled,
-    find_valid_3word_clarity_trim,
     resolve_content_signal_repair_max_attempts,
 )
 from apps_rg.runtime.sections.section_product_shape_ssot import (
@@ -1190,7 +1188,13 @@ def retry_headline_word_and_pipe(
     hl = str(new_parsed.get("headline_line", "")).strip()
     snapshot_raw_jd_alignment(new_parsed)
     new_parsed = normalize_parsed_output(
-        new_parsed, runtime_payload, allowed_fact_ids, hl, companion_nonempty=companion_nonempty, employer_names_lower=employer_names_lower
+        new_parsed,
+        runtime_payload,
+        allowed_fact_ids,
+        hl,
+        companion_nonempty=companion_nonempty,
+        employer_names_lower=employer_names_lower,
+        allow_prose_mutation=False,
     ) or parsed
     final_hl = str(new_parsed.get("headline_line") or "").strip()
     if final_hl.count(" | ") != 3 or not has_valid_headline_prefix(final_hl) or not (HEADLINE_WORD_MIN <= headline_word_count(final_hl) <= HEADLINE_WORD_MAX):
@@ -1515,7 +1519,13 @@ def retry_headline_content_signal(
     hl = str(new_parsed.get("headline_line", "")).strip()
     snapshot_raw_jd_alignment(new_parsed)
     new_parsed = normalize_parsed_output(
-        new_parsed, runtime_payload, allowed_fact_ids, hl, companion_nonempty=companion_nonempty, employer_names_lower=employer_names_lower
+        new_parsed,
+        runtime_payload,
+        allowed_fact_ids,
+        hl,
+        companion_nonempty=companion_nonempty,
+        employer_names_lower=employer_names_lower,
+        allow_prose_mutation=False,
     ) or parsed
     final_hl = str(new_parsed.get("headline_line") or "").strip()
     final_wc = headline_word_count(final_hl)
@@ -1524,17 +1534,6 @@ def retry_headline_content_signal(
     graph_content_contract_active = _headline_graph_content_contract_active(
         new_parsed, runtime_payload, allowed_fact_ids
     )
-    if deterministic_clarity_trim_enabled() and headline_resume_native_clarity_report(final_hl).get("opaque_segments"):
-        _rtrim = find_valid_3word_clarity_trim(
-            headline_line=final_hl,
-            parsed=new_parsed,
-            runtime_payload=runtime_payload,
-            allowed_fact_ids=allowed_fact_ids,
-            clarity_report_fn=headline_resume_native_clarity_report,
-            graph_content_contract_active=graph_content_contract_active,
-        )
-        if _rtrim is not None:
-            final_hl, new_parsed, _, _, _ = _rtrim
     repaired_ledger = list(new_parsed.get("claim_ledger") or [])
     final_abstraction: dict[str, Any] = {
         "segments_missing_executive_abstraction": []
@@ -1819,46 +1818,8 @@ def apply_headline_content_signal_repair(
     }
     accepted = False
     snap: dict[str, Any] | None = None
-    _det_trim = (
-        find_valid_3word_clarity_trim(
-            headline_line=hl_pre,
-            parsed=parsed,
-            runtime_payload=runtime_payload,
-            allowed_fact_ids=allowed_fact_ids,
-            clarity_report_fn=headline_resume_native_clarity_report,
-            graph_content_contract_active=graph_content_contract_active,
-        )
-        if arm_names == ["resume_native_clarity"] and deterministic_clarity_trim_enabled()
-        else None
-    )
     if not content_signal_repair_enabled():
         receipt["rejected_reason"] = "kill_switch_off"
-    elif _det_trim is not None:
-        candidate_line, fixed_parsed, new_clarity, new_gov, new_spec = _det_trim
-        sync_selected_fact_plan_required_ids(fixed_parsed, runtime_payload, allowed_fact_ids)
-        receipt["attempted"] = True
-        receipt["accepted"] = True
-        receipt["headline_post"] = candidate_line
-        receipt["repair_mechanism"] = "deterministic_clarity_segment_trim"
-        receipt["families_matched_post"] = {
-            "governance_signal": new_gov,
-            "specificity_floor": new_spec,
-            "narrowing_labels": [],
-            "segments_missing_executive_abstraction": [],
-            "literal_grounding": grounding_pre_observation,
-            "resume_native_clarity": new_clarity,
-            "resume_graph_claim_binding": graph_binding_pre_gate,
-        }
-        write_json(artifact_dir / "headline_content_signal_repair_receipt.json", receipt)
-        record_repair(
-            artifact_dir,
-            kind=KIND_REGEN_LLM,
-            operation="headline_deterministic_clarity_trim",
-            reason="deterministic_clarity_segment_trim",
-            detail={"headline_pre": hl_pre, "headline_post": candidate_line},
-            replaced_l2=True,
-        )
-        return json.dumps(fixed_parsed), fixed_parsed, None, True
     elif budget_consumed:
         receipt["rejected_reason"] = "regen_budget_consumed"
     else:
@@ -2176,6 +2137,7 @@ def retry_headline_proof_shape(
             hl,
             companion_nonempty=companion_nonempty,
             employer_names_lower=employer_names_lower,
+            allow_prose_mutation=False,
         )
         or failed_snapshot
     )

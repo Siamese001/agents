@@ -731,31 +731,52 @@ def repair_section_with_executive_voice_agent(
 
                 used_orig_indices: set[int] = set()
                 merged_comps: list[dict[str, Any]] = []
-                for idx_c, rep_cat in enumerate(repaired_list):
-                    if not isinstance(rep_cat, dict):
-                        merged_comps = []
-                        break
-                    orig_cat: dict[str, Any] = {}
-                    matched_idx: int | None = None
-                    matched_identity = False
-                    for k in ("competency_bundle_id", "category_id"):
-                        v = str(rep_cat.get(k) or "").strip()
-                        if v and v in by_bundle_id and by_bundle_id[v][0] not in used_orig_indices:
-                            matched_idx, orig_cat = by_bundle_id[v]
-                            matched_identity = True
-                            break
-                    if not orig_cat:
+                if not all(isinstance(rep_cat, dict) for rep_cat in repaired_list):
+                    repaired_list_valid = False
+                else:
+                    repaired_list_valid = True
+                if repaired_list_valid:
+                    matched_indices: list[int | None] = [None] * len(repaired_list)
+                    matched_identity_flags: list[bool] = [False] * len(repaired_list)
+                    # Pass 1a: match by explicit competency_bundle_id / category_id first
+                    for idx_c, rep_cat in enumerate(repaired_list):
+                        for k in ("competency_bundle_id", "category_id"):
+                            v = str(rep_cat.get(k) or "").strip()
+                            if v and v in by_bundle_id and by_bundle_id[v][0] not in used_orig_indices:
+                                m_idx = by_bundle_id[v][0]
+                                matched_indices[idx_c] = m_idx
+                                matched_identity_flags[idx_c] = True
+                                used_orig_indices.add(m_idx)
+                                break
+                    # Pass 1b: match remaining entries by normalized category label
+                    for idx_c, rep_cat in enumerate(repaired_list):
+                        if matched_indices[idx_c] is not None:
+                            continue
                         for k in ("category_label", "category", "resume_display_label"):
                             nl = _norm_label(rep_cat.get(k))
                             if nl and nl in by_label and by_label[nl][0] not in used_orig_indices:
-                                matched_idx, orig_cat = by_label[nl]
-                                matched_identity = True
+                                m_idx = by_label[nl][0]
+                                matched_indices[idx_c] = m_idx
+                                matched_identity_flags[idx_c] = True
+                                used_orig_indices.add(m_idx)
                                 break
-                    if not orig_cat and idx_c < len(orig_dicts) and idx_c not in used_orig_indices:
-                        matched_idx = idx_c
-                        orig_cat = orig_dicts[idx_c]
-                    if matched_idx is not None:
-                        used_orig_indices.add(matched_idx)
+                    # Pass 2: positional fallback only over remaining unused orig_dicts (matched_identity=False)
+                    remaining_unused = [i for i in range(len(orig_dicts)) if i not in used_orig_indices]
+                    for idx_c in range(len(repaired_list)):
+                        if matched_indices[idx_c] is not None:
+                            continue
+                        if idx_c < len(orig_dicts) and idx_c not in used_orig_indices:
+                            matched_indices[idx_c] = idx_c
+                            remaining_unused.remove(idx_c)
+                            used_orig_indices.add(idx_c)
+                        elif remaining_unused:
+                            pick = remaining_unused.pop(0)
+                            matched_indices[idx_c] = pick
+                            used_orig_indices.add(pick)
+                for idx_c, rep_cat in enumerate(repaired_list if repaired_list_valid else []):
+                    m_idx = matched_indices[idx_c]
+                    orig_cat = orig_dicts[m_idx] if m_idx is not None else {}
+                    matched_identity = matched_identity_flags[idx_c]
 
                     cat_label = (
                         str(

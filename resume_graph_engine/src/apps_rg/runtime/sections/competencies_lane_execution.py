@@ -406,7 +406,15 @@ def run_competencies_lane_execution(
         slot_kind="competencies",
         provider_payload=provider_payload,
         parse_model_json=parse_model_json,
-        normalize_parsed=lambda p: normalize_parsed_output(p, runtime_payload, allowed_fact_ids),
+        normalize_parsed=lambda p: normalize_parsed_output(
+            p,
+            runtime_payload,
+            allowed_fact_ids,
+            allow_prose_mutation=(
+                str(getattr(args, "provider", "")).strip().lower() == "mock"
+                or bool(getattr(args, "allow_test_mock_provider", False))
+            ),
+        ),
         artifact_dir=artifact_dir,
         run_id=_run_id or None,
         temperature_bounds=(0.30, 0.50),
@@ -461,7 +469,12 @@ def run_competencies_lane_execution(
             if parsed is not None:
                 record_parse_json_retry(artifact_dir, reason=parse_error or "parse_retry")
         if parsed is not None:
-            parsed = normalize_parsed_output(parsed, runtime_payload, allowed_fact_ids)
+            parsed = normalize_parsed_output(
+                parsed,
+                runtime_payload,
+                allowed_fact_ids,
+                allow_prose_mutation=(runtime_generation_status != "REAL_LLM"),
+            )
             comps = parsed.get("competencies") or []
             if isinstance(comps, list) and len(comps) >= 6 and not parsed.get("claim_ledger"):
                 rebuild_claim_ledger_from_competencies(parsed, allowed_fact_ids)
@@ -604,16 +617,19 @@ def run_competencies_lane_execution(
                 parsed.get("competencies") or [],
                 packet=_pkt,
             )
-            augment_bound_category_family_terms(
-                parsed.get("categories") or [],
-                packet=_pkt,
-                allowed_fact_ids=allowed_fact_ids,
-            )
-            augment_bound_category_family_terms(
-                parsed.get("competencies") or [],
-                packet=_pkt,
-                allowed_fact_ids=allowed_fact_ids,
-            )
+            if _allow_comp_prose_mutation:
+                augment_bound_category_family_terms(
+                    parsed.get("categories") or [],
+                    packet=_pkt,
+                    allowed_fact_ids=allowed_fact_ids,
+                    allow_prose_mutation=_allow_comp_prose_mutation,
+                )
+                augment_bound_category_family_terms(
+                    parsed.get("competencies") or [],
+                    packet=_pkt,
+                    allowed_fact_ids=allowed_fact_ids,
+                    allow_prose_mutation=_allow_comp_prose_mutation,
+                )
             hydrate_competency_bundle_graph_evidence(
                 parsed.get("categories") or [],
                 packet=_pkt,
@@ -626,32 +642,30 @@ def run_competencies_lane_execution(
                 allowed_fact_ids=allowed_fact_ids,
                 selected_graph_evidence_plan=pp_meta.get("selected_graph_evidence_plan"),
             )
-            # W2.2 (typed-edge-role-facet-guardrails-a6f3d2): final floor-filler for
-            # graph-bundle categories that augment_bound_category_family_terms could NOT
-            # top up because the bound bundle has no linked fact in the allowed pool
-            # (e.g. platform_productization's only linked fact, fact_engineering_platform_006,
-            # was not selected for this target). This backfill runs AFTER bundle stamping, so
-            # categories carry competency_bundle_id + graph_skill_node_ids; it appends the
-            # bundle's vocabulary_anchors backed by the category's OWN allowed source_fact_ids
-            # plus the bundle's graph_skill_node_ids — graph-backed proof under the GraphDB-SSOT
-            # model, no fact-provenance stretch. Only fires for bundle-bound categories below floor.
-            backfill_graph_bundle_min_terms(parsed)
-            visible_graph_surface_receipt = enrich_competencies_visible_graph_surface(
-                parsed,
-                packet=_pkt,
-                allowed_fact_ids=allowed_fact_ids,
-                selected_graph_evidence_plan=pp_meta.get("selected_graph_evidence_plan"),
-            )
-            if visible_graph_surface_receipt:
-                visible_graph_surface_receipt_ref = _artifact_repo_rel(
-                    artifact_dir / "competencies_visible_graph_surface_enrichment_receipt.json",
-                    REPO_ROOT,
+            if _allow_comp_prose_mutation:
+                # W2.2 (typed-edge-role-facet-guardrails-a6f3d2): final floor-filler for
+                # graph-bundle categories in non-REAL_LLM runs only.
+                backfill_graph_bundle_min_terms(
+                    parsed,
+                    allow_prose_mutation=_allow_comp_prose_mutation,
                 )
-                write_json(
-                    artifact_dir / "competencies_visible_graph_surface_enrichment_receipt.json",
-                    visible_graph_surface_receipt,
+                visible_graph_surface_receipt = enrich_competencies_visible_graph_surface(
+                    parsed,
+                    packet=_pkt,
+                    allowed_fact_ids=allowed_fact_ids,
+                    selected_graph_evidence_plan=pp_meta.get("selected_graph_evidence_plan"),
+                    allow_prose_mutation=_allow_comp_prose_mutation,
                 )
-            # Injected anchor terms need claim_ledger rows so x2_all_terms_source_fact_ids holds.
+                if visible_graph_surface_receipt:
+                    visible_graph_surface_receipt_ref = _artifact_repo_rel(
+                        artifact_dir / "competencies_visible_graph_surface_enrichment_receipt.json",
+                        REPO_ROOT,
+                    )
+                    write_json(
+                        artifact_dir / "competencies_visible_graph_surface_enrichment_receipt.json",
+                        visible_graph_surface_receipt,
+                    )
+            # Rebuild claim_ledger after metadata/lineage updates so x2_all_terms_source_fact_ids holds.
             rebuild_claim_ledger_from_competencies(parsed, allowed_fact_ids)
         selected_graph_plan = pp_meta.get("selected_graph_evidence_plan")
         if isinstance(selected_graph_plan, dict) and selected_graph_plan.get(
@@ -667,35 +681,37 @@ def run_competencies_lane_execution(
                 project_insurance_it_strategy_competencies_if_applicable,
             )
 
-            allocation_output_projection = (
-                project_insurance_it_strategy_competencies_if_applicable(
-                    parsed,
-                    selected_plan=selected_graph_plan,
-                    allowed_fact_ids=allowed_fact_ids,
-                )
-            )
-            write_json(
-                artifact_dir
-                / "competencies_frozen_allocation_output_projection_receipt.json",
-                allocation_output_projection,
-            )
-            if allocation_output_projection.get("applicable"):
-                if allocation_output_projection.get("pass") is not True:
-                    raise ValueError(
-                        "competencies frozen-allocation output projection failed closed: "
-                        f"{allocation_output_projection.get('status')}"
+            allocation_output_projection: dict[str, Any] = {}
+            if _allow_comp_prose_mutation:
+                allocation_output_projection = (
+                    project_insurance_it_strategy_competencies_if_applicable(
+                        parsed,
+                        selected_plan=selected_graph_plan,
+                        allowed_fact_ids=allowed_fact_ids,
                     )
-                # The projection replaced both display surfaces with exact,
-                # source-bound allocation terms. Rebuild before reconciliation
-                # so its claim ledger observes the same final wording.
-                rebuild_claim_ledger_from_competencies(parsed, allowed_fact_ids)
+                )
+                write_json(
+                    artifact_dir
+                    / "competencies_frozen_allocation_output_projection_receipt.json",
+                    allocation_output_projection,
+                )
+                if allocation_output_projection.get("applicable"):
+                    if allocation_output_projection.get("pass") is not True:
+                        raise ValueError(
+                            "competencies frozen-allocation output projection failed closed: "
+                            f"{allocation_output_projection.get('status')}"
+                        )
+                    # The projection replaced both display surfaces with exact,
+                    # source-bound allocation terms. Rebuild before reconciliation
+                    # so its claim ledger observes the same final wording.
+                    rebuild_claim_ledger_from_competencies(parsed, allowed_fact_ids)
             allocation_reconciliation = reconcile_competencies_allocation_claim_units(
                 parsed,
                 selected_plan=selected_graph_plan,
                 allowed_fact_ids=allowed_fact_ids,
             )
             allocation_surface_receipt: dict[str, Any] | None = None
-            if allocation_reconciliation["pass"] is not True:
+            if _allow_comp_prose_mutation and allocation_reconciliation["pass"] is not True:
                 allocation_surface_receipt = (
                     materialize_unmatched_competencies_allocation_terms(
                         parsed,
@@ -718,7 +734,7 @@ def run_competencies_lane_execution(
                 # optional competing term where the taxonomy floor allows it.
                 reduce_competency_keyword_stuffing(
                     parsed,
-                    allow_prose_mutation=(runtime_generation_status != "REAL_LLM"),
+                    allow_prose_mutation=_allow_comp_prose_mutation,
                 )
                 # Rebuild the text ledger before reconciling every allocation
                 # unit again.
@@ -731,7 +747,8 @@ def run_competencies_lane_execution(
             allocation_v3_sync = synchronize_competencies_allocation_bindings_to_categories(
                 parsed
             )
-            _ensure_allocation_plan_coverage(parsed, selected_plan=selected_graph_plan)
+            if _allow_comp_prose_mutation:
+                _ensure_allocation_plan_coverage(parsed, selected_plan=selected_graph_plan)
             # Keep the claim ledger's allocation identity after the final
             # reconciliation.  The builder now preserves explicit claim-unit
             # IDs rather than silently replacing them with text-only rows.
@@ -978,7 +995,17 @@ def run_competencies_lane_execution(
 
     def _build_comp_candidate_state(
         new_comps: list[dict[str, Any]],
-    ) -> tuple[dict[str, Any], str, list[dict[str, Any]], dict[str, Any], dict[str, Any], dict[str, Any], str]:
+    ) -> tuple[
+        dict[str, Any],
+        str,
+        list[dict[str, Any]],
+        dict[str, Any],
+        dict[str, Any],
+        dict[str, Any],
+        str,
+        dict[str, Any] | None,
+        dict[str, Any] | None,
+    ]:
         import copy
 
         cand_parsed = copy.deepcopy(parsed) if isinstance(parsed, dict) else {"competencies": []}
@@ -993,6 +1020,8 @@ def run_competencies_lane_execution(
             cand_parsed["categories"] = [
                 category_v3_from_legacy(c) for c in new_comps if isinstance(c, dict)
             ]
+        _cand_alloc_rec: dict[str, Any] | None = None
+        _cand_disc_ledger: dict[str, Any] | None = None
         _cand_graph_plan = pp_meta.get("selected_graph_evidence_plan")
         if isinstance(_cand_graph_plan, dict) and _cand_graph_plan.get("allocation_assignments"):
             from apps_rg.runtime.c0.competencies_graph_authority import (
@@ -1001,12 +1030,18 @@ def run_competencies_lane_execution(
                 synchronize_competencies_allocation_bindings_to_categories,
             )
 
-            _cand_v3_sync = synchronize_competencies_allocation_bindings_to_categories(cand_parsed)
+            for _surf_key in ("competencies", "categories"):
+                for _c in cand_parsed.get(_surf_key) or []:
+                    if isinstance(_c, dict):
+                        _c.pop("allocation_claim_unit_ids", None)
+            rebuild_claim_ledger_from_competencies(cand_parsed, allowed_fact_ids)
             _cand_alloc_rec = reconcile_competencies_allocation_claim_units(
                 cand_parsed,
                 selected_plan=_cand_graph_plan,
                 allowed_fact_ids=allowed_fact_ids,
             )
+            _cand_v3_sync = synchronize_competencies_allocation_bindings_to_categories(cand_parsed)
+            rebuild_claim_ledger_from_competencies(cand_parsed, allowed_fact_ids)
             _cand_disc_ledger = build_competencies_graph_authority_discrepancy_ledger(
                 selected_plan=_cand_graph_plan,
                 proof_pool_metadata=pp_meta,
@@ -1032,8 +1067,10 @@ def run_competencies_lane_execution(
                 "receipt": _cand_v3_sync,
                 "pass": _cand_v3_sync["pass"],
             }
-        cand_display = competencies_display_text(cand_parsed.get("competencies") or new_comps)
-        rebuild_claim_ledger_from_competencies(cand_parsed, allowed_fact_ids)
+        else:
+            rebuild_claim_ledger_from_competencies(cand_parsed, allowed_fact_ids)
+        cand_comps = cand_parsed.get("competencies") or new_comps
+        cand_display = competencies_display_text(cand_comps)
         cand_ledger = list(cand_parsed.get("claim_ledger") or [])
         cand_cov = build_sentence_claim_coverage(cand_display, cand_ledger, allowed_fact_ids)
         cand_raw = json.dumps(cand_parsed, sort_keys=True, separators=(",", ":"))
@@ -1055,7 +1092,7 @@ def run_competencies_lane_execution(
                 "category_label": cat.get("category_label"),
                 "source_fact_ids": list(cat.get("source_fact_ids") or []),
             }
-            for cat in new_comps
+            for cat in cand_comps
             if isinstance(cat, dict)
         ]
         cand_sfp = cand_parsed.get("selected_fact_plan") if isinstance(cand_parsed.get("selected_fact_plan"), dict) else effective_sfp_c
@@ -1077,7 +1114,17 @@ def run_competencies_lane_execution(
             jd_alignment=merge_jd_alignment(cand_parsed.get("jd_alignment")),
             extra_section_fields={"competency_group_fact_support": cand_grp_support},
         )
-        return cand_parsed, cand_display, cand_ledger, cand_cov, cand_canon, cand_usage, cand_raw
+        return (
+            cand_parsed,
+            cand_display,
+            cand_ledger,
+            cand_cov,
+            cand_canon,
+            cand_usage,
+            cand_raw,
+            _cand_alloc_rec,
+            _cand_disc_ledger,
+        )
 
     def _commit_comp_candidate(
         new_comps: list[dict[str, Any]],
@@ -1088,6 +1135,8 @@ def run_competencies_lane_execution(
         cand_canon: dict[str, Any],
         cand_usage: dict[str, Any],
         cand_raw: str,
+        cand_alloc_rec: dict[str, Any] | None = None,
+        cand_disc_ledger: dict[str, Any] | None = None,
     ) -> None:
         nonlocal competencies, parsed, display_text, claim_ledger, coverage, canon_doc, usage_doc, raw_output, jd_alignment_final, effective_sfp_c
         competencies = list(new_comps)
@@ -1111,6 +1160,16 @@ def run_competencies_lane_execution(
             artifact_dir / "section_input_usage_ledger.json",
             apply_proof_pool_to_usage_ledger(usage_doc, pool),
         )
+        if cand_alloc_rec is not None:
+            write_json(
+                artifact_dir / "competencies_allocation_claim_reconciliation_receipt.json",
+                cand_alloc_rec,
+            )
+        if cand_disc_ledger is not None:
+            write_json(
+                artifact_dir / "competencies_graph_authority_discrepancy_ledger.json",
+                cand_disc_ledger,
+            )
 
     usage_ledger_path = artifact_dir / "section_input_usage_ledger.json"
     pre_x2 = _run_comp_x2(competencies, parsed, claim_ledger, coverage, raw_output, [])
@@ -1146,12 +1205,13 @@ def run_competencies_lane_execution(
         pre_new_comps = pre_rep_data.get("competencies") if pre_rep_rec.repair_succeeded else None
         if isinstance(pre_new_comps, list) and pre_new_comps:
             usage_snap = usage_ledger_path.read_bytes() if usage_ledger_path.is_file() else None
-            c_parsed, c_disp, c_ledger, c_cov, c_canon, c_usage, c_raw = _build_comp_candidate_state(pre_new_comps)
+            c_parsed, c_disp, c_ledger, c_cov, c_canon, c_usage, c_raw, c_alloc_rec, c_disc_ledger = _build_comp_candidate_state(pre_new_comps)
+            c_comps = c_parsed.get("competencies") or pre_new_comps
             write_json(
                 usage_ledger_path,
                 apply_proof_pool_to_usage_ledger(c_usage, pool),
             )
-            c_pre_x2 = _run_comp_x2(pre_new_comps, c_parsed, c_ledger, c_cov, c_raw, [])
+            c_pre_x2 = _run_comp_x2(c_comps, c_parsed, c_ledger, c_cov, c_raw, [])
             c_pre_failed = [
                 str(g.get("gate_id") or "")
                 for g in c_pre_x2
@@ -1160,7 +1220,18 @@ def run_competencies_lane_execution(
             ]
             if not c_pre_failed:
                 _pre_fail_reason = "; ".join(pre_x2_failed)[:160] or "pre_x2_failed"
-                _commit_comp_candidate(pre_new_comps, c_parsed, c_disp, c_ledger, c_cov, c_canon, c_usage, c_raw)
+                _commit_comp_candidate(
+                    c_comps,
+                    c_parsed,
+                    c_disp,
+                    c_ledger,
+                    c_cov,
+                    c_canon,
+                    c_usage,
+                    c_raw,
+                    c_alloc_rec,
+                    c_disc_ledger,
+                )
                 pre_x2_failed = []
                 record_regen_llm(
                     artifact_dir,
@@ -1216,12 +1287,13 @@ def run_competencies_lane_execution(
             new_comps = repaired_comp_data.get("competencies") if comp_repair_rec.repair_succeeded else None
             if isinstance(new_comps, list) and new_comps:
                 usage_snap = usage_ledger_path.read_bytes() if usage_ledger_path.is_file() else None
-                c_parsed, c_disp, c_ledger, c_cov, c_canon, c_usage, c_raw = _build_comp_candidate_state(new_comps)
+                c_parsed, c_disp, c_ledger, c_cov, c_canon, c_usage, c_raw, c_alloc_rec, c_disc_ledger = _build_comp_candidate_state(new_comps)
+                c_comps = c_parsed.get("competencies") or new_comps
                 write_json(
                     usage_ledger_path,
                     apply_proof_pool_to_usage_ledger(c_usage, pool),
                 )
-                cand_x2 = _run_comp_x2(new_comps, c_parsed, c_ledger, c_cov, c_raw, x1d)
+                cand_x2 = _run_comp_x2(c_comps, c_parsed, c_ledger, c_cov, c_raw, x1d)
                 cand_x2_failed = [
                     str(g.get("gate_id") or "")
                     for g in cand_x2
@@ -1233,7 +1305,7 @@ def run_competencies_lane_execution(
                     comp_packet_path = artifact_dir / "competencies_judge_packet.json"
                     comp_packet_snap = comp_packet_path.read_bytes() if comp_packet_path.is_file() else None
                     cand_x1d_outputs = run_competencies_judges(
-                        competencies=new_comps,
+                        competencies=c_comps,
                         claim_ledger=c_ledger,
                         judge_keys=judge_keys,
                         companion_context=companion_context,
@@ -1256,7 +1328,18 @@ def run_competencies_lane_execution(
                     voice_receipt["old_rank"] = list(old_rank)
                     voice_receipt["new_rank"] = list(new_rank)
                     if new_rank > old_rank:
-                        _commit_comp_candidate(c_parsed.get("competencies") or new_comps, c_parsed, c_disp, c_ledger, c_cov, c_canon, c_usage, c_raw)
+                        _commit_comp_candidate(
+                            c_comps,
+                            c_parsed,
+                            c_disp,
+                            c_ledger,
+                            c_cov,
+                            c_canon,
+                            c_usage,
+                            c_raw,
+                            c_alloc_rec,
+                            c_disc_ledger,
+                        )
                         x1d = cand_x1d
                         voice_receipt["accepted"] = True
                     else:

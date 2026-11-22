@@ -1370,6 +1370,7 @@ def enrich_competencies_visible_graph_surface(
     packet: dict[str, Any] | None,
     allowed_fact_ids: set[str] | None,
     selected_graph_evidence_plan: dict[str, Any] | None = None,
+    allow_prose_mutation: bool = True,
 ) -> dict[str, Any]:
     """Make the resume-visible competencies surface consume graph bundle evidence.
 
@@ -1378,7 +1379,7 @@ def enrich_competencies_visible_graph_surface(
     competency bundle. Terms are rebuilt from curated bundle anchors and bound skill
     phrases so graph improvements are visible in ``competencies_display.txt``.
     """
-    if not isinstance(parsed, dict):
+    if not allow_prose_mutation or not isinstance(parsed, dict):
         return {}
     pkt = packet or build_competency_capability_section_packet("competencies")
     records = [
@@ -1615,6 +1616,7 @@ def augment_bound_category_family_terms(
     *,
     packet: dict[str, Any] | None,
     allowed_fact_ids: set[str] | None,
+    allow_prose_mutation: bool = True,
 ) -> list[dict[str, Any]]:
     """Inject bundle-approved, fact-grounded anchor terms into bound categories (Author-Gate
     dec_19e9daa115a62cf3a, anchor_injection).
@@ -1635,7 +1637,7 @@ def augment_bound_category_family_terms(
     not ``default_fid_backfill``. No anchor is injected when the bundle has no allowed linked fact
     (no fabricated provenance).
     """
-    if not isinstance(categories, list):
+    if not allow_prose_mutation or not isinstance(categories, list):
         return categories
     pkt = packet or build_competency_capability_section_packet("competencies")
     by_id: dict[str, dict[str, Any]] = {

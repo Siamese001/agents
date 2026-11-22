@@ -2501,4 +2501,839 @@ def test_evra_competencies_parity_and_judge_packet_rollback_on_rejudge_not_impro
     }
 
 
+def test_headline_real_llm_execution_retries_preserve_prose_verbatim_under_production_env(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """INV-NO-POST-LLM-PROSE-MUTATORS across all 3 run_headline_execution REAL_LLM retry/repair paths."""
+    from apps_rg.runtime.c0 import section_proof_loader as spl
+    from apps_rg.runtime.sections import headline_lane
+    from apps_rg.runtime.sections import section_generation as sg_mod
+
+    monkeypatch.setenv("APPS_RG_PRODUCTION_RUN", "1")
+    monkeypatch.delenv("APPS_RG_HEADLINE_CONTENT_SIGNAL_REPAIR", raising=False)
+    monkeypatch.delenv("APPS_RG_HEADLINE_DETERMINISTIC_CLARITY_TRIM", raising=False)
+
+    facts = [
+        {
+            "fact_id": "bul_unify_001",
+            "claim_text": "Governed runtime spine and agentic AI platforms with regulated AWS migration.",
+        },
+        {
+            "fact_id": "bul_unify_002",
+            "claim_text": "Hyperscaler alliance revenue, partner enablement, and hyperscaler partner ecosystem.",
+        },
+        {
+            "fact_id": "bul_unify_003",
+            "claim_text": "Runtime governance, enterprise portfolio expansion leadership, and AI systems.",
+        },
+    ]
+    base = {
+        "candidate_name": "Candidate",
+        "facts": {
+            "employment": [
+                {
+                    "employer": "Unify Consulting",
+                    "title": "Partner",
+                    "bullets": [{"bullet_id": f["fact_id"], "text": f["claim_text"]} for f in facts],
+                }
+            ]
+        },
+    }
+
+    def _run_case(
+        case_name: str,
+        raw_responses: list[str],
+        *,
+        bundle_consumption: bool = False,
+    ) -> tuple[Path, int]:
+        case_dir = tmp_path / case_name
+        case_dir.mkdir(parents=True, exist_ok=True)
+        pool = _make_fake_pool("headline", facts, {"bul_unify_001", "bul_unify_002", "bul_unify_003"})
+        pool.proof_pool_metadata = (
+            {
+                "headline_positioning_bundle_consumption": True,
+                "evidence_authority": {"authority": "augmented_skills_graph"},
+            }
+            if bundle_consumption
+            else {}
+        )
+        monkeypatch.setattr(
+            spl,
+            "load_section_proof_for_lane",
+            lambda **_k: (pool, base, tmp_path / "base.json", "bh", None),
+        )
+        monkeypatch.setattr(headline_lane, "rel_posix", lambda *_a, **_k: f"artifacts/test/{case_name}")
+        monkeypatch.setattr("apps_rg.runtime.c0.section_proof_loader.apply_proof_pool_to_usage_ledger", lambda doc, _p: doc)
+        monkeypatch.setattr(headline_lane, "load_companion_context", lambda *_a, **_k: "")
+
+        def _fake_wire_fec(**kw: Any) -> None:
+            rp = kw.get("runtime_payload")
+            if isinstance(rp, dict):
+                rp["canonical_evidence_set_digest"] = "dig_1"
+                rp["fec_allowed_fact_ids_digest"] = "dig_1"
+
+        monkeypatch.setattr("apps_rg.runtime.sections.upstream_evidence_block.wire_spine_c0_fec_or_block", _fake_wire_fec)
+        monkeypatch.setattr(
+            headline_lane,
+            "compile_headline_prompt",
+            lambda *_a, **_k: SimpleNamespace(
+                section_id="headline",
+                apps_rg_prompt_template_ref="ref",
+                artifact=SimpleNamespace(template_id="tpl", prompt_hash="ph", slot_count=1, messages=[{"role": "user", "content": "u"}]),
+            ),
+        )
+        monkeypatch.setattr("apps_rg.runtime.section_l2_lane_integration.prepare_section_l2_before_provider", lambda *_a, **_k: None)
+        monkeypatch.setattr("apps_rg.runtime.section_l2_lane_integration.finalize_section_l2_after_output", lambda *_a, **_k: None)
+        monkeypatch.setattr("apps_rg.runtime.section_runtime_exhaust_lane_integration.finalize_section_runtime_exhaust_before_l6", lambda *_a, **_k: None)
+        monkeypatch.setattr("apps_rg.runtime.section_runtime_exhaust_lane_integration.gate_section_l6_shadow_after_exhaust", lambda *_a, **_k: None)
+        monkeypatch.setattr("apps_rg.runtime.spine.exit_lane_hooks.finalize_section_exit_after_l2", lambda *_a, **_k: None)
+        monkeypatch.setattr(headline_lane, "finalize_runtime_proof_run", lambda *_a, **_k: None)
+        monkeypatch.setattr(
+            "apps_rg.runtime.section_one_spine_certification_lane_integration.finalize_section_one_spine_certification",
+            lambda *_a, **_k: None,
+        )
+        monkeypatch.setattr(headline_lane, "emit_headline_l6_shadow_learning_outputs", lambda *_a, **_k: None)
+        monkeypatch.setattr(
+            headline_lane,
+            "run_headline_judges",
+            lambda **kw: [
+                JudgeOutput(
+                    judge_id=f"x1d_{jk}_headline",
+                    provider_name=jk,
+                    provider_key=jk,
+                    evaluator_mode="MODEL_BACKED",
+                    provider_status="MODEL_BACKED_PASS",
+                    model_name="gemini-4-argon-medium",
+                    provider_available=True,
+                    provider_blocked=False,
+                    exact_provider_error=None,
+                    score=4.8,
+                    normalized_score=0.96,
+                    threshold=4.0,
+                    normalized_threshold=0.8,
+                    pass_=True,
+                    findings=[],
+                )
+                for jk in (kw.get("judge_keys") or ["gemini_pro"])
+            ],
+        )
+
+        call_state = {"calls": 0}
+        resp_iter = iter(raw_responses)
+
+        def _fake_provider(*_a: Any, **_k: Any) -> ProviderResult:
+            call_state["calls"] += 1
+            raw = next(resp_iter)
+            return ProviderResult(
+                provider_requested="external_claude",
+                provider_attempted=True,
+                provider_available=True,
+                exact_provider_error=None,
+                runtime_generation_status="REAL_LLM",
+                model="claude-sonnet-5-5-medium",
+                raw_model_output=raw,
+                provider_response={},
+            )
+
+        monkeypatch.setattr("apps_rg.runtime.providers.section_provider_call.call_section_model_provider", _fake_provider)
+        monkeypatch.setattr(sg_mod, "call_section_model_provider", _fake_provider)
+
+        args = headline_lane.build_headline_lane_args(
+            provider="external_claude",
+            temperature=0.35,
+            x1d_judges="gemini_pro",
+            mock_judges=False,
+            target_title="SVP Engineering",
+            target_company="Truist",
+            jd_text="Lead Agentic AI Platforms and Runtime Governance",
+            briefing="Executive positioning",
+        )
+        headline_lane.run_headline_execution(args, artifact_dir_override=case_dir, print_output=False)
+        return case_dir, call_state["calls"]
+
+    # 1. retry_headline_proof_shape (flat-string claim_ledger -> retry -> mutator-bait headline preserved verbatim)
+    proof_attempt1 = json.dumps(
+        {
+            "headline_line": "SVP Engineering | Governed Runtime Spine | Regulated AWS Migration | Enterprise Partner Enablement",
+            "claim_ledger": ["bul_unify_001"],
+            "jd_alignment": {"targeting_only": True, "jd_used_as_proof": False, "briefing_used_as_proof": False},
+            "self_check": {"word_count": 11, "word_count_in_range": True, "pipe_segment_count": 4, "four_segments_verified": True},
+        }
+    )
+    proof_attempt2_hl = "SVP Engineering | Governed Runtime Spine | Regulated AWS Migration | Enterprise Partner Enablement"
+    proof_attempt2 = json.dumps(
+        {
+            "headline_line": proof_attempt2_hl,
+            "claim_ledger": [
+                {"claim_text": "Governed Runtime Spine", "source_fact_ids": ["bul_unify_001"]},
+                {"claim_text": "Regulated AWS Migration", "source_fact_ids": ["bul_unify_001"]},
+                {"claim_text": "Enterprise Partner Enablement", "source_fact_ids": ["bul_unify_002"]},
+            ],
+            "jd_alignment": {"targeting_only": True, "jd_used_as_proof": False, "briefing_used_as_proof": False},
+            "self_check": {"word_count": 11, "word_count_in_range": True, "pipe_segment_count": 4, "four_segments_verified": True},
+        }
+    )
+    dir_proof, calls_proof = _run_case("proof_shape_retry", [proof_attempt1, proof_attempt2])
+    assert calls_proof == 2
+    assert (dir_proof / "headline_output.txt").read_text(encoding="utf-8").strip() == proof_attempt2_hl
+    assert json.loads((dir_proof / "l2_output.json").read_text(encoding="utf-8"))["headline_line"] == proof_attempt2_hl
+
+    # 2. retry_headline_word_and_pipe (9 words -> retry -> mutator-bait headline preserved verbatim)
+    wp_attempt1_hl = "SVP Engineering | Alliance Co-Sell | Runtime Governance | Enterprise Leadership"
+    wp_attempt1 = json.dumps(
+        {
+            "headline_line": wp_attempt1_hl,
+            "claim_ledger": [
+                {"claim_text": "Alliance Co-Sell", "source_fact_ids": ["bul_unify_002"]},
+                {"claim_text": "Runtime Governance", "source_fact_ids": ["bul_unify_003"]},
+                {"claim_text": "Enterprise Leadership", "source_fact_ids": ["bul_unify_003"]},
+            ],
+            "jd_alignment": {"targeting_only": True, "jd_used_as_proof": False, "briefing_used_as_proof": False},
+            "self_check": {"word_count": 9, "word_count_in_range": False, "pipe_segment_count": 4, "four_segments_verified": True},
+        }
+    )
+    wp_attempt2_hl = "SVP Engineering | Governed Runtime Spine | Regulated AWS Migration | Hyperscaler Partner Ecosystem"
+    wp_attempt2 = json.dumps(
+        {
+            "headline_line": wp_attempt2_hl,
+            "claim_ledger": [
+                {"claim_text": "Governed Runtime Spine", "source_fact_ids": ["bul_unify_001"]},
+                {"claim_text": "Regulated AWS Migration", "source_fact_ids": ["bul_unify_001"]},
+                {"claim_text": "Hyperscaler Partner Ecosystem", "source_fact_ids": ["bul_unify_002"]},
+            ],
+            "jd_alignment": {"targeting_only": True, "jd_used_as_proof": False, "briefing_used_as_proof": False},
+            "self_check": {"word_count": 11, "word_count_in_range": True, "pipe_segment_count": 4, "four_segments_verified": True},
+        }
+    )
+    dir_wp, calls_wp = _run_case("word_pipe_retry", [wp_attempt1, wp_attempt2])
+    assert calls_wp == 2
+    assert (dir_wp / "headline_output.txt").read_text(encoding="utf-8").strip() == wp_attempt2_hl
+    assert json.loads((dir_wp / "l2_output.json").read_text(encoding="utf-8"))["headline_line"] == wp_attempt2_hl
+
+    # 3. apply_headline_content_signal_repair + retry_headline_content_signal under APPS_RG_PRODUCTION_RUN=1
+    cs_attempt1_hl = (
+        "SVP Engineering | Hyperscaler Alliance Co-Sell | Runtime Reliability Governance | "
+        "Enterprise Portfolio Expansion Leadership"
+    )
+    cs_attempt1 = json.dumps(
+        {
+            "headline_line": cs_attempt1_hl,
+            "claim_ledger": [
+                {"claim_text": "Hyperscaler Alliance Co-Sell", "source_fact_ids": ["bul_unify_002"]},
+                {"claim_text": "Runtime Reliability Governance", "source_fact_ids": ["bul_unify_003"]},
+                {"claim_text": "Enterprise Portfolio Expansion Leadership", "source_fact_ids": ["bul_unify_003"]},
+            ],
+            "jd_alignment": {"targeting_only": True, "jd_used_as_proof": False, "briefing_used_as_proof": False},
+            "self_check": {"word_count": 13, "word_count_in_range": True, "pipe_segment_count": 4, "four_segments_verified": True},
+        }
+    )
+    cs_attempt2_hl = "SVP Engineering | Agentic AI Platforms | Runtime Governance | Hyperscaler Alliance Revenue"
+    cs_attempt2 = json.dumps(
+        {
+            "headline_line": cs_attempt2_hl,
+            "claim_ledger": [
+                {"claim_text": "Agentic AI Platforms", "source_fact_ids": ["bul_unify_001"]},
+                {"claim_text": "Runtime Governance", "source_fact_ids": ["bul_unify_003"]},
+                {"claim_text": "Hyperscaler Alliance Revenue", "source_fact_ids": ["bul_unify_002"]},
+            ],
+            "jd_alignment": {"targeting_only": True, "jd_used_as_proof": False, "briefing_used_as_proof": False},
+            "self_check": {"word_count": 10, "word_count_in_range": True, "pipe_segment_count": 4, "four_segments_verified": True},
+        }
+    )
+    dir_cs, calls_cs = _run_case("content_signal_retry", [cs_attempt1, cs_attempt2], bundle_consumption=True)
+    assert calls_cs == 2
+    assert (dir_cs / "headline_output.txt").read_text(encoding="utf-8").strip() == cs_attempt2_hl
+    assert json.loads((dir_cs / "l2_output.json").read_text(encoding="utf-8"))["headline_line"] == cs_attempt2_hl
+    cs_receipt = json.loads((dir_cs / "headline_content_signal_repair_receipt.json").read_text(encoding="utf-8"))
+    assert cs_receipt.get("repair_mechanism") != "deterministic_clarity_segment_trim"
+    assert cs_receipt["accepted"] is True
+
+
+def test_competencies_normalize_parsed_output_preserves_certification_terms_when_mutation_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """allow_prose_mutation=False and REAL_LLM restatement retry preserve certification categories and credentials verbatim."""
+    from apps_rg.runtime.sections import competencies_lane_runtime as clr
+
+    runtime_payload = {"selected_fact_plan": {"section_id": "competencies", "facts": [], "required_fact_ids": []}}
+    raw_payload = {
+        "competencies": [
+            {
+                "category_label": "Certifications",
+                "terms": [
+                    {"term": "AWS Certified Solutions Architect", "text": "AWS Certified Solutions Architect", "source_fact_ids": ["bul_001"]},
+                    {"term": "Databricks Lakehouse Fundamentals", "text": "Databricks Lakehouse Fundamentals", "source_fact_ids": ["bul_001"]},
+                    {"term": "Fellow of the Society of Actuaries", "text": "Fellow of the Society of Actuaries", "source_fact_ids": ["bul_001"]},
+                ],
+            }
+        ],
+        "claim_ledger": [],
+        "change_log": [],
+    }
+
+    preserved = clr.normalize_parsed_output(
+        json.loads(json.dumps(raw_payload)),
+        runtime_payload,
+        {"bul_001"},
+        allow_prose_mutation=False,
+    )
+    assert preserved is not None
+    assert preserved["competencies"][0]["category_label"] == "Certifications"
+    assert [t["term"] for t in preserved["competencies"][0]["terms"]] == [
+        "AWS Certified Solutions Architect",
+        "Databricks Lakehouse Fundamentals",
+        "Fellow of the Society of Actuaries",
+    ]
+    ops = {e.get("operation") for e in (preserved.get("change_log") or []) if isinstance(e, dict)}
+    assert "remap_reserved_certification_category" not in ops
+    assert "rewrite_credential_term_to_platform_skill" not in ops
+
+    # Control call with allow_prose_mutation=True still remaps/rewrites for non-REAL_LLM
+    mutated = clr.normalize_parsed_output(
+        json.loads(json.dumps(raw_payload)),
+        runtime_payload,
+        {"bul_001"},
+        allow_prose_mutation=True,
+    )
+    assert mutated is not None
+    assert mutated["competencies"][0]["category_label"] != "Certifications"
+    mutated_terms = [t.get("text") or t.get("term") for t in mutated["competencies"][0]["terms"]]
+    assert "AWS" in mutated_terms
+    assert "AWS Certified Solutions Architect" not in mutated_terms
+
+    # retry_provider_competency_restatement on REAL_LLM preserves certification terms verbatim
+    retry_json = json.dumps(raw_payload)
+    monkeypatch.setattr(
+        clr,
+        "generate_section",
+        lambda *_a, **_k: ProviderResult(
+            provider_requested="external_claude",
+            provider_attempted=True,
+            provider_available=True,
+            exact_provider_error=None,
+            runtime_generation_status="REAL_LLM",
+            model="claude-sonnet-5-5-medium",
+            raw_model_output=retry_json,
+            provider_response={},
+        ),
+    )
+    _raw_ret, parsed_ret = clr.retry_provider_competency_restatement(
+        messages=[{"role": "user", "content": "Draft"}],
+        provider_payload={"model": "claude-sonnet-5-5-medium"},
+        raw_output="{}",
+        parsed={"competencies": [], "change_log": []},
+        bad_term="copied bullet text",
+        runtime_payload=runtime_payload,
+        allowed_fact_ids={"bul_001"},
+    )
+    assert parsed_ret["competencies"][0]["category_label"] == "Certifications"
+    assert [t["term"] for t in parsed_ret["competencies"][0]["terms"]] == [
+        "AWS Certified Solutions Architect",
+        "Databricks Lakehouse Fundamentals",
+        "Fellow of the Society of Actuaries",
+    ]
+
+
+def test_competencies_real_llm_with_bundle_consumption_and_allocation_preserves_prose_verbatim(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """REAL_LLM competencies with bundle_consumption=True and allocation_assignments preserves prose/labels/casing while keeping metadata."""
+    from apps_rg.runtime.c0 import section_proof_loader as spl
+    from apps_rg.runtime.judges import competencies_x1d as comp_x1d_mod
+    from apps_rg.runtime.sections import ExecutiveVoiceRepairAgent as ev_mod
+    from apps_rg.runtime.sections import competencies_lane_execution as cle
+    from apps_rg.runtime.sections.competency_capability_evidence import (
+        build_competency_capability_section_packet,
+    )
+
+    cle._ensure_helpers_hydrated()
+    packet = build_competency_capability_section_packet("competencies")
+    facts = [
+        {
+            "fact_id": f"bul_unify_00{i}",
+            "role_episode_bundle_id": f"bul_unify_00{i}",
+            "claim_text": f"Delivered enterprise orchestration controls and platform scaling {i}.",
+            "technologies": ["Kubernetes", "LangGraph"],
+        }
+        for i in range(1, 7)
+    ]
+    pool = _make_fake_pool("competencies", facts, {f"bul_unify_00{i}" for i in range(1, 7)})
+    pool.proof_pool_metadata = {
+        "evidence_authority": {"authority": "augmented_skills_graph"},
+        "competency_capability_bundle_consumption": True,
+        "competency_capability_section_packet": packet,
+        "selected_graph_evidence_plan": {
+            "allocation_plan_digest": "alloc_bundle_1",
+            "allocation_assignments": [
+                {
+                    "section_id": "competencies",
+                    "claim_unit_id": "competencies:skill:unmatched",
+                    "fact_id": "bul_unify_006",
+                    "root_id": "bul_unify_006",
+                    "skill_id": "skill_unmatched_graph_allocation",
+                }
+            ],
+            "facts": facts,
+            "graph_candidate_decision_ledger": [],
+        },
+    }
+    monkeypatch.setattr(
+        spl,
+        "load_section_proof_for_lane",
+        lambda **_k: (
+            pool,
+            {"candidate_name": "Candidate", "facts": {"employment": [{"employer": "Unify", "title": "Partner", "bullets": []}]}},
+            tmp_path / "base.json",
+            "bh",
+            None,
+        ),
+    )
+    monkeypatch.setattr(cle, "rel_posix", lambda *_a, **_k: "artifacts/test/comp_bundle_real")
+    monkeypatch.setattr("apps_rg.runtime.c0.section_proof_loader.apply_proof_pool_to_usage_ledger", lambda doc, _p: doc)
+    monkeypatch.setattr(cle, "load_companion_context", lambda *_a, **_k: "")
+
+    def _fake_wire_fec(**kw: Any) -> None:
+        rp = kw.get("runtime_payload")
+        if isinstance(rp, dict):
+            rp["canonical_evidence_set_digest"] = "dig_1"
+            rp["fec_allowed_fact_ids_digest"] = "dig_1"
+
+    monkeypatch.setattr("apps_rg.runtime.sections.upstream_evidence_block.wire_spine_c0_fec_or_block", _fake_wire_fec)
+    monkeypatch.setattr(
+        cle,
+        "compile_competencies_prompt",
+        lambda *_a, **_k: SimpleNamespace(
+            section_id="competencies",
+            apps_rg_prompt_template_ref="ref",
+            artifact=SimpleNamespace(template_id="tpl", prompt_hash="ph", slot_count=1, messages=[{"role": "user", "content": "u"}]),
+        ),
+    )
+    monkeypatch.setattr(cle, "competencies_provider_preflight_disabled", lambda: True)
+    monkeypatch.setattr("apps_rg.runtime.section_l2_lane_integration.prepare_section_l2_before_provider", lambda *_a, **_k: None)
+    monkeypatch.setattr("apps_rg.runtime.section_l2_lane_integration.finalize_section_l2_after_output", lambda *_a, **_k: None)
+    monkeypatch.setattr("apps_rg.runtime.section_runtime_exhaust_lane_integration.finalize_section_runtime_exhaust_before_l6", lambda *_a, **_k: None)
+    monkeypatch.setattr("apps_rg.runtime.section_runtime_exhaust_lane_integration.gate_section_l6_shadow_after_exhaust", lambda *_a, **_k: None)
+    monkeypatch.setattr("apps_rg.runtime.spine.exit_lane_hooks.finalize_section_exit_after_l2", lambda *_a, **_k: None)
+    monkeypatch.setattr(cle, "finalize_runtime_proof_run", lambda *_a, **_k: None)
+
+    raw_comps = [
+        {
+            "category_id": "ai_platform_leadership",
+            "category_label": "AI Platform Leadership",
+            "resume_display_label": "Custom LLM Display Header",
+            "source_fact_ids": ["bul_unify_001"],
+            "terms": [
+                {"term": "Enterprise orchestration controls", "text": "Enterprise orchestration controls", "source_fact_id": "bul_unify_001", "source_fact_ids": ["bul_unify_001"]},
+                {"term": "Custom platform scaling", "text": "Custom platform scaling", "source_fact_id": "bul_unify_002", "source_fact_ids": ["bul_unify_002"]},
+            ],
+        },
+        {
+            "category_id": "tech_strategy_innovation",
+            "category_label": "Technology Strategy & Innovation",
+            "resume_display_label": "Custom Strategy Credentials",
+            "source_fact_ids": ["bul_unify_003"],
+            "terms": [
+                {"term": "AWS Certified Solutions Architect", "text": "AWS Certified Solutions Architect", "source_fact_id": "bul_unify_003", "source_fact_ids": ["bul_unify_003"]},
+                {"term": "Databricks Lakehouse Fundamentals", "text": "Databricks Lakehouse Fundamentals", "source_fact_id": "bul_unify_004", "source_fact_ids": ["bul_unify_004"]},
+                {"term": "Multi-cloud runtime resilience", "text": "Multi-cloud runtime resilience", "source_fact_id": "bul_unify_005", "source_fact_ids": ["bul_unify_005"]},
+            ],
+        },
+    ]
+    monkeypatch.setattr(
+        "apps_rg.runtime.reasoning.bullet_lane_generation.generate_bullet_lane_with_sc_and_claude",
+        lambda **_k: (
+            ProviderResult(
+                provider_requested="external_claude",
+                provider_attempted=True,
+                provider_available=True,
+                exact_provider_error=None,
+                runtime_generation_status="REAL_LLM",
+                model="claude-sonnet-5-5-medium",
+                raw_model_output=json.dumps({"categories": raw_comps, "competencies": raw_comps}),
+                provider_response={},
+            ),
+            json.dumps({"categories": raw_comps, "competencies": raw_comps}),
+            {"categories": raw_comps, "competencies": raw_comps, "claim_ledger": []},
+            "",
+            {"selection_mode": "sc"},
+        ),
+    )
+    monkeypatch.setattr(comp_x1d_mod, "run_competencies_judges", lambda **_k: [])
+    monkeypatch.setattr(ev_mod, "repair_section_with_executive_voice_agent", lambda **_k: ({}, SimpleNamespace(repair_attempted=False, repair_succeeded=False)))
+
+    comp_dir = tmp_path / "comp_bundle_real"
+    comp_dir.mkdir()
+    cle.run_competencies_lane_execution(
+        SimpleNamespace(
+            provider="external_claude",
+            temperature=0.35,
+            target_title="Head of AI",
+            target_company="Truist",
+            jd_text="JD",
+            briefing="Brief",
+            base_resume="",
+            mock_judges=False,
+            allow_non_allow_exit_zero=False,
+            allow_test_mock_judges=False,
+            allow_test_mock_provider=False,
+            x1d_judges="",
+        ),
+        artifact_dir_override=comp_dir,
+        print_output=False,
+    )
+    assert not (comp_dir / "competencies_visible_graph_surface_enrichment_receipt.json").exists()
+    emitted_comps = json.loads((comp_dir / "competencies_output.json").read_text(encoding="utf-8"))
+    by_cid = {c["category_id"]: c for c in emitted_comps}
+    c0 = by_cid["ai_platform_leadership"]
+    c1 = by_cid["tech_strategy_innovation"]
+    assert c0["resume_display_label"] == "Custom LLM Display Header"
+    assert [t["term"] for t in c0["terms"]] == [
+        "Enterprise orchestration controls",
+        "Custom platform scaling",
+    ]
+    assert c1["resume_display_label"] == "Custom Strategy Credentials"
+    assert [t["term"] for t in c1["terms"]] == [
+        "AWS Certified Solutions Architect",
+        "Databricks Lakehouse Fundamentals",
+        "Multi-cloud runtime resilience",
+    ]
+    for cat in (c0, c1):
+        assert cat.get("competency_bundle_id")
+        assert cat.get("graph_skill_node_ids")
+        assert cat.get("source_fact_ids")
+        assert isinstance(cat.get("selection_score"), (int, float))
+
+
+def test_evra_competencies_two_pass_matching_preserves_reordered_identity_when_unmatched_inserted_first(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Two-pass EVRA category matching prevents an unmatched category at index 0 from stealing orig_dicts[0]."""
+    orig_comps = [
+        {
+            "category_id": f"orig_cid_{i}",
+            "category_label": f"Orig Label {i}",
+            "competency_bundle_id": f"orig_bundle_{i}",
+            "source_fact_ids": [f"fact_{i}"],
+            "terms": [{"term": f"Orig Skill {i}", "text": f"Orig Skill {i}", "source_fact_ids": [f"fact_{i}"]}],
+        }
+        for i in range(6)
+    ]
+    rep_payload = {
+        "repaired_competencies": [
+            {"category": "Brand New Unmatched First", "skills": ["Novel Architecture"]},
+            *[
+                {"category": f"Orig Label {i}", "skills": [f"Updated Skill {i}"]}
+                for i in range(5)
+            ],
+        ]
+    }
+    monkeypatch.setattr(evra, "_call_llm_repair", lambda *_a, **_k: rep_payload)
+    upd, rec = evra.repair_section_with_executive_voice_agent(
+        section_id="competencies",
+        candidate_data={"competencies": orig_comps},
+        diagnostic={"repair_needed": True, "findings": ["Improve alignment"]},
+        allowed_facts=[{"fact_id": f"fact_{i}", "claim_text": f"Fact {i}"} for i in range(6)],
+        targeting_context={"target_title": "SVP"},
+        mock_mode=False,
+        artifact_dir=tmp_path,
+    )
+    assert rec.repair_succeeded is True
+    repaired = upd["competencies"]
+    assert len(repaired) == 6
+    assert repaired[0]["category_label"] == "Brand New Unmatched First"
+    assert "category_id" not in repaired[0]
+    assert "competency_bundle_id" not in repaired[0]
+    assert repaired[0]["source_fact_ids"] == ["fact_5"]
+    for i in range(5):
+        assert repaired[i + 1]["category_label"] == f"Orig Label {i}"
+        assert repaired[i + 1]["category_id"] == f"orig_cid_{i}"
+        assert repaired[i + 1]["competency_bundle_id"] == f"orig_bundle_{i}"
+        assert repaired[i + 1]["source_fact_ids"] == [f"fact_{i}"]
+
+
+def test_competencies_evra_active_allocation_accept_persists_receipts_and_reject_preserves_disk(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Accepted EVRA candidate persists synced allocation receipts; rejected candidate leaves disk receipts byte-identical."""
+    from apps_rg.runtime.c0 import section_proof_loader as spl
+    from apps_rg.runtime.c0.resume_graph_claim_binding import bind_final_claims_to_resume_graph_allocation
+    from apps_rg.runtime.judges import competencies_x1d as comp_x1d_mod
+    from apps_rg.runtime.sections import competencies_lane_execution as cle
+
+    cle._ensure_helpers_hydrated()
+    skill_ids = [
+        "skill_agentic_platform_architecture",
+        "skill_runtime_governance_controls",
+        "skill_distributed_cloud_infra",
+        "skill_retrieval_context_routing",
+        "skill_enterprise_ai_delivery",
+        "skill_partner_solution_strategy",
+    ]
+    base_terms = [
+        "Agentic platform architecture",
+        "Runtime governance controls",
+        "Distributed cloud infrastructure",
+        "Retrieval context routing",
+        "Enterprise AI delivery",
+        "Partner solution strategy",
+    ]
+    rep_terms = [
+        "Agentic architecture governance",
+        "Runtime governance controls",
+        "Distributed cloud infrastructure",
+        "Retrieval context routing",
+        "Enterprise AI delivery",
+        "Partner solution strategy",
+    ]
+    assignments = [
+        {
+            "section_id": "competencies",
+            "claim_unit_id": f"competencies:skill:0{i}",
+            "fact_id": f"bul_unify_00{i}",
+            "root_id": f"bul_unify_00{i}",
+            "skill_id": skill_ids[i - 1],
+        }
+        for i in range(1, 7)
+    ]
+    facts = [
+        {
+            "fact_id": f"bul_unify_00{i}",
+            "role_episode_bundle_id": f"bul_unify_00{i}",
+            "graph_skill_node_ids": [skill_ids[i - 1]],
+            "claim_text": base_terms[i - 1],
+        }
+        for i in range(1, 7)
+    ]
+    decision_ledger = [
+        {
+            "candidate_id": skill_ids[i - 1],
+            "candidate_type": "leaf_skill",
+            "root_id": f"bul_unify_00{i}",
+            "authority_pass": True,
+            "decision": "SELECTED",
+        }
+        for i in range(1, 7)
+    ]
+    selected_plan = {
+        "allocation_plan_digest": "alloc_dig_1",
+        "allocation_assignments": assignments,
+        "facts": facts,
+        "graph_candidate_decision_ledger": decision_ledger,
+        "selected_skill_ids": skill_ids,
+        "selected_metrics": [],
+    }
+    base_comps = [
+        {
+            "category_id": f"cat_{i}",
+            "category_label": f"Cat {i}",
+            "source_fact_ids": [f"bul_unify_00{i}"],
+            "terms": [
+                {
+                    "term": base_terms[i - 1],
+                    "text": base_terms[i - 1],
+                    "source_fact_id": f"bul_unify_00{i}",
+                    "source_fact_ids": [f"bul_unify_00{i}"],
+                    "source_skill_ids": [skill_ids[i - 1]],
+                }
+            ],
+        }
+        for i in range(1, 7)
+    ]
+    rep_comps = [
+        {
+            "category_id": f"cat_{i}",
+            "category_label": f"Cat {i}",
+            "source_fact_ids": [f"bul_unify_00{i}"],
+            "terms": [
+                {
+                    "term": rep_terms[i - 1],
+                    "text": rep_terms[i - 1],
+                    "source_fact_id": f"bul_unify_00{i}",
+                    "source_fact_ids": [f"bul_unify_00{i}"],
+                    "source_skill_ids": [skill_ids[i - 1]],
+                }
+            ],
+        }
+        for i in range(1, 7)
+    ]
+
+    def _run_allocation_subtest(sub_name: str, *, second_score: float) -> tuple[Path, dict[str, bytes]]:
+        sub_dir = tmp_path / sub_name
+        sub_dir.mkdir(parents=True, exist_ok=True)
+        pool = _make_fake_pool("competencies", facts, {f"bul_unify_00{i}" for i in range(1, 7)})
+        pool.selected_fact_plan = {
+            "section_id": "competencies",
+            "allocation_plan_digest": "alloc_dig_1",
+            "allocation_assignments": assignments,
+            "facts": facts,
+            "required_fact_ids": [f"bul_unify_00{i}" for i in range(1, 7)],
+        }
+        pool.proof_pool_metadata = {
+            "evidence_authority": {"authority": "augmented_skills_graph"},
+            "resume_graph_allocation_plan_digest": "alloc_dig_1",
+            "selected_graph_evidence_plan": selected_plan,
+        }
+        monkeypatch.setattr(
+            spl,
+            "load_section_proof_for_lane",
+            lambda **_k: (
+                pool,
+                {"candidate_name": "Candidate", "facts": {"employment": [{"employer": "Unify", "title": "Partner", "bullets": []}]}},
+                tmp_path / "base.json",
+                "bh",
+                None,
+            ),
+        )
+        monkeypatch.setattr(cle, "rel_posix", lambda *_a, **_k: f"artifacts/test/{sub_name}")
+        monkeypatch.setattr("apps_rg.runtime.c0.section_proof_loader.apply_proof_pool_to_usage_ledger", lambda doc, _p: doc)
+        monkeypatch.setattr(cle, "load_companion_context", lambda *_a, **_k: "")
+
+        def _fake_wire_fec(**kw: Any) -> None:
+            rp = kw.get("runtime_payload")
+            if isinstance(rp, dict):
+                rp["canonical_evidence_set_digest"] = "dig_1"
+                rp["fec_allowed_fact_ids_digest"] = "dig_1"
+                rp["resume_graph_allocation_plan_digest"] = "alloc_dig_1"
+
+        monkeypatch.setattr("apps_rg.runtime.sections.upstream_evidence_block.wire_spine_c0_fec_or_block", _fake_wire_fec)
+        monkeypatch.setattr(
+            cle,
+            "compile_competencies_prompt",
+            lambda *_a, **_k: SimpleNamespace(
+                section_id="competencies",
+                apps_rg_prompt_template_ref="ref",
+                artifact=SimpleNamespace(template_id="tpl", prompt_hash="ph", slot_count=1, messages=[{"role": "user", "content": "u"}]),
+            ),
+        )
+        monkeypatch.setattr(cle, "competencies_provider_preflight_disabled", lambda: True)
+        monkeypatch.setattr("apps_rg.runtime.section_l2_lane_integration.prepare_section_l2_before_provider", lambda *_a, **_k: None)
+        monkeypatch.setattr("apps_rg.runtime.section_l2_lane_integration.finalize_section_l2_after_output", lambda *_a, **_k: None)
+        monkeypatch.setattr("apps_rg.runtime.section_runtime_exhaust_lane_integration.finalize_section_runtime_exhaust_before_l6", lambda *_a, **_k: None)
+        monkeypatch.setattr("apps_rg.runtime.section_runtime_exhaust_lane_integration.gate_section_l6_shadow_after_exhaust", lambda *_a, **_k: None)
+        monkeypatch.setattr("apps_rg.runtime.spine.exit_lane_hooks.finalize_section_exit_after_l2", lambda *_a, **_k: None)
+        monkeypatch.setattr(cle, "finalize_runtime_proof_run", lambda *_a, **_k: None)
+        monkeypatch.setattr(
+            "apps_rg.runtime.reasoning.bullet_lane_generation.generate_bullet_lane_with_sc_and_claude",
+            lambda **_k: (
+                ProviderResult(
+                    provider_requested="external_claude",
+                    provider_attempted=True,
+                    provider_available=True,
+                    exact_provider_error=None,
+                    runtime_generation_status="REAL_LLM",
+                    model="claude-sonnet-5-5-medium",
+                    raw_model_output=json.dumps({"categories": base_comps, "competencies": base_comps}),
+                    provider_response={},
+                ),
+                json.dumps({"categories": base_comps, "competencies": base_comps}),
+                {"categories": base_comps, "competencies": base_comps, "claim_ledger": []},
+                "",
+                {"selection_mode": "sc"},
+            ),
+        )
+        monkeypatch.setattr(cle, "collapse_duplicate_competency_terms", lambda *_a, **_k: None)
+        monkeypatch.setattr(cle, "repair_structured_competencies_source_facts", lambda *_a, **_k: None)
+        monkeypatch.setattr(cle, "coerce_structured_competencies_resume_support", lambda *_a, **_k: None)
+        monkeypatch.setattr(cle, "dedupe_structured_competency_terms", lambda *_a, **_k: None)
+        monkeypatch.setattr(cle, "reduce_competency_keyword_stuffing", lambda *_a, **_k: None)
+        monkeypatch.setattr(cle, "canonicalize_competency_terms_for_proof", lambda *_a, **_k: None)
+        monkeypatch.setattr(cle, "expand_structured_competencies_min_two_terms", lambda *_a, **_k: None)
+        monkeypatch.setattr(cle, "prune_claim_ledger_bullet_paste", lambda *_a, **_k: None)
+        monkeypatch.setattr("apps_rg.runtime.sections.competencies_capability_projection.finalize_competencies_v3_output", lambda p, **_k: p)
+        monkeypatch.setattr(
+            cle,
+            "run_competencies_x2_gates",
+            lambda **kw: [
+                SimpleNamespace(to_dict=lambda: {"gate_id": "x2_comp_ok", "pass": True, "severity": "BLOCK"}),
+                SimpleNamespace(to_dict=lambda: {"gate_id": "x2_x1d_required_judges_present", "pass": bool(kw.get("x1d_judges")), "severity": "BLOCK"}),
+            ],
+        )
+
+        attempt1_snapshots: dict[str, bytes] = {}
+        call_n = {"n": 0}
+
+        def _spy_judges(**kw: Any) -> list[JudgeOutput]:
+            call_n["n"] += 1
+            if call_n["n"] == 1:
+                for fname in (
+                    "competencies_allocation_claim_reconciliation_receipt.json",
+                    "competencies_graph_authority_discrepancy_ledger.json",
+                    "parsed_output.json",
+                ):
+                    attempt1_snapshots[fname] = (sub_dir / fname).read_bytes()
+            sc = 3.8 if call_n["n"] == 1 else second_score
+            return [
+                JudgeOutput(
+                    judge_id="x1d_gemini_pro_competencies",
+                    provider_name="Gemini",
+                    provider_key="gemini_pro",
+                    evaluator_mode="MODEL_BACKED",
+                    provider_status="MODEL_BACKED_PASS" if sc >= 4.0 else "MODEL_BACKED_FAIL",
+                    model_name="gemini-4-argon-medium",
+                    provider_available=True,
+                    provider_blocked=False,
+                    exact_provider_error=None,
+                    score=sc,
+                    normalized_score=sc / 5.0,
+                    threshold=4.0,
+                    normalized_threshold=0.8,
+                    pass_=sc >= 4.0,
+                    findings=[] if sc >= 4.0 else ["Needs precision"],
+                )
+            ]
+
+        monkeypatch.setattr(comp_x1d_mod, "run_competencies_judges", _spy_judges)
+        monkeypatch.setattr(
+            evra,
+            "repair_section_with_executive_voice_agent",
+            lambda **_k: ({"competencies": rep_comps}, SimpleNamespace(repair_attempted=True, repair_succeeded=True)),
+        )
+        cle.run_competencies_lane_execution(
+            SimpleNamespace(
+                provider="external_claude",
+                temperature=0.35,
+                target_title="Head of AI",
+                target_company="Truist",
+                jd_text="JD",
+                briefing="Brief",
+                base_resume="",
+                mock_judges=False,
+                allow_non_allow_exit_zero=False,
+                allow_test_mock_judges=False,
+                allow_test_mock_provider=False,
+                x1d_judges="gemini_pro",
+            ),
+            artifact_dir_override=sub_dir,
+            print_output=False,
+        )
+        return sub_dir, attempt1_snapshots
+
+    # Subtest A: Accepted (3.8 -> 4.6)
+    acc_dir, _ = _run_allocation_subtest("alloc_accept", second_score=4.6)
+    acc_voice = json.loads((acc_dir / "competencies_voice_repair_receipt.json").read_text(encoding="utf-8"))
+    assert acc_voice["accepted"] is True
+    disk_rec = json.loads((acc_dir / "competencies_allocation_claim_reconciliation_receipt.json").read_text(encoding="utf-8"))
+    disk_ledger = json.loads((acc_dir / "competencies_graph_authority_discrepancy_ledger.json").read_text(encoding="utf-8"))
+    parsed_doc = json.loads((acc_dir / "parsed_output.json").read_text(encoding="utf-8"))["parsed"]
+    assert parsed_doc["competencies_allocation_claim_reconciliation"]["receipt_digest"] == disk_rec["receipt_digest"]
+    assert parsed_doc["competencies_graph_authority_discrepancy_ledger"]["ledger_digest"] == disk_ledger["ledger_digest"]
+    assert disk_rec["matches"][0]["visible_claim_text"] == "Agentic architecture governance"
+    assert disk_ledger["rows"][0]["visible_claim_unit_usage"][0]["visible_claim_text"] == "Agentic architecture governance"
+    assert parsed_doc["categories"][0]["terms"][0]["allocation_claim_unit_id"] == "competencies:skill:01"
+    assert parsed_doc["categories"][0]["terms"][0]["source_fact_ids"] == ["bul_unify_001"]
+    claims_disk = json.loads((acc_dir / "claim_ledger.json").read_text(encoding="utf-8"))
+    assert any(c.get("claim_unit_id") == "competencies:skill:01" and c.get("claim_text") == "Agentic architecture governance" for c in claims_disk)
+    binding_res = bind_final_claims_to_resume_graph_allocation(acc_dir, section_id="competencies", persist_l2_envelope=False)
+    assert binding_res["pass"] is True, json.dumps(binding_res, indent=2)
+
+    # Subtest B: Rejected (3.8 -> 3.2)
+    rej_dir, snap_bytes = _run_allocation_subtest("alloc_reject", second_score=3.2)
+    rej_voice = json.loads((rej_dir / "competencies_voice_repair_receipt.json").read_text(encoding="utf-8"))
+    assert rej_voice["accepted"] is False
+    assert rej_voice["rejected_reason"] == "rejudge_not_improved"
+    for fname, before_bytes in snap_bytes.items():
+        assert (rej_dir / fname).read_bytes() == before_bytes
+
+
+
 
