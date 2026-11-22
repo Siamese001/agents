@@ -1,0 +1,106 @@
+{
+  "schema_version": "wave5_exec_summary_v2_live_certification_receipt_v1",
+  "wave": "Wave 5",
+  "title": "Judge-Healing Parity, Sub-8-Minute Cold Runtime SLA & Live Multi-JD Certification",
+  "status": "PASS",
+  "certified_on_date": "11/22/2026",
+  "certified_main_commit": "cda44010f5f4b4cbf06df9c42ecedfe15f3b0475",
+  "commercial_api_spend_usd": 0.0,
+  "transport": "AGY_CLI_BIN=/Applications/Gemini.app/Contents/Helpers/agy",
+  "invariants": {
+    "whole_resume_cold_sla_ceiling_seconds": 480.0,
+    "executive_summary_sla_ceiling_seconds": 180.0,
+    "executive_summary_v2_loc": 1076,
+    "executive_summary_v2_loc_ceiling": 1100,
+    "approved_by_graph_presence_count": 0,
+    "zero_post_llm_prose_mutation": true,
+    "blind_to_deterministic_gates": true,
+    "forbidden_synthetic_tokens_observed": {
+      "Confluent": 0,
+      "Kafka": 0,
+      "24% renewal": 0
+    }
+  },
+  "live_cold_certifications": [
+    {
+      "target_key": "truist_fde",
+      "target_company": "Truist Financial Corporation",
+      "target_role": "Head of Forward Deployed Engineering",
+      "jd_ref": "resume_graph_engine/src/apps_rg/config/targeting/truist_head_forward_deployed_engineering_jd.txt",
+      "briefing_ref": "resume_graph_engine/src/apps_rg/config/targeting/truist_head_forward_deployed_engineering_briefing.md",
+      "cache_mode": "cold_no_cache",
+      "run_id": "apps-rg-56f827296c3c",
+      "run_dir": "resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_29f286abf958",
+      "run_exit_code": 0,
+      "eval_exit_code": 0,
+      "eval_status": "PASS",
+      "product_authorized": true,
+      "x3_disposition": "X3D_ALLOW_FINISH",
+      "phase1_lanes_x3_allow": "11/11",
+      "patch_run_required": false,
+      "wall_clock_seconds": 314.29,
+      "executive_summary_duration_seconds": 146.38,
+      "executive_summary_sentence_count": 4,
+      "executive_summary_char_count": 624,
+      "executive_summary_text": "AI and cloud engineering executive who moves agentic systems and regulated financial workloads into live production. Led AWS modernization for regulated banking and insurance environments, moving workloads from on-prem constraints to BCBS 239-aligned cloud-native delivery at 99.9% production uptime. Engineered fail-closed release-readiness gates and OpenTelemetry lineage that enforced 100% deterministic gate conformance and 100% citation accuracy in safety-critical workflows. Architected an agentic AI control plane with GraphRAG grounding and sandboxed tool execution to tie runtime outputs directly to graph evidence.",
+      "blind_judges": [
+        {
+          "provider_key": "gemini_pro",
+          "score": 4.8,
+          "threshold": 4.7,
+          "pass": true,
+          "blind_to_deterministic_gates": true
+        },
+        {
+          "provider_key": "openai_chatgpt",
+          "score": 4.85,
+          "threshold": 4.7,
+          "pass": true,
+          "blind_to_deterministic_gates": true
+        }
+      ],
+      "docx_artifact": "resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_29f286abf958/outputs/resume.docx",
+      "docx_bytes": 8370
+    },
+    {
+      "target_key": "anthropic_partnerships",
+      "target_company": "Anthropic",
+      "target_role": "Manager, Applied AI Architecture & Partnerships",
+      "jd_ref": "resume_graph_engine/src/apps_rg/config/targeting/anthropic_manager_applied_ai_architecture_partnerships_jd.txt",
+      "briefing_ref": "resume_graph_engine/src/apps_rg/config/targeting/anthropic_manager_applied_ai_architecture_partnerships_briefing.md",
+      "cache_mode": "cold_no_cache",
+      "run_id": "apps-rg-5399b17ff4d0",
+      "run_dir": "resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_6c33c216a48d",
+      "run_exit_code": 0,
+      "eval_exit_code": 0,
+      "eval_status": "PASS",
+      "product_authorized": true,
+      "x3_disposition": "X3D_ALLOW_FINISH",
+      "phase1_lanes_x3_allow": "11/11",
+      "patch_run_required": false,
+      "wall_clock_seconds": 360.16,
+      "executive_summary_duration_seconds": 87.93,
+      "executive_summary_sentence_count": 4,
+      "executive_summary_char_count": 635,
+      "executive_summary_text": "Applied AI architecture and partnerships leader who turns cloud alliances and reusable accelerators into repeatable enterprise adoption. Directed Anthropic Claude and Google Cloud (GCP) co-innovation, scaling Gemini Enterprise from 750 to 5,750+ seats alongside a $2.4M Claude enablement workstream and 45-day Claude Code pods. Built AI partner co-sell channel motions, joint solution blueprints, and field enablement assets packaged around reusable AI platform services. Led AWS alliance co-sell motions for financial-services modernization to deliver 20% joint revenue growth across a regulated financial-services alliance portfolio.",
+      "blind_judges": [
+        {
+          "provider_key": "gemini_pro",
+          "score": 4.8,
+          "threshold": 4.7,
+          "pass": true,
+          "blind_to_deterministic_gates": true
+        },
+        {
+          "provider_key": "openai_chatgpt",
+          "score": 4.8,
+          "threshold": 4.7,
+          "pass": true,
+          "blind_to_deterministic_gates": true
+        }
+      ],
+      "docx_artifact": "resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_6c33c216a48d/outputs/resume.docx",
+      "docx_bytes": 8323
+    }
+  ]
+}
