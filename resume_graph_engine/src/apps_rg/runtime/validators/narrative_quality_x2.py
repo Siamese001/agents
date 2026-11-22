@@ -52,10 +52,12 @@ NARRATIVE_STRONG_VERBS: frozenset[str] = frozenset({
 
 # Authority scope signals
 NARRATIVE_AUTHORITY_SIGNALS: frozenset[str] = frozenset({
-    "platform", "enterprise", "mandate", "roadmap", "infrastructure", "organization",
-    "architecture", "governance", "production", "regulated", "commercialization",
-    "productization", "strategy", "operating", "model", "c-suite", "board",
-    "executive", "portfolio", "diligence", "transformation", "advisory",
+    "platform", "platforms", "enterprise", "enterprises", "mandate", "mandates",
+    "roadmap", "roadmaps", "infrastructure", "organization", "organizations",
+    "architecture", "architectures", "governance", "production", "regulated",
+    "commercialization", "productization", "strategy", "operating", "model",
+    "c-suite", "board", "executive", "portfolio", "portfolios", "diligence",
+    "transformation", "transformations", "advisory", "systems", "programs", "leadership",
 })
 
 # Mechanism vocabulary for technical specificity

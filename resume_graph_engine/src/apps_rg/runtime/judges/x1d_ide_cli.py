@@ -20,7 +20,10 @@ from apps_rg.runtime.providers.agy_cli_transport import (
     AGY_CLI_ENV_VAR,
     AgyTransportError,
     ide_cli_ready,
+    is_agy_model_quota_cooled_down,
+    is_agy_quota_error,
     list_agy_models,
+    mark_agy_model_quota_exhausted,
     run_agy,
 )
 
@@ -125,6 +128,74 @@ def _timeout_s() -> int:
     return int(raw) if raw.isdigit() and int(raw) > 0 else DEFAULT_JUDGE_TIMEOUT_S
 
 
+def _slug_base(slug: str) -> str:
+    s = str(slug or "").strip()
+    for suf in ("-low", "-medium", "-high", "-xhigh", "-max"):
+        if s.endswith(suf):
+            return s[: -len(suf)]
+    return s
+
+
+def _step_judge_pin_for_effort(pin_model: str, norm_effort: str | None) -> tuple[str, str | None]:
+    from apps_rg.runtime.model_capabilities import try_model_capabilities
+
+    caps = try_model_capabilities(pin_model)
+    allowed_efforts = tuple((caps.reasoning_efforts or ()) if caps is not None else ())
+    if not norm_effort or (caps is not None and norm_effort not in allowed_efforts):
+        return pin_model, None
+    cli_slug = pin_model
+    if norm_effort in {"low", "medium"} and cli_slug.endswith("-high"):
+        cli_slug = f"{cli_slug[:-5]}-{norm_effort}"
+    elif norm_effort == "low" and cli_slug.endswith("-medium"):
+        cli_slug = f"{cli_slug[:-7]}-low"
+    return cli_slug, norm_effort
+
+
+def _governed_judge_quota_backups(section_id: str, provider_key: str, primary_pin: str) -> list[str]:
+    from apps_rg.runtime.model_capabilities import try_model_capabilities
+    from apps_rg.runtime.providers.ide_cli_generation import resolve_ide_cli_generation_slug
+
+    cfg = _judging_cfg()
+    writer_pin = lane_writer_model(section_id)
+    writer_slug = resolve_ide_cli_generation_slug(writer_pin) if writer_pin else ""
+    forbidden_bases = {_slug_base(primary_pin)}
+    if writer_slug:
+        forbidden_bases.add(_slug_base(writer_slug))
+    raw_backups: list[Any] = []
+    if provider_key == "gemini_pro":
+        tier_key = "enhanced" if section_id == "executive_summary" else "standard"
+        try:
+            slot2_pin, _ = second_judge_model(section_id)
+            if slot2_pin:
+                forbidden_bases.add(_slug_base(slot2_pin))
+        except IdeCliJudgeConfigError:
+            pass
+        by_tier = cfg.get("quota_backup_first_judge_by_tier") or {}
+        if isinstance(by_tier, Mapping):
+            raw_backups = list(by_tier.get(tier_key) or [])
+    else:
+        jm = _profiles().get("judge_models") or {}
+        tier_key = "enhanced" if section_id == "executive_summary" else "standard"
+        slot1_pin = str(((jm.get(tier_key) or {}) if isinstance(jm, Mapping) else {}).get("gemini_pro") or "")
+        if slot1_pin:
+            forbidden_bases.add(_slug_base(slot1_pin))
+        maker = maker_of(writer_pin) if writer_pin else DEFAULT_WRITER_MAKER
+        by_maker = cfg.get("quota_backup_second_judge_by_writer_maker") or {}
+        if isinstance(by_maker, Mapping):
+            raw_backups = list(by_maker.get(maker) or [])
+    valid: list[str] = []
+    for item in raw_backups:
+        b_pin = str(item or "").strip()
+        if not b_pin or _slug_base(b_pin) in forbidden_bases:
+            continue
+        caps = try_model_capabilities(b_pin)
+        if caps is None or not caps.proof_eligible or not caps.supports_endpoint("ide_cli"):
+            continue
+        if b_pin not in valid:
+            valid.append(b_pin)
+    return valid
+
+
 def call_ide_cli_judge(
     *,
     prompt: str,
@@ -153,72 +224,92 @@ def call_ide_cli_judge(
     norm_effort = str(reasoning_effort or "").strip().lower() or None
     if norm_effort not in {"low", "medium", "high", "xhigh", "max"}:
         norm_effort = None
-    cli_model = model
-    if norm_effort:
-        from apps_rg.runtime.model_capabilities import try_model_capabilities
-
-        caps = try_model_capabilities(cli_model)
-        allowed_efforts = tuple((caps.reasoning_efforts or ()) if caps is not None else ())
-        if norm_effort in allowed_efforts:
-            if norm_effort in {"low", "medium"} and cli_model.endswith("-high"):
-                cli_model = f"{cli_model[:-5]}-{norm_effort}"
-            elif norm_effort == "low" and cli_model.endswith("-medium"):
-                cli_model = f"{cli_model[:-7]}-low"
+    primary_slug, primary_eff = _step_judge_pin_for_effort(model, norm_effort)
+    candidates: list[tuple[str, str | None, str]] = [(primary_slug, primary_eff, model)]
+    for b_pin in _governed_judge_quota_backups(sid, provider_key, model):
+        b_slug, b_eff = _step_judge_pin_for_effort(b_pin, norm_effort)
+        if all(c[0] != b_slug for c in candidates):
+            candidates.append((b_slug, b_eff, b_pin))
+    ordered_candidates = [
+        c for c in candidates if not is_agy_model_quota_cooled_down(c[0])
+    ] + [
+        c for c in candidates if is_agy_model_quota_cooled_down(c[0])
+    ]
+    cli_model, active_effort, _ = ordered_candidates[0]
+    failover_from: str | None = primary_slug if cli_model != primary_slug else None
     req_path = x._artifact_path(provider_key, "provider_request", artifact_base=artifact_base)
-    x._write_artifact(
-        req_path,
-        {
-            "transport": "ide_cli",
-            "provider_key": provider_key,
-            "section_id": sid,
-            "resolved_model": cli_model,
-            "model_requested": model_requested or model,
-            "reasoning_effort": norm_effort,
-            "attempt": attempt,
-            "input_hash": input_hash,
-            "prompt_chars": len(full_prompt),
-            "prompt_sha256": hashlib.sha256(full_prompt.encode("utf-8")).hexdigest(),
-            "schema_sha256": hashlib.sha256(json.dumps(schema, sort_keys=True).encode("utf-8")).hexdigest(),
-            "blind_to_deterministic_gates": sid == "executive_summary",
-            "prompt_has_deterministic_gate_summary": "deterministic_gate_summary" in full_prompt.lower(),
-            "api_key_used": False,
-        },
-    )
-    try:
-        res = run_agy(
-            full_prompt,
-            model=cli_model,
-            json_schema=schema,
-            effort=norm_effort,
-            timeout_s=_timeout_s(),
-            agy_bin=agy_bin,
-        )
-    except AgyTransportError as exc:
+    req_payload: dict[str, Any] = {
+        "transport": "ide_cli",
+        "provider_key": provider_key,
+        "section_id": sid,
+        "resolved_model": cli_model,
+        "model_requested": model_requested or model,
+        "reasoning_effort": active_effort,
+        "attempt": attempt,
+        "input_hash": input_hash,
+        "prompt_chars": len(full_prompt),
+        "prompt_sha256": hashlib.sha256(full_prompt.encode("utf-8")).hexdigest(),
+        "schema_sha256": hashlib.sha256(json.dumps(schema, sort_keys=True).encode("utf-8")).hexdigest(),
+        "blind_to_deterministic_gates": sid == "executive_summary",
+        "prompt_has_deterministic_gate_summary": "deterministic_gate_summary" in full_prompt.lower(),
+        "api_key_used": False,
+    }
+    if failover_from:
+        req_payload["quota_failover_from"] = failover_from
+    x._write_artifact(req_path, req_payload)
+    res = None
+    last_exc: AgyTransportError | None = None
+    for idx_c, (cand_slug, cand_eff, _cand_pin) in enumerate(ordered_candidates):
+        try:
+            res = run_agy(
+                full_prompt,
+                model=cand_slug,
+                json_schema=schema,
+                effort=cand_eff,
+                timeout_s=_timeout_s(),
+                agy_bin=agy_bin,
+            )
+            if cand_slug != cli_model:
+                failover_from = primary_slug
+                cli_model = cand_slug
+                active_effort = cand_eff
+                req_payload["resolved_model"] = cli_model
+                req_payload["reasoning_effort"] = active_effort
+                req_payload["quota_failover_from"] = failover_from
+                x._write_artifact(req_path, req_payload)
+            break
+        except AgyTransportError as exc:
+            last_exc = exc
+            if is_agy_quota_error(exc) and idx_c + 1 < len(ordered_candidates):
+                mark_agy_model_quota_exhausted(cand_slug, str(exc))
+                continue
+            break
+    if res is None:
         blocked = x._make_blocked_output(
             provider_key,
             input_hash,
             "BLOCKED_PROVIDER_UNAVAILABLE",
             "BLOCKED_PROVIDER_UNAVAILABLE",
-            f"IDE CLI judge call failed: {exc}",
+            f"IDE CLI judge call failed: {last_exc}",
             model_name=model,
         )
         blocked.transport = "ide_cli"
         return blocked
     raw_path = x._artifact_path(provider_key, "provider_response_raw", artifact_base=artifact_base)
-    x._write_artifact(
-        raw_path,
-        {
-            "transport": "ide_cli",
-            "model_requested": res.model_requested,
-            "model_reported": res.model_reported,
-            "conversation_id": res.conversation_id,
-            "usage": res.usage,
-            "duration_seconds": res.duration_seconds,
-            "queue_wait_seconds": res.queue_wait_seconds,
-            "response": res.response,
-            "structured_output": res.structured_output,
-        },
-    )
+    raw_payload: dict[str, Any] = {
+        "transport": "ide_cli",
+        "model_requested": res.model_requested,
+        "model_reported": res.model_reported,
+        "conversation_id": res.conversation_id,
+        "usage": res.usage,
+        "duration_seconds": res.duration_seconds,
+        "queue_wait_seconds": res.queue_wait_seconds,
+        "response": res.response,
+        "structured_output": res.structured_output,
+    }
+    if failover_from:
+        raw_payload["quota_failover_from"] = failover_from
+    x._write_artifact(raw_path, raw_payload)
     text = json.dumps(res.structured_output) if isinstance(res.structured_output, dict) else res.response
     out = x._finish_judge_text_parse(
         provider_key=provider_key,

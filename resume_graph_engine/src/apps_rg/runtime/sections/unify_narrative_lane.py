@@ -1047,10 +1047,25 @@ def apply_unify_narrative_in_lane_healing(
             targeting_context=targeting_context,
         )
     ]
-    if not x1d or all(bool(j.get("pass")) for j in x1d):
+    model_backed_failures = [
+        j
+        for j in x1d
+        if not bool(j.get("pass"))
+        and not bool(j.get("provider_blocked"))
+        and not str(j.get("provider_status") or "").upper().startswith("BLOCKED_PROVIDER")
+    ]
+    if not x1d or not model_backed_failures:
         if not pre_judge_attempted:
-            receipt["rejected_reason"] = "initial_judges_passed"
-        judge_rewrite_rec["rejected_reason"] = "judges_passed"
+            receipt["rejected_reason"] = (
+                "initial_judges_passed"
+                if all(bool(j.get("pass")) for j in x1d)
+                else "judge_provider_blocked_skip_content_rewrite"
+            )
+        judge_rewrite_rec["rejected_reason"] = (
+            "judges_passed"
+            if all(bool(j.get("pass")) for j in x1d)
+            else "judge_provider_blocked_skip_content_rewrite"
+        )
         _sync_receipt()
         write_json(artifact_dir / "unify_narrative_judge_rewrite_receipt.json", receipt)
         return raw_output, parsed, x1d, bool(pre_judge_accepted)

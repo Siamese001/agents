@@ -938,7 +938,13 @@ def run_bullet_judge_llm_rewrite(
     receipt_path = artifact_dir / f"{section_id}_judge_rewrite_receipt.json"
     x2_failed = [g for g in x2 if not g.get("pass", True)]
     proof_failing_rows = [
-        j for j in x1d if not j.get("advisory_only") and not _is_synthetic_selector_row(j) and not bool(j.get("pass", True))
+        j
+        for j in x1d
+        if not j.get("advisory_only")
+        and not _is_synthetic_selector_row(j)
+        and not bool(j.get("provider_blocked"))
+        and not str(j.get("provider_status") or "").upper().startswith("BLOCKED_PROVIDER")
+        and not bool(j.get("pass", True))
     ]
     if (
         runtime_generation_status != "REAL_LLM"

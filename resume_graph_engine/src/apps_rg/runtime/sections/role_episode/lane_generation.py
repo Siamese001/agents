@@ -363,7 +363,13 @@ def run_role_episode_generation_stage(
         product_quality_status=product_quality_status,
     )
 
-    proof_x1d_failed = any(not bool(j.get("pass", True)) for j in x1d if not j.get("advisory_only"))
+    proof_x1d_failed = any(
+        not bool(j.get("pass", True))
+        for j in x1d
+        if not j.get("advisory_only")
+        and not bool(j.get("provider_blocked"))
+        and not str(j.get("provider_status") or "").upper().startswith("BLOCKED_PROVIDER")
+    )
     if (
         provider_result.runtime_generation_status == "REAL_LLM"
         and not mock_judges_flag
