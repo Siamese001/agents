@@ -461,6 +461,9 @@ def check_agents_eval_flywheel_domain(repo_root: Path, *, inject_fault: bool = F
                 failures.append(f"product_run_pass_did_not_resolve_signatures:{len(unresolved)}")
         finally:
             fb_check.close()
+        pending_triage = fw_eng.list_triage_candidates(app_filter="apps_rg", pending_only=True)
+        if pending_triage:
+            failures.append(f"product_run_pass_did_not_resolve_triage_packets:{len(pending_triage)}")
 
     return {
         "domain": "agents_eval_flywheel",

@@ -152,7 +152,7 @@ class EvalFlywheelEngine:
         packet_path = self.triage_root / app_id / f"{candidate_id}.json"
         if packet_path.is_file():
             existing = _load_json(packet_path)
-            if existing.get("status") == "PROMOTED":
+            if str(existing.get("status") or "").upper() in {"PROMOTED", "RESOLVED", "ARCHIVED"}:
                 return packet_path
         packet = {
             "schema_version": "agents.eval_flywheel.triage_candidate.v1",
@@ -325,6 +325,7 @@ class EvalFlywheelEngine:
                                 outcome="SUCCESS",
                             )
                             recorded_resolutions.append(sig_hash)
+                    self.resolve_triage_candidates(app_id=app_id, resolved_by_run_id=record_id)
                 else:
                     fw = rec.get("regression_flywheel") or {}
                     fm_counts = fw.get("failure_mode_counts") or {}
@@ -475,6 +476,7 @@ class EvalFlywheelEngine:
                             repair_hint=f"Verified passing product run {run_id} for {app_id}.",
                             outcome="SUCCESS",
                         )
+                self.resolve_triage_candidates(app_id=app_id, resolved_by_run_id=run_id)
         finally:
             fb_store.close()
         self._update_calibration_history([(f"{app_id}:product_run_score", float(score), run_id)])
@@ -485,6 +487,35 @@ class EvalFlywheelEngine:
             "harvested_signatures": harvested,
             "staged_candidates": staged,
         }
+
+    def resolve_triage_candidates(
+        self,
+        *,
+        app_id: str,
+        resolved_by_run_id: str = "",
+        failure_mode_filter: str | None = None,
+    ) -> list[str]:
+        """Transition PENDING_REVIEW triage packets for app_id to RESOLVED once verified."""
+        app_dir = self.triage_root / app_id
+        if not app_dir.is_dir():
+            return []
+        now = _utc_now()
+        resolved_paths: list[str] = []
+        for path in sorted(app_dir.glob("*.json")):
+            pkt = _load_json(path)
+            if not pkt or str(pkt.get("status") or "").upper() != "PENDING_REVIEW":
+                continue
+            if failure_mode_filter is not None:
+                pkt_mode = str(pkt.get("trigger_reason") or pkt.get("trigger_signal") or "")
+                if failure_mode_filter not in pkt_mode:
+                    continue
+            pkt["status"] = "RESOLVED"
+            pkt["resolved_at"] = now
+            if resolved_by_run_id:
+                pkt["resolved_by_run_id"] = resolved_by_run_id
+            _write_json(path, pkt)
+            resolved_paths.append(path.as_posix())
+        return resolved_paths
 
     def list_triage_candidates(self, *, app_filter: str = "all", pending_only: bool = True) -> list[dict[str, Any]]:
         """List ADR-040 staged triage packets."""

@@ -686,3 +686,18 @@ def test_product_run_flywheel_records_specific_failure_reasons_and_auto_resolves
     finally:
         fb2.close()
 
+    assert fw.list_triage_candidates(app_filter="apps_rg", pending_only=True) == []
+    all_triage = fw.list_triage_candidates(app_filter="apps_rg", pending_only=False)
+    assert len(all_triage) >= 3
+    assert all(pkt.get("status") == "RESOLVED" for pkt in all_triage)
+
+    from agents.observability.findings_consolidator import consolidate_all_findings
+
+    consol = consolidate_all_findings(
+        source_root=tmp_path / "learning",
+        output_root=tmp_path / "consol_out",
+        triage_root=tmp_path / "triage",
+    )
+    assert consol["ingested_by_surface"]["eval_harness"] == 0
+    assert consol["total_findings"] == 0
+
