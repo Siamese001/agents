@@ -34,8 +34,6 @@ def _restore_modular_sections_root_env() -> Iterator[None]:
 
 
 def test_build_phase1_waves_wave0_is_upstream_proof_bearing() -> None:
-    # Dependency-ordered DAG: wave 0 holds the upstream proof-bearing sections
-    # (competencies + bullets); executive_summary is downstream synthesis (later wave).
     waves = build_phase1_waves()
     assert waves
     wave0 = waves[0]
@@ -45,21 +43,18 @@ def test_build_phase1_waves_wave0_is_upstream_proof_bearing() -> None:
         "unify_bullets",
         "ibm_bullets",
         "insurtech_bullets",
+        "executive_summary",
+        "headline",
     }
-    assert "executive_summary" not in wave0.lanes
 
 
 def test_build_phase1_waves_exec_summary_is_downstream_solo() -> None:
     waves = build_phase1_waves()
     lane_wave = {lane: w.wave_id for w in waves for lane in w.lanes}
-    es_wave = next(w for w in waves if "executive_summary" in w.lanes)
-    assert es_wave.lanes == ("executive_summary", "headline")
-    assert es_wave.max_parallel == 2
-    # exec_summary and headline run in Wave 2 after every upstream proof-bearing + narrative lane.
-    for upstream in ("competencies", "slalom_bullets", "unify_bullets", "ibm_bullets", "slalom_narrative", "unify_narrative", "ibm_narrative"):
-        assert lane_wave[upstream] < lane_wave["executive_summary"]
-        assert lane_wave[upstream] < lane_wave["headline"]
-    assert lane_wave["executive_summary"] == lane_wave["headline"] == 2
+    assert lane_wave["executive_summary"] == lane_wave["headline"] == 0
+    for nar in ("slalom_narrative", "unify_narrative", "ibm_narrative", "insurtech_narrative"):
+        assert lane_wave["executive_summary"] < lane_wave[nar]
+        assert lane_wave["headline"] < lane_wave[nar]
 
 
 def test_section_dag_narrative_never_precedes_companion_bullets() -> None:
@@ -103,29 +98,8 @@ def test_dag_dependencies_keep_overview_behind_all_section_inputs() -> None:
     dependencies = section_dag_dependencies()
     assert dependencies["unify_narrative"] == ("unify_bullets",)
     assert dependencies["ibm_narrative"] == ("ibm_bullets",)
-    assert set(dependencies["executive_summary"]) == {
-        "competencies",
-        "slalom_bullets",
-        "unify_bullets",
-        "ibm_bullets",
-        "insurtech_bullets",
-        "slalom_narrative",
-        "unify_narrative",
-        "ibm_narrative",
-        "insurtech_narrative",
-    }
-    assert set(dependencies["headline"]) == {
-        "competencies",
-        "slalom_bullets",
-        "unify_bullets",
-        "ibm_bullets",
-        "insurtech_bullets",
-        "slalom_narrative",
-        "unify_narrative",
-        "ibm_narrative",
-        "insurtech_narrative",
-    }
-    assert "executive_summary" not in dependencies["headline"]
+    assert dependencies["executive_summary"] == ()
+    assert dependencies["headline"] == ()
 
 
 def test_dispatch_serial_mock() -> None:
@@ -347,11 +321,10 @@ def test_parallel_dispatch_blocks_only_descendants_of_failed_lane() -> None:
         max_parallel=5,
     )
     assert "ibm_narrative" in calls
+    assert "executive_summary" in calls
+    assert "headline" in calls
     assert "unify_narrative" not in calls
-    assert "executive_summary" not in calls
-    assert "headline" not in calls
-    for lane in ("unify_narrative", "executive_summary", "headline"):
-        assert out[lane].exec_status == "pre_run_blocked:UPSTREAM_DEPENDENCY_FAILED"
+    assert out["unify_narrative"].exec_status == "pre_run_blocked:UPSTREAM_DEPENDENCY_FAILED"
 
 
 def test_parallel_dispatch_requires_app_readiness_before_dependent_submission() -> None:

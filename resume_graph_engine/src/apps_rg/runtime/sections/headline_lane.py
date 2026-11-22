@@ -2317,7 +2317,15 @@ def run_headline_execution(
     employer_names = collect_employer_names_lower(base)
     candidate_name_tokens = extract_candidate_name_tokens(base)
     selected_fact_plan = dict(pool.selected_fact_plan)
-    companion_context = load_companion_context()
+    from apps_rg.runtime.section_execution_plan import dependencies_for_section
+
+    if (
+        dependencies_for_section("headline") == ()
+        and os.environ.get("APPS_RG_HEADLINE_LOAD_COMPANION", "").strip() != "1"
+    ):
+        companion_context = ""
+    else:
+        companion_context = load_companion_context()
     companion_nonempty = bool(companion_context.strip())
     resume_blob = build_resume_support_blob(bullet_rows, companion_context)
     employer_blob = "\n".join(f"- {n}" for n in employer_names)
