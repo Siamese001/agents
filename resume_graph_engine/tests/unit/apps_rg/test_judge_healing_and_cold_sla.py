@@ -3527,9 +3527,9 @@ def test_whole_resume_480s_timeout_hierarchy_and_recovery_budget_guard(
     monkeypatch.delenv("APPS_RG_PATCH_RUN_TIMEOUT_SECONDS", raising=False)
     monkeypatch.delenv(WHOLE_RUN_DEADLINE_ENV, raising=False)
 
-    assert resolve_section_lane_timeout_s() == 180.0
+    assert resolve_section_lane_timeout_s() == 240.0
     assert resolve_section_run_timeout_s() == 480.0
-    assert DEFAULT_PATCH_LANE_TIMEOUT_SECONDS == 180.0
+    assert DEFAULT_PATCH_LANE_TIMEOUT_SECONDS == 240.0
     assert DEFAULT_PATCH_RUN_TIMEOUT_SECONDS == 240.0
 
     # Shared whole-run deadline clamps patch_run timeout instead of resetting to 1200s
@@ -3658,6 +3658,52 @@ def test_ide_cli_429_quota_circuit_breaker_and_orthogonal_failover(
         "Championed ML signal workflows at IBM, establishing auditable leadership visibility across banking and insurance transformations."
     )
     assert sen.passed is True
+
+
+def test_unify_narrative_canonical_bullet_alias_and_fec_parity() -> None:
+    from apps_rg.runtime.evidence.canonical_evidence_x2 import append_canonical_evidence_invariant_x2_gates
+    from apps_rg.runtime.evidence.canonical_section_evidence_set import canonical_evidence_set_digest
+    from apps_rg.runtime.validators.unify_bullets_x2 import UNIFY_BULLET_IDS
+
+    pool_ids = [
+        "reb_unify_dependency_graph_accelerator",
+        "skill_dependency_and_join_control",
+        "metric_unify_dependency_graph_refactor_blast_radius_visibility",
+        "fact_engineering_platform_002",
+    ]
+    pool_digest = canonical_evidence_set_digest(pool_ids)
+    fec_ids = sorted(set(pool_ids) | set(UNIFY_BULLET_IDS))
+    runtime_payload = {
+        "section_id": "unify_narrative",
+        "allowed_fact_ids": fec_ids,
+        "canonical_evidence_set_digest": pool_digest,
+        "fec_allowed_fact_ids_digest": pool_digest,
+        "canonical_section_evidence_set": {
+            "section_id": "unify_narrative",
+            "canonical_evidence_set_digest": pool_digest,
+            "pool_ids_ordered": pool_ids,
+            "id_alias_map": {},
+        },
+    }
+    claim_ledger = [
+        {
+            "claim_text": (
+                "Owned Unify Consulting's governed agentic AI platform architecture and reusable IP "
+                "commercialization mandate across regulated enterprise deployments."
+            ),
+            "source_fact_ids": ["bul_unify_006", "bul_unify_002", "reb_unify_dependency_graph_accelerator"],
+        }
+    ]
+    gates = []
+    append_canonical_evidence_invariant_x2_gates(
+        gates,
+        runtime_payload=runtime_payload,
+        allowed_fact_ids=set(fec_ids),
+        claim_ledger=claim_ledger,
+    )
+    failed = [g.gate_id for g in gates if not g.pass_]
+    assert failed == [], f"Expected zero FEC/canonical violations for unify_narrative, got {failed}"
+
 
 
 

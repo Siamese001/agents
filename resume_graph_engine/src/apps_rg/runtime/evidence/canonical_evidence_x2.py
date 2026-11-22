@@ -82,6 +82,26 @@ def append_canonical_evidence_invariant_x2_gates(
         if fact_anchor:
             for bid in IBM_BULLET_IDS:
                 alias_map.setdefault(bid, fact_anchor)
+    elif section_id == "unify_narrative":
+        from apps_rg.runtime.sections.unify_role_episode_evidence import (
+            UNIFY_BULLET_SLOT_BUNDLE_MAP,
+        )
+        from apps_rg.runtime.validators.unify_bullets_x2 import UNIFY_BULLET_IDS
+
+        for bid, bundle_id in UNIFY_BULLET_SLOT_BUNDLE_MAP.items():
+            if bundle_id in fec_ids:
+                alias_map.setdefault(bid, bundle_id)
+        fact_or_reb_anchor = next(
+            (
+                fid
+                for fid in sorted(fec_ids)
+                if fid.startswith(("fact_", "reb_unify_")) and "_metric_" not in fid
+            ),
+            None,
+        )
+        if fact_or_reb_anchor:
+            for bid in UNIFY_BULLET_IDS:
+                alias_map.setdefault(bid, fact_or_reb_anchor)
 
     pool_ids = set(canon_doc.get("pool_ids_ordered") or []) or set(allowed_fact_ids)
 

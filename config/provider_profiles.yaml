@@ -339,7 +339,7 @@ runtime_limits:
     timeout_seconds: 90
     total_budget_seconds: 150
   section_dispatch:
-    lane_timeout_seconds: 180
+    lane_timeout_seconds: 240
     run_timeout_seconds: 480
   # W1 external-model spend guard.  This is a conservative reservation of
 

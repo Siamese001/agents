@@ -919,7 +919,7 @@ runtime_limits:
     timeout_seconds: 90
     total_budget_seconds: 150
   section_dispatch:
-    lane_timeout_seconds: 180
+    lane_timeout_seconds: 240
     run_timeout_seconds: 480
   model_token_governor:
     chars_per_token_estimate: 3
