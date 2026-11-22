@@ -3727,6 +3727,24 @@ def test_experience_bullet_shortened_verb_and_headline_solution_delivery_abstrac
     )
     assert len(bad_hl["segments_missing_executive_abstraction"]) == 3
 
+    from apps_rg.runtime.validators.headline_positioning_x2 import (
+        governance_signal_families_matched,
+        platform_or_runtime_signal_families_matched,
+    )
+
+    assert (
+        platform_or_runtime_signal_families_matched(
+            "SVP Enterprise Architecture | AI Partner Ecosystems | Cloud Alliance Solutions | Regulated Financial Modernization"
+        )
+        == []
+    )
+    assert platform_or_runtime_signal_families_matched(
+        "SVP Enterprise Architecture | AI Partner Ecosystems | Agentic AI Platforms | Runtime Governance"
+    )
+    assert governance_signal_families_matched(
+        "SVP Enterprise Architecture | AI Partner Ecosystems | Agentic AI Platforms | Runtime Governance"
+    )
+
 
 
 

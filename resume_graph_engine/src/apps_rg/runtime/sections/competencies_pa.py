@@ -246,7 +246,7 @@ def build_competencies_assembly_input(
     alloc_block = ""
     if alloc_rows:
         alloc_lines = [
-            "\nMANDATORY_ALLOCATED_GRAPH_SKILLS (HARD X2 GATE x2_resume_graph_claim_binding — emit ALL 8 required competency_bundle_id categories, and for EVERY row below, include one 5-7 word capability noun phrase carrying the EXACT \"allocation_claim_unit_id\", \"source_skill_ids\", and \"source_fact_id\" shown below; also ensure NO non-stopword repeats >3 times across the entire section):"
+            "\nMANDATORY_ALLOCATED_GRAPH_SKILLS (HARD X2 GATE x2_resume_graph_claim_binding — emit ALL 8 required competency_bundle_id categories, and for EVERY row below, include one 5-7 word capability noun phrase carrying the EXACT \"allocation_claim_unit_id\", \"source_skill_ids\", and \"source_fact_id\" shown below; NEVER use certification/credential words like 'Fundamentals', 'Accreditation', 'Practitioner', 'Certified', or 'Certificate' in term text, keep partner/deal-support/alliance GTM terms inside ccb_partner_applied_ai_architecture, and ensure NO non-stopword repeats >3 times across the entire section):"
         ]
         for arow in alloc_rows:
             if not isinstance(arow, dict):
@@ -255,9 +255,12 @@ def build_competencies_assembly_input(
             skid = str(arow.get("skill_id") or "").strip()
             fid = str(arow.get("fact_id") or "").strip()
             kw_hint = skid.replace("skill:", "").replace("skill_", "").replace(":", " ").replace("_", " ").strip()
+            for _noise in ("sr w12 ", "p2 gtm ", "p2 tech ", " fundamentals", " accreditation", " practitioner", " certified"):
+                kw_hint = kw_hint.replace(_noise, " " if not _noise.startswith(" ") else "")
+            kw_hint = " ".join(kw_hint.split())
             if cuid or skid:
                 alloc_lines.append(
-                    f'- allocation_claim_unit_id="{cuid}", source_skill_ids=["{skid}"], source_fact_id="{fid}" (concept: {kw_hint})'
+                    f'- allocation_claim_unit_id="{cuid}", source_skill_ids=["{skid}"], source_fact_id="{fid}" (capability concept: {kw_hint})'
                 )
         if len(alloc_lines) > 1:
             alloc_block = "\n".join(alloc_lines) + "\n"

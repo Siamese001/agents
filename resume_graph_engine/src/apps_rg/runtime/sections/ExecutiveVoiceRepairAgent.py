@@ -181,8 +181,9 @@ RULES:
 3. Word count must be strictly between 10 and 13 words total.
 4. Avoid noun stacks, buzzword salads, narrow hardware/plumbing labels ('SCADA', 'Telemetry', 'Portal Agentic', 'Compliance AI Governance'), and clichés.
 5. Every X/Y/Z segment (segments 2, 3, and 4) MUST include an executive operating abstraction noun (Platforms, Architecture, Governance, Systems, Ecosystems, Solutions, Partnerships, Alliances, Delivery, Orchestration, Modernization, Transformation, Commercialization, Regulated, or Enterprise), with zero digits, $, %, or employer/company names.
-6. Do NOT repeat the token 'AI' in more than 2 of the 4 segments, and always use natural idiomatic English modifier ordering (e.g., write 'AI Partner Ecosystems' or 'Platform Commercialization', never inverted 'Licensing AI Platform' or 'Partner AI Ecosystem').
-7. Ground all terms in the ALLOWED GROUNDED FACTS above and executive engineering leadership.
+6. HARD SIGNAL FLOOR IN SEGMENTS 2..4: At least ONE of segments 2..4 MUST contain 'Platforms', 'Platform', 'Architecture', or 'Runtime' (e.g., 'Agentic AI Platforms', 'AI Platform Architecture', or 'Runtime Governance'), AND at least ONE of segments 2..4 MUST contain 'Governance', 'Governed', or 'Regulated' (e.g., 'Runtime Governance' or 'Governed AI Deployment').
+7. Do NOT repeat the token 'AI' in more than 2 of the 4 segments, never invert English modifier ordering (e.g., write 'AI Partner Ecosystems' or 'Platform Commercialization', never 'Licensing AI Platform' or 'Partner AI Ecosystem'), and align segments to the Target Role (e.g., for Applied AI Architecture & Partnerships, pair AI Platform Architecture + Partner Ecosystems + Runtime Governance rather than off-target financial vertical modernization).
+8. Ground all terms in the ALLOWED GROUNDED FACTS above and executive engineering leadership.
 
 OUTPUT FORMAT:
 Return a JSON object:

@@ -228,6 +228,7 @@ def _format_allocation_authority_block(
         "abstraction noun (Platforms, Architecture, Governance, Systems, Ecosystems, Solutions, Partnerships, Alliances, Delivery, Orchestration, "
         "Modernization, Transformation, Commercialization, Regulated, or Enterprise). "
         "Do NOT repeat 'AI' in more than 2 of the 4 segments and never invert English modifier order (e.g., never write 'Licensing AI Platform' or 'Partner AI Ecosystem'; write 'AI Partner Ecosystems' or 'Platform Commercialization'). "
+        "At least ONE X/Y/Z segment (segments 2..4) MUST include 'Platforms', 'Platform', 'Architecture', or 'Runtime', AND at least ONE X/Y/Z segment MUST include 'Governance', 'Governed', or 'Regulated'. "
         f"STRICT COMPACT 4-SEGMENT ARITHMETIC: Prefix '{prefix}' is {prefix_wc} words, and every X/Y/Z segment "
         "MUST be 2 to 3 words (<= 3 words per segment, <= 12 words total, <= 95 characters total, zero dollar metrics; "
         "never emit 4-word segments, never stack redundant trailing nouns like 'Accelerators Platform' or "

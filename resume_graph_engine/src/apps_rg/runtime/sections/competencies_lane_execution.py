@@ -1013,6 +1013,11 @@ def run_competencies_lane_execution(
         import copy
 
         cand_parsed = copy.deepcopy(parsed) if isinstance(parsed, dict) else {"competencies": []}
+        prior_by_bundle = {
+            str(c.get("competency_bundle_id") or "").strip(): c
+            for c in ((parsed or {}).get("competencies") or [])
+            if isinstance(c, dict) and str(c.get("competency_bundle_id") or "").strip()
+        }
         prior_by_label = {
             str(c.get("category_label") or "").strip().lower(): c
             for c in ((parsed or {}).get("competencies") or [])
@@ -1024,8 +1029,13 @@ def run_competencies_lane_execution(
             if not isinstance(raw_c, dict):
                 continue
             merged_c = copy.deepcopy(raw_c)
+            bid_key = str(merged_c.get("competency_bundle_id") or "").strip()
             lbl_key = str(merged_c.get("category_label") or "").strip().lower()
-            src_c = prior_by_label.get(lbl_key) or (prior_list[idx_c] if idx_c < len(prior_list) else None)
+            src_c = (
+                prior_by_bundle.get(bid_key)
+                or prior_by_label.get(lbl_key)
+                or (prior_list[idx_c] if idx_c < len(prior_list) else None)
+            )
             if isinstance(src_c, dict):
                 for meta_k in (
                     "category_id",
@@ -1043,6 +1053,28 @@ def run_competencies_lane_execution(
                         if src_c.get(meta_k) not in (None, "", []):
                             merged_c[meta_k] = copy.deepcopy(src_c[meta_k])
             hydrated_new_comps.append(merged_c)
+        from apps_rg.runtime.sections.competency_capability_evidence import (
+            AGENTIC_ENGINEERING_COMPETENCIES_BUNDLE_ORDER,
+            INSURANCE_IT_STRATEGY_COMPETENCIES_BUNDLE_ORDER,
+            PARTNERSHIP_FIRST_COMPETENCIES_BUNDLE_ORDER,
+        )
+
+        _cand_plan_meta = pp_meta.get("selected_graph_evidence_plan") if isinstance(pp_meta, dict) else {}
+        _target_prof = str(
+            ((_cand_plan_meta or {}).get("target_role_profile") if isinstance(_cand_plan_meta, dict) else "")
+            or (selected_fact_plan.get("target_role_profile") if isinstance(selected_fact_plan, dict) else "")
+            or ""
+        ).strip()
+        if _target_prof == "insurance_it_strategy":
+            _bundle_order = INSURANCE_IT_STRATEGY_COMPETENCIES_BUNDLE_ORDER
+        elif _target_prof == "svp_agentic_engineering":
+            _bundle_order = AGENTIC_ENGINEERING_COMPETENCIES_BUNDLE_ORDER
+        else:
+            _bundle_order = PARTNERSHIP_FIRST_COMPETENCIES_BUNDLE_ORDER
+        _order_idx = {b_id: i_ord for i_ord, b_id in enumerate(_bundle_order)}
+        hydrated_new_comps.sort(
+            key=lambda c_item: _order_idx.get(str(c_item.get("competency_bundle_id") or "").strip(), 999)
+        )
         if len(hydrated_new_comps) > 1:
             _uniq_scores = {
                 round(
