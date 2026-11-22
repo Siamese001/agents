@@ -679,7 +679,12 @@ def repair_section_with_executive_voice_agent(
                 mech = "a2a_socratic_repair_loop_failed_audit"
 
     elif sec == "headline":
-        from apps_rg.runtime.validators.headline_x2 import has_valid_headline_prefix
+        from apps_rg.runtime.validators.headline_x2 import (
+            HEADLINE_WORD_MAX,
+            HEADLINE_WORD_MIN,
+            has_valid_headline_prefix,
+            headline_word_count,
+        )
 
         prompt = _build_headline_repair_prompt(
             str(candidate_data.get("headline_line") or ""), diagnostic, allowed_facts, targeting_context,
@@ -688,8 +693,12 @@ def repair_section_with_executive_voice_agent(
         if resp and isinstance(resp.get("repaired_headline"), str):
             hl = resp["repaired_headline"].strip()
             parts = [p.strip() for p in hl.split("|")]
-            words = hl.split()
-            if len(parts) == 4 and has_valid_headline_prefix(hl) and 10 <= len(words) <= 13:
+            wc = headline_word_count(hl)
+            if (
+                len(parts) == 4
+                and has_valid_headline_prefix(hl)
+                and HEADLINE_WORD_MIN <= wc <= HEADLINE_WORD_MAX
+            ):
                 updated_data["headline_line"] = hl
                 ok = True
 

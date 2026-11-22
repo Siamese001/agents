@@ -384,7 +384,7 @@ class ResumeRunRecoveryAgent:
             lane_overrides[lane] = {
                 "temperature": temp,
                 "force_new_seed": True,
-                "reasoning_effort": "medium",
+                "reasoning_effort": "low",
                 "diagnostic_focus": str(diag_msg),
             }
         return {
