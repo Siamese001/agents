@@ -3705,6 +3705,30 @@ def test_unify_narrative_canonical_bullet_alias_and_fec_parity() -> None:
     assert failed == [], f"Expected zero FEC/canonical violations for unify_narrative, got {failed}"
 
 
+def test_experience_bullet_shortened_verb_and_headline_solution_delivery_abstraction() -> None:
+    from apps_rg.runtime.validators.bullet_quality_floor_x2 import check_experience_bullet_evidence_density
+    from apps_rg.runtime.validators.headline_x2 import headline_executive_abstraction_report
+
+    density = check_experience_bullet_evidence_density(
+        "bul_unify_004",
+        "Shortened enterprise technical validation cycles and unlocked repeatable partner-led modernization "
+        "pipeline via joint solution roadmaps with cloud and AI vendors and GSI partner enablement motions.",
+    )
+    assert density.passed is True, f"Expected Shortened bullet to pass density check, got {density.failure_reason}"
+
+    good_hl = headline_executive_abstraction_report(
+        "SVP Enterprise Architecture | AI Partner Ecosystems | Cloud Alliance Commercialization | Joint Solution Delivery"
+    )
+    assert good_hl["segments_missing_executive_abstraction"] == []
+    assert good_hl["standalone_vendor_architecture_segments"] == []
+
+    bad_hl = headline_executive_abstraction_report(
+        "SVP Engineering | Databricks Lakehouse | Snowflake Data Cloud | Watson Studio"
+    )
+    assert len(bad_hl["segments_missing_executive_abstraction"]) == 3
+
+
+
 
 
 

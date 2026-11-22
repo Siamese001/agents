@@ -1140,7 +1140,7 @@ def _default_dispatch_lane(
     attempt_artifact_dir = _patch_lane_attempt_artifact_dir(plan, lane)
     lane_temp = default_temperature_for_section(lane)
     diagnostic_focus = ""
-    force_new_seed = False
+    force_new_seed = bool(lane in set(plan.force_lanes))
     reasoning_effort = ""
     raw_directives = os.environ.get("APPS_RG_RECOVERY_DIRECTIVES_JSON")
     if raw_directives:

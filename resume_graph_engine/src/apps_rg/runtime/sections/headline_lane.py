@@ -2826,6 +2826,7 @@ def run_headline_execution(
         raw_output_for_x2 = json.dumps(parsed_for_x2, ensure_ascii=False, separators=(",", ":"))
     from apps_rg.runtime.sections.lane_perf_sync_helpers import execute_headline_judges_with_final_display_gate
 
+    _pre_judge_headline_line = headline_line
     headline_line, claim_ledger, canon_doc, coverage, x1d = execute_headline_judges_with_final_display_gate(
         headline_line=headline_line,
         parsed=parsed if isinstance(parsed, dict) else None,
@@ -2859,6 +2860,30 @@ def run_headline_execution(
         run_judges_fn=run_headline_judges,
         write_json_fn=write_json,
     )
+    if headline_line != _pre_judge_headline_line:
+        usage_doc = build_section_input_usage_ledger_v1(
+            section_id="headline",
+            run_id=str(runtime_payload["run_id"]),
+            request_id=req_id_h,
+            trace_root=trace_rr_h,
+            repo_root=REPO_ROOT,
+            artifact_dir=artifact_dir,
+            runtime_payload=runtime_payload,
+            selected_fact_plan=effective_sfp_h,
+            claim_ledger=claim_ledger,
+            allowed_fact_ids=allowed_fact_ids,
+            jd_text=str(runtime_payload.get("jd_text") or ""),
+            target_title=str(runtime_payload.get("target_title") or ""),
+            target_company=str(runtime_payload.get("target_company") or ""),
+            briefing_text=str(runtime_payload.get("briefing") or ""),
+            jd_alignment=(parsed or {}).get("jd_alignment") if isinstance(parsed, dict) else None,
+        )
+        write_json(
+            artifact_dir / "section_input_usage_ledger.json",
+            apply_proof_pool_to_usage_ledger(usage_doc, pool),
+        )
+        if "```" in raw_output and isinstance(parsed_for_x2, dict):
+            raw_output_for_x2 = json.dumps(parsed_for_x2, ensure_ascii=False, separators=(",", ":"))
     write_json(artifact_dir / "x1d_llm_judge_outputs.json", {"judges": x1d})
 
     from apps_rg.runtime.product_evidence_authority import x2_proof_pool_gate_flags
