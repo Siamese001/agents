@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -37,6 +38,8 @@ DEFAULT_LEARNING_DIR = resolve_primary_repo_root() / "artifacts" / "learning"
 DEFAULT_CALIBRATION_HISTORY_PATH = DEFAULT_LEARNING_DIR / "judge_calibration_history.json"
 DEFAULT_GRADUATION_STATE_PATH = DEFAULT_LEARNING_DIR / "capability_graduation_state.json"
 DEFAULT_TRIAGE_ROOT = resolve_primary_repo_root() / "data" / "eval" / "triage"
+
+logger = logging.getLogger(__name__)
 
 GRADUATION_CONSECUTIVE_PASS_TARGET = 10
 CAPABILITY_MIN_PASS_RATE = 0.50
@@ -67,7 +70,8 @@ def _load_json(path: Path) -> dict[str, Any]:
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
         return raw if isinstance(raw, dict) else {}
-    except (OSError, json.JSONDecodeError):
+    except (OSError, json.JSONDecodeError) as exc:
+        logger.warning("Failed to load JSON artifact at %s: %s", path, exc)
         return {}
 
 

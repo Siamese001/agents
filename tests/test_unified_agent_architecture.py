@@ -239,3 +239,39 @@ def test_wave3_structured_output_multimodal_toolcontext_and_cancel(tmp_path: Pat
     assert build_handoff_judge_agent_config({"type": "object"})["response_schema"] == {"type": "object"}
     assert PromptCompiler.build_templated_system_instructions({"candidate_name": "Alex", "tone": "direct"}).communication_style == "direct"
     assert build_external_system_instructions("Strict JSON", identity="Reviewer").identity == "Reviewer"
+
+
+def test_observability_corrupt_artifact_fallbacks_emit_warnings(
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Corrupt JSON/cursor recovery in observability modules emits structured warnings rather than silent swallows."""
+    import logging
+
+    from agents.observability.eval_flywheel import _load_json
+    from agents.observability.trace_collector import RunTraceCollector
+    from agents.observability.trajectory_learning import TrajectoryLearningEngine
+
+    corrupt_flywheel = tmp_path / "corrupt_flywheel.json"
+    corrupt_flywheel.write_text("{not valid json", encoding="utf-8")
+
+    corrupt_cursor = tmp_path / "corrupt_cursor.json"
+    corrupt_cursor.write_text("{broken_cursor", encoding="utf-8")
+
+    corrupt_traj = tmp_path / "corrupt_traj.json"
+    corrupt_traj.write_text("[invalid json", encoding="utf-8")
+
+    with caplog.at_level(logging.WARNING):
+        assert _load_json(corrupt_flywheel) == {}
+        collector = RunTraceCollector(
+            traces_path=tmp_path / "run_traces.jsonl",
+            cursor_path=corrupt_cursor,
+        )
+        assert collector._load_cursor() == {"byte_offset": 0, "line_number": 0, "recent_trace_ids": []}
+        traj_engine = TrajectoryLearningEngine(store_path=corrupt_traj)
+        assert traj_engine.load_from_disk(corrupt_traj) == 0
+
+    warning_messages = [rec.getMessage() for rec in caplog.records if rec.levelno >= logging.WARNING]
+    assert any(str(corrupt_flywheel) in msg for msg in warning_messages)
+    assert any(str(corrupt_cursor) in msg for msg in warning_messages)
+    assert any(str(corrupt_traj) in msg for msg in warning_messages)
