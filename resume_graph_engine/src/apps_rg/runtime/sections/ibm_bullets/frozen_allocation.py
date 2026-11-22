@@ -7,13 +7,13 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from apps_rg.runtime.claim_ledger.canonical_exec_summary_v2 import normalize_exec_summary_claim_ledger
-from apps_rg.runtime.sections.ibm_canonical_hydration import should_hydrate_ibm_bullets_from_canonical
 from apps_rg.runtime.validators.ibm_bullets_x2 import IBM_BULLET_IDS
 from .lane_constants import (
     BULLET_ID_ALIASES,
     DEFAULT_INTENSITY_BY_BULLET,
     IBM_DEFAULT_DISTRIBUTION,
     extract_ibm_employment,
+    should_hydrate_ibm_bullets_from_canonical,
     write_json,
 )
 

@@ -138,7 +138,7 @@ def check_resume_graph_engine_domain(repo_root: Path, *, inject_fault: bool = Fa
     if "INANIMATE_SUBJECT_DATASHEET_BAN" not in rendered_blind:
         failures.append("blind_judge_missing_inanimate_subject_ban")
 
-    from apps_rg.runtime.sections.ibm_narrative_lane_runtime import normalize_parsed_output
+    from apps_rg.runtime.sections.ibm_narrative_lane import normalize_parsed_output
     from apps_rg.runtime.validators.ibm_narrative_x2 import (
         ibm_narrative_mechanism_support_observation,
     )

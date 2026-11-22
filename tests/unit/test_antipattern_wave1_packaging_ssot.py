@@ -53,7 +53,7 @@ APPS_RG_MAIN_BLOCK_ALLOWLIST = {
     "runtime/sections/competencies_lane_runtime.py",
     "runtime/sections/executive_summary_lane.py",
     "runtime/sections/ibm_bullets_lane.py",
-    "runtime/sections/ibm_narrative_lane_runtime.py",
+    "runtime/sections/ibm_narrative_lane.py",
     "runtime/sections/unify_bullets_lane.py",
     "runtime/sections/unify_narrative_lane.py",
 }

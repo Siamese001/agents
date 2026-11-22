@@ -31,11 +31,6 @@
       "section_id": "headline"
     },
     {
-      "loc": 28,
-      "module_path": "apps_rg/runtime/sections/headline_repair_policy.py",
-      "section_id": "headline"
-    },
-    {
       "loc": 357,
       "module_path": "apps_rg/runtime/validators/headline_positioning_x2.py",
       "section_id": "headline"
@@ -441,28 +436,8 @@
       "section_id": "ibm_narrative"
     },
     {
-      "loc": 963,
-      "module_path": "apps_rg/runtime/sections/ibm_narrative_lane_execution.py",
-      "section_id": "ibm_narrative"
-    },
-    {
-      "loc": 825,
-      "module_path": "apps_rg/runtime/sections/ibm_narrative_lane_runtime.py",
-      "section_id": "ibm_narrative"
-    },
-    {
-      "loc": 94,
-      "module_path": "apps_rg/runtime/sections/ibm_narrative_metric_trim.py",
-      "section_id": "ibm_narrative"
-    },
-    {
       "loc": 352,
       "module_path": "apps_rg/runtime/sections/ibm_narrative_pa.py",
-      "section_id": "ibm_narrative"
-    },
-    {
-      "loc": 28,
-      "module_path": "apps_rg/runtime/sections/ibm_narrative_repair_policy.py",
       "section_id": "ibm_narrative"
     },
     {

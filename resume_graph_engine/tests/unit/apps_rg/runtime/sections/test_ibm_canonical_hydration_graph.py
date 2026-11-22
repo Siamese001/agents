@@ -3,14 +3,13 @@ from __future__ import annotations
 
 import json
 
-from apps_rg.runtime.sections.ibm_canonical_hydration import (
-    align_ibm_narrative_claim_ledger_to_bul_ibm,
+from apps_rg.runtime.sections.ibm_bullets import should_hydrate_ibm_bullets_from_canonical
+from apps_rg.runtime.sections.ibm_narrative_lane import (
     bind_missing_ibm_narrative_theme_citations,
     decompose_ibm_narrative_claim_ledger_by_clause,
     redact_banned_lexicon_from_attestation_change_log,
     redact_banned_lexicon_from_attestation_metadata,
     remap_ibm_narrative_claim_ledger_to_fact_pool,
-    should_hydrate_ibm_bullets_from_canonical,
 )
 from apps_rg.runtime.validators.ibm_narrative_x2 import (
     check_ibm_narrative_claim_ledger_clause_decomposition,
@@ -256,12 +255,12 @@ def test_align_narrative_ledger_replaces_fact_ids_with_bul_ibm() -> None:
         ],
     }
     themes = ibm_narrative_material_fact_ids_for_sentence(sentence)
-    align_ibm_narrative_claim_ledger_to_bul_ibm(
+    decompose_ibm_narrative_claim_ledger_by_clause(
         parsed,
         narrative_sentence=sentence,
         allowed_fact_ids={"bul_ibm_001", "bul_ibm_004", "fact_consulting_001"},
     )
-    src = parsed["claim_ledger"][0]["source_fact_ids"]
+    src = [s for row in parsed["claim_ledger"] for s in row["source_fact_ids"]]
     assert all(str(s).startswith("bul_ibm_") for s in src)
     assert themes.issubset(set(src)) or src
 

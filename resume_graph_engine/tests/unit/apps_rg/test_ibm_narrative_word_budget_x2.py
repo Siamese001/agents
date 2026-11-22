@@ -85,10 +85,10 @@ def test_ibm_narrative_exactly_one_sentence_fails_two_sentences() -> None:
 
 
 def test_ibm_narrative_execution_skips_pre_trim_metric_budget_llm_retry() -> None:
-    """Wave 2 anti-spin contract: companion metric trim runs deterministically without an extra LLM retry."""
+    """Wave 2 anti-spin contract: role_narrative_v2 has zero post-LLM metric-budget retry or prose mutation."""
     import inspect
-    from apps_rg.runtime.sections import ibm_narrative_lane_execution as exec_mod
-    from apps_rg.runtime.sections.ibm_narrative_lane_runtime import apply_companion_metric_budget_trim
+    from apps_rg.runtime.sections.role_narrative_v2 import contract_emitter as exec_mod
+    from apps_rg.runtime.sections.ibm_narrative_lane import normalize_parsed_output
 
     src = inspect.getsource(exec_mod)
     assert "retry_provider_for_metric_budget(" not in src
@@ -97,9 +97,6 @@ def test_ibm_narrative_execution_skips_pre_trim_metric_budget_llm_retry() -> Non
         "narrative_sentence": "At IBM, led cloud alliance co-sell delivery driving 20% joint revenue growth across banking accounts.",
         "claim_ledger": [],
     }
-    apply_companion_metric_budget_trim(
-        parsed,
-        "Led IBM-AWS alliance co-sell motions driving 20% joint revenue growth across partner channels.",
-    )
-    assert isinstance(parsed.get("narrative_sentence"), str) and parsed["narrative_sentence"]
+    out = normalize_parsed_output(parsed, {"selected_fact_plan": {"facts": []}}, allow_echo_repair=False)
+    assert isinstance(out, dict) and out["narrative_sentence"] == parsed["narrative_sentence"]
 

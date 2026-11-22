@@ -891,13 +891,6 @@ class TestHeadlineContentSignalRepairRung:
     ):
         """Production and REAL_LLM paths never run deterministic clarity trimming even if env var is set."""
         from apps_rg.runtime.section_repair_ledger import init_ledger
-        from apps_rg.runtime.sections.headline_repair_policy import (
-            deterministic_clarity_trim_enabled,
-        )
-
-        assert deterministic_clarity_trim_enabled(environ={"APPS_RG_PRODUCTION_RUN": "1"}) is False
-        assert deterministic_clarity_trim_enabled(environ={"APPS_RG_WHOLE_RUN_ENVELOPE": "1"}) is False
-        assert deterministic_clarity_trim_enabled(environ={}) is False
 
         monkeypatch.setenv("APPS_RG_HEADLINE_DETERMINISTIC_CLARITY_TRIM", "1")
         initial = (
@@ -1016,7 +1009,7 @@ class TestHeadlineContentSignalRepairRung:
         assert receipt["rejected_reason"] == "shape_invalid"
 
     def test_kill_switch_default_on_and_hard_cap(self, monkeypatch):
-        from apps_rg.runtime.sections.headline_repair_policy import (
+        from apps_rg.runtime.sections.headline_lane import (
             CONTENT_SIGNAL_REPAIR_MAX_ATTEMPTS,
             content_signal_repair_enabled,
         )
@@ -1253,7 +1246,7 @@ def test_graph_content_repair_triggers_and_accepts_full_x2_content_contract(
     tmp_path, monkeypatch
 ) -> None:
     failed = (
-        "SVP Engineering | Quota-Aligned Solution Leadership | "
+        "SVP Engineering | Quota-Aligned Client Expansion | "
         "Multi-Agent Runtime Governance | Partner Portfolio Oversight"
     )
     repaired = (
@@ -1334,7 +1327,7 @@ def test_retry29_recomputes_trigger_after_abstraction_fix_exposes_opaque_segment
 
     failed = (
         "SVP Engineering | Runtime Telemetry Governance | "
-        "Quota-Aligned Solution Leadership | Alliance Co-Sell Motions"
+        "Quota-Aligned Pursuit Execution | Alliance Co-Sell Motions"
     )
     abstraction_fixed_but_opaque = (
         "SVP Engineering | Runtime Telemetry Governance | "

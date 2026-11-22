@@ -54,6 +54,16 @@ MANDATORY_CONSUMER_IMPORTS: dict[str, tuple[str, ...]] = {
         "NARRATIVE_AUTHORITY_SIGNALS",
         "NARRATIVE_STRONG_VERBS",
     ),
+    "resume_graph_engine/src/apps_rg/runtime/sections/role_narrative_v2/prompt_and_generate.py": (
+        "NARRATIVE_AUTHORITY_SIGNALS",
+        "NARRATIVE_STRONG_VERBS",
+    ),
+    "resume_graph_engine/src/apps_rg/runtime/sections/headline_v2/prompt_and_generate.py": (
+        "APPROVED_HEADLINE_SENIORITY_PREFIXES",
+        "HEADLINE_EXECUTIVE_ABSTRACTION_NOUNS",
+        "HEADLINE_EXECUTIVE_ABSTRACTION_RE",
+        "HEADLINE_FORBIDDEN_PLUMBING_LABELS",
+    ),
 }
 
 FORBIDDEN_LOCAL_CALL_SHADOWS: dict[str, tuple[str, ...]] = {

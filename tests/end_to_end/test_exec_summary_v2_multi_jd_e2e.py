@@ -241,7 +241,7 @@ def test_ibm_narrative_banking_companion_never_injects_unsupported_aws_and_trace
     """Pinned unmocked regression for find-7221c40b8d99 (zero post-LLM unsupported AWS splice + CLI run_dir trace)."""
     from agents.observability.trace_collector import RunTraceCollector, build_run_trace
     from apps_eval.online_grader import grade_run_trace
-    from apps_rg.runtime.sections.ibm_narrative_lane_runtime import (
+    from apps_rg.runtime.sections.ibm_narrative_lane import (
         _cosine_echo_diagnostic_summary,
         normalize_parsed_output,
     )

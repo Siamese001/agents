@@ -183,7 +183,7 @@ def unify_narrative_parsed_from_mock(*, companion_text: str = "- bul_unify_001: 
 
 
 def ibm_narrative_parsed_from_mock(*, companion_text: str = "- bul_ibm_001: sample") -> dict[str, Any]:
-    from apps_rg.runtime.sections.ibm_narrative_lane_runtime import build_mock_output
+    from apps_rg.runtime.sections.ibm_narrative_lane import build_mock_output
 
     rp = {
         "selected_fact_plan": {"facts": []},

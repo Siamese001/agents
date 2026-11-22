@@ -12,7 +12,7 @@ _REPO = Path(__file__).resolve().parents[3]
 _LANES = (
     "apps_rg/runtime/sections/headline_lane.py",
     "apps_rg/runtime/sections/competencies_lane_runtime.py",
-    "apps_rg/runtime/sections/ibm_narrative_lane_runtime.py",
+    "apps_rg/runtime/sections/ibm_narrative_lane.py",
     "apps_rg/runtime/sections/executive_summary_lane.py",
     "apps_rg/runtime/sections/unify_bullets_lane.py",
     "apps_rg/runtime/sections/unify_narrative_lane.py",

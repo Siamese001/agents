@@ -302,15 +302,27 @@ def test_all_generated_lanes_have_repair_ledger_wiring() -> None:
     repo = Path(__file__).resolve().parents[4]
     sections = apps_rg_package_root(repo) / "runtime" / "sections"
     checks = {
-        "headline": (sections / "headline_lane.py",),
-        "executive_summary": (sections / "executive_summary_lane.py",),
+        "headline": (
+            sections / "headline_lane.py",
+            sections / "headline_v2" / "contract_emitter.py",
+            sections / "headline_v2" / "x2_invariants.py",
+        ),
+        "executive_summary": (
+            sections / "executive_summary_lane.py",
+            sections / "executive_summary_v2" / "contract_emitter.py",
+        ),
         "competencies": (sections / "competencies_lane_execution.py",),
         "unify_bullets": (sections / "unify_bullets_lane.py",),
-        "unify_narrative": (sections / "unify_narrative_lane.py",),
+        "unify_narrative": (
+            sections / "unify_narrative_lane.py",
+            sections / "role_narrative_v2" / "contract_emitter.py",
+            sections / "role_narrative_v2" / "x2_invariants.py",
+        ),
         "ibm_bullets": (sections / "ibm_bullets_lane.py",),
         "ibm_narrative": (
-            sections / "ibm_narrative_lane_execution.py",
-            sections / "ibm_narrative_lane_runtime.py",
+            sections / "ibm_narrative_lane.py",
+            sections / "role_narrative_v2" / "contract_emitter.py",
+            sections / "role_narrative_v2" / "x2_invariants.py",
         ),
     }
     for section_id, paths in checks.items():
