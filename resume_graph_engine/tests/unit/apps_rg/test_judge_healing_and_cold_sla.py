@@ -3390,6 +3390,7 @@ def test_competencies_frozen_single_path_with_governed_baseline_skips_llm_select
         min_score_threshold=0.5,
     )
     assert len(res.merged_parsed.get("competencies") or []) == len(req_bundles)
+    assert len({round(float(s["score"]), 4) for s in res.selections}) > 1
     timing = json.loads((tmp_path / "bullet_pool_claude_selector_timing.json").read_text(encoding="utf-8"))
     assert timing["passthrough"] is True
     assert timing["candidate_paths"] == 1

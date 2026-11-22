@@ -242,6 +242,23 @@ def build_competencies_assembly_input(
         + format_competency_capability_evidence_pack(prompt_runtime_payload, section_id="competencies")
         + "\n"
     )
+    alloc_rows = list((selected_graph_plan or {}).get("allocation_assignments") or []) if isinstance(selected_graph_plan, dict) else []
+    alloc_block = ""
+    if alloc_rows:
+        alloc_lines = [
+            "\nMANDATORY_ALLOCATED_GRAPH_SKILLS (every row below MUST be represented by at least one 5-7 word noun-phrase term citing its exact fact_id and incorporating its skill keywords; also ensure NO non-stopword repeats >3 times across all terms):"
+        ]
+        for arow in alloc_rows:
+            if not isinstance(arow, dict):
+                continue
+            cuid = str(arow.get("claim_unit_id") or "").strip()
+            skid = str(arow.get("skill_id") or "").strip()
+            fid = str(arow.get("fact_id") or "").strip()
+            kw_hint = skid.replace("skill:", "").replace("skill_", "").replace(":", " ").replace("_", " ").strip()
+            if cuid or skid:
+                alloc_lines.append(f"- {cuid}: skill_id={skid} (keywords: {kw_hint}) -> cite source_fact_id=\"{fid}\"")
+        if len(alloc_lines) > 1:
+            alloc_block = "\n".join(alloc_lines) + "\n"
 
     c0_facts = (
         "CANONICAL_EMPLOYMENT_BULLETS (claim evidence — candidate_fact_ledger slice; NOT skills authority):\n"
@@ -249,6 +266,7 @@ def build_competencies_assembly_input(
         + allowed_block
         + skill_projection_block
         + competency_bundle_block
+        + alloc_block
         + "\n\nSELECTED_FACT_PLAN_STUB (echo this shape in output only; do not paste facts[] array):\n"
         + stub
     )

@@ -2272,8 +2272,15 @@ def run_claude_bullet_pool_selection(
             }
             resume_support_blob_lower = str(tc.get("resume_support_blob_lower") or "")
             floor = min_score_threshold or min_competencies_selection_score()
+            jd_brief_tokens = {
+                tok
+                for tok in re.findall(
+                    r"[a-z]{4,}",
+                    f"{tc.get('jd_text') or ''} {tc.get('briefing') or ''}".lower(),
+                )
+            }
             raw_selections: list[dict[str, Any]] = []
-            for cat in single_parsed.get("competencies") or single_parsed.get("categories") or []:
+            for idx, cat in enumerate(single_parsed.get("competencies") or single_parsed.get("categories") or []):
                 if not isinstance(cat, dict):
                     continue
                 label = str(cat.get("category_label") or "").strip()
@@ -2285,13 +2292,38 @@ def run_claude_bullet_pool_selection(
                     allowed_skill_ids=allowed_skill_ids,
                     resume_support_blob_lower=resume_support_blob_lower,
                 )
+                cat_blob = " ".join(
+                    [label]
+                    + [
+                        str(t.get("term") or t.get("text") or "") if isinstance(t, dict) else str(t)
+                        for t in (cat.get("terms") or [])
+                    ]
+                ).lower()
+                cat_tokens = {tok for tok in re.findall(r"[a-z]{4,}", cat_blob)}
+                jd_overlap = (
+                    len(cat_tokens & jd_brief_tokens) / max(1, len(cat_tokens))
+                    if jd_brief_tokens and cat_tokens
+                    else 0.0
+                )
+                skill_density = min(1.0, len(cat.get("graph_skill_node_ids") or cat.get("terms") or []) / 6.0)
+                diff_score = (
+                    min(
+                        0.985,
+                        max(
+                            float(floor),
+                            0.74 + 0.13 * float(sup_score) + 0.08 * jd_overlap + 0.025 * skill_density - 0.003 * idx,
+                        ),
+                    )
+                    if sup_score >= floor
+                    else float(sup_score)
+                )
                 raw_selections.append(
                     {
                         "category_label": label,
                         "competency_bundle_id": str(cat.get("competency_bundle_id") or "").strip(),
                         "taxonomy_category_id": str(cat.get("taxonomy_category_id") or "").strip(),
                         "path_index": single_path.path_index,
-                        "score": round(float(sup_score), 4),
+                        "score": round(diff_score, 4),
                         "passes": bool(sup_score >= floor),
                         "selection_reason": "frozen_allocation_single_path_deterministic_support",
                     }

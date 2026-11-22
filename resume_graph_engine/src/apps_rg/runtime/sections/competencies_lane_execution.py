@@ -362,7 +362,7 @@ def run_competencies_lane_execution(
         provider_requested=str(args.provider),
         compiled_prompt_artifact=section_compiled.artifact,
         anthropic_workload_kind="SELF_CONSISTENCY",
-        reasoning_effort=getattr(args, "reasoning_effort", None) or "low",
+        reasoning_effort=getattr(args, "reasoning_effort", None),
         force_new_seed=bool(getattr(args, "force_new_seed", False)),
     )
     provider_request_data = provider_req.to_dict()
@@ -1013,7 +1013,37 @@ def run_competencies_lane_execution(
         import copy
 
         cand_parsed = copy.deepcopy(parsed) if isinstance(parsed, dict) else {"competencies": []}
-        cand_parsed["competencies"] = copy.deepcopy(new_comps)
+        prior_by_label = {
+            str(c.get("category_label") or "").strip().lower(): c
+            for c in ((parsed or {}).get("competencies") or [])
+            if isinstance(c, dict) and str(c.get("category_label") or "").strip()
+        }
+        prior_list = [c for c in ((parsed or {}).get("competencies") or []) if isinstance(c, dict)]
+        hydrated_new_comps: list[dict[str, Any]] = []
+        for idx_c, raw_c in enumerate(new_comps):
+            if not isinstance(raw_c, dict):
+                continue
+            merged_c = copy.deepcopy(raw_c)
+            lbl_key = str(merged_c.get("category_label") or "").strip().lower()
+            src_c = prior_by_label.get(lbl_key) or (prior_list[idx_c] if idx_c < len(prior_list) else None)
+            if isinstance(src_c, dict):
+                for meta_k in (
+                    "category_id",
+                    "taxonomy_category_id",
+                    "competency_bundle_id",
+                    "capability_family",
+                    "graph_skill_node_ids",
+                    "source_fact_ids",
+                    "confidence",
+                    "selection_score",
+                    "selector_confidence",
+                    "resume_display_label",
+                ):
+                    if merged_c.get(meta_k) in (None, "", []):
+                        if src_c.get(meta_k) not in (None, "", []):
+                            merged_c[meta_k] = copy.deepcopy(src_c[meta_k])
+            hydrated_new_comps.append(merged_c)
+        cand_parsed["competencies"] = hydrated_new_comps
         for _stale_key in (
             "competencies_allocation_claim_reconciliation",
             "competencies_graph_authority_discrepancy_ledger",
@@ -1022,7 +1052,7 @@ def run_competencies_lane_execution(
             cand_parsed.pop(_stale_key, None)
         if isinstance(cand_parsed.get("categories"), list):
             cand_parsed["categories"] = [
-                category_v3_from_legacy(c) for c in new_comps if isinstance(c, dict)
+                category_v3_from_legacy(c) for c in hydrated_new_comps if isinstance(c, dict)
             ]
         _cand_alloc_rec: dict[str, Any] | None = None
         _cand_disc_ledger: dict[str, Any] | None = None
@@ -1030,6 +1060,7 @@ def run_competencies_lane_execution(
         if isinstance(_cand_graph_plan, dict) and _cand_graph_plan.get("allocation_assignments"):
             from apps_rg.runtime.c0.competencies_graph_authority import (
                 build_competencies_graph_authority_discrepancy_ledger,
+                materialize_unmatched_competencies_allocation_terms,
                 reconcile_competencies_allocation_claim_units,
                 synchronize_competencies_allocation_bindings_to_categories,
             )
@@ -1044,6 +1075,19 @@ def run_competencies_lane_execution(
                 selected_plan=_cand_graph_plan,
                 allowed_fact_ids=allowed_fact_ids,
             )
+            if _allow_comp_prose_mutation and _cand_alloc_rec["pass"] is not True:
+                materialize_unmatched_competencies_allocation_terms(
+                    cand_parsed,
+                    selected_plan=_cand_graph_plan,
+                    allowed_fact_ids=allowed_fact_ids,
+                    claim_unit_ids=_cand_alloc_rec["unmatched_claim_unit_ids"],
+                )
+                rebuild_claim_ledger_from_competencies(cand_parsed, allowed_fact_ids)
+                _cand_alloc_rec = reconcile_competencies_allocation_claim_units(
+                    cand_parsed,
+                    selected_plan=_cand_graph_plan,
+                    allowed_fact_ids=allowed_fact_ids,
+                )
             _cand_v3_sync = synchronize_competencies_allocation_bindings_to_categories(cand_parsed)
             rebuild_claim_ledger_from_competencies(cand_parsed, allowed_fact_ids)
             _cand_disc_ledger = build_competencies_graph_authority_discrepancy_ledger(
@@ -1191,23 +1235,87 @@ def run_competencies_lane_execution(
         and not live_preflight_blocked
         and isinstance(parsed, dict)
     ):
-        pre_rep_data, pre_rep_rec = repair_section_with_executive_voice_agent(
-            section_id="competencies",
-            candidate_data={"competencies": competencies, "claim_ledger": claim_ledger},
-            diagnostic={
-                "repair_needed": True,
-                "findings": list(pre_x2_failed),
-                "remediation_suggestions": [
-                    "Repair the failing deterministic X2 gates while keeping every term grounded in allowed facts."
-                ],
-            },
-            allowed_facts=comp_allowed_fact_packet["facts"],
-            targeting_context=comp_targeting_context,
-            mock_mode=False,
-            artifact_dir=artifact_dir,
-        )
-        pre_new_comps = pre_rep_data.get("competencies") if pre_rep_rec.repair_succeeded else None
-        if isinstance(pre_new_comps, list) and pre_new_comps:
+        from apps_rg.runtime.validators.competencies_x2 import _STOPWORDS as _COMP_X2_STOPWORDS
+
+        def _describe_comp_x2_failures(
+            cur_comps_list: list[dict[str, Any]],
+            cur_x2_rows: list[dict[str, Any]],
+        ) -> list[str]:
+            details: list[str] = []
+            for g in cur_x2_rows:
+                gid = str(g.get("gate_id") or "")
+                if g.get("pass") or gid in {"x2_x1d_required_judges_present", "x2_x1d_schema_valid"}:
+                    continue
+                obs = g.get("observed_value")
+                reason = str(g.get("failure_reason") or "")
+                details.append(f"{gid}: observed={obs!r} ({reason})")
+            freq: dict[str, int] = {}
+            alloc_protected: list[str] = []
+            for cat in cur_comps_list:
+                if not isinstance(cat, dict):
+                    continue
+                for raw_t in cat.get("terms") or []:
+                    phrase = str(raw_t.get("term") or raw_t.get("text") or "") if isinstance(raw_t, dict) else str(raw_t)
+                    if isinstance(raw_t, dict) and str(raw_t.get("allocation_claim_unit_id") or "").strip():
+                        alloc_protected.append(phrase)
+                    for w in re.findall(r"[a-z]{3,}", phrase.lower()):
+                        if w not in _COMP_X2_STOPWORDS:
+                            freq[w] = freq.get(w, 0) + 1
+            overloaded = [f"{w}({cnt}x, max 3x)" for w, cnt in sorted(freq.items(), key=lambda kv: (-kv[1], kv[0])) if cnt > 3]
+            if overloaded:
+                details.append("OVERLOADED_WORDS_ACROSS_ALL_CATEGORIES_MUST_BE_AT_MOST_3X: " + ", ".join(overloaded[:10]))
+            _plan_alloc = (pp_meta.get("selected_graph_evidence_plan") or {}) if isinstance(pp_meta, dict) else {}
+            _alloc_rows = list(_plan_alloc.get("allocation_assignments") or []) if isinstance(_plan_alloc, dict) else []
+            _rec_doc = {}
+            if (artifact_dir / "competencies_allocation_claim_reconciliation_receipt.json").is_file():
+                try:
+                    _rec_doc = json.loads((artifact_dir / "competencies_allocation_claim_reconciliation_receipt.json").read_text(encoding="utf-8"))
+                except (OSError, ValueError, TypeError):
+                    _rec_doc = {}
+            _unmatched_ids = set(_rec_doc.get("unmatched_claim_unit_ids") or [])
+            if _unmatched_ids and _alloc_rows:
+                _missing_specs = []
+                for _ar in _alloc_rows:
+                    if isinstance(_ar, dict) and str(_ar.get("claim_unit_id") or "") in _unmatched_ids:
+                        _sk = str(_ar.get("skill_id") or "").replace("skill:", "").replace("skill_", "").replace("_", " ")
+                        _missing_specs.append(f"{_ar.get('claim_unit_id')}(keywords='{_sk}', fact_id='{_ar.get('fact_id')}')")
+                if _missing_specs:
+                    details.append(
+                        "MISSING_ALLOCATED_GRAPH_SKILLS_ADD_ONE_5_TO_7_WORD_TERM_FOR_EACH: "
+                        + "; ".join(_missing_specs)
+                    )
+            if alloc_protected:
+                details.append(
+                    "PRESERVE_THESE_ALLOCATED_TERMS_VERBATIM (edit OTHER non-allocated terms to lower word counts): "
+                    + " | ".join(alloc_protected[:8])
+                )
+            return details
+
+        cur_cand_comps = competencies
+        cur_cand_ledger = claim_ledger
+        cur_x2_snapshot = pre_x2
+        for _comp_rw_idx in range(2):
+            rich_findings = _describe_comp_x2_failures(cur_cand_comps, cur_x2_snapshot)
+            pre_rep_data, pre_rep_rec = repair_section_with_executive_voice_agent(
+                section_id="competencies",
+                candidate_data={"competencies": cur_cand_comps, "claim_ledger": cur_cand_ledger},
+                diagnostic={
+                    "repair_needed": True,
+                    "findings": rich_findings or list(pre_x2_failed),
+                    "remediation_suggestions": [
+                        "Keep all 8 categories (3 to 5 concise 5-to-7-word noun phrases each), preserve allocated terms verbatim, "
+                        "replace repeated words on non-allocated terms so NO non-stopword appears >3 times across the entire table, "
+                        "and rewrite any bullet-restatement phrase into a concise capability noun phrase grounded in allowed facts."
+                    ],
+                },
+                allowed_facts=comp_allowed_fact_packet["facts"],
+                targeting_context=comp_targeting_context,
+                mock_mode=False,
+                artifact_dir=artifact_dir,
+            )
+            pre_new_comps = pre_rep_data.get("competencies") if pre_rep_rec.repair_succeeded else None
+            if not isinstance(pre_new_comps, list) or not pre_new_comps:
+                break
             usage_snap = usage_ledger_path.read_bytes() if usage_ledger_path.is_file() else None
             c_parsed, c_disp, c_ledger, c_cov, c_canon, c_usage, c_raw, c_alloc_rec, c_disc_ledger = _build_comp_candidate_state(pre_new_comps)
             c_comps = c_parsed.get("competencies") or pre_new_comps
@@ -1243,8 +1351,12 @@ def run_competencies_lane_execution(
                     reason=_pre_fail_reason,
                     replaced_l2=True,
                 )
-            elif usage_snap is not None:
+                break
+            if usage_snap is not None:
                 usage_ledger_path.write_bytes(usage_snap)
+            cur_cand_comps = c_comps
+            cur_cand_ledger = c_ledger
+            cur_x2_snapshot = c_pre_x2
 
     if pre_x2_failed and not judge_allowed_mock:
         x1d = build_blocked_pre_judge_rows(
