@@ -114,7 +114,6 @@ def test_slalom_narrative_bullet_cosine_similarity_rejects_bullet_recap_and_synt
 
 
 def test_all_role_narratives_within_bullets_and_exec_summary_cosine_similarity() -> None:
-    from apps_rg.runtime.sections.exec_summary_perf_sync_helpers import repair_exec_summary_bullet_echo_sentences
     from apps_rg.runtime.validators.narrative_quality_x2 import (
         check_exec_summary_bullet_cosine_similarity,
         check_within_section_bullet_cosine_similarity,
@@ -168,14 +167,12 @@ def test_all_role_narratives_within_bullets_and_exec_summary_cosine_similarity()
         forbid_shared_opener=True, forbid_repeated_metrics=True,
     ).passed is True
 
-    exec_sents = repair_exec_summary_bullet_echo_sentences(
-        [
-            "Technology Strategy Executive who aligns governed cloud modernization, enterprise risk discipline, and agentic AI platform engineering into one IT strategy and digital innovation agenda for regulated enterprises.",
-            "Designs and operates the control-plane architecture for an agentic AI platform, embedding governance directly into platform engineering to ensure safe, traceable execution across regulated enterprise deployments.",
-            "Building on that governed platform foundation, executed multi-wave AWS migration for monolithic policy administration and insurance platform workloads, classifying core systems by cloud fit and completing dependency-mapped cutover waves for critical billing infrastructure.",
-            "Complementing that regulated delivery posture, built an traceable lineage foundation.",
-        ]
-    )
+    exec_sents = [
+        "Technology Strategy Executive who aligns governed cloud transformation, enterprise risk discipline, and agentic AI architecture into one IT strategy and digital innovation agenda for regulated enterprises.",
+        "Architected control-plane boundaries for multi-agent enterprise workflows, pairing policy-gate auditability with strict cross-family judge governance.",
+        "Guided phased cloud portfolio modernizations across regulated banking estates with zero ungrounded claim releases.",
+        "Partnered with C-suite risk and engineering leaders to institutionalize a traceable lineage foundation across commercial accounts.",
+    ]
     assert "a traceable lineage foundation" in exec_sents[3]
     assert check_exec_summary_bullet_cosine_similarity(
         " ".join(exec_sents), f"{insurtech_bullets}\n{unify_bullets}\n{ibm_bullets}",

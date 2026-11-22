@@ -18,7 +18,8 @@
         "no_off_domain_employer_in_banking_exec_summary",
         "x2_v2_inanimate_subject_opener_and_crutch_bilateral",
         "x2_v2_unverified_vendor_rejected",
-        "blind_judge_omits_deterministic_gate_summary_and_bans_inanimate_openers"
+        "blind_judge_omits_deterministic_gate_summary_and_bans_inanimate_openers",
+        "ibm_narrative_never_injects_unsupported_aws_and_cli_trace_preserves_artifact_dir"
       ]
     },
     {

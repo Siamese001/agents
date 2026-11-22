@@ -306,12 +306,27 @@ def main(argv: list[str] | None = None, prog: str | None = None) -> int:
             try:
                 from agents.observability.trace_collector import emit_post_run_trace_safe
 
+                run_dir_str = str(result.get("artifact_dir") or result.get("run_dir") or "")
+                gate_outcomes: dict[str, Any] = {
+                    "status": result.get("status"),
+                    "outcome_label": str(result.get("outcome_label") or ""),
+                    "x3_disposition": str(result.get("x3_disposition") or ""),
+                }
+                if result.get("fault"):
+                    gate_outcomes["fault"] = str(result.get("fault"))
+                if result.get("failure_stage"):
+                    gate_outcomes["failure_stage"] = str(result.get("failure_stage"))
+                if result.get("error"):
+                    gate_outcomes["error"] = str(result.get("error"))
                 emit_post_run_trace_safe(
                     app_id="apps_rg",
                     run_id=str(result.get("run_id") or "resume_run"),
                     terminal_status="PASS" if result.get("status") == "SUCCESS" else "FAIL",
-                    output_summary={"run_dir": str(result.get("run_dir") or "")},
-                    gate_outcomes={"status": result.get("status")},
+                    output_summary={
+                        "run_dir": run_dir_str,
+                        "outcome_label": str(result.get("outcome_label") or ""),
+                    },
+                    gate_outcomes=gate_outcomes,
                 )
             except (ImportError, OSError, ValueError, RuntimeError):  # guardian: allow-silent-swallow -- observer-only trace hook must never fail resume run
                 pass

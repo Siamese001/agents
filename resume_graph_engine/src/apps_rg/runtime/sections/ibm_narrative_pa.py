@@ -135,7 +135,8 @@ def _theme_budget_block(companion_text: str = "") -> str:
     if mechanism_terms:
         lines.append(
             "- MECHANISM LAW: name at least one concrete mechanism/technology token that is "
-            "actually present in a cited finalized bullet. Current supported tokens: "
+            "actually present in a cited finalized bullet (never invent 'AWS' or 'pipeline' unless "
+            "it appears in that list). Current supported tokens: "
             + ", ".join(mechanism_terms)
             + "."
         )
@@ -144,6 +145,11 @@ def _theme_budget_block(companion_text: str = "") -> str:
             "- MECHANISM LAW: name at least one concrete mechanism/technology token from the "
             "cited proof, never from a generic example or targeting context."
         )
+    lines.append(
+        "- ANTI-ECHO COSINE LAW: synthesize the executive role thesis at a higher altitude without "
+        "copying multi-word noun phrases from ACCEPTED_IBM_BULLETS (pairwise content cosine with "
+        "every bullet must stay <= 0.28 and pool cosine <= 0.38; never share a bullet's opening verb)."
+    )
     companion_rows = [
         line.strip()
         for line in str(companion_text or "").splitlines()

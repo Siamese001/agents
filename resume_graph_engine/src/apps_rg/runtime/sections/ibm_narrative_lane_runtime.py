@@ -279,6 +279,61 @@ def parse_model_json(raw: str) -> tuple[dict[str, Any] | None, str]:
     return None, "Model output was not a JSON object."
 
 
+def _companion_supported_mechanisms(companion_text: str) -> frozenset[str]:
+    from apps_rg.runtime.validators.narrative_quality_x2 import MECHANISM_VOCAB
+
+    if not str(companion_text or "").strip():
+        return frozenset()
+    tokens = set(re.findall(r"[a-z0-9]+", str(companion_text).lower()))
+    return frozenset(tokens.intersection(MECHANISM_VOCAB))
+
+
+def _cosine_echo_diagnostic_summary(narrative_text: str, companion_bullets_list: list[str]) -> str:
+    """Compute exact offending bullet index and shared content tokens for LLM-only cosine rewrite."""
+    from apps_rg.runtime.validators.narrative_quality_x2 import (
+        _COSINE_STOPWORDS,
+        _content_stem,
+        _tokenize,
+        check_narrative_bullet_cosine_similarity,
+    )
+
+    if not narrative_text or not companion_bullets_list:
+        return "avoid echoing companion bullet vocabulary"
+    res = check_narrative_bullet_cosine_similarity(
+        narrative_text,
+        companion_bullets_list,
+        max_pairwise_cosine=0.28,
+        max_pool_cosine=0.38,
+        forbid_shared_opener=True,
+        forbid_repeated_metrics=True,
+    )
+    obs = res.observed_value if isinstance(res.observed_value, dict) else {}
+    pairs = obs.get("pairs") if isinstance(obs.get("pairs"), list) else []
+    narr_tokens = [
+        t for t in _tokenize(narrative_text) if t not in _COSINE_STOPWORDS and len(t) > 2
+    ]
+    narr_stems = {_content_stem(t): t for t in narr_tokens}
+    hot_details: list[str] = []
+    for pair in sorted(pairs, key=lambda r: float(r.get("content_cosine") or 0.0), reverse=True):
+        cos_val = float(pair.get("content_cosine") or 0.0)
+        b_idx = int(pair.get("bullet_index") or 0)
+        if cos_val <= 0.25 or b_idx < 1 or b_idx > len(companion_bullets_list):
+            continue
+        b_tokens = [
+            t
+            for t in _tokenize(companion_bullets_list[b_idx - 1])
+            if t not in _COSINE_STOPWORDS and len(t) > 2
+        ]
+        b_stems = {_content_stem(t) for t in b_tokens}
+        shared = sorted({narr_stems[s] for s in (set(narr_stems) & b_stems)})
+        hot_details.append(
+            f"bullet_{b_idx} cosine={cos_val:.4f}<=0.2800 shared_words={shared}"
+        )
+    pool_cos = float(obs.get("pool_content_cosine") or 0.0)
+    summary = "; ".join(hot_details[:2]) if hot_details else "high content overlap"
+    return f"{summary}; pool_cosine={pool_cos:.4f}<=0.3800"
+
+
 def _ensure_ibm_narrative_mechanism(
     narrative: str,
     companion_text: str = "",
@@ -298,12 +353,22 @@ def _ensure_ibm_narrative_mechanism(
         )
     if check_narrative_technical_specificity(narrative).passed:
         return narrative
-    for p, r in (
-        (r"\bcloud delivery\b", "AWS cloud delivery"), (r"\bcloud modern\b", "AWS cloud modern"),
-        (r"\bcloud architecture\b", "AWS cloud architecture"), (r"\bcloud platforms?\b", "AWS cloud platforms"),
-        (r"\bcloud\b", "AWS cloud"), (r"\bsecure release\b", "secure release pipeline"),
-        (r"\brelease\b", "release pipeline"), (r"\bdelivery\b", "pipeline delivery"), (r"\barchitecture\b", "AWS architecture"),
-    ):
+    supported = _companion_supported_mechanisms(companion_text)
+    has_companion = bool(str(companion_text or "").strip())
+    candidates: tuple[tuple[str, str, str], ...] = (
+        (r"\bcloud delivery\b", "AWS cloud delivery", "aws"),
+        (r"\bcloud modern\b", "AWS cloud modern", "aws"),
+        (r"\bcloud architecture\b", "AWS cloud architecture", "aws"),
+        (r"\bcloud platforms?\b", "AWS cloud platforms", "aws"),
+        (r"\bcloud\b", "AWS cloud", "aws"),
+        (r"\bsecure release\b", "secure release pipeline", "pipeline"),
+        (r"\brelease\b", "release pipeline", "pipeline"),
+        (r"\bdelivery\b", "pipeline delivery", "pipeline"),
+        (r"\barchitecture\b", "AWS architecture", "aws"),
+    )
+    for p, r, req_mech in candidates:
+        if has_companion and req_mech not in supported:
+            continue
         if re.search(p, narrative, re.IGNORECASE):
             cand = re.sub(p, r, narrative, count=1, flags=re.IGNORECASE)
             if check_narrative_technical_specificity(cand).passed:
@@ -831,12 +896,15 @@ def apply_ibm_narrative_theme_overpack_repair(
                 "remove that mechanism token. Preserve the current focused theme budget. "
             )
         else:
+            echo_diag = _cosine_echo_diagnostic_summary(narrative_pre, companion_bullets_list)
             revision_intro = (
                 "COSINE_ECHO_REVISION (x2_narrative_bullet_cosine_similarity): "
                 f"{cosine_res_pre.failure_reason if cosine_res_pre is not None else 'narrative echoes companion bullets'}. "
-                "Rewrite narrative_sentence using concrete client-facing cloud, BI/lineage, and regulated financial-services "
-                "solution-leadership framing at IBM (NEVER claim an internal 'IBM mandate' and NEVER use vague buzzwords like "
-                "'high-stakes institutions' or 'accountable choices'), varying word choice from the companion bullets so "
+                f"Offending overlap breakdown: {echo_diag}. "
+                "Rewrite narrative_sentence using concrete client-facing enterprise advisory and solution-leadership "
+                "framing at IBM (NEVER claim an internal 'IBM mandate' and NEVER use vague buzzwords like "
+                "'high-stakes institutions' or 'accountable choices'), replacing the shared_words listed above with "
+                "higher-level executive synthesis vocabulary while keeping only the cited mechanism token(s) so "
                 "pairwise content cosine with every companion bullet is <= 0.28 and pool content cosine is <= 0.38. "
             )
         repair_messages = [
@@ -1044,6 +1112,10 @@ def apply_ibm_narrative_theme_overpack_repair(
                 receipt["rejected_reason"] == "cosine_similarity_still_high"
                 and attempt_index < THEME_REPAIR_MAX_ATTEMPTS
             ):
+                post_echo_diag = _cosine_echo_diagnostic_summary(
+                    str((new_parsed or {}).get("narrative_sentence") or ""),
+                    companion_bullets_list,
+                )
                 attempt_messages = [
                     *messages,
                     {"role": "assistant", "content": regen_raw},
@@ -1053,11 +1125,12 @@ def apply_ibm_narrative_theme_overpack_repair(
                             "COSINE_SIMILARITY_CORRECTION: your revised sentence resolved mechanism citations "
                             "but still echoed too many words from the companion IBM bullets "
                             "(x2_narrative_bullet_cosine_similarity requires max_pairwise_cosine <= 0.28 and "
-                            "pool_content_cosine <= 0.38). Keep the exact same cited bul_ibm_* IDs and "
-                            "supported mechanism tokens, keep concrete client-facing enterprise advisory/solution "
-                            "delivery framing at IBM (never claim an internal 'IBM mandate' or vague filler), "
-                            "and paraphrase surrounding nouns so pairwise cosine is <= 0.28. Preserve one sentence and "
-                            "the ', establishing' clause split. Return one complete compact JSON object only."
+                            f"pool_content_cosine <= 0.38). Exact remaining overlap: {post_echo_diag}. "
+                            "Replace the shared_words listed above with distinct executive-level wording while "
+                            "keeping the exact same cited bul_ibm_* IDs, one supported mechanism token, and "
+                            "client-facing enterprise advisory framing at IBM (never claim an internal 'IBM mandate' "
+                            "or vague filler). Preserve one sentence and the ', establishing' clause split. "
+                            "Return one complete compact JSON object only."
                         ),
                     },
                 ]
