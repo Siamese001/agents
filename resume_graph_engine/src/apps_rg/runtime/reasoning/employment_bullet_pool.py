@@ -250,6 +250,7 @@ def build_employment_targeting_context(
         "briefing_used_as_proof": False,
         "skills_graph_ref": pp.get("graph_ref") or pp.get("augmented_skills_graph_ref"),
         "proof_pool_type": pp.get("proof_pool_type"),
+        "frozen_allocation_materialized": bool(pp.get("frozen_allocation_materialized")),
         "selection_method": (runtime_payload.get("selected_fact_plan") or {}).get("selection_method"),
         "pool_path_count": sc_path_count_for_lane(lane),
         "max_pool_path_count": max_sc_path_count_for_lane(lane),

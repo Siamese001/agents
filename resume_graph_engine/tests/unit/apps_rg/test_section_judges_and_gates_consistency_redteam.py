@@ -169,9 +169,9 @@ class TestVector2RegistryParityAndWaveDAG:
         assert lane_wave["ibm_narrative"] == 1
         assert lane_wave["insurtech_narrative"] == 1
 
-        # Executive summary and headline run in parallel in Wave 2 (after all bullets and narratives)
-        assert lane_wave["executive_summary"] == 2
-        assert lane_wave["headline"] == 2
+        # Executive summary and headline consume Phase-0 frozen graph allocation in Wave 0
+        assert lane_wave["executive_summary"] == 0
+        assert lane_wave["headline"] == 0
 
 
 # ==============================================================================

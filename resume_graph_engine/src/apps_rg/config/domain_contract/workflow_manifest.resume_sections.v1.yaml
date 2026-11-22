@@ -3,11 +3,10 @@
 # whole-run R1A/R1B cache preflight.
 # Plan: apps-rg-parallel-section-orchestration-f2a8c4 (W0.1)
 #
-# Dependency-ordered 3-stage schedule:
-#   wave 0 — upstream proof-bearing sections
-#            (competencies, slalom/unify/IBM/InsurTech bullets)
-#   wave 1 — narratives that consume finalized selected bullets
-#   wave 2 — executive_summary and headline synthesize finalized upstream sections in parallel
+# Dependency-ordered 2-stage schedule (executive_summary_v2 + Phase-0 frozen graph allocation):
+#   wave 0 — graph-allocated independent sections
+#            (competencies, slalom/unify/IBM/InsurTech bullets, executive_summary, headline)
+#   wave 1 — narratives that consume finalized selected companion bullets
 #
 # Every lane `depends_on` must sit in a strictly earlier wave (assert_section_dag_wave_order).
 schema_version: resume_sections_dag_v1
@@ -25,6 +24,12 @@ lanes:
     weight: light
     wave: 0
   - id: insurtech_bullets
+    weight: light
+    wave: 0
+  - id: executive_summary
+    weight: heavy
+    wave: 0
+  - id: headline
     weight: light
     wave: 0
   - id: slalom_narrative
@@ -47,47 +52,13 @@ lanes:
     wave: 1
     depends_on:
       - insurtech_bullets
-  - id: executive_summary
-    weight: heavy
-    wave: 2
-    depends_on:
-      - competencies
-      - slalom_bullets
-      - unify_bullets
-      - ibm_bullets
-      - insurtech_bullets
-      - slalom_narrative
-      - unify_narrative
-      - ibm_narrative
-      - insurtech_narrative
-  - id: headline
-    weight: light
-    wave: 2
-    depends_on:
-      - competencies
-      - slalom_bullets
-      - unify_bullets
-      - ibm_bullets
-      - insurtech_bullets
-      - slalom_narrative
-      - unify_narrative
-      - ibm_narrative
-      - insurtech_narrative
 waves:
   - id: 0
-    description: upstream proof-bearing sections (competencies + bullets), parallel-eligible
-    lanes: [competencies, slalom_bullets, unify_bullets, ibm_bullets, insurtech_bullets]
+    description: graph-allocated independent sections (competencies, bullets, executive_summary, headline), parallel-eligible
+    lanes: [competencies, slalom_bullets, unify_bullets, ibm_bullets, insurtech_bullets, executive_summary, headline]
     max_parallel_env: APPS_RG_PHASE1_MAX_PARALLEL
     default_max_parallel: 6
   - id: 1
-    # 2026-06-13: unpinned from max_parallel:1 (stale external model-era serialization). The
-    # narratives are mutually independent (each depends only on its own bullets lane in
-    # wave 0), so they parallelize safely now that run_lane_in_context is lock-free
-    # (section_lane_executor.py). See memory apps-rg-parallel-orchestration-nonfunctional.
     description: downstream narratives (after finalized companion bullets)
     lanes: [slalom_narrative, unify_narrative, ibm_narrative, insurtech_narrative]
     max_parallel: 4
-  - id: 2
-    description: downstream synthesis and positioning (executive_summary + headline) parallel
-    lanes: [executive_summary, headline]
-    max_parallel: 2

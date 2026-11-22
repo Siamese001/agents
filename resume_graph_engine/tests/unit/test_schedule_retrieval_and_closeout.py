@@ -54,7 +54,7 @@ def test_three_stage_schedule_and_six_worker_cap(monkeypatch: pytest.MonkeyPatch
     assert_section_dag_wave_order(manifest)
 
     waves = build_phase1_waves()
-    assert len(waves) == 3, f"expected 3-stage schedule, got {len(waves)}: {waves}"
+    assert len(waves) == 2, f"expected 2-stage schedule, got {len(waves)}: {waves}"
     assert waves[0].wave_id == 0
     assert waves[0].max_parallel == 6
     assert ModularResumeProfile().phase1_max_parallel == 6
@@ -66,6 +66,8 @@ def test_three_stage_schedule_and_six_worker_cap(monkeypatch: pytest.MonkeyPatch
         "unify_bullets",
         "ibm_bullets",
         "insurtech_bullets",
+        "executive_summary",
+        "headline",
     }
     assert set(waves[1].lanes) == {
         "slalom_narrative",
@@ -73,28 +75,24 @@ def test_three_stage_schedule_and_six_worker_cap(monkeypatch: pytest.MonkeyPatch
         "ibm_narrative",
         "insurtech_narrative",
     }
-    assert waves[2].lanes == ("executive_summary", "headline")
-    assert waves[2].max_parallel == 2
 
     deps = section_dag_dependencies()
-    assert "executive_summary" not in deps["headline"]
+    assert deps["executive_summary"] == ()
+    assert deps["headline"] == ()
 
-    # Prove all 5 Stage 0 lanes start concurrently within <2.0s and Stage 2 runs headline with summary
+    # Prove up to 6 Stage 0 lanes start concurrently within <2.0s and headline co-schedules with executive_summary
     start_times: dict[str, float] = {}
     end_times: dict[str, float] = {}
     lock = threading.Lock()
-    stage0_barrier = threading.Barrier(5, timeout=2.0)
-    stage2_barrier = threading.Barrier(2, timeout=2.0)
+    stage0_barrier = threading.Barrier(6, timeout=2.0)
     t0 = time.monotonic()
 
     def _runner(**kwargs: object) -> dict[str, object]:
         lane = str(kwargs.get("section") or "")
         with lock:
             start_times[lane] = time.monotonic() - t0
-        if lane in waves[0].lanes:
+        if lane in waves[0].lanes[:6]:
             stage0_barrier.wait()
-        elif lane in ("executive_summary", "headline"):
-            stage2_barrier.wait()
         else:
             time.sleep(0.02)
         with lock:
@@ -120,12 +118,11 @@ def test_three_stage_schedule_and_six_worker_cap(monkeypatch: pytest.MonkeyPatch
         dispatch_fn=_runner,
     )
     assert set(results.keys()) == set(EXPECTED_LANES)
-    stage0_span = max(start_times[lane] for lane in waves[0].lanes) - min(
-        start_times[lane] for lane in waves[0].lanes
+    stage0_span = max(start_times[lane] for lane in waves[0].lanes[:6]) - min(
+        start_times[lane] for lane in waves[0].lanes[:6]
     )
     assert stage0_span < 2.0
-    # Headline must start before executive_summary finishes (co-scheduled in Stage 2)
-    assert start_times["headline"] <= end_times["executive_summary"]
+    assert start_times["executive_summary"] < start_times["unify_narrative"]
 
 
 def test_shared_retrieval_handles_and_single_flight_query_vectors(tmp_path: Path) -> None:

@@ -536,3 +536,34 @@ def test_bounded_section_retrieval_cache_deduplicates_and_restamps_timestamps(tm
     )
     assert calls == 2
     reset_c0_shared_retrieval_caches_for_tests()
+
+
+def test_employment_targeting_context_propagates_frozen_allocation_materialized() -> None:
+    from apps_rg.runtime.reasoning.bullet_pool_sync_helpers import resolve_employment_lane_sc_budgets
+    from apps_rg.runtime.reasoning.employment_bullet_pool import (
+        adaptive_sc_enabled_for_lane,
+        build_employment_targeting_context,
+        max_employment_regen_rounds,
+        max_sc_path_count_for_lane,
+        sc_path_count_for_lane,
+    )
+
+    ctx = build_employment_targeting_context(
+        {
+            "proof_pool_metadata": {"frozen_allocation_materialized": True},
+            "allowed_fact_ids": ["bul_slalom_001", "bul_slalom_002", "bul_slalom_003"],
+            "selected_fact_plan": {"facts": []},
+        },
+        section_lane="slalom_bullets",
+    )
+    assert ctx["frozen_allocation_materialized"] is True
+    init_p, max_p, adap, _cfg_r, max_r = resolve_employment_lane_sc_budgets(
+        section_lane="slalom_bullets",
+        targeting_context=ctx,
+        judge_mode="blocked_if_unavailable",
+        sc_path_count_fn=sc_path_count_for_lane,
+        max_sc_path_count_fn=max_sc_path_count_for_lane,
+        adaptive_sc_fn=adaptive_sc_enabled_for_lane,
+        max_regen_fn=max_employment_regen_rounds,
+    )
+    assert init_p == 1 and max_p == 1 and adap is False and max_r == 0
