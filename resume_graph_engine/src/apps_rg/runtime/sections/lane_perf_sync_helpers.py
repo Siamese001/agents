@@ -232,6 +232,11 @@ def evaluate_final_headline_pre_judge_contract(
         and any(str(fid) in allowed_fact_ids for fid in (r.get("source_fact_ids") or []))
         for r in dict_rows
     )
+    from apps_rg.runtime.validators.headline_positioning_x2 import (
+        governance_signal_families_matched,
+        headline_positioning_consumption_active,
+        platform_or_runtime_signal_families_matched,
+    )
     from apps_rg.runtime.validators.headline_x2 import headline_executive_abstraction_report
 
     abs_report = headline_executive_abstraction_report(hl) if pipe_ok else {}
@@ -258,6 +263,11 @@ def evaluate_final_headline_pre_judge_contract(
         issues.append(f"standalone_vendor_architecture:{seg_v}")
     for seg_v2 in vendor_no_abs:
         issues.append(f"vendor_without_abstraction:{seg_v2}")
+    if pipe_ok and headline_positioning_consumption_active(proof_pool_metadata):
+        if not platform_or_runtime_signal_families_matched(hl):
+            issues.append("missing_platform_or_runtime_signal_in_segments_2_to_4")
+        if not governance_signal_families_matched(hl):
+            issues.append("missing_governance_or_regulated_signal_in_segments_2_to_4")
     if not ledger_rows_ok:
         issues.append("claim_ledger_ungrounded_or_malformed")
     if not grounding_ok:
