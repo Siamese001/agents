@@ -171,10 +171,23 @@ def _compact_competencies_sc_evidence(evidence: str) -> str:
         allowed_end = min(allowed_end_candidates) if allowed_end_candidates else len(evidence)
         allowed_ids = _compact_allowed_fact_ids_block(evidence[allowed_start:allowed_end].strip())
 
+    alloc_block = ""
+    alloc_start = evidence.find("MANDATORY_ALLOCATED_GRAPH_SKILLS")
+    if alloc_start >= 0:
+        alloc_end = evidence.find("SELECTED_FACT_PLAN_STUB", alloc_start)
+        alloc_block = (
+            evidence[alloc_start:alloc_end].strip()
+            if alloc_end > alloc_start
+            else evidence[alloc_start:].strip()
+        )
+        evidence_for_bundles = evidence[:alloc_start]
+    else:
+        evidence_for_bundles = evidence
+
     bundle_lines: list[str] = []
     marker = "COMPETENCY_BUNDLE "
-    if marker in evidence:
-        for part in evidence.split(marker)[1:]:
+    if marker in evidence_for_bundles:
+        for part in evidence_for_bundles.split(marker)[1:]:
             block = marker + part
             next_marker = block.find("\n\nCOMPETENCY_BUNDLE ", len(marker))
             if next_marker > 0:
@@ -189,6 +202,7 @@ def _compact_competencies_sc_evidence(evidence: str) -> str:
         allowed_ids,
         "COMPACT_COMPETENCY_BUNDLES:",
         "\n\n".join(bundle_lines),
+        alloc_block,
     ]
     return "\n\n".join(section for section in sections if section).strip()
 
@@ -683,17 +697,18 @@ def append_competencies_path_diversity_to_messages(
         f"\n\nCOMPETENCIES_PATH_DIVERSITY (path_index={path_index}, temperature={temperature:.2f}):\n"
         f"Primary graph-neighborhood lens: {lens_name}.\n"
         f"Graph terms to bias this candidate path: {', '.join(graph_terms)}.\n"
-        "Treat this path as candidate-neighborhood expansion before final selection: generate 6-8 "
-        "competencies, and make at least four category labels lens-specific alternatives rather "
-        "than a reorder of the same canonical eight labels. Every category still needs competency_bundle_id, "
-        "graph_skill_node_ids, source_fact_ids, and compact graph-backed terms. JD and briefing text are "
-        "targeting context only, never proof.\n\n"
+        "Treat this path as candidate-neighborhood expansion before final selection: "
+        "generate all 8 required competency_bundle_id categories using exact key \"category_label\" "
+        "(plus \"competency_bundle_id\", \"graph_skill_node_ids\", \"source_fact_ids\", and \"terms\"). "
+        "JD and briefing text are targeting context only, never proof.\n\n"
         "SELF_CONSISTENCY_CANDIDATE_CONTRACT:\n"
         "Return compact JSON only. Emit categories[] and claim_ledger only as much as needed for "
         "selector ranking and downstream normalization.\n"
         "Do not wrap JSON in markdown fences or prose.\n"
-        "Use 6-8 categories with exactly 3 compact terms each. Each term must be an object with "
-        "text, source_fact_id, and source_fact_ids. Keep term text under 8 words.\n"
+        "Use 8 categories with 3 to 4 compact 5-7 word capability noun-phrase terms each. Each term must be an object with "
+        "\"text\", \"source_fact_id\", and \"source_fact_ids\" (plus exact \"allocation_claim_unit_id\" and \"source_skill_ids\" "
+        "for every row in MANDATORY_ALLOCATED_GRAPH_SKILLS). Keep term text 5-7 words, never repeat any non-stopword "
+        "more than 3 times across all categories, and never copy verbatim employment bullet fragments.\n"
         "Use selected_fact_plan as a stub with section_id, selection_method, and required_fact_ids only.\n"
         "Use terse arrays for excluded_jd_skills, removed_or_rewritten_terms, gap_notes, change_log, "
         "and self_check. Do not include rationale, prose, copied evidence, or expanded fact text.\n"

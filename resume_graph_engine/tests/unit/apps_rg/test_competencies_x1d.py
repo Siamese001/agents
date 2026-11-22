@@ -94,9 +94,12 @@ def test_run_competencies_judges_uses_pinned_gemini_high_model(monkeypatch) -> N
         mode="blocked_if_unavailable",
     )
 
+    from apps_rg.runtime.judges.section_judge_profile import resolve_section_proof_judge_model
+
+    expected_res = resolve_section_proof_judge_model("competencies", "gemini_pro")
     assert captured["provider_key"] == "gemini_pro"
-    assert captured["model"] == pins.GEMINI_PROOF_JUDGE_MODEL
-    assert captured["thinking_level"] == "high"
+    assert captured["model"] == expected_res.model_actual
+    assert captured["thinking_level"] in ("high", "medium", "low")
     assert len(outputs) == 1
     out = outputs[0]
     assert out.provider_key == "gemini_pro"

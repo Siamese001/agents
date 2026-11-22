@@ -155,6 +155,7 @@ def category_v3_from_legacy(cat: dict[str, Any]) -> dict[str, Any]:
         or cat.get("display_label")
         or cat.get("resume_display_label")
         or cat.get("category")
+        or cat.get("label")
         or ""
     ).strip()
     resolved = resolve_approved_category_label(label) or label

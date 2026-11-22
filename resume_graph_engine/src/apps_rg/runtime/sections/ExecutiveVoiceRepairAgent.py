@@ -738,7 +738,7 @@ def repair_section_with_executive_voice_agent(
                         v = str(oc.get(k) or "").strip()
                         if v and v not in by_bundle_id:
                             by_bundle_id[v] = (o_idx, oc)
-                    for k in ("category_label", "category", "resume_display_label"):
+                    for k in ("category_label", "category", "resume_display_label", "label"):
                         nl = _norm_label(oc.get(k))
                         if nl and nl not in by_label:
                             by_label[nl] = (o_idx, oc)
@@ -766,7 +766,7 @@ def repair_section_with_executive_voice_agent(
                     for idx_c, rep_cat in enumerate(repaired_list):
                         if matched_indices[idx_c] is not None:
                             continue
-                        for k in ("category_label", "category", "resume_display_label"):
+                        for k in ("category_label", "category", "resume_display_label", "label"):
                             nl = _norm_label(rep_cat.get(k))
                             if nl and nl in by_label and by_label[nl][0] not in used_orig_indices:
                                 m_idx = by_label[nl][0]
@@ -796,6 +796,7 @@ def repair_section_with_executive_voice_agent(
                         str(
                             rep_cat.get("category")
                             or rep_cat.get("category_label")
+                            or rep_cat.get("label")
                             or orig_cat.get("category_label")
                             or orig_cat.get("category")
                             or ""
@@ -865,15 +866,49 @@ def repair_section_with_executive_voice_agent(
                         template_t["source_fact_id"] = t_sids[0]
                         rebuilt_terms.append(template_t)
 
+                    from apps_rg.runtime.sections.competencies_v3_contract import (
+                        resolve_approved_category_label,
+                    )
+                    from apps_rg.runtime.sections.competency_capability_evidence import (
+                        visible_graph_surface_taxonomy_for_bundle,
+                    )
+
                     updated_cat = dict(orig_cat) if (orig_cat and matched_identity) else {}
                     if not matched_identity:
                         for id_key in ("competency_bundle_id", "category_id"):
                             id_val = str(rep_cat.get(id_key) or "").strip()
                             if id_val:
                                 updated_cat[id_key] = id_val
-                    updated_cat["category"] = cat_label
-                    updated_cat["category_label"] = cat_label
-                    if "resume_display_label" in updated_cat:
+                    eff_bundle_id = str(
+                        updated_cat.get("competency_bundle_id")
+                        or rep_cat.get("competency_bundle_id")
+                        or (orig_cat.get("competency_bundle_id") if matched_identity else "")
+                        or ""
+                    ).strip()
+                    tax_id, tax_lbl = (
+                        visible_graph_surface_taxonomy_for_bundle(eff_bundle_id)
+                        if eff_bundle_id
+                        else ("", "")
+                    )
+                    approved_lbl = (
+                        resolve_approved_category_label(cat_label)
+                        or tax_lbl
+                        or (
+                            resolve_approved_category_label(str(orig_cat.get("category_label") or ""))
+                            if matched_identity
+                            else None
+                        )
+                        or cat_label
+                    )
+                    if eff_bundle_id:
+                        updated_cat["competency_bundle_id"] = eff_bundle_id
+                    if tax_id and not updated_cat.get("category_id"):
+                        updated_cat["category_id"] = tax_id
+                    if tax_id and not updated_cat.get("taxonomy_category_id"):
+                        updated_cat["taxonomy_category_id"] = tax_id
+                    updated_cat["category"] = approved_lbl
+                    updated_cat["category_label"] = approved_lbl
+                    if "resume_display_label" in updated_cat or cat_label != approved_lbl:
                         updated_cat["resume_display_label"] = cat_label
                     updated_cat["terms"] = rebuilt_terms
                     updated_cat["skills"] = [t["term"] for t in rebuilt_terms]
