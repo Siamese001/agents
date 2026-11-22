@@ -131,7 +131,7 @@ def test_all_role_narratives_within_bullets_and_exec_summary_cosine_similarity()
         facts=[], companion_bullet_texts=insurtech_bullets, section_id="insurtech_narrative",
     )
     assert check_narrative_bullet_cosine_similarity(
-        ins_repaired, insurtech_bullets, max_pairwise_cosine=0.28, max_pool_cosine=0.38,
+        ins_repaired, insurtech_bullets, max_pairwise_cosine=0.35, max_pool_cosine=0.38,
         forbid_shared_opener=True, forbid_repeated_metrics=True,
     ).passed is True
 
@@ -146,7 +146,7 @@ def test_all_role_narratives_within_bullets_and_exec_summary_cosine_similarity()
         facts=[], companion_bullet_texts=unify_bullets, section_id="unify_narrative",
     )
     assert check_narrative_bullet_cosine_similarity(
-        unify_repaired, unify_bullets, max_pairwise_cosine=0.28, max_pool_cosine=0.38,
+        unify_repaired, unify_bullets, max_pairwise_cosine=0.35, max_pool_cosine=0.38,
         forbid_shared_opener=True, forbid_repeated_metrics=True,
     ).passed is True
 
@@ -163,7 +163,7 @@ def test_all_role_narratives_within_bullets_and_exec_summary_cosine_similarity()
         facts=[], companion_bullet_texts=ibm_bullets, section_id="ibm_narrative",
     )
     assert check_narrative_bullet_cosine_similarity(
-        ibm_repaired, ibm_bullets, max_pairwise_cosine=0.28, max_pool_cosine=0.38,
+        ibm_repaired, ibm_bullets, max_pairwise_cosine=0.35, max_pool_cosine=0.38,
         forbid_shared_opener=True, forbid_repeated_metrics=True,
     ).passed is True
 

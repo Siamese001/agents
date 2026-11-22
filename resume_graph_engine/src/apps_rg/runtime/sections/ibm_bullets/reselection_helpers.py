@@ -66,17 +66,20 @@ def build_ibm_reselection_callbacks(
     trace_rr = ctx["trace_rr"]
     def _resel_post_chain(doc: dict[str, Any]) -> dict[str, Any]:
         doc = parent_attr("normalize_parsed_output", normalize_parsed_output)(doc, runtime_payload) or doc
-        parent_attr("inject_ibm_locked_metric_anchors", inject_ibm_locked_metric_anchors)(doc, plan_facts=ibm_facts, allowed_fact_ids=allowed_fact_ids)
+        if runtime_generation_status != "REAL_LLM":
+            parent_attr("inject_ibm_locked_metric_anchors", inject_ibm_locked_metric_anchors)(doc, plan_facts=ibm_facts, allowed_fact_ids=allowed_fact_ids)
         parent_attr("demote_gated_ibm_metrics", demote_gated_ibm_metrics)(doc)
-        parent_attr("demote_hold_metrics", demote_hold_metrics)(doc)
-        parent_attr("scrub_cross_slot_plan_metrics", scrub_cross_slot_plan_metrics)(doc, ibm_facts)
+        if runtime_generation_status != "REAL_LLM":
+            parent_attr("demote_hold_metrics", demote_hold_metrics)(doc)
+            parent_attr("scrub_cross_slot_plan_metrics", scrub_cross_slot_plan_metrics)(doc, ibm_facts)
         parent_attr("align_ibm_claim_ledger_from_canonical_facts", align_ibm_claim_ledger_from_canonical_facts)(
             doc, plan_facts=ibm_facts, allowed_fact_ids=allowed_fact_ids
         )
-        parent_attr("_materialize_ibm_bullets_from_frozen_allocation", _materialize_ibm_bullets_from_frozen_allocation)(
-            doc,
-            selected_fact_plan=selected_fact_plan,
-        )
+        if runtime_generation_status != "REAL_LLM":
+            parent_attr("_materialize_ibm_bullets_from_frozen_allocation", _materialize_ibm_bullets_from_frozen_allocation)(
+                doc,
+                selected_fact_plan=selected_fact_plan,
+            )
         parent_attr("_bind_ibm_change_log_to_frozen_allocation", _bind_ibm_change_log_to_frozen_allocation)(
             doc,
             selected_fact_plan=selected_fact_plan,

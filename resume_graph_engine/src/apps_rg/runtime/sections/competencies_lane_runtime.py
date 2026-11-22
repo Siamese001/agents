@@ -647,7 +647,11 @@ def _competency_term_content_words(phrase: str) -> list[str]:
     ]
 
 
-def reduce_competency_keyword_stuffing(parsed: dict[str, Any]) -> None:
+def reduce_competency_keyword_stuffing(
+    parsed: dict[str, Any],
+    *,
+    allow_prose_mutation: bool = True,
+) -> None:
     """Drop optional terms until the final X2 keyword limit (<=3) is met.
 
     ``categories`` is the rich V3 representation and ``competencies`` is the
@@ -761,6 +765,8 @@ def reduce_competency_keyword_stuffing(parsed: dict[str, Any]) -> None:
                 cat["terms"] = kept
                 break
         if not removed:
+            if not allow_prose_mutation:
+                break
             synonym_map = {
                 "execution": "rollout", "operating": "operational", "governance": "controls",
                 "management": "oversight", "workflows": "pipelines", "discovery": "assessment",

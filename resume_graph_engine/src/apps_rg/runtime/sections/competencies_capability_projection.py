@@ -711,6 +711,7 @@ def run_competencies_v3_post_llm_pipeline(
     resume_support_blob: str,
     c0_proof_blob: str,
     bullet_texts_lower: list[str],
+    allow_prose_mutation: bool = True,
 ) -> dict[str, Any]:
     """Mirror competencies_lane_execution post-LLM repairs with finalize-last projection."""
     from apps_rg.runtime.sections.competencies_lane_runtime import (
@@ -741,7 +742,7 @@ def run_competencies_v3_post_llm_pipeline(
         allowed_fact_ids=allowed_fact_ids,
     )
     dedupe_structured_competency_terms(parsed)
-    reduce_competency_keyword_stuffing(parsed)
+    reduce_competency_keyword_stuffing(parsed, allow_prose_mutation=allow_prose_mutation)
     canonicalize_competency_terms_for_proof(parsed, allowed_fact_ids=allowed_fact_ids)
     coerce_structured_competencies_resume_support(
         parsed,
@@ -759,6 +760,7 @@ def run_competencies_v3_post_llm_pipeline(
         allowed_skill_ids=allowed_skill_ids,
         skill_rows_by_id=skill_rows_by_id,
         resume_support_blob_lower=c0_proof_blob,
+        allow_prose_mutation=allow_prose_mutation,
     )
     if competency_capability_packet:
         from apps_rg.runtime.sections.competency_capability_evidence import (
@@ -1022,6 +1024,7 @@ def finalize_competencies_v3_output(
     allowed_skill_ids: set[str] | None = None,
     skill_rows_by_id: dict[str, dict[str, Any]] | None = None,
     resume_support_blob_lower: str = "",
+    allow_prose_mutation: bool = True,
 ) -> dict[str, Any]:
     """Final seam: executive projection must run after collapse/dedupe/keyword reduction."""
     from apps_rg.runtime.sections.competencies_lane_runtime import (
@@ -1042,7 +1045,7 @@ def finalize_competencies_v3_output(
     )
     sync_categories_competencies(out)
     dedupe_structured_competency_terms(out)
-    reduce_competency_keyword_stuffing(out)
+    reduce_competency_keyword_stuffing(out, allow_prose_mutation=allow_prose_mutation)
     _reapply_taxonomy_floors(
         out,
         allowed_fact_ids=allowed_fact_ids,
@@ -1050,7 +1053,7 @@ def finalize_competencies_v3_output(
         skill_rows_by_id=skill_rows_by_id,
         resume_support_blob_lower=resume_support_blob_lower,
     )
-    reduce_competency_keyword_stuffing(out)
+    reduce_competency_keyword_stuffing(out, allow_prose_mutation=allow_prose_mutation)
     _reapply_taxonomy_floors(
         out,
         allowed_fact_ids=allowed_fact_ids,

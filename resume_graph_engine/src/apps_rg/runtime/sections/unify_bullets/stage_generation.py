@@ -112,7 +112,11 @@ def run_unify_generation_and_x2_stage(
         slot_kind="bullets",
         provider_payload=provider_payload,
         parse_model_json=parse_model_json,
-        normalize_parsed=lambda p: parent_attr("normalize_unify_parsed_without_ledger_synthesis", normalize_unify_parsed_without_ledger_synthesis)(p, runtime_payload),
+        normalize_parsed=lambda p: parent_attr("normalize_unify_parsed_without_ledger_synthesis", normalize_unify_parsed_without_ledger_synthesis)(
+            p,
+            runtime_payload,
+            allow_prose_mutation=(str(args.provider) == "mock"),
+        ),
         artifact_dir=artifact_dir,
         run_id=str(runtime_payload.get("run_id") or ""),
         temperature_bounds=UNIFY_TEMP_RANGE,
@@ -139,7 +143,13 @@ def run_unify_generation_and_x2_stage(
         if parsed_in is not None:
             record_parse_json_retry(artifact_dir, reason=parse_error or "parse_retry")
         parsed = (
-            parent_attr("normalize_unify_parsed_without_ledger_synthesis", normalize_unify_parsed_without_ledger_synthesis)(parsed_in, runtime_payload) if parsed_in else None
+            parent_attr("normalize_unify_parsed_without_ledger_synthesis", normalize_unify_parsed_without_ledger_synthesis)(
+                parsed_in,
+                runtime_payload,
+                allow_prose_mutation=False,
+            )
+            if parsed_in
+            else None
         )
     if parsed is not None:
         from apps_rg.runtime.c0.graph_story_authority import forbid_base_resume_bullet_hydration
@@ -154,17 +164,26 @@ def run_unify_generation_and_x2_stage(
             base_resume=base,
             would_hydrate_fn=should_hydrate_unify_bullets_from_canonical,
         )
-        _pre_metric_repair = json.dumps(parsed, sort_keys=True, separators=(",", ":"))
-        _repair_protected_unify_bullet_metrics(out=parsed, runtime_payload=runtime_payload)
-        if json.dumps(parsed, sort_keys=True, separators=(",", ":")) != _pre_metric_repair:
-            record_deterministic_rewrite(
-                artifact_dir,
-                operation="repair_protected_unify_bullet_metrics",
-                reason="restore_canonical_protected_metrics",
-            )
+        if runtime_generation_status != "REAL_LLM":
+            _pre_metric_repair = json.dumps(parsed, sort_keys=True, separators=(",", ":"))
+            _repair_protected_unify_bullet_metrics(out=parsed, runtime_payload=runtime_payload)
+            if json.dumps(parsed, sort_keys=True, separators=(",", ":")) != _pre_metric_repair:
+                record_deterministic_rewrite(
+                    artifact_dir,
+                    operation="repair_protected_unify_bullet_metrics",
+                    reason="restore_canonical_protected_metrics",
+                )
     elif result and result.runtime_generation_status == OFFLINE_CONTRACT_STUB_RUNTIME_STATUS:
         parsed_in, parse_error = parent_attr("parse_model_json", parse_model_json)(raw_output)
-        parsed = parent_attr("normalize_unify_parsed_without_ledger_synthesis", normalize_unify_parsed_without_ledger_synthesis)(parsed_in, runtime_payload) if parsed_in else None
+        parsed = (
+            parent_attr("normalize_unify_parsed_without_ledger_synthesis", normalize_unify_parsed_without_ledger_synthesis)(
+                parsed_in,
+                runtime_payload,
+                allow_prose_mutation=True,
+            )
+            if parsed_in
+            else None
+        )
     elif not parsed:
         # E2E-09/10: do not label REAL_LLM output as 'provider blocked' — an empty selection /
         # parse failure on real provider output is a downstream cause, not a provider block.
@@ -296,7 +315,43 @@ def run_unify_generation_and_x2_stage(
         parent_attr("apply_proof_pool_to_usage_ledger", apply_proof_pool_to_usage_ledger)(usage_doc, pool),
     )
     judge_mode = "mocked" if getattr(args, "mock_judges", False) else "blocked_if_unavailable"
+    from apps_rg.runtime.judges.unify_bullets_x1d import JUDGE_RUBRIC_VERSION as _UNIFY_RUBRIC_VERSION
     from apps_rg.runtime.section_judge_policy import get_section_judge_policy
+    from apps_rg.runtime.sections.lane_perf_sync_helpers import build_blocked_pre_judge_rows
+
+    parent_attr("_write_pre_x2_evaluation_state", _write_pre_x2_evaluation_state)(artifact_dir)
+    pp_x2 = runtime_payload.get("proof_pool_metadata") or {}
+    proof_pool_x2_active, srfs_slice_x2_active = x2_proof_pool_gate_flags(pp_x2)
+
+    pre_x2 = [
+        g.to_dict()
+        for g in parent_attr("run_unify_bullets_x2_gates", run_unify_bullets_x2_gates)(
+            bullets=bullets,
+            parsed_output=parsed_for_x2,
+            claim_ledger=claim_ledger,
+            allowed_fact_ids=allowed_fact_ids,
+            jd_text=runtime_payload["jd_text"],
+            runtime_generation_status=runtime_generation_status,
+            artifacts_dir=artifact_dir,
+            provider_requested=args.provider,
+            provider_attempted=args.provider,
+            model_name=model_name,
+            raw_output=raw_output,
+            x1d_judges=[],
+            srfs_source_fact_slice_gate_active=srfs_slice_x2_active,
+            proof_pool_metadata=pp_x2,
+            proof_pool_ref=str(pool.proof_pool_ref or ""),
+            proof_pool_digest=str(pool.proof_pool_digest or ""),
+            base_resume=base,
+            runtime_payload=runtime_payload,
+        )
+    ]
+    pre_x2_failed = [
+        str(g.get("gate_id") or "")
+        for g in pre_x2
+        if not g.get("pass")
+        and str(g.get("gate_id") or "") not in {"x2_x1d_required_judges_present", "x2_x1d_schema_valid"}
+    ]
 
     judge_keys = list(get_section_judge_policy(LANE_KEY).required_judge_providers)
     unify_allowed_fact_packet = {
@@ -314,24 +369,32 @@ def run_unify_generation_and_x2_stage(
             if isinstance(f, dict)
         ],
     }
-    proof_x1d = [
-        j.to_dict()
-        for j in parent_attr("run_unify_bullets_judges", run_unify_bullets_judges)(
-            bullets=bullets,
-            claim_ledger=claim_ledger,
+    if pre_x2_failed and judge_mode != "mocked":
+        proof_x1d = build_blocked_pre_judge_rows(
+            section_id=LANE_KEY,
             judge_keys=judge_keys,
-            mode=judge_mode,
-            artifact_base=artifact_dir,
-            allowed_fact_packet=unify_allowed_fact_packet,
-            targeting_context={
-                "target_title": str(runtime_payload.get("target_title") or ""),
-                "target_company": str(runtime_payload.get("target_company") or ""),
-                "jd_text": str(runtime_payload.get("jd_text") or ""),
-                "briefing": str(runtime_payload.get("briefing") or ""),
-                "targeting_only": True,
-            },
+            failed_gate_ids=pre_x2_failed,
+            rubric_version=_UNIFY_RUBRIC_VERSION,
         )
-    ]
+    else:
+        proof_x1d = [
+            j.to_dict()
+            for j in parent_attr("run_unify_bullets_judges", run_unify_bullets_judges)(
+                bullets=bullets,
+                claim_ledger=claim_ledger,
+                judge_keys=judge_keys,
+                mode=judge_mode,
+                artifact_base=artifact_dir,
+                allowed_fact_packet=unify_allowed_fact_packet,
+                targeting_context={
+                    "target_title": str(runtime_payload.get("target_title") or ""),
+                    "target_company": str(runtime_payload.get("target_company") or ""),
+                    "jd_text": str(runtime_payload.get("jd_text") or ""),
+                    "briefing": str(runtime_payload.get("briefing") or ""),
+                    "targeting_only": True,
+                },
+            )
+        ]
     if is_employment_pool_generation(gen_meta):
         x1d = proof_x1d + employment_pool_x1d_judge_rows(
             artifact_dir=artifact_dir,
@@ -355,16 +418,6 @@ def run_unify_generation_and_x2_stage(
         provider_result_data=provider_result_data if isinstance(provider_result_data, dict) else None,
     )
     parent_attr("write_json", write_json)(artifact_dir / "prompt_selection_trace.json", trace)
-    # ``fact_check_result.json`` is a final X2 receipt, not an in-progress
-    # marker.  Materializing a tiny pending placeholder and then replacing it
-    # with the real failed-gate list trips the guarded writer's amplification
-    # check even though the final receipt is ordinary, bounded output.
-    # Keep it absent until X2 has actually evaluated the generated bullets.
-    parent_attr("_write_pre_x2_evaluation_state", _write_pre_x2_evaluation_state)(artifact_dir)
-
-
-    pp_x2 = runtime_payload.get("proof_pool_metadata") or {}
-    proof_pool_x2_active, srfs_slice_x2_active = x2_proof_pool_gate_flags(pp_x2)
 
     x2 = [
         g.to_dict()

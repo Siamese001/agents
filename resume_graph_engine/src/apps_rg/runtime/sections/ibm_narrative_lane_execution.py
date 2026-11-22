@@ -421,6 +421,274 @@ def run_ibm_narrative_lane_execution(
     elif provider_request_data:
         model_name = provider_request_data.get("model")
 
+    mock_provider_cli = str(getattr(args, "provider", "") or "").strip().lower() == "mock"
+    plumbing_waiver_cli = bool(getattr(args, "allow_non_allow_exit_zero", False))
+    hatch_mp = bool(getattr(args, "allow_test_mock_provider", False)) or (
+        plumbing_waiver_cli and mock_provider_cli
+    )
+    test_only_mock_provider_eff = mock_provider_cli and hatch_mp
+
+    allowed_ids_list = list(runtime_payload.get("allowed_fact_ids") or [])
+    from apps_rg.runtime.c0.section_proof_loader import apply_proof_pool_to_usage_ledger
+    from apps_rg.runtime.judges.ibm_narrative_x1d import JUDGE_RUBRIC_VERSION as _IBM_NARR_RUBRIC_VERSION
+    from apps_rg.runtime.product_evidence_authority import x2_proof_pool_gate_flags
+    from apps_rg.runtime.sections.ibm_narrative_lane_runtime import (
+        _run_ibm_narrative_deterministic_ledger_chain,
+        _theme_repair_regen_max_tokens,
+        apply_ibm_narrative_judge_feedback_rewrite,
+    )
+    from apps_rg.runtime.sections.lane_perf_sync_helpers import build_blocked_pre_judge_rows
+
+    pp_x2 = runtime_payload.get("proof_pool_metadata") or {}
+    proof_pool_x2_active, srfs_slice_x2_active = x2_proof_pool_gate_flags(pp_x2)
+
+    req_id_n = str(
+        (provider_request_data or {}).get("request_id")
+        or (provider_request_data or {}).get("id")
+        or runtime_payload["run_id"]
+    )
+    trace_rr_n = rel_posix(artifact_dir, REPO_ROOT)
+
+    def _build_and_write_ibm_pre_x2_artifacts(
+        cur_parsed: dict[str, Any] | None,
+        cur_raw: str,
+    ) -> tuple[str, list[dict[str, Any]], str, str | None, dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any], str]:
+        cur_narr = str((cur_parsed or {}).get("narrative_sentence") or "").strip()
+        cur_ledger = list((cur_parsed or {}).get("claim_ledger") or [])
+        cur_parse_status, cur_invalid_reason = classify_ledger_parse_state(
+            cur_parsed,
+            parse_error=parse_error,
+            raw_output=cur_raw or "",
+            lane_profile="ibm_narrative",
+        )
+        cur_norm_rows = normalize_exec_summary_claim_ledger(cur_ledger) if cur_parse_status == "OK" else []
+        cur_canon_doc = build_canonical_claim_ledger_v2_payload(
+            cur_norm_rows,
+            parse_status=cur_parse_status,
+            invalid_reason=cur_invalid_reason if cur_parse_status != "OK" else None,
+            claim_id_prefix="ibm_narrative_claim",
+        )
+        (artifact_dir / "raw_model_output.txt").write_text(cur_raw or "", encoding="utf-8")
+        write_json(
+            artifact_dir / "parsed_output.json",
+            {"parsed": cur_parsed, "parse_error": parse_error, "parse_status": cur_parse_status},
+        )
+        write_json(artifact_dir / "canonical_claim_ledger_v2.json", cur_canon_doc)
+        cur_coverage = build_sentence_claim_coverage(cur_narr, cur_ledger, allowed_fact_ids)
+        write_json(artifact_dir / "text_claim_coverage.json", cur_coverage)
+        write_json(
+            artifact_dir / "selected_fact_plan.json",
+            (cur_parsed or {}).get("selected_fact_plan") or selected_fact_plan,
+        )
+        cur_usage_doc = build_section_input_usage_ledger_v1(
+            section_id="ibm_narrative",
+            run_id=str(runtime_payload["run_id"]),
+            request_id=req_id_n,
+            trace_root=trace_rr_n,
+            repo_root=REPO_ROOT,
+            artifact_dir=artifact_dir,
+            runtime_payload=runtime_payload,
+            selected_fact_plan=(cur_parsed or {}).get("selected_fact_plan") or selected_fact_plan,
+            claim_ledger=cur_ledger,
+            allowed_fact_ids=allowed_fact_ids,
+            jd_text=str(runtime_payload.get("jd_text") or ""),
+            target_title=str(runtime_payload.get("target_title") or ""),
+            target_company=str(runtime_payload.get("target_company") or ""),
+            briefing_text=str(runtime_payload.get("briefing") or ""),
+            jd_alignment=(cur_parsed or {}).get("jd_alignment") if isinstance(cur_parsed, dict) else None,
+        )
+        write_json(
+            artifact_dir / "section_input_usage_ledger.json",
+            apply_proof_pool_to_usage_ledger(cur_usage_doc, pool),
+        )
+        cur_parsed_for_x2: dict[str, Any] = {**(cur_parsed or {}), "text_claim_coverage": cur_coverage}
+        cur_raw_for_x2 = cur_raw
+        if "```" in cur_raw and isinstance(cur_parsed_for_x2, dict):
+            cur_raw_for_x2 = json.dumps(cur_parsed_for_x2, ensure_ascii=False, separators=(",", ":"))
+        return (
+            cur_narr,
+            cur_ledger,
+            cur_parse_status,
+            cur_invalid_reason,
+            cur_canon_doc,
+            cur_coverage,
+            cur_usage_doc,
+            cur_parsed_for_x2,
+            cur_raw_for_x2,
+        )
+
+    def _run_ibm_det_x2(
+        cur_narr: str,
+        cur_ledger: list[dict[str, Any]],
+        cur_parsed_for_x2: dict[str, Any],
+        cur_coverage: dict[str, Any],
+        cur_raw_for_x2: str,
+    ) -> list[str]:
+        gates = [
+            g.to_dict()
+            for g in run_ibm_narrative_x2_gates(
+                narrative_sentence=cur_narr,
+                parsed_output=cur_parsed_for_x2,
+                claim_ledger=cur_ledger,
+                jd_text=args.jd_text,
+                runtime_generation_status=runtime_generation_status,
+                companion_bullet_texts=companion_text or None,
+                companion_bullets_status=str(companion_context.get("status") or "UNKNOWN"),
+                companion_bullets_reason=str(companion_context.get("reason") or ""),
+                companion_aware=not test_only_mock_provider_eff,
+                candidate_name=candidate_name,
+                provider_requested=args.provider,
+                provider_attempted=args.provider,
+                model_name=model_name,
+                raw_output=cur_raw_for_x2,
+                x1d_judges=[],
+                allowed_fact_ids=allowed_ids_list,
+                test_only_mock_provider=test_only_mock_provider_eff,
+                artifacts_dir=artifact_dir,
+                text_claim_coverage=cur_coverage,
+                srfs_source_fact_slice_gate_active=srfs_slice_x2_active,
+                proof_pool_metadata=pp_x2,
+                proof_pool_ref=str(pool.proof_pool_ref or ""),
+                proof_pool_digest=str(pool.proof_pool_digest or ""),
+            )
+        ]
+        return [
+            str(g.get("gate_id") or "")
+            for g in gates
+            if not g.get("pass")
+            and str(g.get("gate_id") or "") not in {"x2_x1d_required_judges_present", "x2_x1d_schema_valid"}
+        ]
+
+    (
+        narrative,
+        claim_ledger,
+        parse_status,
+        invalid_reason,
+        canon_doc,
+        coverage,
+        usage_doc,
+        parsed_for_x2,
+        raw_output_for_x2,
+    ) = _build_and_write_ibm_pre_x2_artifacts(parsed, raw_output)
+
+    pre_x2_failed = _run_ibm_det_x2(narrative, claim_ledger, parsed_for_x2, coverage, raw_output_for_x2)
+
+    judge_mode = "mocked" if judge_allowed_mock else "blocked_if_unavailable"
+    if (
+        pre_x2_failed
+        and runtime_generation_status == "REAL_LLM"
+        and not judge_allowed_mock
+        and not preflight_blocked
+        and not _theme_repair_accepted
+        and isinstance(parsed, dict)
+    ):
+        from apps_rg.runtime.section_repair_ledger import KIND_REGEN_LLM, load_ledger, record_repair, set_authoritative_attempt
+        from apps_rg.runtime.sections.ibm_canonical_hydration import (
+            redact_banned_lexicon_from_attestation_change_log,
+            redact_banned_lexicon_from_attestation_metadata,
+        )
+
+        usage_ledger_path = artifact_dir / "section_input_usage_ledger.json"
+        usage_snap = usage_ledger_path.read_bytes() if usage_ledger_path.is_file() else None
+        pre_rw_msgs = [
+            *messages,
+            {"role": "assistant", "content": raw_output},
+            {
+                "role": "user",
+                "content": (
+                    f"DETERMINISTIC_X2_REVISION: the draft failed section invariants: [{', '.join(pre_x2_failed[:8])}]. "
+                    "Rewrite narrative_sentence and claim_ledger from scratch in one crisp client-facing executive sentence "
+                    "at IBM. Synthesize 2 to 4 concrete capabilities directly attested in the companion IBM bullets using "
+                    "', establishing' clause structure, cite ONLY literal bul_ibm_001..bul_ibm_005 IDs (max 2 per clause row), "
+                    "ensure every visible mechanism token appears verbatim in a cited bullet, and keep pairwise content cosine <= 0.35 "
+                    "with each companion bullet. Return one complete compact JSON object only."
+                ),
+            },
+        ]
+        pre_res = generate_section(
+            tag_reasoning_lane(
+                {**provider_payload, "messages": pre_rw_msgs, "max_tokens": _theme_repair_regen_max_tokens(raw_output)},
+                LANE_KEY,
+            ),
+            artifact_dir=artifact_dir,
+            run_id=str(runtime_payload.get("run_id") or ""),
+        )
+        if pre_res.runtime_generation_status == "REAL_LLM":
+            cand_raw = str(pre_res.raw_model_output or "")
+            cand_parsed, _ = parse_model_json(cand_raw)
+            if cand_parsed is not None:
+                cand_parsed = _run_ibm_narrative_deterministic_ledger_chain(
+                    cand_parsed, runtime_payload, companion_text, allow_prose_mutation=False
+                )
+            if isinstance(cand_parsed, dict):
+                redact_banned_lexicon_from_attestation_change_log(cand_parsed)
+                redact_banned_lexicon_from_attestation_metadata(cand_parsed)
+                cand_narr = str(cand_parsed.get("narrative_sentence") or "").strip()
+                cand_ledger = list(cand_parsed.get("claim_ledger") or [])
+                cand_cov = build_sentence_claim_coverage(cand_narr, cand_ledger, allowed_fact_ids)
+                cand_usage_doc = build_section_input_usage_ledger_v1(
+                    section_id="ibm_narrative",
+                    run_id=str(runtime_payload["run_id"]),
+                    request_id=req_id_n,
+                    trace_root=trace_rr_n,
+                    repo_root=REPO_ROOT,
+                    artifact_dir=artifact_dir,
+                    runtime_payload=runtime_payload,
+                    selected_fact_plan=cand_parsed.get("selected_fact_plan") or selected_fact_plan,
+                    claim_ledger=cand_ledger,
+                    allowed_fact_ids=allowed_fact_ids,
+                    jd_text=str(runtime_payload.get("jd_text") or ""),
+                    target_title=str(runtime_payload.get("target_title") or ""),
+                    target_company=str(runtime_payload.get("target_company") or ""),
+                    briefing_text=str(runtime_payload.get("briefing") or ""),
+                    jd_alignment=cand_parsed.get("jd_alignment"),
+                )
+                write_json(
+                    usage_ledger_path,
+                    apply_proof_pool_to_usage_ledger(cand_usage_doc, pool),
+                )
+                cand_px2: dict[str, Any] = {**cand_parsed, "text_claim_coverage": cand_cov}
+                cand_raw_x2 = cand_raw
+                if "```" in cand_raw:
+                    cand_raw_x2 = json.dumps(cand_px2, ensure_ascii=False, separators=(",", ":"))
+                cand_failed = _run_ibm_det_x2(cand_narr, cand_ledger, cand_px2, cand_cov, cand_raw_x2)
+                if not cand_failed:
+                    _pre_rw_reason = "; ".join(pre_x2_failed)[:160] or "pre_x2_failed"
+                    raw_output, parsed = cand_raw, cand_parsed
+                    _theme_repair_accepted = True
+                    (
+                        narrative,
+                        claim_ledger,
+                        parse_status,
+                        invalid_reason,
+                        canon_doc,
+                        coverage,
+                        usage_doc,
+                        parsed_for_x2,
+                        raw_output_for_x2,
+                    ) = _build_and_write_ibm_pre_x2_artifacts(parsed, raw_output)
+                    pre_x2_failed = []
+                    record_repair(
+                        artifact_dir,
+                        kind=KIND_REGEN_LLM,
+                        operation="ibm_narrative_x2_prejudge_rewrite",
+                        reason=_pre_rw_reason,
+                        replaced_l2=True,
+                    )
+                    cur_led = load_ledger(artifact_dir) or {}
+                    next_att = 1 + sum(
+                        1
+                        for r in (cur_led.get("repairs") or [])
+                        if r.get("kind") == KIND_REGEN_LLM and r.get("replaced_l2")
+                    )
+                    set_authoritative_attempt(
+                        artifact_dir,
+                        next_att,
+                        reason="ibm_narrative_x2_prejudge_rewrite",
+                    )
+                elif usage_snap is not None:
+                    usage_ledger_path.write_bytes(usage_snap)
+
     plan_facts_raw = list((runtime_payload.get("selected_fact_plan") or {}).get("facts") or [])
     ibm_allowed_fact_packet = {
         "allowed_fact_ids": sorted(str(x) for x in allowed_fact_ids),
@@ -445,12 +713,19 @@ def run_ibm_narrative_lane_execution(
         "targeting_only": True,
     }
 
-    judge_mode = "mocked" if judge_allowed_mock else "blocked_if_unavailable"
     if preflight_blocked and not judge_allowed_mock:
         blocker_detail = "; ".join(preflight_art.get("preflight_decisive_blockers") or [])
         x1d = _preflight_blocked_synthetic_judges(
             judge_keys,
             blocker_detail or "judge credential preflight failed before narrative generation",
+        )
+    elif (pre_x2_failed or runtime_generation_status != "REAL_LLM") and not judge_allowed_mock:
+        x1d = build_blocked_pre_judge_rows(
+            section_id="ibm_narrative",
+            judge_keys=judge_keys,
+            failed_gate_ids=pre_x2_failed or [f"runtime_status:{runtime_generation_status}"],
+            rubric_version=_IBM_NARR_RUBRIC_VERSION,
+            default_judge_keys=("gemini_pro",),
         )
     else:
         x1d = [
@@ -466,9 +741,37 @@ def run_ibm_narrative_lane_execution(
                 targeting_context=ibm_targeting_context,
             )
         ]
-        from apps_rg.runtime.sections.ibm_narrative_lane_runtime import (
-            apply_ibm_narrative_judge_feedback_rewrite,
-        )
+
+        def _ibm_cand_x2_check(cand_p: dict[str, Any], cand_raw: str) -> list[str]:
+            c_narr = str(cand_p.get("narrative_sentence") or "").strip()
+            c_ledger = list(cand_p.get("claim_ledger") or [])
+            c_cov = build_sentence_claim_coverage(c_narr, c_ledger, allowed_fact_ids)
+            c_usage = build_section_input_usage_ledger_v1(
+                section_id="ibm_narrative",
+                run_id=str(runtime_payload["run_id"]),
+                request_id=req_id_n,
+                trace_root=trace_rr_n,
+                repo_root=REPO_ROOT,
+                artifact_dir=artifact_dir,
+                runtime_payload=runtime_payload,
+                selected_fact_plan=cand_p.get("selected_fact_plan") or selected_fact_plan,
+                claim_ledger=c_ledger,
+                allowed_fact_ids=allowed_fact_ids,
+                jd_text=str(runtime_payload.get("jd_text") or ""),
+                target_title=str(runtime_payload.get("target_title") or ""),
+                target_company=str(runtime_payload.get("target_company") or ""),
+                briefing_text=str(runtime_payload.get("briefing") or ""),
+                jd_alignment=cand_p.get("jd_alignment"),
+            )
+            write_json(
+                artifact_dir / "section_input_usage_ledger.json",
+                apply_proof_pool_to_usage_ledger(c_usage, pool),
+            )
+            c_px2: dict[str, Any] = {**cand_p, "text_claim_coverage": c_cov}
+            c_raw_x2 = cand_raw
+            if "```" in cand_raw:
+                c_raw_x2 = json.dumps(c_px2, ensure_ascii=False, separators=(",", ":"))
+            return _run_ibm_det_x2(c_narr, c_ledger, c_px2, c_cov, c_raw_x2)
 
         raw_output, parsed, x1d, _judge_rewrite_accepted = apply_ibm_narrative_judge_feedback_rewrite(
             messages=messages,
@@ -484,84 +787,26 @@ def run_ibm_narrative_lane_execution(
             judge_mode=judge_mode,
             allowed_fact_packet=ibm_allowed_fact_packet,
             targeting_context=ibm_targeting_context,
+            x2_check_fn=_ibm_cand_x2_check,
         )
         if _judge_rewrite_accepted and isinstance(parsed, dict):
-            narrative = str(parsed.get("narrative_sentence") or "").strip()
-            claim_ledger = list(parsed.get("claim_ledger") or [])
             _theme_repair_accepted = True
+            (
+                narrative,
+                claim_ledger,
+                parse_status,
+                invalid_reason,
+                canon_doc,
+                coverage,
+                usage_doc,
+                parsed_for_x2,
+                raw_output_for_x2,
+            ) = _build_and_write_ibm_pre_x2_artifacts(parsed, raw_output)
     if _theme_repair_accepted and isinstance(provider_result_data, dict):
         provider_result_data["raw_model_output"] = raw_output or ""
         write_json(artifact_dir / "provider_response.json", provider_result_data)
     write_json(artifact_dir / "x1d_llm_judge_outputs.json", {"judges": x1d})
 
-    parse_status, invalid_reason = classify_ledger_parse_state(
-        parsed,
-        parse_error=parse_error,
-        raw_output=raw_output or "",
-        lane_profile="ibm_narrative",
-    )
-    norm_rows = normalize_exec_summary_claim_ledger(claim_ledger) if parse_status == "OK" else []
-    canon_doc = build_canonical_claim_ledger_v2_payload(
-        norm_rows,
-        parse_status=parse_status,
-        invalid_reason=invalid_reason if parse_status != "OK" else None,
-        claim_id_prefix="ibm_narrative_claim",
-    )
-    (artifact_dir / "raw_model_output.txt").write_text(raw_output or "", encoding="utf-8")
-    write_json(
-        artifact_dir / "parsed_output.json",
-        {"parsed": parsed, "parse_error": parse_error, "parse_status": parse_status},
-    )
-    write_json(artifact_dir / "canonical_claim_ledger_v2.json", canon_doc)
-    coverage = build_sentence_claim_coverage(narrative, claim_ledger, allowed_fact_ids)
-    write_json(artifact_dir / "text_claim_coverage.json", coverage)
-    write_json(artifact_dir / "selected_fact_plan.json", (parsed or {}).get("selected_fact_plan") or selected_fact_plan)
-    req_id_n = str(
-        (provider_request_data or {}).get("request_id")
-        or (provider_request_data or {}).get("id")
-        or runtime_payload["run_id"]
-    )
-    trace_rr_n = rel_posix(artifact_dir, REPO_ROOT)
-    usage_doc = build_section_input_usage_ledger_v1(
-        section_id="ibm_narrative",
-        run_id=str(runtime_payload["run_id"]),
-        request_id=req_id_n,
-        trace_root=trace_rr_n,
-        repo_root=REPO_ROOT,
-        artifact_dir=artifact_dir,
-        runtime_payload=runtime_payload,
-        selected_fact_plan=(parsed or {}).get("selected_fact_plan") or selected_fact_plan,
-        claim_ledger=claim_ledger,
-        allowed_fact_ids=allowed_fact_ids,
-        jd_text=str(runtime_payload.get("jd_text") or ""),
-        target_title=str(runtime_payload.get("target_title") or ""),
-        target_company=str(runtime_payload.get("target_company") or ""),
-        briefing_text=str(runtime_payload.get("briefing") or ""),
-        jd_alignment=(parsed or {}).get("jd_alignment") if isinstance(parsed, dict) else None,
-    )
-    from apps_rg.runtime.c0.section_proof_loader import apply_proof_pool_to_usage_ledger
-
-    write_json(
-        artifact_dir / "section_input_usage_ledger.json",
-        apply_proof_pool_to_usage_ledger(usage_doc, pool),
-    )
-    parsed_for_x2: dict[str, Any] = {**(parsed or {}), "text_claim_coverage": coverage}
-    raw_output_for_x2 = raw_output
-    if "```" in raw_output and isinstance(parsed_for_x2, dict):
-        raw_output_for_x2 = json.dumps(parsed_for_x2, ensure_ascii=False, separators=(",", ":"))
-
-    mock_provider_cli = str(getattr(args, "provider", "") or "").strip().lower() == "mock"
-    plumbing_waiver_cli = bool(getattr(args, "allow_non_allow_exit_zero", False))
-    hatch_mp = bool(getattr(args, "allow_test_mock_provider", False)) or (
-        plumbing_waiver_cli and mock_provider_cli
-    )
-    test_only_mock_provider_eff = mock_provider_cli and hatch_mp
-
-    allowed_ids_list = list(runtime_payload.get("allowed_fact_ids") or [])
-    from apps_rg.runtime.product_evidence_authority import x2_proof_pool_gate_flags
-
-    pp_x2 = runtime_payload.get("proof_pool_metadata") or {}
-    proof_pool_x2_active, srfs_slice_x2_active = x2_proof_pool_gate_flags(pp_x2)
     x2 = [
         g.to_dict()
         for g in run_ibm_narrative_x2_gates(

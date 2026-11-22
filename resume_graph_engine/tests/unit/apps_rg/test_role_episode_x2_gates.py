@@ -525,6 +525,7 @@ def test_ey_erm_model_surface_gets_graph_bound_outcome_completion_before_x2() ->
         facts=facts,
         allowed=[str(fact["fact_id"]) for fact in facts],
         graph_packet_digest="digest://ey-erm-outcome",
+        allow_prose_mutation=True,
     )
 
     repaired = bullets[2]["bullet_text"]
@@ -586,6 +587,7 @@ def test_ey_capital_model_surface_gets_graph_bound_outcome_completion_before_x2(
         facts=facts,
         allowed=[str(fact["fact_id"]) for fact in facts],
         graph_packet_digest="digest://ey-capital-outcome",
+        allow_prose_mutation=True,
     )
 
     repaired = bullets[0]["bullet_text"]
@@ -979,5 +981,52 @@ def test_surgical_narrative_de_echo_preserves_prepositional_production_grammar()
     )
     assert "into operational while" not in repaired.lower()
     assert "into live operation while" in repaired.lower() or "into production while" in repaired.lower()
+
+
+def test_role_episode_materialize_bullet_generation_skips_density_repair_on_real_llm() -> None:
+    cfg = role_episode_lane._ROLE_LANES["ey_bullets"]
+    thin_text = (
+        "Architected ERM operating models and BCBS 239-aligned risk-data aggregation "
+        "by defining three-lines-of-defense accountability, metadata standards, "
+        "and auditable risk metrics."
+    )
+    facts = [
+        {
+            "fact_id": "bul_ey_001",
+            "claim_text": "Led capital and liquidity stress-testing work for regulated institutions.",
+        },
+        {
+            "fact_id": "bul_ey_002",
+            "claim_text": "Directed regulatory analytics modernization with traceable controls.",
+        },
+        {
+            "fact_id": "bul_ey_003",
+            "role_episode_bundle_id": "reb_ey_erm_risk_governance",
+            "claim_text": thin_text,
+            "claim_scope": "Regulated banking and insurance clients.",
+            "allowed_graph_evidence_ids": [
+                "reb_ey_erm_risk_governance",
+                "metric_ey_risk_metric_definition_count",
+            ],
+        },
+    ]
+    parsed = {
+        "bullets": [
+            {"bullet_id": f["fact_id"], "bullet_text": f["claim_text"], "source_fact_ids": [f["fact_id"]]}
+            for f in facts
+        ]
+    }
+    bullets, receipt = role_episode_lane._materialize_bullet_generation(
+        cfg=cfg,
+        parsed=parsed,
+        parse_error="",
+        provider_runtime_generation_status="REAL_LLM",
+        facts=facts,
+        allowed=[str(f["fact_id"]) for f in facts],
+        graph_packet_digest="digest://ey-erm-real-llm",
+    )
+    assert bullets[2]["bullet_text"] == thin_text
+    assert receipt["graph_bound_evidence_density_repairs"] == []
+
 
 

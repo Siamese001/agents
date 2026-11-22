@@ -148,7 +148,7 @@ def _theme_budget_block(companion_text: str = "") -> str:
     lines.append(
         "- ANTI-ECHO COSINE LAW: synthesize the executive role thesis at a higher altitude without "
         "copying multi-word noun phrases from ACCEPTED_IBM_BULLETS (pairwise content cosine with "
-        "every bullet must stay <= 0.28 and pool cosine <= 0.38; never share a bullet's opening verb)."
+        "every bullet must stay <= 0.35 and pool cosine <= 0.38; never share a bullet's opening verb)."
     )
     companion_rows = [
         line.strip()

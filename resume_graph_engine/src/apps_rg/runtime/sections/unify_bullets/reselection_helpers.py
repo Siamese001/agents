@@ -52,7 +52,17 @@ def build_unify_reselection_callbacks(
     req_id = ctx["req_id"]
     trace_rr = ctx["trace_rr"]
     def _resel_post_chain(doc: dict[str, Any]) -> dict[str, Any]:
-        return parent_attr("normalize_unify_parsed_without_ledger_synthesis", normalize_unify_parsed_without_ledger_synthesis)(doc, runtime_payload) or doc
+        return (
+            parent_attr(
+                "normalize_unify_parsed_without_ledger_synthesis",
+                normalize_unify_parsed_without_ledger_synthesis,
+            )(
+                doc,
+                runtime_payload,
+                allow_prose_mutation=(runtime_generation_status != "REAL_LLM"),
+            )
+            or doc
+        )
 
     def _resel_rebuild_state(new_parsed: dict[str, Any]) -> LaneRebuildState:
         new_bullets = list(new_parsed.get("bullets") or [])

@@ -231,6 +231,8 @@ def _metric_raw_traces_to_plan_or_outcomes(
 def _enforce_unify_metric_outcome_surfaces(
     out: dict[str, Any],
     runtime_payload: dict[str, Any],
+    *,
+    allow_prose_mutation: bool = True,
 ) -> None:
     """Bind visible bullet prose to the role-episode metric registry without weakening X2."""
     allow_by_slot = _slot_metric_allowlist(runtime_payload)
@@ -272,6 +274,9 @@ def _enforce_unify_metric_outcome_surfaces(
                     }
                 )
             bullet["has_metric"] = True
+            continue
+
+        if not allow_prose_mutation:
             continue
 
         candidates = selected or sorted(allowed)

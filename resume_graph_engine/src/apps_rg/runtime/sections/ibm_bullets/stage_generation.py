@@ -162,39 +162,42 @@ def run_ibm_generation_and_x2_stage(
                 base_resume=base,
                 would_hydrate_fn=should_hydrate_ibm_bullets_from_canonical,
             )
-            # Deterministic metric anchoring: when a bullet's graph-selected plan fact carries
-            # an approved metric the model dropped, surface that fact-backed token so
-            # x2_ibm_metric_anchor_bullet_ownership is satisfied without fabricating figures.
-            parent_attr("inject_ibm_locked_metric_anchors", inject_ibm_locked_metric_anchors)(
-                parsed,
-                plan_facts=ibm_facts,
-                allowed_fact_ids=allowed_fact_ids,
-            )
+            if runtime_generation_status != "REAL_LLM":
+                # Deterministic metric anchoring: when a bullet's graph-selected plan fact carries
+                # an approved metric the model dropped, surface that fact-backed token so
+                # x2_ibm_metric_anchor_bullet_ownership is satisfied without fabricating figures.
+                parent_attr("inject_ibm_locked_metric_anchors", inject_ibm_locked_metric_anchors)(
+                    parsed,
+                    plan_facts=ibm_facts,
+                    allowed_fact_ids=allowed_fact_ids,
+                )
             # Demote gated/unconfirmed metrics to qualitative so
             # x2_ibm_metric_outcome_id_required_when_has_metric does not block on an
             # unpromotable figure.
             parent_attr("demote_gated_ibm_metrics", demote_gated_ibm_metrics)(parsed)
-            # W5 backstop: strip HOLD/DO_NOT_PROMOTE figures (25/30/35/40%, $15M, $30M)
-            # any path still surfaced despite the PA ban.
-            parent_attr("demote_hold_metrics", demote_hold_metrics)(parsed)
-            # W4-residual: a bullet must not claim ANOTHER slot's plan metric; scrub deterministically.
-            parent_attr("scrub_cross_slot_plan_metrics", scrub_cross_slot_plan_metrics)(parsed, ibm_facts)
+            if runtime_generation_status != "REAL_LLM":
+                # W5 backstop: strip HOLD/DO_NOT_PROMOTE figures (25/30/35/40%, $15M, $30M)
+                # any path still surfaced despite the PA ban.
+                parent_attr("demote_hold_metrics", demote_hold_metrics)(parsed)
+                # W4-residual: a bullet must not claim ANOTHER slot's plan metric; scrub deterministically.
+                parent_attr("scrub_cross_slot_plan_metrics", scrub_cross_slot_plan_metrics)(parsed, ibm_facts)
             parent_attr("align_ibm_claim_ledger_from_canonical_facts", align_ibm_claim_ledger_from_canonical_facts)(
                 parsed,
                 plan_facts=ibm_facts,
                 allowed_fact_ids=allowed_fact_ids,
             )
-            _frozen_ibm_materialized = parent_attr("_materialize_ibm_bullets_from_frozen_allocation", _materialize_ibm_bullets_from_frozen_allocation)(
-                parsed,
-                selected_fact_plan=selected_fact_plan,
-            )
-            if _frozen_ibm_materialized and gen_meta:
-                reconcile_ibm_frozen_materialized_selection_gate(
-                    artifact_dir=artifact_dir,
-                    parsed=parsed,
-                    gen_meta=gen_meta,
-                    active_bullet_ids=active_bullet_ids,
+            if runtime_generation_status != "REAL_LLM":
+                _frozen_ibm_materialized = parent_attr("_materialize_ibm_bullets_from_frozen_allocation", _materialize_ibm_bullets_from_frozen_allocation)(
+                    parsed,
+                    selected_fact_plan=selected_fact_plan,
                 )
+                if _frozen_ibm_materialized and gen_meta:
+                    reconcile_ibm_frozen_materialized_selection_gate(
+                        artifact_dir=artifact_dir,
+                        parsed=parsed,
+                        gen_meta=gen_meta,
+                        active_bullet_ids=active_bullet_ids,
+                    )
             parent_attr("_bind_ibm_change_log_to_frozen_allocation", _bind_ibm_change_log_to_frozen_allocation)(
                 parsed,
                 selected_fact_plan=selected_fact_plan,
@@ -204,11 +207,12 @@ def run_ibm_generation_and_x2_stage(
                 operation="align_ibm_claim_ledger_from_canonical_facts",
                 reason="graph_plan_fact_id_alignment",
             )
-            record_mechanical(
-                artifact_dir,
-                operation="inject_ibm_plan_fact_metric_anchors",
-                reason="surface_fact_backed_metric_tokens_model_dropped",
-            )
+            if runtime_generation_status != "REAL_LLM":
+                record_mechanical(
+                    artifact_dir,
+                    operation="inject_ibm_plan_fact_metric_anchors",
+                    reason="surface_fact_backed_metric_tokens_model_dropped",
+                )
     else:
         parsed = None
         # E2E-09/10: do not label REAL_LLM output as 'provider blocked' — the provider
@@ -327,9 +331,45 @@ def run_ibm_generation_and_x2_stage(
 
     judge_keys = [j.strip() for j in str(getattr(args, "x1d_judges", "") or "").split(",") if j.strip()]
     judge_mode = "mocked" if getattr(args, "mock_judges", False) else "blocked_if_unavailable"
+    from apps_rg.runtime.judges.ibm_bullets_x1d import JUDGE_RUBRIC_VERSION as _IBM_BULLETS_RUBRIC_VERSION
+    from apps_rg.runtime.section_judge_policy import get_section_judge_policy
     from apps_rg.runtime.sections.ibm_role_episode_evidence import (
         approved_promotable_metric_evidence,
     )
+    from apps_rg.runtime.sections.lane_perf_sync_helpers import build_blocked_pre_judge_rows
+
+    pp_x2 = runtime_payload.get("proof_pool_metadata") or {}
+    proof_pool_x2_active, srfs_slice_x2_active = x2_proof_pool_gate_flags(pp_x2)
+
+    pre_x2 = [
+        g.to_dict()
+        for g in parent_attr("run_ibm_bullets_x2_gates", run_ibm_bullets_x2_gates)(
+            bullets=bullets,
+            parsed_output=parsed_for_x2,
+            claim_ledger=claim_ledger,
+            allowed_fact_ids=allowed_fact_ids,
+            jd_text=args.jd_text,
+            runtime_generation_status=runtime_generation_status,
+            artifacts_dir=artifact_dir,
+            provider_requested=args.provider,
+            provider_attempted=args.provider,
+            model_name=model_name,
+            raw_output=raw_output,
+            x1d_judges=[],
+            srfs_source_fact_slice_gate_active=srfs_slice_x2_active,
+            proof_pool_metadata=pp_x2,
+            proof_pool_ref=str(pool.proof_pool_ref or ""),
+            proof_pool_digest=str(pool.proof_pool_digest or ""),
+            base_resume=base,
+            runtime_payload=runtime_payload,
+        )
+    ]
+    pre_x2_failed = [
+        str(g.get("gate_id") or "")
+        for g in pre_x2
+        if not g.get("pass")
+        and str(g.get("gate_id") or "") not in {"x2_x1d_required_judges_present", "x2_x1d_schema_valid"}
+    ]
 
     allowed_fact_packet = parent_attr("build_ibm_bullets_allowed_fact_packet", build_ibm_bullets_allowed_fact_packet)(
         ibm_facts=ibm_facts,
@@ -341,26 +381,32 @@ def run_ibm_generation_and_x2_stage(
     # Variance-class alignment (2026-06): on the employment-pool path the Claude pool
     # SELECTOR has already model-scored every slot, but that selector is advisory-only. The
     # formal X1D proof row still comes from the section policy provider roster.
-    from apps_rg.runtime.section_judge_policy import get_section_judge_policy
-
     proof_judge_keys = list(get_section_judge_policy("ibm_bullets").required_judge_providers)
-    proof_x1d = [
-        j.to_dict()
-        for j in parent_attr("run_ibm_bullets_judges", run_ibm_bullets_judges)(
-            bullets=bullets,
-            claim_ledger=claim_ledger,
+    if pre_x2_failed and judge_mode != "mocked":
+        proof_x1d = build_blocked_pre_judge_rows(
+            section_id="ibm_bullets",
             judge_keys=proof_judge_keys,
-            mode=judge_mode,
-            artifact_base=artifact_dir,
-            allowed_fact_packet=allowed_fact_packet,
-            targeting_context={
-                "target_title": str(runtime_payload.get("target_title") or ""),
-                "target_company": str(runtime_payload.get("target_company") or ""),
-                "jd_text": str(runtime_payload.get("jd_text") or ""),
-                "briefing": str(runtime_payload.get("briefing") or ""),
-            },
+            failed_gate_ids=pre_x2_failed,
+            rubric_version=_IBM_BULLETS_RUBRIC_VERSION,
         )
-    ]
+    else:
+        proof_x1d = [
+            j.to_dict()
+            for j in parent_attr("run_ibm_bullets_judges", run_ibm_bullets_judges)(
+                bullets=bullets,
+                claim_ledger=claim_ledger,
+                judge_keys=proof_judge_keys,
+                mode=judge_mode,
+                artifact_base=artifact_dir,
+                allowed_fact_packet=allowed_fact_packet,
+                targeting_context={
+                    "target_title": str(runtime_payload.get("target_title") or ""),
+                    "target_company": str(runtime_payload.get("target_company") or ""),
+                    "jd_text": str(runtime_payload.get("jd_text") or ""),
+                    "briefing": str(runtime_payload.get("briefing") or ""),
+                },
+            )
+        ]
     if is_employment_pool_generation(gen_meta):
         x1d = proof_x1d + employment_pool_x1d_judge_rows(
             artifact_dir=artifact_dir,
@@ -383,10 +429,6 @@ def run_ibm_generation_and_x2_stage(
             "compiler_template_id": section_compiled.artifact.template_id,
         },
     )
-
-
-    pp_x2 = runtime_payload.get("proof_pool_metadata") or {}
-    proof_pool_x2_active, srfs_slice_x2_active = x2_proof_pool_gate_flags(pp_x2)
 
     x2 = [
         g.to_dict()

@@ -525,7 +525,10 @@ def run_competencies_lane_execution(
             allowed_fact_ids=allowed_fact_ids,
         )
         dedupe_structured_competency_terms(parsed)
-        reduce_competency_keyword_stuffing(parsed)
+        reduce_competency_keyword_stuffing(
+            parsed,
+            allow_prose_mutation=(runtime_generation_status != "REAL_LLM"),
+        )
         canonicalize_competency_terms_for_proof(parsed, allowed_fact_ids=allowed_fact_ids)
         coerce_structured_competencies_resume_support(
             parsed,
@@ -569,6 +572,7 @@ def run_competencies_lane_execution(
             allowed_skill_ids=allowed_skill_ids,
             skill_rows_by_id=skill_rows_by_id,
             resume_support_blob_lower=c0_proof_blob,
+            allow_prose_mutation=(runtime_generation_status != "REAL_LLM"),
         )
         if pp_meta.get("competency_capability_bundle_consumption"):
             from apps_rg.runtime.sections.competencies_lane_runtime import (
@@ -703,7 +707,10 @@ def run_competencies_lane_execution(
                 # allocation theme cannot bypass the display-level keyword limit.
                 # That cleanup preserves allocation terms and removes only an
                 # optional competing term where the taxonomy floor allows it.
-                reduce_competency_keyword_stuffing(parsed)
+                reduce_competency_keyword_stuffing(
+                    parsed,
+                    allow_prose_mutation=(runtime_generation_status != "REAL_LLM"),
+                )
                 # Rebuild the text ledger before reconciling every allocation
                 # unit again.
                 rebuild_claim_ledger_from_competencies(parsed, allowed_fact_ids)
@@ -863,8 +870,20 @@ def run_competencies_lane_execution(
         apply_proof_pool_to_usage_ledger(usage_doc, pool),
     )
 
+    from apps_rg.runtime.judges.competencies_x1d import (
+        JUDGE_RUBRIC_VERSION as _COMP_RUBRIC_VERSION,
+        run_competencies_judges,
+    )
+    from apps_rg.runtime.judges.x1d_panel_harness import extract_x1d_diagnostic
+    from apps_rg.runtime.product_evidence_authority import x2_proof_pool_gate_flags
     from apps_rg.runtime.reasoning.employment_bullet_pool import competencies_pool_x1d_judge_rows
-    from apps_rg.runtime.judges.competencies_x1d import run_competencies_judges
+    from apps_rg.runtime.sections.ExecutiveVoiceRepairAgent import repair_section_with_executive_voice_agent
+    from apps_rg.runtime.sections.competencies_v3_contract import category_v3_from_legacy
+    from apps_rg.runtime.sections.lane_perf_sync_helpers import build_blocked_pre_judge_rows
+    from apps_rg.runtime.validators.x2_severity import soften_warn_only
+
+    pp_x2 = runtime_payload.get("proof_pool_metadata") or {}
+    proof_pool_x2_active, srfs_slice_x2_active = x2_proof_pool_gate_flags(pp_x2)
 
     judge_allowed_mock = bool(args.mock_judges and getattr(args, "allow_test_mock_judges", False))
     judge_mode = "mocked" if judge_allowed_mock else "blocked_if_unavailable"
@@ -883,82 +902,323 @@ def run_competencies_lane_execution(
 
         judge_keys = [j.strip() for j in COMPETENCIES_DEFAULT_X1D_JUDGES.split(",") if j.strip()]
     _judge_target_kw = extract_lane_targeting_kwargs(args)
-    x1d_outputs = run_competencies_judges(
-        competencies=competencies, claim_ledger=claim_ledger, judge_keys=judge_keys,
-        companion_context=companion_context, mode=judge_mode, artifact_base=artifact_dir, **_judge_target_kw,
-    )
-    x1d = [j.to_dict() if hasattr(j, "to_dict") else dict(j) for j in x1d_outputs]
-    from apps_rg.runtime.judges.x1d_panel_harness import extract_x1d_diagnostic
-    from apps_rg.runtime.sections.ExecutiveVoiceRepairAgent import repair_section_with_executive_voice_agent
 
-    comp_diag = extract_x1d_diagnostic(x1d, "competencies")
-    if comp_diag.get("repair_needed") and any(not j.get("pass", True) for j in x1d):
-        repaired_comp_data, comp_repair_rec = repair_section_with_executive_voice_agent(
+    comp_plan_facts = list((effective_sfp_c or {}).get("facts") or bullet_rows or [])
+    comp_allowed_fact_packet = {
+        "allowed_fact_ids": sorted(str(x) for x in allowed_fact_ids),
+        "facts": [
+            {
+                "fact_id": f.get("fact_id"),
+                "role_episode_bundle_id": f.get("role_episode_bundle_id"),
+                "claim_text": f.get("claim_text"),
+                "domain": f.get("domain"),
+                "allowed_graph_evidence_ids": f.get("allowed_graph_evidence_ids"),
+                "raw_chunk": str(f.get("raw_chunk") or "")[:1500],
+            }
+            for f in comp_plan_facts
+            if isinstance(f, dict)
+        ],
+    }
+    comp_targeting_context = {
+        "target_title": str(args.target_title or ""),
+        "target_company": str(args.target_company or ""),
+        "jd_text": str(args.jd_text or ""),
+        "briefing": str(getattr(args, "briefing", "") or ""),
+        "targeting_only": True,
+    }
+
+    def _run_comp_x2(
+        cur_comps: list[dict[str, Any]],
+        cur_parsed: dict[str, Any] | None,
+        cur_ledger: list[dict[str, Any]],
+        cur_cov: dict[str, Any],
+        cur_raw: str,
+        cur_x1d: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        rows = [
+            g.to_dict()
+            for g in run_competencies_x2_gates(
+                competencies=cur_comps,
+                parsed_output=cur_parsed,
+                claim_ledger=cur_ledger,
+                jd_text=args.jd_text,
+                briefing_text=getattr(args, "briefing", "") or "",
+                bullet_texts_lower=bullet_lowers,
+                resume_support_blob=resume_blob,
+                c0_proof_blob=c0_proof_blob,
+                allowed_fact_ids=allowed_fact_ids,
+                runtime_generation_status=runtime_generation_status,
+                cli_provider=args.provider,
+                live_preflight_blocked=live_preflight_blocked,
+                provider_requested=args.provider,
+                provider_attempted=args.provider,
+                model_name=model_name,
+                raw_output=cur_raw,
+                x1d_judges=cur_x1d,
+                artifacts_dir=artifact_dir,
+                text_claim_coverage=cur_cov,
+                srfs_source_fact_slice_gate_active=srfs_slice_x2_active,
+                proof_pool_metadata=pp_x2,
+                proof_pool_ref=str(pool.proof_pool_ref or ""),
+                proof_pool_digest=str(pool.proof_pool_digest or ""),
+            )
+        ]
+        return soften_warn_only(rows)
+
+    def _build_comp_candidate_state(
+        new_comps: list[dict[str, Any]],
+    ) -> tuple[dict[str, Any], str, list[dict[str, Any]], dict[str, Any], dict[str, Any], dict[str, Any], str]:
+        import copy
+
+        cand_parsed = copy.deepcopy(parsed) if isinstance(parsed, dict) else {"competencies": []}
+        cand_parsed["competencies"] = copy.deepcopy(new_comps)
+        if isinstance(cand_parsed.get("categories"), list):
+            cand_parsed["categories"] = [
+                category_v3_from_legacy(c) for c in new_comps if isinstance(c, dict)
+            ]
+        cand_display = competencies_display_text(new_comps)
+        rebuild_claim_ledger_from_competencies(cand_parsed, allowed_fact_ids)
+        cand_ledger = list(cand_parsed.get("claim_ledger") or [])
+        cand_cov = build_sentence_claim_coverage(cand_display, cand_ledger, allowed_fact_ids)
+        cand_raw = json.dumps(cand_parsed, sort_keys=True, separators=(",", ":"))
+        cand_p_status, cand_inv_reason = classify_ledger_parse_state(
+            cand_parsed,
+            parse_error=parse_error,
+            raw_output=cand_raw,
+            lane_profile="competencies",
+        )
+        cand_norm = normalize_exec_summary_claim_ledger(cand_ledger) if cand_p_status == "OK" else []
+        cand_canon = build_canonical_claim_ledger_v2_payload(
+            cand_norm,
+            parse_status=cand_p_status,
+            invalid_reason=cand_inv_reason if cand_p_status != "OK" else None,
+            claim_id_prefix="competencies_claim",
+        )
+        cand_grp_support = [
+            {
+                "category_label": cat.get("category_label"),
+                "source_fact_ids": list(cat.get("source_fact_ids") or []),
+            }
+            for cat in new_comps
+            if isinstance(cat, dict)
+        ]
+        cand_sfp = cand_parsed.get("selected_fact_plan") if isinstance(cand_parsed.get("selected_fact_plan"), dict) else effective_sfp_c
+        cand_usage = build_section_input_usage_ledger_v1(
+            section_id="competencies",
+            run_id=str(runtime_payload["run_id"]),
+            request_id=req_id_c,
+            trace_root=trace_rr_c,
+            repo_root=REPO_ROOT,
+            artifact_dir=artifact_dir,
+            runtime_payload=runtime_payload,
+            selected_fact_plan=cand_sfp,
+            claim_ledger=cand_ledger,
+            allowed_fact_ids=allowed_fact_ids,
+            jd_text=str(runtime_payload.get("jd_text") or ""),
+            target_title=str(runtime_payload.get("target_title") or ""),
+            target_company=str(runtime_payload.get("target_company") or ""),
+            briefing_text=str(runtime_payload.get("briefing") or ""),
+            jd_alignment=merge_jd_alignment(cand_parsed.get("jd_alignment")),
+            extra_section_fields={"competency_group_fact_support": cand_grp_support},
+        )
+        return cand_parsed, cand_display, cand_ledger, cand_cov, cand_canon, cand_usage, cand_raw
+
+    def _commit_comp_candidate(
+        new_comps: list[dict[str, Any]],
+        cand_parsed: dict[str, Any],
+        cand_display: str,
+        cand_ledger: list[dict[str, Any]],
+        cand_cov: dict[str, Any],
+        cand_canon: dict[str, Any],
+        cand_usage: dict[str, Any],
+        cand_raw: str,
+    ) -> None:
+        nonlocal competencies, parsed, display_text, claim_ledger, coverage, canon_doc, usage_doc, raw_output, jd_alignment_final, effective_sfp_c
+        competencies = list(new_comps)
+        parsed = cand_parsed
+        display_text = cand_display
+        claim_ledger = cand_ledger
+        coverage = cand_cov
+        canon_doc = cand_canon
+        usage_doc = cand_usage
+        raw_output = cand_raw
+        jd_alignment_final = merge_jd_alignment(parsed.get("jd_alignment"))
+        effective_sfp_c = parsed.get("selected_fact_plan") if isinstance(parsed.get("selected_fact_plan"), dict) else effective_sfp_c
+        (artifact_dir / "raw_model_output.txt").write_text(raw_output or "", encoding="utf-8")
+        write_json(
+            artifact_dir / "parsed_output.json",
+            {"parsed": parsed, "parse_error": parse_error, "parse_status": "OK"},
+        )
+        write_json(artifact_dir / "canonical_claim_ledger_v2.json", canon_doc)
+        write_json(artifact_dir / "text_claim_coverage.json", coverage)
+        write_json(
+            artifact_dir / "section_input_usage_ledger.json",
+            apply_proof_pool_to_usage_ledger(usage_doc, pool),
+        )
+
+    usage_ledger_path = artifact_dir / "section_input_usage_ledger.json"
+    pre_x2 = _run_comp_x2(competencies, parsed, claim_ledger, coverage, raw_output, [])
+    pre_x2_failed = [
+        str(g.get("gate_id") or "")
+        for g in pre_x2
+        if not g.get("pass")
+        and str(g.get("gate_id") or "") not in {"x2_x1d_required_judges_present", "x2_x1d_schema_valid"}
+    ]
+
+    if (
+        pre_x2_failed
+        and not judge_allowed_mock
+        and runtime_generation_status == "REAL_LLM"
+        and not live_preflight_blocked
+        and isinstance(parsed, dict)
+    ):
+        pre_rep_data, pre_rep_rec = repair_section_with_executive_voice_agent(
             section_id="competencies",
             candidate_data={"competencies": competencies, "claim_ledger": claim_ledger},
-            diagnostic=comp_diag,
-            targeting_context={"target_title": args.target_title, "target_company": args.target_company},
-            mock_mode=judge_allowed_mock,
+            diagnostic={
+                "repair_needed": True,
+                "findings": list(pre_x2_failed),
+                "remediation_suggestions": [
+                    "Repair the failing deterministic X2 gates while keeping every term grounded in allowed facts."
+                ],
+            },
+            allowed_facts=comp_allowed_fact_packet["facts"],
+            targeting_context=comp_targeting_context,
+            mock_mode=False,
             artifact_dir=artifact_dir,
         )
-        if comp_repair_rec.repair_succeeded:
-            new_comps = repaired_comp_data.get("competencies")
-            if isinstance(new_comps, list) and new_comps:
-                competencies = new_comps
-                if isinstance(parsed, dict):
-                    parsed["competencies"] = competencies
-                display_text = competencies_display_text(competencies)
-                rebuild_claim_ledger_from_competencies(parsed, allowed_fact_ids)
-                claim_ledger = list((parsed or {}).get("claim_ledger") or [])
-                x1d_outputs = run_competencies_judges(
-                    competencies=competencies, claim_ledger=claim_ledger, judge_keys=judge_keys,
-                    companion_context=companion_context, mode=judge_mode, artifact_base=artifact_dir, **_judge_target_kw,
+        pre_new_comps = pre_rep_data.get("competencies") if pre_rep_rec.repair_succeeded else None
+        if isinstance(pre_new_comps, list) and pre_new_comps:
+            usage_snap = usage_ledger_path.read_bytes() if usage_ledger_path.is_file() else None
+            c_parsed, c_disp, c_ledger, c_cov, c_canon, c_usage, c_raw = _build_comp_candidate_state(pre_new_comps)
+            write_json(
+                usage_ledger_path,
+                apply_proof_pool_to_usage_ledger(c_usage, pool),
+            )
+            c_pre_x2 = _run_comp_x2(pre_new_comps, c_parsed, c_ledger, c_cov, c_raw, [])
+            c_pre_failed = [
+                str(g.get("gate_id") or "")
+                for g in c_pre_x2
+                if not g.get("pass")
+                and str(g.get("gate_id") or "") not in {"x2_x1d_required_judges_present", "x2_x1d_schema_valid"}
+            ]
+            if not c_pre_failed:
+                _pre_fail_reason = "; ".join(pre_x2_failed)[:160] or "pre_x2_failed"
+                _commit_comp_candidate(pre_new_comps, c_parsed, c_disp, c_ledger, c_cov, c_canon, c_usage, c_raw)
+                pre_x2_failed = []
+                record_regen_llm(
+                    artifact_dir,
+                    operation="competencies_x2_prejudge_rewrite",
+                    reason=_pre_fail_reason,
+                    replaced_l2=True,
                 )
-                x1d = [j.to_dict() if hasattr(j, "to_dict") else dict(j) for j in x1d_outputs]
+            elif usage_snap is not None:
+                usage_ledger_path.write_bytes(usage_snap)
+
+    if pre_x2_failed and not judge_allowed_mock:
+        x1d = build_blocked_pre_judge_rows(
+            section_id="competencies",
+            judge_keys=judge_keys,
+            failed_gate_ids=pre_x2_failed,
+            rubric_version=_COMP_RUBRIC_VERSION,
+        )
+    else:
+        pre_gate_summary = {"pass": not pre_x2_failed, "failed_gates": list(pre_x2_failed)}
+        x1d_outputs = run_competencies_judges(
+            competencies=competencies,
+            claim_ledger=claim_ledger,
+            judge_keys=judge_keys,
+            companion_context=companion_context,
+            mode=judge_mode,
+            artifact_base=artifact_dir,
+            allowed_fact_packet=comp_allowed_fact_packet,
+            targeting_context=comp_targeting_context,
+            deterministic_gate_summary=pre_gate_summary,
+            **_judge_target_kw,
+        )
+        x1d = [j.to_dict() if hasattr(j, "to_dict") else dict(j) for j in x1d_outputs]
+
+        comp_diag = extract_x1d_diagnostic(x1d, "competencies")
+        if comp_diag.get("repair_needed") and any(not j.get("pass", True) for j in x1d):
+            repaired_comp_data, comp_repair_rec = repair_section_with_executive_voice_agent(
+                section_id="competencies",
+                candidate_data={"competencies": competencies, "claim_ledger": claim_ledger},
+                diagnostic=comp_diag,
+                allowed_facts=comp_allowed_fact_packet["facts"],
+                targeting_context=comp_targeting_context,
+                mock_mode=judge_allowed_mock,
+                artifact_dir=artifact_dir,
+            )
+            voice_receipt: dict[str, Any] = {
+                "schema_version": "competencies_voice_repair_receipt_v1",
+                "section_id": "competencies",
+                "attempted": bool(comp_repair_rec.repair_attempted),
+                "repair_succeeded": bool(comp_repair_rec.repair_succeeded),
+                "accepted": False,
+                "rejected_reason": None,
+            }
+            new_comps = repaired_comp_data.get("competencies") if comp_repair_rec.repair_succeeded else None
+            if isinstance(new_comps, list) and new_comps:
+                usage_snap = usage_ledger_path.read_bytes() if usage_ledger_path.is_file() else None
+                c_parsed, c_disp, c_ledger, c_cov, c_canon, c_usage, c_raw = _build_comp_candidate_state(new_comps)
+                write_json(
+                    usage_ledger_path,
+                    apply_proof_pool_to_usage_ledger(c_usage, pool),
+                )
+                cand_x2 = _run_comp_x2(new_comps, c_parsed, c_ledger, c_cov, c_raw, x1d)
+                cand_x2_failed = [
+                    str(g.get("gate_id") or "")
+                    for g in cand_x2
+                    if not g.get("pass")
+                    and not str(g.get("gate_id") or "").startswith("x2_x1d_")
+                ]
+                voice_receipt["cand_x2_failed"] = cand_x2_failed
+                if not cand_x2_failed:
+                    cand_x1d_outputs = run_competencies_judges(
+                        competencies=new_comps,
+                        claim_ledger=c_ledger,
+                        judge_keys=judge_keys,
+                        companion_context=companion_context,
+                        mode=judge_mode,
+                        artifact_base=artifact_dir,
+                        allowed_fact_packet=comp_allowed_fact_packet,
+                        targeting_context=comp_targeting_context,
+                        deterministic_gate_summary={"pass": True, "failed_gates": []},
+                        **_judge_target_kw,
+                    )
+                    cand_x1d = [j.to_dict() if hasattr(j, "to_dict") else dict(j) for j in cand_x1d_outputs]
+                    old_rank = (
+                        sum(1 for j in x1d if j.get("pass")),
+                        min((float(j.get("score") or 0.0) for j in x1d), default=0.0),
+                    )
+                    new_rank = (
+                        sum(1 for j in cand_x1d if j.get("pass")),
+                        min((float(j.get("score") or 0.0) for j in cand_x1d), default=0.0),
+                    )
+                    voice_receipt["old_rank"] = list(old_rank)
+                    voice_receipt["new_rank"] = list(new_rank)
+                    if new_rank > old_rank:
+                        _commit_comp_candidate(new_comps, c_parsed, c_disp, c_ledger, c_cov, c_canon, c_usage, c_raw)
+                        x1d = cand_x1d
+                        voice_receipt["accepted"] = True
+                    else:
+                        if usage_snap is not None:
+                            usage_ledger_path.write_bytes(usage_snap)
+                        voice_receipt["rejected_reason"] = "rejudge_not_improved"
+                else:
+                    if usage_snap is not None:
+                        usage_ledger_path.write_bytes(usage_snap)
+                    voice_receipt["rejected_reason"] = "x2_failed_after_repair"
+            else:
+                voice_receipt["rejected_reason"] = "repair_not_succeeded"
+            write_json(artifact_dir / "competencies_voice_repair_receipt.json", voice_receipt)
     write_json(
         artifact_dir / "x1d_llm_judge_outputs.json",
         {"judges": x1d, "requested_judges": judge_keys},
     )
     _mark_phase("x1d")
 
-    from apps_rg.runtime.product_evidence_authority import x2_proof_pool_gate_flags
-
-    pp_x2 = runtime_payload.get("proof_pool_metadata") or {}
-    proof_pool_x2_active, srfs_slice_x2_active = x2_proof_pool_gate_flags(pp_x2)
-
-    x2 = [
-        g.to_dict()
-        for g in run_competencies_x2_gates(
-            competencies=competencies,
-            parsed_output=parsed,
-            claim_ledger=claim_ledger,
-            jd_text=args.jd_text,
-            briefing_text=getattr(args, "briefing", "") or "",
-            bullet_texts_lower=bullet_lowers,
-            resume_support_blob=resume_blob,
-            c0_proof_blob=c0_proof_blob,
-            allowed_fact_ids=allowed_fact_ids,
-            runtime_generation_status=runtime_generation_status,
-            cli_provider=args.provider,
-            live_preflight_blocked=live_preflight_blocked,
-            provider_requested=args.provider,
-            provider_attempted=args.provider,
-            model_name=model_name,
-            raw_output=raw_output,
-            x1d_judges=x1d,
-            artifacts_dir=artifact_dir,
-            text_claim_coverage=coverage,
-            srfs_source_fact_slice_gate_active=srfs_slice_x2_active,
-            proof_pool_metadata=pp_x2,
-            proof_pool_ref=str(pool.proof_pool_ref or ""),
-            proof_pool_digest=str(pool.proof_pool_digest or ""),
-        )
-    ]
-    # X2 severity SSOT (plan x2-gate-slimdown-b4e8d2): demote adversarially-verified STYLE gates
-    # to WARN (record-don't-block) without touching detection. No-op for correctness gates.
-    from apps_rg.runtime.validators.x2_severity import soften_warn_only
-
-    x2 = soften_warn_only(x2)
+    x2 = _run_comp_x2(competencies, parsed, claim_ledger, coverage, raw_output, x1d)
     from apps_rg.runtime.validators.proof_pool_source_fact_validation import (
         write_x2_source_fact_pool_receipt,
     )

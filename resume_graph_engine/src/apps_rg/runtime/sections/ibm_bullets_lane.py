@@ -218,7 +218,7 @@ def run_ibm_bullets_execution(
     _agg = aggregate_bullet_section(
         section_id="ibm_bullets", composite_judges=x1d, x2_failed_gate_ids=_x2_failed_ids,
     )
-    _should_adjudicate = _adj_decision.should_escalate or _agg.should_adjudicate
+    _should_adjudicate = (not _x2_failed_ids) and (_adj_decision.should_escalate or _agg.should_adjudicate)
     _panel_keys = [k for k in ADJUDICATOR_PANEL_PROVIDER_KEYS if k and k not in _existing_judge_keys]
     _adjudication_record: dict[str, Any] = {
         "section_id": "ibm_bullets", "trigger_decision": _adj_decision.to_dict(),

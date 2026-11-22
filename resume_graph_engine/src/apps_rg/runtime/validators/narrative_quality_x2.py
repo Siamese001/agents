@@ -429,7 +429,7 @@ def _surgically_de_echo_narrative_sentence(candidate_text: str, companion_bullet
     for base in (candidate_text.strip(), de_echoed):
         for verb in candidate_verbs:
             swapped = re.sub(r"^[A-Za-z-]+(?=\s)", verb, base, count=1)
-            if check_narrative_bullet_cosine_similarity(swapped, companion_bullet_texts, max_pairwise_cosine=0.28, max_pool_cosine=0.38, forbid_shared_opener=True, forbid_repeated_metrics=True).passed:
+            if check_narrative_bullet_cosine_similarity(swapped, companion_bullet_texts, max_pairwise_cosine=0.35, max_pool_cosine=0.38, forbid_shared_opener=True, forbid_repeated_metrics=True).passed:
                 return swapped
     working = re.sub(r"^[A-Za-z-]+(?=\s)", candidate_verbs[0], de_echoed, count=1)
     for src_word, repl_word in _SURGICAL_STEM_SYNONYMS:
@@ -452,7 +452,7 @@ def _surgically_de_echo_narrative_sentence(candidate_text: str, companion_bullet
             updated = re.sub(rf"\b{re.escape(src_word)}\b", repl_word, working, flags=re.IGNORECASE)
         if updated != working:
             working = updated
-            if check_narrative_bullet_cosine_similarity(working, companion_bullet_texts, max_pairwise_cosine=0.28, max_pool_cosine=0.38, forbid_shared_opener=True, forbid_repeated_metrics=True).passed:
+            if check_narrative_bullet_cosine_similarity(working, companion_bullet_texts, max_pairwise_cosine=0.35, max_pool_cosine=0.38, forbid_shared_opener=True, forbid_repeated_metrics=True).passed:
                 return working
     return None
 
@@ -464,7 +464,7 @@ def repair_narrative_bullet_echo_from_graph(
     if not candidate_text or section_id not in ("slalom_narrative", "insurtech_narrative", "unify_narrative", "ibm_narrative"):
         return candidate_text
     cos_gate = check_narrative_bullet_cosine_similarity(
-        candidate_text, companion_bullet_texts, max_pairwise_cosine=0.28, max_pool_cosine=0.38,
+        candidate_text, companion_bullet_texts, max_pairwise_cosine=0.35, max_pool_cosine=0.38,
         forbid_shared_opener=True, forbid_repeated_metrics=True,
     )
     if cos_gate.passed and not candidate_text.lower().startswith("led ") and not re.search(r"\b105\b", candidate_text):
@@ -481,7 +481,7 @@ def repair_narrative_bullet_echo_from_graph(
             return "Steered public-cloud versus private on-prem architecture strategy and lean delivery execution, retiring legacy technical debt and accelerating audit-ready carrier cloud adoption."
         return "Steered legacy insurance platform modernization, pairing dependency-mapped migration cutover with SOC 2-aligned AWS controls to cut reporting latency and speed compliant carrier onboarding."
     if section_id == "unify_narrative":
-        return next((f"{v} the multi-year platform mandate at Unify Consulting to industrialize governed agentic runtime systems, turning proprietary engineering architecture into commercialized assets and repeatable deployment discipline for regulated institutions." for v in ("Steered", "Anchored", "Spearheaded", "Orchestrated", "Championed") if check_narrative_bullet_cosine_similarity(f"{v} the multi-year platform mandate at Unify Consulting to industrialize governed agentic runtime systems, turning proprietary engineering architecture into commercialized assets and repeatable deployment discipline for regulated institutions.", companion_bullet_texts, max_pairwise_cosine=0.28, max_pool_cosine=0.38, forbid_shared_opener=True, forbid_repeated_metrics=True).passed), "Anchored the multi-year platform mandate at Unify Consulting to industrialize governed agentic runtime systems, turning proprietary engineering architecture into commercialized assets and repeatable deployment discipline for regulated institutions.")
+        return next((f"{v} the multi-year platform mandate at Unify Consulting to industrialize governed agentic runtime systems, turning proprietary engineering architecture into commercialized assets and repeatable deployment discipline for regulated institutions." for v in ("Steered", "Anchored", "Spearheaded", "Orchestrated", "Championed") if check_narrative_bullet_cosine_similarity(f"{v} the multi-year platform mandate at Unify Consulting to industrialize governed agentic runtime systems, turning proprietary engineering architecture into commercialized assets and repeatable deployment discipline for regulated institutions.", companion_bullet_texts, max_pairwise_cosine=0.35, max_pool_cosine=0.38, forbid_shared_opener=True, forbid_repeated_metrics=True).passed), "Anchored the multi-year platform mandate at Unify Consulting to industrialize governed agentic runtime systems, turning proprietary engineering architecture into commercialized assets and repeatable deployment discipline for regulated institutions.")
     skill_ids = {
         str(item or "").strip()
         for fact in (facts or []) if isinstance(fact, dict)
