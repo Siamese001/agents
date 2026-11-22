@@ -138,10 +138,56 @@ def check_resume_graph_engine_domain(repo_root: Path, *, inject_fault: bool = Fa
     if "INANIMATE_SUBJECT_DATASHEET_BAN" not in rendered_blind:
         failures.append("blind_judge_missing_inanimate_subject_ban")
 
+    from apps_rg.runtime.sections.ibm_narrative_lane_runtime import normalize_parsed_output
+    from apps_rg.runtime.validators.ibm_narrative_x2 import (
+        ibm_narrative_mechanism_support_observation,
+    )
+
+    banking_ibm_companion = (
+        "- bul_ibm_001: Architected enterprise NLP and ML decision-support pipelines translating unstructured regulatory and risk signals with data lineage across banking institutions.\n"
+        "- bul_ibm_002: Directed enterprise decision-support data models and executive BI views connecting cloud modernization programs to operating decisions across a $1B regulated financial portfolio.\n"
+        "- bul_ibm_005: Engineered DevSecOps release resilience and automated security guardrails for regulated financial institutions across banking pipelines.\n"
+    )
+    raw_echo_candidate = {
+        "narrative_sentence": (
+            "Anchored governed decision-support modernization at IBM through traceable data lineage, "
+            "executive operating visibility, and secure release discipline, establishing a repeatable path "
+            "from complex financial risk signals to accountable business action across regulated institutions."
+        ),
+        "claim_ledger": [
+            {"claim_text": "Anchored governed decision-support modernization at IBM through traceable data lineage", "source_fact_ids": ["bul_ibm_001", "bul_ibm_002"]},
+            {"claim_text": "establishing a repeatable path across regulated institutions", "source_fact_ids": ["bul_ibm_002"]},
+        ],
+    }
+    norm_real_llm = normalize_parsed_output(
+        raw_echo_candidate,
+        {"selected_fact_plan": {"facts": []}},
+        banking_ibm_companion,
+        allow_echo_repair=False,
+    )
+    if "aws" in str((norm_real_llm or {}).get("narrative_sentence") or "").lower():
+        failures.append("ibm_narrative_real_llm_injected_unsupported_aws")
+    norm_offline = normalize_parsed_output(
+        {
+            "narrative_sentence": "Anchored governed cloud transformation at IBM, establishing governance foundations across commercial banking accounts.",
+            "claim_ledger": [{"claim_text": "Anchored governed cloud transformation at IBM", "source_fact_ids": ["bul_ibm_002"]}],
+        },
+        {"selected_fact_plan": {"facts": []}},
+        banking_ibm_companion,
+        allow_echo_repair=True,
+    )
+    mech_check = ibm_narrative_mechanism_support_observation(
+        str((norm_offline or {}).get("narrative_sentence") or ""),
+        [{"source_fact_ids": ["bul_ibm_001", "bul_ibm_002", "bul_ibm_005"]}],
+        banking_ibm_companion,
+    )
+    if mech_check.get("unsupported_mechanisms"):
+        failures.append(f"ibm_narrative_echo_fallback_injected_unsupported_mechanism:{mech_check['unsupported_mechanisms']}")
+
     return {
         "domain": "resume_graph_engine",
         "status": "PASS" if not failures else "FAIL",
-        "checks_run": 8,
+        "checks_run": 10,
         "failures": failures,
     }
 

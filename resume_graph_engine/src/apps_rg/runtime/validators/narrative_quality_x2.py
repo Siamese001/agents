@@ -493,7 +493,11 @@ def repair_narrative_bullet_echo_from_graph(
     ).lower()
     if section_id == "ibm_narrative":
         comp_low = str(companion_bullet_texts or "").lower()
-        has_ibm_cosell = (
+        comp_tokens = set(re.findall(r"[a-z0-9]+", comp_low))
+        aws_supported = (not comp_low) or ("aws" in comp_tokens)
+        bi_supported = (not comp_low) or ("bi" in comp_tokens)
+        lineage_supported = "lineage" in comp_tokens
+        has_ibm_cosell = aws_supported and (
             "co-sell" in fact_blob
             or "cosell" in fact_blob
             or "alliance" in fact_blob
@@ -502,8 +506,16 @@ def repair_narrative_bullet_echo_from_graph(
         )
         if has_ibm_cosell:
             return "Anchored AWS transformation architecture at IBM, scaling alliance co-sell and BI governance discipline to accelerate commercial expansion across regulated industry accounts."
-        if "aws modernization" in comp_low and not re.search(r"\bbi\b", comp_low):
+        if aws_supported and "aws modernization" in comp_low and not bi_supported:
             return "Anchored AWS modernization architecture and DevSecOps release discipline at IBM, strengthening traceable compliance and deployment reliability across banking and carrier accounts."
+        if not aws_supported:
+            if bi_supported and lineage_supported:
+                return "Steered enterprise cloud and analytics transformation at IBM, establishing BI and lineage governance foundations that improved portfolio visibility across commercial banking accounts."
+            if bi_supported:
+                return "Steered enterprise cloud transformation at IBM, establishing BI governance and compliance foundations that improved portfolio visibility across commercial accounts."
+            if lineage_supported:
+                return "Steered enterprise analytics transformation at IBM, establishing lineage governance and compliance foundations that improved portfolio visibility across commercial accounts."
+            return "Steered enterprise architecture transformation at IBM, establishing governance and compliance foundations that improved portfolio visibility across commercial accounts."
         if not comp_low or "modernization" in comp_low:
             return "Anchored AWS modernization architecture at IBM, establishing BI governance and compliance foundations that accelerated enterprise cloud adoption across regulated accounts."
         return "Anchored AWS transformation architecture at IBM, establishing BI governance and compliance foundations that improved portfolio visibility across regulated industry accounts."

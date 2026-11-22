@@ -233,3 +233,118 @@ def test_six_jd_multi_industry_allocation_truth_firewall_and_v2_gates_e2e(case: 
     rendered = render_judge_prompt_from_packet(packet)
     assert "DETERMINISTIC_GATE_SUMMARY" not in rendered
     assert "INANIMATE_SUBJECT_DATASHEET_BAN" in rendered
+
+
+def test_ibm_narrative_banking_companion_never_injects_unsupported_aws_and_trace_preserves_artifact_dir_e2e(
+    tmp_path: Path,
+) -> None:
+    """Pinned unmocked regression for find-7221c40b8d99 (zero post-LLM unsupported AWS splice + CLI run_dir trace)."""
+    from agents.observability.trace_collector import RunTraceCollector, build_run_trace
+    from apps_eval.online_grader import grade_run_trace
+    from apps_rg.runtime.sections.ibm_narrative_lane_runtime import (
+        _cosine_echo_diagnostic_summary,
+        normalize_parsed_output,
+    )
+    from apps_rg.runtime.validators.ibm_narrative_x2 import (
+        ibm_narrative_mechanism_support_observation,
+    )
+
+    banking_companion = (
+        "- bul_ibm_001: Architected enterprise NLP and ML decision-support pipelines translating unstructured regulatory and risk signals with data lineage across banking and insurance institutions to deliver explainable AI/ML anomaly and risk models for compliance officers that reduced false positives by 20%.\n"
+        "- bul_ibm_002: Directed enterprise decision-support data models and executive BI views connecting cloud modernization programs to operating decisions by establishing traceable M&A technology-integration synergy and risk-model consolidation across a $1B regulated financial portfolio.\n"
+        "- bul_ibm_003: Led technical discovery and pre-sales solution mapping for enterprise financial-services pursuits across cloud, data, and AI modernization accounts through C-suite architecture and ROI alignments that drove $10M in net-new revenue.\n"
+        "- bul_ibm_004: Delivered ML-enabled cognitive scenario intelligence and risk stress-testing analytics for financial institutions, translating complex scenario outputs into governed executive portfolio decisions, delivering 100% audit-traceable CCAR and Basel III risk-scenario lineage unified across 3 banking business units.\n"
+        "- bul_ibm_005: Engineered DevSecOps release resilience and automated security guardrails for regulated financial institutions, delivering 100% automated CI/CD security release-gate scanning across regulated banking pipelines (sustaining 99.9% production uptime).\n"
+    )
+    raw_llm_output = {
+        "narrative_sentence": (
+            "Anchored governed decision-support modernization at IBM through traceable data lineage, "
+            "executive operating visibility, and secure release discipline, establishing a repeatable path "
+            "from complex financial risk signals to accountable business action across regulated institutions."
+        ),
+        "claim_ledger": [
+            {
+                "claim_text": "Anchored governed decision-support modernization at IBM through traceable data lineage",
+                "source_fact_ids": ["bul_ibm_001", "bul_ibm_002"],
+            },
+            {
+                "claim_text": "establishing a repeatable path from complex financial risk signals to accountable business action across regulated institutions",
+                "source_fact_ids": ["bul_ibm_002", "bul_ibm_004"],
+            },
+        ],
+    }
+
+    normalized_live = normalize_parsed_output(
+        raw_llm_output,
+        {"selected_fact_plan": {"facts": []}},
+        banking_companion,
+        allow_echo_repair=False,
+    )
+    assert normalized_live is not None
+    assert "aws" not in normalized_live["narrative_sentence"].lower()
+    live_mech = ibm_narrative_mechanism_support_observation(
+        normalized_live["narrative_sentence"],
+        normalized_live["claim_ledger"],
+        banking_companion,
+    )
+    assert live_mech["unsupported_mechanisms"] == []
+
+    diag = _cosine_echo_diagnostic_summary(
+        normalized_live["narrative_sentence"],
+        [ln.strip() for ln in banking_companion.splitlines() if ln.strip()],
+    )
+    assert "bullet_2" in diag
+    assert "shared_words=" in diag
+
+    normalized_offline = normalize_parsed_output(
+        {
+            "narrative_sentence": "Anchored governed cloud transformation at IBM, establishing governance foundations across banking accounts.",
+            "claim_ledger": [{"claim_text": "Anchored governed cloud transformation at IBM", "source_fact_ids": ["bul_ibm_002"]}],
+        },
+        {"selected_fact_plan": {"facts": []}},
+        banking_companion,
+        allow_echo_repair=True,
+    )
+    assert normalized_offline is not None
+    offline_mech = ibm_narrative_mechanism_support_observation(
+        normalized_offline["narrative_sentence"],
+        [{"source_fact_ids": ["bul_ibm_001", "bul_ibm_002", "bul_ibm_004"]}],
+        banking_companion,
+    )
+    assert offline_mech["unsupported_mechanisms"] == []
+
+    collector = RunTraceCollector(
+        traces_path=tmp_path / "run_traces.jsonl",
+        cursor_path=tmp_path / "cursor.json",
+    )
+    simulated_cli_result = {
+        "run_id": "apps-rg-e2e-pin-001",
+        "status": "SUCCESS",
+        "artifact_dir": str(tmp_path / "full_resume_pin_001"),
+        "outcome_label": "GOVERNED_PRODUCT_AUTHORIZED",
+        "x3_disposition": "X3D_ALLOW_FINISH",
+    }
+    run_dir_str = str(simulated_cli_result.get("artifact_dir") or simulated_cli_result.get("run_dir") or "")
+    trace = build_run_trace(
+        app_id="apps_rg",
+        run_id=simulated_cli_result["run_id"],
+        session_id="e2e-pin",
+        terminal_status="PASS",
+        raw_input={"target_company": "Truist Financial Corporation"},
+        output_summary={
+            "run_dir": run_dir_str,
+            "outcome_label": simulated_cli_result["outcome_label"],
+        },
+        gate_outcomes={
+            "status": simulated_cli_result["status"],
+            "outcome_label": simulated_cli_result["outcome_label"],
+            "x3_disposition": simulated_cli_result["x3_disposition"],
+        },
+    )
+    collector.emit(trace)
+    drained = collector.drain_new_traces()
+    assert len(drained) == 1
+    assert drained[0].output_summary["run_dir"].endswith("full_resume_pin_001")
+    grade = grade_run_trace(drained[0])
+    assert grade.passed is True
+

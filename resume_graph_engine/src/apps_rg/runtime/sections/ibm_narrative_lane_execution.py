@@ -305,7 +305,13 @@ def run_ibm_narrative_lane_execution(
                     )
             if parsed is not None:
                 parsed = _sanitize_regen_unsupported_companion_theme_phrases(
-                    normalize_parsed_output(parsed, runtime_payload, companion_text), companion_text
+                    normalize_parsed_output(
+                        parsed,
+                        runtime_payload,
+                        companion_text,
+                        allow_echo_repair=(runtime_generation_status != "REAL_LLM"),
+                    ),
+                    companion_text,
                 )
                 _pre_trim = str(parsed.get("narrative_sentence") or "")
                 apply_companion_metric_budget_trim(parsed, companion_text, runtime_payload=runtime_payload)
@@ -318,7 +324,13 @@ def run_ibm_narrative_lane_execution(
                         reason="deterministic_pre_x2", replaced_l2=False,
                     )
                 parsed = _sanitize_regen_unsupported_companion_theme_phrases(
-                    normalize_parsed_output(parsed, runtime_payload, companion_text), companion_text
+                    normalize_parsed_output(
+                        parsed,
+                        runtime_payload,
+                        companion_text,
+                        allow_echo_repair=(runtime_generation_status != "REAL_LLM"),
+                    ),
+                    companion_text,
                 )
                 remap_ibm_narrative_claim_ledger_to_fact_pool(parsed, runtime_payload, companion_text)
                 from apps_rg.runtime.sections.ibm_canonical_hydration import (
