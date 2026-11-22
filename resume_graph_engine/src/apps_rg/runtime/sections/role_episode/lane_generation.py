@@ -86,6 +86,8 @@ def run_role_episode_generation_stage(
         max_tokens=max_output_tokens,
         model=generation_model,
         provider_requested=str(args.provider),
+        reasoning_effort=getattr(args, "reasoning_effort", None),
+        force_new_seed=bool(getattr(args, "force_new_seed", False)),
     )
     parent_attr("write_json", write_json)(artifact_dir / "provider_request.json", provider_req.to_dict())
     generation_meta: dict[str, Any] = {}

@@ -738,6 +738,7 @@ def assemble_final_resume(
         assembly_product_release_mode,
         assembly_structural_only_mode,
         emit_full_resume_llm_coherence_review,
+        emit_skipped_full_resume_llm_coherence_review,
         full_resume_coherence_review_enabled,
     )
 
@@ -770,43 +771,89 @@ def assemble_final_resume(
         indent=2,
     )
 
+    review_policy = evaluate_review_lane_policy(
+        repo=repo,
+        rollup_blob=rollup_blob,
+        sealed_index=sealed_index,
+    )
+    rp_summary = review_policy.get("summary") or {}
+    review_lanes = list(rp_summary.get("review_lanes") or [])
+    non_allow_lanes = [
+        str(p.get("lane"))
+        for p in (review_policy.get("per_lane") or [])
+        if isinstance(p, dict)
+        and (
+            str(p.get("x3_code") or "") != "X3_ALLOW"
+            or p.get("disposition_class") != "ALLOW"
+        )
+        and str(p.get("lane") or "").strip()
+    ]
+    gap_lanes = [
+        str(s.get("section_id"))
+        for s in sections_out
+        if isinstance(s, dict)
+        and isinstance(s.get("l2_output_snapshot"), dict)
+        and s["l2_output_snapshot"].get("assembly_gap")
+        and str(s.get("section_id") or "").strip()
+    ]
+    skip_lanes = sorted(set(review_lanes) | set(non_allow_lanes) | set(gap_lanes))
+
     if coherence_required:
-        target_company, target_role, targeting_context_source = (
-            _resolve_full_resume_targeting_context(
+        if skip_lanes:
+            coherence_review = emit_skipped_full_resume_llm_coherence_review(
+                final_resume=final_resume,
+                final_resume_path=paths.output_dir / "final_resume.json",
                 output_dir=paths.output_dir,
-                rollup_blob=rollup_blob,
+                skip_reason="upstream_lanes_not_x3_allow",
+                non_allow_lanes=skip_lanes,
+                review_lanes=review_lanes,
             )
-        )
-        jd_context = _resolve_full_resume_jd_context(output_dir=paths.output_dir)
-        judge_mode = os.environ.get("APPS_RG_FULL_RESUME_COHERENCE_JUDGE_MODE", "blocked_if_unavailable").strip()
-        coherence_review = emit_full_resume_llm_coherence_review(
-            final_resume=final_resume,
-            final_resume_path=paths.output_dir / "final_resume.json",
-            output_dir=paths.output_dir,
-            target_company=target_company,
-            target_role=target_role,
-            jd_context=jd_context,
-            mode=judge_mode or "blocked_if_unavailable",
-        )
-        coherence_review["targeting_context_source"] = targeting_context_source
-        _wg.write_json_atomic(
-            paths.output_dir / "full_resume_llm_coherence_review.json",
-            coherence_review,
-            indent=2,
-        )
-        final_resume["calls"]["judge_calls_made"] = True
-        final_resume["calls"]["provider_calls_made"] = True
+            final_resume["calls"]["judge_calls_made"] = False
+            final_resume["calls"]["provider_calls_made"] = False
+        else:
+            target_company, target_role, targeting_context_source = (
+                _resolve_full_resume_targeting_context(
+                    output_dir=paths.output_dir,
+                    rollup_blob=rollup_blob,
+                )
+            )
+            jd_context = _resolve_full_resume_jd_context(output_dir=paths.output_dir)
+            judge_mode = os.environ.get("APPS_RG_FULL_RESUME_COHERENCE_JUDGE_MODE", "blocked_if_unavailable").strip()
+            coherence_review = emit_full_resume_llm_coherence_review(
+                final_resume=final_resume,
+                final_resume_path=paths.output_dir / "final_resume.json",
+                output_dir=paths.output_dir,
+                target_company=target_company,
+                target_role=target_role,
+                jd_context=jd_context,
+                mode=judge_mode or "blocked_if_unavailable",
+            )
+            coherence_review["targeting_context_source"] = targeting_context_source
+            _wg.write_json_atomic(
+                paths.output_dir / "full_resume_llm_coherence_review.json",
+                coherence_review,
+                indent=2,
+            )
+            final_resume["calls"]["judge_calls_made"] = True
+            final_resume["calls"]["provider_calls_made"] = True
 
     coherence_pass = bool(
         coherence_review and coherence_review.get("full_resume_coherence_pass") is True
     )
+    coherence_skipped = bool(coherence_review and coherence_review.get("skipped"))
+    coherence_executed = bool(coherence_review and not coherence_skipped)
     final_resume["assembly_proof_semantics"] = {
         "assembly_mode": (
             "product_release_candidate" if product_release_mode else "structural_package_only"
         ),
         "structural_only": assembly_structural_only_mode(),
         "aggregate_judge_required": coherence_required,
-        "aggregate_judge_executed": coherence_review is not None,
+        "aggregate_judge_executed": coherence_executed,
+        "aggregate_judge_skipped": coherence_skipped,
+        "aggregate_judge_skip_reason": (
+            coherence_review.get("skip_reason") if coherence_skipped else None
+        ),
+        "aggregate_judge_skipped_lanes": list(skip_lanes) if coherence_skipped else [],
         "aggregate_judge_artifacts": {
             "full_resume_llm_coherence_review_json": (
                 "full_resume_llm_coherence_review.json" if coherence_review else None
@@ -873,12 +920,6 @@ def assemble_final_resume(
     cross_failed = cross_section_fail_gate_ids(cross_gates)
 
     warn_policy = evaluate_warn_policy(cross_gates=cross_gates)
-
-    review_policy = evaluate_review_lane_policy(
-        repo=repo,
-        rollup_blob=rollup_blob,
-        sealed_index=sealed_index,
-    )
 
     product_allow_claimed = bool(
         review_policy.get("summary", {}).get("product_allow_claimed")

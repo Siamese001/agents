@@ -1295,6 +1295,8 @@ def run_unify_narrative_execution(
         candidate_name=candidate_name,
     )
     runtime_payload["proof_pool_metadata"] = proof_pool_metadata
+    if focus := str(getattr(args, "diagnostic_focus", "") or "").strip():
+        runtime_payload["recovery_diagnostic_focus"] = focus
 
     if artifact_dir_override is not None:
         artifact_dir = Path(artifact_dir_override)
@@ -1418,6 +1420,8 @@ def run_unify_narrative_execution(
         model=section_model,
         provider_requested=str(args.provider),
         idempotent_replay_safe=True,
+        reasoning_effort=getattr(args, "reasoning_effort", None),
+        force_new_seed=bool(getattr(args, "force_new_seed", False)),
     )
     provider_payload = tag_reasoning_lane(provider_payload, LANE_KEY)
     provider_request_data = provider_req.to_dict()

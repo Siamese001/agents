@@ -217,6 +217,8 @@ def run_competencies_lane_execution(
         briefing=args.briefing,
     )
     runtime_payload["proof_pool_metadata"] = pp_meta
+    if focus := str(getattr(args, "diagnostic_focus", "") or "").strip():
+        runtime_payload["recovery_diagnostic_focus"] = focus
     if artifact_dir_override is not None:
         artifact_dir = Path(artifact_dir_override)
         artifact_dir.mkdir(parents=True, exist_ok=True)
@@ -360,6 +362,8 @@ def run_competencies_lane_execution(
         provider_requested=str(args.provider),
         compiled_prompt_artifact=section_compiled.artifact,
         anthropic_workload_kind="SELF_CONSISTENCY",
+        reasoning_effort=getattr(args, "reasoning_effort", None),
+        force_new_seed=bool(getattr(args, "force_new_seed", False)),
     )
     provider_request_data = provider_req.to_dict()
     write_json(artifact_dir / "provider_request.json", provider_request_data)

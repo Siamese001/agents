@@ -2305,6 +2305,8 @@ def run_headline_execution(
         briefing=args.briefing,
     )
     runtime_payload["proof_pool_metadata"] = proof_pool_metadata
+    if focus := str(getattr(args, "diagnostic_focus", "") or "").strip():
+        runtime_payload["recovery_diagnostic_focus"] = focus
     if artifact_dir_override is not None:
         artifact_dir = Path(artifact_dir_override).resolve()
         _wg.ensure_dir(artifact_dir)
@@ -2433,8 +2435,12 @@ def run_headline_execution(
         compiled_prompt_artifact=section_compiled.artifact,
         anthropic_workload_kind="ONE_SHOT",
         idempotent_replay_safe=True,
+        reasoning_effort=getattr(args, "reasoning_effort", None),
+        force_new_seed=bool(getattr(args, "force_new_seed", False)),
     )
-    provider_payload["reasoning_effort"] = "low"
+    provider_payload["reasoning_effort"] = (
+        str(getattr(args, "reasoning_effort", "") or "").strip().lower() or "low"
+    )
     provider_request_data = provider_req.to_dict()
     write_json(artifact_dir / "provider_request.json", provider_request_data)
     req_model = str(provider_request_data.get("model") or section_model)
@@ -3286,6 +3292,9 @@ def build_headline_lane_args(
     jd_text: str,
     briefing: str,
     base_resume_ref: str = "",
+    diagnostic_focus: str = "",
+    force_new_seed: bool = False,
+    reasoning_effort: str = "",
 ) -> SimpleNamespace:
     return SimpleNamespace(
         provider=str(provider).strip() or "external_claude",
@@ -3299,6 +3308,9 @@ def build_headline_lane_args(
         jd_text=str(jd_text).strip() or JD_TEXT_DEFAULT,
         briefing=str(briefing).strip() or BRIEFING_DEFAULT,
         base_resume_ref=str(base_resume_ref or ""),
+        diagnostic_focus=str(diagnostic_focus or "").strip(),
+        force_new_seed=bool(force_new_seed),
+        reasoning_effort=str(reasoning_effort or "").strip().lower(),
     )
 
 

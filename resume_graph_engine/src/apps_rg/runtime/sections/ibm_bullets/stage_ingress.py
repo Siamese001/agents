@@ -89,6 +89,8 @@ def run_ibm_ingress_stage(
         briefing=args.briefing,
     )
     runtime_payload["proof_pool_metadata"] = proof_pool_metadata
+    if focus := str(getattr(args, "diagnostic_focus", "") or "").strip():
+        runtime_payload["recovery_diagnostic_focus"] = focus
     runtime_payload["max_tokens"] = IBM_MAX_OUTPUT_TOKENS
     placement_bucket = parent_attr("resolve_lane_placement_bucket", resolve_lane_placement_bucket)(
         args.provider,

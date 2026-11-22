@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
@@ -264,6 +265,8 @@ def _exact_response_reuse_requested(provider_payload: Mapping[str, Any]) -> bool
     # be byte-for-byte identical.
     if workload == "SELF_CONSISTENCY" or "sc_path_index" in provider_payload:
         return False
+    if bool(provider_payload.get("force_new_seed")):
+        return False
     raw = provider_payload.get("exact_response_reuse")
     return raw is True or str(raw or "").strip().upper() == "IDEMPOTENT"
 
@@ -381,6 +384,7 @@ def call_section_model_provider(
     prompt_text = "\n".join(block.content for block in compiled.prompt_blocks)
     request_digest = compiled.compilation_hash or hashlib.sha256(prompt_text.encode("utf-8")).hexdigest()
     exact_identity = None
+    force_new_seed = bool(provider_payload.get("force_new_seed"))
     reuse_requested = _exact_response_reuse_requested(provider_payload)
     if reuse_requested and exact_response_reuse_enabled():
         try:
@@ -504,6 +508,10 @@ def call_section_model_provider(
             seed=anthropic_cache_seed,
             artifact_dir=artifact_dir,
         )
+        if force_new_seed:
+            resp_meta = dict(result.provider_response or {})
+            resp_meta["recovery_seed"] = uuid.uuid4().hex[:12]
+            result.provider_response = resp_meta
         if exact_identity is not None:
             try:
                 source_event_digest = store_exact_response(

@@ -393,6 +393,7 @@ def compile_headline_prompt(
         l1_cognitive_revision_advisory=runtime_payload.get(
             "l1_cognitive_revision_advisory"
         ),
+        diagnostic_focus=runtime_payload.get("recovery_diagnostic_focus"),
     )
     ids = sorted(str(x) for x in (runtime_payload.get("allowed_fact_ids") or []))
     pp_meta, _fec = resolve_pa_proof_authority_for_compile(runtime_payload)

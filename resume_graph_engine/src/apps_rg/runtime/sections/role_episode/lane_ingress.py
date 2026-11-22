@@ -300,11 +300,16 @@ def run_role_episode_ingress_stage(
         parent_attr("write_json", write_json)(artifact_dir / f"companion_{cfg.role_key}_bullets_context.json", companion_ctx)
         (artifact_dir / f"companion_{cfg.role_key}_bullets_context.txt").write_text(companion_text + "\n", encoding="utf-8")
 
+    if focus := str(getattr(args, "diagnostic_focus", "") or "").strip():
+        runtime_payload["recovery_diagnostic_focus"] = focus
     prompt_text = parent_attr("_compiled_prompt", _compiled_prompt)(cfg, runtime_payload)
     prompt_hash = hashlib.sha256(prompt_text.encode("utf-8")).hexdigest()
     compiled_obj = parent_attr("_prompt_object", _prompt_object)(prompt_text, run_id=run_id, prompt_hash=prompt_hash)
-    compiled_obj.reasoning_effort = resolve_section_generation_effort(
-        sid, provider_profile=str(args.provider)
+    eff_override = str(getattr(args, "reasoning_effort", "") or "").strip().lower()
+    compiled_obj.reasoning_effort = (
+        eff_override
+        if eff_override in {"low", "medium", "high", "xhigh", "max"}
+        else resolve_section_generation_effort(sid, provider_profile=str(args.provider))
     )
     parent_attr("write_json", write_json)(artifact_dir / "runtime_payload.json", runtime_payload)
     (artifact_dir / "compiled_prompt.txt").write_text(prompt_text + "\n", encoding="utf-8")

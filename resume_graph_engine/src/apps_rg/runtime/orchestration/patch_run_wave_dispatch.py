@@ -154,11 +154,11 @@ def dispatch_patch_lanes_wave_parallel(
     from apps_rg.runtime.orchestration.section_lane_concurrency import resolve_max_parallel
     from apps_rg.runtime.product_output_policy import (
         phase1_dispatch_hard_failed,
-        product_fail_closed_runtime,
     )
     from apps_rg.runtime.reasoning.employment_bullet_pool import REQUIRED_BULLET_IDS
     from apps_rg.runtime.section_execution_plan import (
         NARRATIVE_UPSTREAM_BULLET_LANE,
+        dependencies_for_section,
         execution_waves_for_lanes,
     )
     from apps_rg.runtime.validators.companion_bullet_finalization import (
@@ -169,8 +169,9 @@ def dispatch_patch_lanes_wave_parallel(
     repo = plan.repo
     log_stream = sys.stderr if os.environ.get("APPS_RG_WHOLE_RUN_ENVELOPE") == "1" else sys.stdout
     results: dict[str, dict[str, Any]] = {}
-    aborted = False
-    abort_reason = ""
+    run_timed_out = False
+    run_timeout_reason = ""
+    failed_lanes: dict[str, str] = {}
     total_lanes = len(plan.target_lanes)
     lane_idx_map = {lane: i for i, lane in enumerate(plan.target_lanes, start=1)}
     max_workers_cap = resolve_max_parallel(default=6)
@@ -179,10 +180,14 @@ def dispatch_patch_lanes_wave_parallel(
         ready_lanes: list[str] = []
         for lane in wave_lanes:
             idx = lane_idx_map.get(lane, 0)
-            if aborted:
-                results[lane] = {"prior_abort": abort_reason, "exit_status": "error"}
+            if run_timed_out:
+                results[lane] = {
+                    "prior_abort": run_timeout_reason,
+                    "exit_status": "error",
+                    "fault": "patch_run_timeout",
+                }
                 print(
-                    f"[patch_run] [{idx}/{total_lanes}] Skipping lane '{lane}' (prior abort: {abort_reason})",
+                    f"[patch_run] [{idx}/{total_lanes}] Skipping lane '{lane}' (prior timeout: {run_timeout_reason})",
                     file=log_stream,
                     flush=True,
                 )
@@ -191,17 +196,17 @@ def dispatch_patch_lanes_wave_parallel(
                     integrated_dir=plan.run_dir,
                     repo_root=repo,
                     lane_id=lane,
-                    blocker="PHASE1_PRIOR_LANE_FAILED",
+                    blocker="PATCH_RUN_TIMEOUT",
                     dispatch_result=results[lane],
-                    lane_exec_status="pre_run_blocked:PHASE1_PRIOR_LANE_FAILED",
+                    lane_exec_status="pre_run_blocked:PATCH_RUN_TIMEOUT",
                 )
                 continue
 
             if (time.monotonic() - clock_start) >= run_timeout:
-                aborted = True
-                abort_reason = f"run_timeout_exceeded:{run_timeout:.1f}s"
+                run_timed_out = True
+                run_timeout_reason = f"run_timeout_exceeded:{run_timeout:.1f}s"
                 results[lane] = {
-                    "prior_abort": abort_reason,
+                    "prior_abort": run_timeout_reason,
                     "exit_status": "error",
                     "fault": "patch_run_timeout",
                 }
@@ -222,6 +227,32 @@ def dispatch_patch_lanes_wave_parallel(
                 )
                 continue
 
+            failed_deps = [dep for dep in dependencies_for_section(lane) if dep in failed_lanes]
+            if failed_deps:
+                dep_reason = f"dependency_failed:{','.join(failed_deps)}"
+                results[lane] = {
+                    "prior_abort": dep_reason,
+                    "blocked_by": failed_deps,
+                    "dependency_reason": failed_lanes[failed_deps[0]],
+                    "exit_status": "error",
+                }
+                failed_lanes[lane] = dep_reason
+                print(
+                    f"[patch_run] [{idx}/{total_lanes}] Skipping lane '{lane}' (dependency failed: {','.join(failed_deps)})",
+                    file=log_stream,
+                    flush=True,
+                )
+                emit_integrated_lane_pre_run_failure(
+                    sections_root=sections_root,
+                    integrated_dir=plan.run_dir,
+                    repo_root=repo,
+                    lane_id=lane,
+                    blocker="PHASE1_PRIOR_LANE_FAILED",
+                    dispatch_result=results[lane],
+                    lane_exec_status="pre_run_blocked:PHASE1_PRIOR_LANE_FAILED",
+                )
+                continue
+
             upstream = NARRATIVE_UPSTREAM_BULLET_LANE.get(lane)
             if upstream is not None:
                 expected_ids = tuple(REQUIRED_BULLET_IDS.get(upstream, ()))
@@ -236,6 +267,7 @@ def dispatch_patch_lanes_wave_parallel(
                         "upstream_lane": upstream,
                         "exit_status": "error",
                     }
+                    failed_lanes[lane] = f"upstream_not_finalized:{upstream}"
                     print(
                         f"[patch_run] [{idx}/{total_lanes}] Lane '{lane}' blocked: "
                         f"upstream '{upstream}' not finalized",
@@ -355,9 +387,12 @@ def dispatch_patch_lanes_wave_parallel(
                         flush=True,
                     )
 
-                if product_fail_closed_runtime() and phase1_dispatch_hard_failed(results[lane]):
-                    aborted = True
-                    abort_reason = f"dispatch_failed:{lane}"
+                if (
+                    timed_out
+                    or phase1_dispatch_hard_failed(results[lane])
+                    or str(results[lane].get("exit_status") or "").strip().lower() in {"error", "failed", "failure"}
+                ):
+                    failed_lanes[lane] = f"dispatch_failed:{lane}"
         finally:
             executor.shutdown(wait=False, cancel_futures=any_timed_out)
         sync_split_pointer_roots(plan.run_dir)

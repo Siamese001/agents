@@ -370,6 +370,9 @@ class GenerateSectionStep(BaseRecipeStep):
             lane_allow_test_mock_judges=bool(
                 context.get("lane_allow_test_mock_judges")
             ),
+            diagnostic_focus=str(context.get("diagnostic_focus") or ""),
+            force_new_seed=bool(context.get("force_new_seed")),
+            reasoning_effort=str(context.get("reasoning_effort") or ""),
         )
         if not bool(result.get("outcome_authorized")):
             x3 = self._x3_disposition_from_result(result)

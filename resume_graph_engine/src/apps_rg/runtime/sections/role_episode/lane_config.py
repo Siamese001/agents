@@ -152,6 +152,9 @@ def build_role_episode_lane_args(
     briefing: str,
     target_role: str | None = None,
     base_resume_ref: str = "",
+    diagnostic_focus: str = "",
+    force_new_seed: bool = False,
+    reasoning_effort: str = "",
 ) -> SimpleNamespace:
     return SimpleNamespace(
         provider=str(provider or "external_claude").strip().lower(),
@@ -166,6 +169,9 @@ def build_role_episode_lane_args(
         jd_text=str(jd_text or "").strip(),
         briefing=str(briefing or "").strip(),
         base_resume_ref=str(base_resume_ref or "").strip(),
+        diagnostic_focus=str(diagnostic_focus or "").strip(),
+        force_new_seed=bool(force_new_seed),
+        reasoning_effort=str(reasoning_effort or "").strip().lower(),
     )
 
 

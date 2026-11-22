@@ -15,7 +15,8 @@ def _pass_judge(pk: str = "openai") -> dict:
         "provider_key": pk,
         "pass": True,
         "provider_status": "MODEL_BACKED_PASS",
-        "holistic_score": 4.5,
+        "score": 4.85,
+        "score_scale": "0_to_5",
     }
 
 
@@ -25,7 +26,8 @@ def _soft_judge(pk: str = "anthropic_claude") -> dict:
         "provider_key": pk,
         "pass": False,
         "provider_status": "MODEL_BACKED_FAIL",
-        "holistic_score": 3.2,
+        "score": 3.2,
+        "score_scale": "0_to_5",
         "decisive_failure": False,
         "dimension_verdicts": {
             "synthesis_quality": {"pass": False, "severity": "minor", "codes": ["s6_thin"]},

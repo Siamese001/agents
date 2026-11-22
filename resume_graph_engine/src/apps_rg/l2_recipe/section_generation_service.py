@@ -44,6 +44,7 @@ from apps_rg.runtime.orchestration.managed_section_lane_dispatcher import (
 from apps_rg.runtime.orchestration.section_lane_concurrency import (
     phase1_parallel_enabled,
     resolve_max_parallel,
+    section_dag_dependencies,
 )
 from apps_rg.runtime.orchestration.section_lane_executor import (
     LaneExecutionContext,
@@ -456,9 +457,6 @@ class SectionGenerationService:
                 for narrative, upstream in NARRATIVE_UPSTREAM_BULLET_LANE.items()
             }
 
-            phase1_aborted = False
-            phase1_abort_reason = ""
-
             parallel_phase1 = phase1_parallel_enabled(
                 profile_flag=bool(profile.parallel_phase1_lanes)
             )
@@ -562,19 +560,29 @@ class SectionGenerationService:
                     if oc.exec_status.startswith("error:") and not lane_dispatch_results[lane].get("fault"):
                         lane_exec_status[lane] = oc.exec_status
             else:
+                failed_lanes: dict[str, str] = {}
+                deps_by_lane = section_dag_dependencies(lanes=GENERATED_LANES)
                 for lane in GENERATED_LANES:
                     os.environ[MODULAR_R4_SECTIONS_ROOT_ENV] = str(sections_root.resolve())
-                    if phase1_aborted:
+                    failed_deps = [dep for dep in deps_by_lane.get(lane, ()) if dep in failed_lanes]
+                    if failed_deps:
+                        dep_reason = f"dependency_failed:{','.join(failed_deps)}"
+                        lane_dispatch_results[lane] = {
+                            "prior_abort": dep_reason,
+                            "blocked_by": failed_deps,
+                            "dependency_reason": failed_lanes[failed_deps[0]],
+                        }
                         emit_integrated_lane_pre_run_failure(
                             sections_root=sections_root,
                             integrated_dir=art,
                             repo_root=repo,
                             lane_id=lane,
                             blocker=PHASE1_PRIOR_LANE_FAILED_BLOCKER,
-                            dispatch_result={"prior_abort": phase1_abort_reason},
+                            dispatch_result=lane_dispatch_results[lane],
                             lane_exec_status=f"pre_run_blocked:{PHASE1_PRIOR_LANE_FAILED_BLOCKER}",
                         )
                         lane_exec_status[lane] = f"pre_run_blocked:{PHASE1_PRIOR_LANE_FAILED_BLOCKER}"
+                        failed_lanes[lane] = dep_reason
                         continue
                     upstream_spec = narrative_upstream.get(lane)
                     if upstream_spec is not None:
@@ -603,6 +611,7 @@ class SectionGenerationService:
                                 "exit_status": "error",
                             }
                             lane_exec_status[lane] = f"pre_run_blocked:{PRE_RUN_UPSTREAM_NOT_FINALIZED_BLOCKER}"
+                            failed_lanes[lane] = f"upstream_not_finalized:{upstream_lane}"
                             continue
                     outcome = run_lane_in_context(
                         lane_ctx,
@@ -615,11 +624,10 @@ class SectionGenerationService:
                         if outcome.exec_status.startswith("error:")
                         else EvaluationService.phase1_lane_dispatch_status(lane_dispatch_results[lane])
                     )
-                    if product_fail_closed_runtime() and phase1_dispatch_hard_failed(
+                    if outcome.exec_status.startswith("error:") or phase1_dispatch_hard_failed(
                         lane_dispatch_results[lane]
                     ):
-                        phase1_aborted = True
-                        phase1_abort_reason = f"dispatch_failed:{lane}:{lane_exec_status[lane]}"
+                        failed_lanes[lane] = f"dispatch_failed:{lane}:{lane_exec_status[lane]}"
 
             product_fail_closed = product_fail_closed_runtime()
             for lane in GENERATED_LANES:

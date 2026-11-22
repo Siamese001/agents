@@ -636,13 +636,22 @@ def run_final_resume_x2_gates(
             [],
             None if len(judge_hits) == 0 else "lane-level judge artifacts must not be re-invoked in assembly dir",
         )
+        judge_exec_failure: str | None = None
+        if not judge_calls_made:
+            if isinstance(coherence_review, dict) and coherence_review.get("skipped"):
+                judge_exec_failure = (
+                    f"aggregate_judge_skipped:{coherence_review.get('skip_reason')}:"
+                    f"{coherence_review.get('non_allow_lanes')}"
+                )
+            else:
+                judge_exec_failure = "final_resume.calls.judge_calls_made must be true after aggregate review"
         _add(
             gates,
             "x2_final_resume_aggregate_judge_executed",
             judge_calls_made,
             judge_calls_made,
             True,
-            None if judge_calls_made else "final_resume.calls.judge_calls_made must be true after aggregate review",
+            judge_exec_failure,
         )
         _add(
             gates,
@@ -715,17 +724,22 @@ def gate_x2_full_resume_llm_coherence_aggregation(
             failure_reason="full_resume_llm_coherence_review.json missing",
         )
     ok = review.get("full_resume_coherence_pass") is True
+    obs: dict[str, Any] = {
+        "full_resume_coherence_pass": review.get("full_resume_coherence_pass"),
+        "decisive_reason": review.get("decisive_reason"),
+        "blockers": review.get("blockers"),
+        "model_backed_pass_count": review.get("model_backed_pass_count"),
+        "quorum_required": review.get("quorum_required"),
+    }
+    if review.get("skipped"):
+        obs["skipped"] = True
+        obs["skip_reason"] = review.get("skip_reason")
+        obs["non_allow_lanes"] = review.get("non_allow_lanes")
     return GateResult(
         gate_id=gate_id,
         gate_type="deterministic",
         pass_=ok,
-        observed_value={
-            "full_resume_coherence_pass": review.get("full_resume_coherence_pass"),
-            "decisive_reason": review.get("decisive_reason"),
-            "blockers": review.get("blockers"),
-            "model_backed_pass_count": review.get("model_backed_pass_count"),
-            "quorum_required": review.get("quorum_required"),
-        },
+        observed_value=obs,
         threshold="full_resume_coherence_pass=true",
         failure_reason=None if ok else str(review.get("decisive_reason") or "coherence_review_failed"),
     )

@@ -144,3 +144,67 @@ def test_phase1_materialize_runs_all_lanes_when_first_missing_pointer(
     # The first lane in the order (no bundle written) surfaces PHASE1_NO_RUN_DIR — proving the
     # serial loop does not abort at the first missing lane.
     assert records[first_lane]["decisive_reason_code"] == "PHASE1_NO_RUN_DIR"
+
+
+def test_serial_phase1_isolates_hard_fault_to_dag_dependents(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """In serial Phase-1 mode, a hard fault in ibm_bullets blocks ibm_narrative but lets independent lanes run."""
+    monkeypatch.setenv("APPS_RG_TEST_HARNESS", "1")
+    monkeypatch.setenv("APPS_RG_PARALLEL_PHASE1_LANES", "0")
+    repo = materialize_standalone_repo_view(tmp_path)
+    art = repo / f"phase1_serial_dep_{uuid.uuid4().hex[:10]}"
+    art.mkdir(parents=True, exist_ok=True)
+    dispatched: list[str] = []
+
+    def _stub_lane_dispatch(**kwargs: object) -> dict[str, object]:
+        lane = str(kwargs.get("section") or "")
+        dispatched.append(lane)
+        sections_root = Path(os.environ[MODULAR_R4_SECTIONS_ROOT_ENV])
+        if lane == "ibm_bullets":
+            return {
+                "exit_status": "error",
+                "outcome_authorized": False,
+                "x3_disposition": "X3_BLOCK",
+                "fault": "provider_timeout",
+            }
+        _write_lane_product_bundle(repo, sections_root, lane)
+        return {"exit_status": "success", "outcome_authorized": True, "x3_disposition": "X3_ALLOW", "fault": ""}
+
+    with (
+        patch("apps_rg.runtime.bindings.l2_envelope_adapter.run_apps_rg_l2_envelope"),
+        patch(
+            "apps_rg.l2_recipe.modular_resume_generation.run_canonical_apps_rg_from_cli_primitives",
+            side_effect=_stub_lane_dispatch,
+        ),
+        patch(
+            "apps_rg.runtime.validators.companion_bullet_finalization.companion_accepted_in_modular_sections_root",
+            side_effect=lambda _r, _sr, *, upstream_section_id, **k: upstream_section_id != "ibm_bullets",
+        ),
+    ):
+        res = run_modular_resume_generation(
+            ModularResumeInputPackage(repo_root=repo),
+            art,
+            "pytest_serial_dep",
+            ModularResumeProfile(
+                phase1_invoke_real_lanes=True,
+                parallel_phase1_lanes=False,
+                run_phase0_synthetic_assembly=False,
+                validate_rg_output_fixture=False,
+            ),
+        )
+    assert "ibm_bullets" in dispatched
+    assert "ibm_narrative" not in dispatched
+    for independent in ("unify_bullets", "unify_narrative", "executive_summary", "headline"):
+        assert independent in dispatched
+    raw = json.loads((art / res.section_provider_calls_ref).read_text(encoding="utf-8"))
+    records = {r["section_lane"]: r for r in raw["records"]}
+    assert records["ibm_narrative"].get("provider_call_attempted") is False
+    pre_fail = json.loads(
+        (art / "modular_r4" / "sections" / "ibm_narrative" / "integrated_lane_pre_run_failure.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert pre_fail["blocker"] == "MISSING_NOT_ATTEMPTED"
+    assert pre_fail["lane_exec_status"] == "pre_run_blocked:PHASE1_PRIOR_LANE_FAILED"
+    assert pre_fail["dispatch_result"]["blocked_by"] == ["ibm_bullets"]

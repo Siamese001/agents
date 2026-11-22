@@ -180,6 +180,8 @@ def run_ibm_bullets_execution(
         provider_requested=str(args.provider),
         compiled_prompt_artifact=section_compiled.artifact,
         anthropic_workload_kind="SELF_CONSISTENCY",
+        reasoning_effort=getattr(args, "reasoning_effort", None),
+        force_new_seed=bool(getattr(args, "force_new_seed", False)),
     )
     provider_request_data = provider_req.to_dict()
     write_json(artifact_dir / "provider_request.json", provider_request_data)

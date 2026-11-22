@@ -49,7 +49,7 @@ def load_v2_prompt_template() -> dict[str, Any]:
 def build_v2_prompt_messages(
     *, target_company: str, target_title: str, jd_text: str, briefing_text: str,
     allowed_fact_ids_ordered: Sequence[str], compact_verified_facts: Sequence[Mapping[str, Any]],
-    prior_draft: str = "", rejection_feedback: str = "",
+    prior_draft: str = "", rejection_feedback: str = "", diagnostic_focus: str = "",
 ) -> list[dict[str, str]]:
     tpl = load_v2_prompt_template()
     citable_ids: list[str] = []
@@ -66,6 +66,8 @@ def build_v2_prompt_messages(
         allowed_fact_ids_json=json.dumps(citable_ids, ensure_ascii=False),
         verified_facts_json=json.dumps(list(compact_verified_facts), ensure_ascii=False, separators=(",", ":")),
     )
+    if focus := str(diagnostic_focus or "").strip():
+        user_body = f"<RECOVERY_DIAGNOSTIC_FOCUS>\n{focus}\n</RECOVERY_DIAGNOSTIC_FOCUS>\n\n" + user_body
     if prior_draft and rejection_feedback:
         user_body += "\n" + str(tpl.get("rewrite_appendix_template") or "").strip().format(
             prior_draft=prior_draft.strip(), rejection_feedback=rejection_feedback.strip(),
@@ -118,11 +120,12 @@ def generate_executive_summary_v2_turn(
     target_company: str, target_title: str, jd_text: str, briefing_text: str, allowed_fact_ids: set[str],
     allowed_fact_ids_ordered: Sequence[str], compact_verified_facts: Sequence[Mapping[str, Any]],
     prior_draft: str = "", rejection_feedback: str = "",
+    diagnostic_focus: str = "", force_new_seed: bool = False, reasoning_effort: str = "",
 ) -> GenerationTurnOutput:
     messages = build_v2_prompt_messages(
         target_company=target_company, target_title=target_title, jd_text=jd_text, briefing_text=briefing_text,
         allowed_fact_ids_ordered=allowed_fact_ids_ordered, compact_verified_facts=compact_verified_facts,
-        prior_draft=prior_draft, rejection_feedback=rejection_feedback,
+        prior_draft=prior_draft, rejection_feedback=rejection_feedback, diagnostic_focus=diagnostic_focus,
     )
     compiled_prompt = json.dumps(messages, ensure_ascii=False, separators=(",", ":"))
     prompt_hash = sha16(compiled_prompt)
@@ -140,7 +143,8 @@ def generate_executive_summary_v2_turn(
     section_model = external_openai_generation_model(section_id=LANE_KEY) if str(provider_name) == "external_openai" else resolve_section_generation_model(LANE_KEY, provider_profile=str(provider_name))
     prov_req, req_payload = build_section_request(
         messages=messages, prompt_hash=prompt_hash, input_payload_hash=input_payload_hash, temperature=bounded_temp,
-        max_tokens=resolve_scratch_max_output_tokens(), model=section_model, provider_requested=str(provider_name), temperature_bounds=EXEC_SUMMARY_TEMP_RANGE,
+        max_tokens=resolve_scratch_max_output_tokens(), model=section_model, provider_requested=str(provider_name),
+        temperature_bounds=EXEC_SUMMARY_TEMP_RANGE, reasoning_effort=reasoning_effort or None, force_new_seed=force_new_seed,
     )
     prov_res = generate_section(tag_reasoning_lane(req_payload, LANE_KEY), artifact_dir=artifact_dir, run_id=run_id, provider_profile=str(provider_name))
     raw_out, status = str(prov_res.raw_model_output or ""), str(prov_res.runtime_generation_status or "BLOCKED")

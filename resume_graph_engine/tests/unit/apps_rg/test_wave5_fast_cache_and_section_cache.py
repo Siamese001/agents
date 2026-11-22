@@ -479,3 +479,177 @@ def test_wave2_meta_phrase_subject_preservation_and_cited_judge_remediation() ->
     assert 2 in diag["cited_sentence_indexes"]
 
 
+@pytest.mark.parametrize(
+    "x3_code",
+    ["X3_REVIEW_JUDGE_SOFT_FAIL", "X3_REVIEW_JUDGE_PROVIDER_BLOCKED"],
+)
+def test_section_lane_cache_rejects_poisoned_non_allow_entries(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    x3_code: str,
+) -> None:
+    from apps_rg.cache.section_lane_cache import (
+        compute_section_lane_cache_key,
+        dispatch_lane_with_section_cache,
+        populate_section_lane_cache_entry,
+    )
+
+    fake_repo = tmp_path / "repo_poison"
+    fake_repo.mkdir(parents=True, exist_ok=True)
+    cache_root = fake_repo / "cache"
+    monkeypatch.setenv("APPS_RG_SECTION_CACHE_ENABLE", "1")
+    monkeypatch.setenv("APPS_RG_SECTION_CACHE_ROOT", str(cache_root))
+    monkeypatch.delenv("APPS_RG_NO_CACHE", raising=False)
+
+    poisoned_dir = fake_repo / "poisoned_lane"
+    poisoned_dir.mkdir(parents=True, exist_ok=True)
+    (poisoned_dir / "l2_output.json").write_text(
+        json.dumps(
+            {
+                "runtime_generation_status": "REAL_LLM",
+                "product_quality_status": "PASS",
+                "section_id": "headline",
+            }
+        ),
+        encoding="utf-8",
+    )
+    (poisoned_dir / "provider_request.json").write_text(
+        json.dumps({"provider_requested": "external_claude"}), encoding="utf-8"
+    )
+    (poisoned_dir / "x3_disposition.json").write_text(
+        json.dumps({"x3_code": x3_code, "x3_disposition": x3_code}), encoding="utf-8"
+    )
+
+    sections_root = fake_repo / "runs" / "r1" / "lanes"
+    sections_root.mkdir(parents=True, exist_ok=True)
+    kw = {
+        "section": "headline",
+        "artifact_dir": str(sections_root / "headline"),
+        "target_company": "Anthropic",
+        "target_role": "Manager",
+        "job_description_text": "AI",
+        "lane_provider": "external_claude",
+    }
+    key = compute_section_lane_cache_key(sections_root=sections_root, kwargs=kw)
+    assert (
+        populate_section_lane_cache_entry(
+            cache_root=cache_root,
+            cache_key=key,
+            repo=fake_repo,
+            lane_dir=poisoned_dir,
+            section_id="headline",
+            dispatch_result={"exit_status": "success"},
+        )
+        is False
+    )
+
+    # Even if a poisoned cache entry is manually seeded on disk, dispatch must NOT copy it
+    entry_dir = cache_root / key
+    files_dir = entry_dir / "lane_files"
+    files_dir.mkdir(parents=True, exist_ok=True)
+    for fn in ("l2_output.json", "provider_request.json", "x3_disposition.json"):
+        (files_dir / fn).write_text((poisoned_dir / fn).read_text(encoding="utf-8"), encoding="utf-8")
+    (files_dir / "poison_marker.txt").write_text("poisoned", encoding="utf-8")
+    (entry_dir / "meta.json").write_text(
+        json.dumps({"cache_key": key, "section_id": "headline", "dispatch_result": {"exit_status": "success"}}),
+        encoding="utf-8",
+    )
+
+    dispatched: list[str] = []
+
+    def _fresh_dispatch(**call_kw: Any) -> dict[str, Any]:
+        dispatched.append(str(call_kw["section"]))
+        return {"exit_status": "success", "x3_disposition": "X3_ALLOW"}
+
+    res = dispatch_lane_with_section_cache(
+        dispatch_fn=_fresh_dispatch,
+        repo=fake_repo,
+        sections_root=sections_root,
+        kwargs=kw,
+    )
+    assert dispatched == ["headline"]
+    assert res.get("section_cache_hit") is not True
+    assert not (sections_root / "headline" / "poison_marker.txt").exists()
+
+
+def test_section_lane_cache_salts_diagnostic_focus_and_bypasses_on_force_new_seed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from apps_rg.cache.section_lane_cache import (
+        compute_section_lane_cache_key,
+        dispatch_lane_with_section_cache,
+    )
+
+    fake_repo = tmp_path / "repo_seed_bypass"
+    fake_repo.mkdir(parents=True, exist_ok=True)
+    cache_root = fake_repo / "cache"
+    monkeypatch.setenv("APPS_RG_SECTION_CACHE_ENABLE", "1")
+    monkeypatch.setenv("APPS_RG_SECTION_CACHE_ROOT", str(cache_root))
+    monkeypatch.delenv("APPS_RG_NO_CACHE", raising=False)
+
+    sections_root = fake_repo / "runs" / "r1" / "lanes"
+    sections_root.mkdir(parents=True, exist_ok=True)
+    base_kw: dict[str, Any] = {
+        "section": "headline",
+        "artifact_dir": str(sections_root / "headline"),
+        "target_company": "Anthropic",
+        "target_role": "Manager",
+        "job_description_text": "AI",
+        "lane_provider": "external_claude",
+    }
+    k_plain = compute_section_lane_cache_key(sections_root=sections_root, kwargs=base_kw)
+    k_focus = compute_section_lane_cache_key(
+        sections_root=sections_root,
+        kwargs={**base_kw, "diagnostic_focus": "Avoid meta-labels."},
+    )
+    assert k_plain != k_focus
+
+    calls: list[bool] = []
+
+    def _dispatch(**call_kw: Any) -> dict[str, Any]:
+        calls.append(bool(call_kw.get("force_new_seed")))
+        ld = Path(call_kw["artifact_dir"])
+        ld.mkdir(parents=True, exist_ok=True)
+        (ld / "l2_output.json").write_text(
+            json.dumps(
+                {
+                    "runtime_generation_status": "REAL_LLM",
+                    "product_quality_status": "PASS",
+                    "section_id": "headline",
+                }
+            ),
+            encoding="utf-8",
+        )
+        (ld / "provider_request.json").write_text(
+            json.dumps({"provider_requested": "external_claude"}), encoding="utf-8"
+        )
+        (ld / "x3_disposition.json").write_text(
+            json.dumps({"x3_code": "X3_ALLOW", "x3_disposition": "X3_ALLOW"}), encoding="utf-8"
+        )
+        rel = ld.resolve().relative_to(fake_repo.resolve()).as_posix()
+        ptr = {
+            "run_id": f"headline_{len(calls)}",
+            "run_dir": rel,
+            "provider_requested": "external_claude",
+            "runtime_generation_status": "REAL_LLM",
+            "section_id": "headline",
+        }
+        (ld / "latest_successful_real_run.json").write_text(json.dumps(ptr), encoding="utf-8")
+        (ld / "latest_real_run.json").write_text(json.dumps(ptr), encoding="utf-8")
+        return {"exit_status": "success", "x3_disposition": "X3_ALLOW"}
+
+    res1 = dispatch_lane_with_section_cache(dispatch_fn=_dispatch, repo=fake_repo, sections_root=sections_root, kwargs=base_kw)
+    assert res1.get("section_cache_hit") is not True
+    res2 = dispatch_lane_with_section_cache(dispatch_fn=_dispatch, repo=fake_repo, sections_root=sections_root, kwargs=base_kw)
+    assert res2.get("section_cache_hit") is True
+    res3 = dispatch_lane_with_section_cache(
+        dispatch_fn=_dispatch,
+        repo=fake_repo,
+        sections_root=sections_root,
+        kwargs={**base_kw, "force_new_seed": True},
+    )
+    assert res3.get("section_cache_hit") is not True
+    assert calls == [False, True]
+
+

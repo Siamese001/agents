@@ -98,10 +98,14 @@ def run_executive_summary_v2(
     }
     merge_transport_context(artifact_dir=str(artifact_dir.resolve()), run_id=run_id)
 
+    diagnostic_focus = str(getattr(args, "diagnostic_focus", "") or "").strip()
+    force_new_seed = bool(getattr(args, "force_new_seed", False))
+    reasoning_effort = str(getattr(args, "reasoning_effort", "") or "").strip().lower()
     initial_messages = build_v2_prompt_messages(
         target_company=str(runtime_payload.get("target_company") or ""), target_title=str(runtime_payload.get("target_title") or ""),
         jd_text=str(runtime_payload.get("jd_text") or ""), briefing_text=str(runtime_payload.get("briefing") or ""),
         allowed_fact_ids_ordered=vctx.allowed_fact_ids_ordered, compact_verified_facts=vctx.compact_verified_facts,
+        diagnostic_focus=diagnostic_focus,
     )
     initial_prompt_hash = sha16(json.dumps(initial_messages, ensure_ascii=False, separators=(",", ":")))
     gen_material = generation_material_context_from_bundle(require_material_targeting_bundle(runtime_payload))
@@ -142,7 +146,8 @@ def run_executive_summary_v2(
         briefing_text=str(runtime_payload.get("briefing") or ""), selected_fact_plan=vctx.selected_fact_plan,
         allowed_fact_ids=vctx.allowed_fact_ids, allowed_fact_ids_ordered=vctx.allowed_fact_ids_ordered,
         compact_verified_facts=vctx.compact_verified_facts, verified_numbers=vctx.verified_numbers,
-        verified_corpus_lower=vctx.verified_corpus_lower, proof_pool_metadata=vctx.proof_pool_metadata, **loop_kwargs,
+        verified_corpus_lower=vctx.verified_corpus_lower, proof_pool_metadata=vctx.proof_pool_metadata,
+        diagnostic_focus=diagnostic_focus, force_new_seed=force_new_seed, reasoning_effort=reasoning_effort, **loop_kwargs,
     )
     turn, x2, x1d = outcome.final_turn, outcome.final_x2_gates, outcome.final_x1d_rows
     req_model = str((turn.provider_request_data or {}).get("model") or turn.model_name or "")

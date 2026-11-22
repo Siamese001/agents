@@ -1095,16 +1095,25 @@ def _default_dispatch_lane(
     plan: PatchPlan,
     lane: str,
     lane_provider: str,
+    cancel_event: Any = None,
 ) -> dict[str, Any]:
     """Dispatch one lane exactly like the integrated full run's serial Phase-1 loop."""
     from apps_rg.runtime.orchestration.canonical_dispatch import (
         run_canonical_apps_rg_from_cli_primitives,
     )
+    from apps_rg.runtime.providers.wallclock_http_guard import lane_cancellation_scope
     from apps_rg.runtime.section_cli_defaults import (
         resolve_cli_x1d_judges,
         resolve_phase1_lane_allow_non_allow_exit_zero,
     )
     from apps_rg.runtime.section_lane_temperature import default_temperature_for_section
+
+    if cancel_event is not None and getattr(cancel_event, "is_set", lambda: False)():
+        return {
+            "fault": "cancelled",
+            "error": f"Lane '{lane}' cancelled before dispatch",
+            "exit_status": "error",
+        }
 
     t = plan.targeting
     effective_provider, provider_source = _resolve_patch_lane_provider_for_section(
@@ -1116,35 +1125,54 @@ def _default_dispatch_lane(
     # when this real run clears its product bar.
     attempt_artifact_dir = _patch_lane_attempt_artifact_dir(plan, lane)
     lane_temp = default_temperature_for_section(lane)
+    diagnostic_focus = ""
+    force_new_seed = False
+    reasoning_effort = ""
     raw_directives = os.environ.get("APPS_RG_RECOVERY_DIRECTIVES_JSON")
     if raw_directives:
         try:
             directives_blob = json.loads(raw_directives)
-            lane_ov = (directives_blob.get("lane_overrides") or {}).get(lane) if isinstance(directives_blob, Mapping) else None
-            if isinstance(lane_ov, Mapping) and lane_ov.get("temperature") is not None:
-                lane_temp = float(lane_ov["temperature"])
+            lane_ov = (
+                (directives_blob.get("lane_overrides") or {}).get(lane)
+                if isinstance(directives_blob, Mapping)
+                else None
+            )
+            if isinstance(lane_ov, Mapping):
+                if lane_ov.get("temperature") is not None:
+                    lane_temp = float(lane_ov["temperature"])
+                if lane_ov.get("diagnostic_focus"):
+                    diagnostic_focus = str(lane_ov["diagnostic_focus"]).strip()
+                if lane_ov.get("force_new_seed") is not None:
+                    force_new_seed = bool(lane_ov["force_new_seed"])
+                if lane_ov.get("reasoning_effort"):
+                    reasoning_effort = str(lane_ov["reasoning_effort"]).strip().lower()
         except (ValueError, TypeError):
             pass
-    result = run_canonical_apps_rg_from_cli_primitives(
-        target_company=t.target_company,
-        target_role=t.target_role,
-        target_level=t.target_level,
-        jd="",
-        job_description_ref=t.job_description_ref,
-        job_description_text=t.job_description_text,
-        manual_brief=t.manual_brief,
-        resume_path="",
-        source_resume_text="",
-        generation_mode=t.generation_mode or "strategic_tailor",
-        artifact_dir=str(attempt_artifact_dir),
-        section=lane,
-        lane_provider=effective_provider,
-        lane_provider_resolution_source=provider_source,
-        lane_temperature=lane_temp,
-        lane_x1d_judges=resolve_cli_x1d_judges(None, section_id=lane),
-        lane_mock_judges=False,
-        lane_allow_non_allow_exit_zero=resolve_phase1_lane_allow_non_allow_exit_zero(False),
-    )
+    scope = lane_cancellation_scope(cancel_event) if cancel_event is not None else contextlib.nullcontext()
+    with scope:
+        result = run_canonical_apps_rg_from_cli_primitives(
+            target_company=t.target_company,
+            target_role=t.target_role,
+            target_level=t.target_level,
+            jd="",
+            job_description_ref=t.job_description_ref,
+            job_description_text=t.job_description_text,
+            manual_brief=t.manual_brief,
+            resume_path="",
+            source_resume_text="",
+            generation_mode=t.generation_mode or "strategic_tailor",
+            artifact_dir=str(attempt_artifact_dir),
+            section=lane,
+            lane_provider=effective_provider,
+            lane_provider_resolution_source=provider_source,
+            lane_temperature=lane_temp,
+            lane_x1d_judges=resolve_cli_x1d_judges(None, section_id=lane),
+            lane_mock_judges=False,
+            lane_allow_non_allow_exit_zero=resolve_phase1_lane_allow_non_allow_exit_zero(False),
+            diagnostic_focus=diagnostic_focus,
+            force_new_seed=force_new_seed,
+            reasoning_effort=reasoning_effort,
+        )
     return dict(result) if isinstance(result, dict) else {}
 
 

@@ -95,6 +95,9 @@ def run_section_competencies_spine(
     lane_x1d_judges: str,
     lane_mock_judges: bool,
     lane_allow_test_mock_judges: bool = False,
+    diagnostic_focus: str = "",
+    force_new_seed: bool = False,
+    reasoning_effort: str = "",
 ) -> dict[str, Any]:
     """Section-only competencies lane — mirrors executive_summary CLI wiring."""
     from apps_rg.runtime.sections import competencies_lane as lane
@@ -140,6 +143,9 @@ def run_section_competencies_spine(
         briefing=briefing,
         target_role=str(target_role).strip() or None,
         base_resume_ref=str(resume_path or ""),
+        diagnostic_focus=str(diagnostic_focus or "").strip(),
+        force_new_seed=bool(force_new_seed),
+        reasoning_effort=str(reasoning_effort or "").strip().lower(),
     )
 
     override = Path(artifact_dir) if (artifact_dir is not None and str(artifact_dir).strip()) else None
@@ -188,6 +194,9 @@ def run_section_headline_spine(
     lane_mock_judges: bool,
     lane_allow_test_mock_judges: bool = False,
     lane_allow_non_allow_exit_zero: bool = False,
+    diagnostic_focus: str = "",
+    force_new_seed: bool = False,
+    reasoning_effort: str = "",
 ) -> dict[str, Any]:
     """Section-only headline lane via ``apps_rg.runtime.sections.headline_lane``."""
     from apps_rg.runtime.sections import headline_lane as lane
@@ -230,6 +239,9 @@ def run_section_headline_spine(
         jd_text=jd_text,
         briefing=briefing,
         base_resume_ref=str(resume_path or ""),
+        diagnostic_focus=str(diagnostic_focus or "").strip(),
+        force_new_seed=bool(force_new_seed),
+        reasoning_effort=str(reasoning_effort or "").strip().lower(),
     )
 
     override = Path(artifact_dir) if (artifact_dir is not None and str(artifact_dir).strip()) else None
@@ -279,6 +291,9 @@ def run_section_executive_summary_spine(
     lane_mock_judges: bool,
     lane_allow_test_mock_judges: bool = False,
     lane_allow_non_allow_exit_zero: bool = False,
+    diagnostic_focus: str = "",
+    force_new_seed: bool = False,
+    reasoning_effort: str = "",
 ) -> dict[str, Any]:
     """Section-only run: same artifacts as legacy dispatch; does not invoke ``dispatch_apps_rg_run``."""
     from apps_rg.runtime.sections import executive_summary_lane as lane
@@ -403,6 +418,9 @@ def run_section_executive_summary_spine(
         briefing=briefing,
         target_role=tr,
         base_resume_ref=str(resume_path or ""),
+        diagnostic_focus=str(diagnostic_focus or "").strip(),
+        force_new_seed=bool(force_new_seed),
+        reasoning_effort=str(reasoning_effort or "").strip().lower(),
     )
     if eff_prov == "external_claude":
         lo, hi = lane.EXEC_SUMMARY_TEMP_RANGE
@@ -478,6 +496,9 @@ def run_section_unify_bullets_spine(
     lane_mock_judges: bool,
     lane_allow_non_allow_exit_zero: bool = False,
     lane_allow_test_mock_judges: bool = False,
+    diagnostic_focus: str = "",
+    force_new_seed: bool = False,
+    reasoning_effort: str = "",
 ) -> dict[str, Any]:
     """Section-only unify_bullets lane; legacy ``python -m`` dispatch entry is never imported here."""
     from apps_rg.runtime.sections import unify_bullets_lane as lane
@@ -523,6 +544,9 @@ def run_section_unify_bullets_spine(
         allow_non_allow_exit_zero=bool(lane_allow_non_allow_exit_zero),
         allow_test_mock_judges=bool(lane_allow_test_mock_judges),
         base_resume_ref=str(resume_path or ""),
+        diagnostic_focus=str(diagnostic_focus or "").strip(),
+        force_new_seed=bool(force_new_seed),
+        reasoning_effort=str(reasoning_effort or "").strip().lower(),
     )
     if lane_provider_eff == "external_claude":
         lo, hi = lane.UNIFY_TEMP_RANGE
@@ -588,6 +612,9 @@ def run_section_unify_narrative_spine(
     lane_x1d_judges: str,
     lane_mock_judges: bool,
     lane_allow_test_mock_judges: bool = False,
+    diagnostic_focus: str = "",
+    force_new_seed: bool = False,
+    reasoning_effort: str = "",
 ) -> dict[str, Any]:
     """Section-only unify_narrative lane; legacy ``python -m`` dispatch entry is not used."""
     from apps_rg.runtime.sections import unify_narrative_lane as lane
@@ -632,6 +659,9 @@ def run_section_unify_narrative_spine(
         jd_text=jd_text,
         briefing=briefing,
         base_resume_ref=str(resume_path or ""),
+        diagnostic_focus=str(diagnostic_focus or "").strip(),
+        force_new_seed=bool(force_new_seed),
+        reasoning_effort=str(reasoning_effort or "").strip().lower(),
     )
     if lane_provider_eff == "external_claude":
         lo, hi = lane.NARRATIVE_TEMP_RANGE
@@ -698,6 +728,9 @@ def run_section_ibm_bullets_spine(
     lane_mock_judges: bool,
     lane_allow_non_allow_exit_zero: bool = False,
     lane_allow_test_mock_judges: bool = False,
+    diagnostic_focus: str = "",
+    force_new_seed: bool = False,
+    reasoning_effort: str = "",
 ) -> dict[str, Any]:
     """Section-only ibm_bullets lane via ``ibm_bullets_lane`` (legacy CLI wrapper not invoked)."""
     from apps_rg.runtime.sections import ibm_bullets_lane as lane
@@ -741,6 +774,9 @@ def run_section_ibm_bullets_spine(
         jd_text=jd_text,
         briefing=briefing,
         base_resume_ref=str(resume_path or ""),
+        diagnostic_focus=str(diagnostic_focus or "").strip(),
+        force_new_seed=bool(force_new_seed),
+        reasoning_effort=str(reasoning_effort or "").strip().lower(),
     )
     if lane_provider_eff == "external_claude":
         lo, hi = lane.IBM_TEMP_RANGE
@@ -807,6 +843,9 @@ def run_section_ibm_narrative_spine(
     lane_mock_judges: bool,
     lane_allow_test_mock_judges: bool = False,
     lane_allow_non_allow_exit_zero: bool = False,
+    diagnostic_focus: str = "",
+    force_new_seed: bool = False,
+    reasoning_effort: str = "",
 ) -> dict[str, Any]:
     """Section-only ibm_narrative lane (``ibm_narrative_dispatch`` module is implementation-only; CLI retired)."""
     from apps_rg.runtime.sections import ibm_narrative_lane as lane
@@ -850,6 +889,9 @@ def run_section_ibm_narrative_spine(
         briefing=briefing,
         allow_non_allow_exit_zero=bool(lane_allow_non_allow_exit_zero),
         base_resume_ref=str(resume_path or ""),
+        diagnostic_focus=str(diagnostic_focus or "").strip(),
+        force_new_seed=bool(force_new_seed),
+        reasoning_effort=str(reasoning_effort or "").strip().lower(),
     )
     if lane_provider_eff == "external_claude":
         lo, hi = lane.IBM_NARRATIVE_TEMP_RANGE
@@ -917,6 +959,9 @@ def _run_section_role_episode_spine(
     lane_mock_judges: bool,
     lane_allow_test_mock_judges: bool = False,
     lane_allow_non_allow_exit_zero: bool = False,
+    diagnostic_focus: str = "",
+    force_new_seed: bool = False,
+    reasoning_effort: str = "",
 ) -> dict[str, Any]:
     """Section-only generic role episode lane for InsurTech/EY bullets/narratives."""
     from apps_rg.runtime.sections import role_episode_lane as lane
@@ -959,6 +1004,9 @@ def _run_section_role_episode_spine(
         briefing=briefing,
         target_role=str(target_role).strip() or None,
         base_resume_ref=str(resume_path or ""),
+        diagnostic_focus=str(diagnostic_focus or "").strip(),
+        force_new_seed=bool(force_new_seed),
+        reasoning_effort=str(reasoning_effort or "").strip().lower(),
     )
     override = Path(artifact_dir) if (artifact_dir is not None and str(artifact_dir).strip()) else None
     ctx = lane.run_role_episode_lane_execution(section_id, args, artifact_dir_override=override)

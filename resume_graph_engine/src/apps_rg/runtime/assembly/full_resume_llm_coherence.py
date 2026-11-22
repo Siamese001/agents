@@ -860,3 +860,111 @@ def emit_full_resume_llm_coherence_review(
     x1d_path.write_text(json.dumps(x1d_blob, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     review["x1d_full_resume_judge_outputs_json"] = str(x1d_path)
     return review
+
+
+def _write_json_atomic_local(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    tmp_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    os.replace(tmp_path, path)
+
+
+def emit_skipped_full_resume_llm_coherence_review(
+    *,
+    final_resume: dict[str, Any],
+    final_resume_path: Path,
+    output_dir: Path,
+    skip_reason: str = "upstream_lanes_not_x3_allow",
+    non_allow_lanes: list[str] | tuple[str, ...] = (),
+    review_lanes: list[str] | tuple[str, ...] = (),
+    judge_roster: list[str] | None = None,
+) -> dict[str, Any]:
+    """Emit deterministic fail-closed skip stubs when upstream lanes are non-X3_ALLOW.
+
+    Keeps ``x1d_full_resume_judge_outputs.json`` and
+    ``full_resume_llm_coherence_review.json`` structurally complete for
+    ``whole_run_exit`` and ``final_resume_x2`` without invoking LLM judges and
+    without leaving stale Pass-1 artifacts on disk during patch runs.
+    """
+    output_dir.mkdir(parents=True, exist_ok=True)
+    final_hash = str(final_resume.get("final_resume_hash") or "")
+    if not final_hash:
+        final_hash = hashlib.sha256(
+            json.dumps(final_resume, sort_keys=True, ensure_ascii=False).encode("utf-8")
+        ).hexdigest()
+
+    roster = list(judge_roster or DEFAULT_JUDGE_ROSTER)
+    emitted_at = datetime.now(timezone.utc).isoformat()
+    clean_non_allow = sorted({str(lane).strip() for lane in (non_allow_lanes or ()) if str(lane).strip()})
+    clean_review = sorted({str(lane).strip() for lane in (review_lanes or ()) if str(lane).strip()})
+    decisive_reason = "skipped_upstream_lanes_not_x3_allow"
+    blockers = (
+        [f"coherence_skipped_non_allow_lanes:{','.join(clean_non_allow)}"]
+        if clean_non_allow
+        else [decisive_reason]
+    )
+
+    review: dict[str, Any] = {
+        "schema": "apps_rg.full_resume_llm_coherence_review.v1",
+        "emitted_at_utc": emitted_at,
+        "judge_roster": roster,
+        "full_resume_ref": str(final_resume_path),
+        "final_resume_hash": final_hash,
+        "skipped": True,
+        "skip_reason": str(skip_reason or "upstream_lanes_not_x3_allow"),
+        "non_allow_lanes": clean_non_allow,
+        "review_lanes": clean_review,
+        "policy_valid": True,
+        "criteria_scores": {},
+        "judge_verdicts": [],
+        "aggregation_method": "quorum_majority_model_backed",
+        "pass_threshold": DEFAULT_PASS_THRESHOLD,
+        "quorum_required": DEFAULT_QUORUM,
+        "quorum_met": False,
+        "model_backed_pass_count": 0,
+        "model_backed_total": 0,
+        "provider_blocked_count": 0,
+        "blockers": blockers,
+        "warnings": [],
+        "decisive_reason": decisive_reason,
+        "full_resume_coherence_pass": False,
+        "explicit_non_claims": [
+            "Full-resume coherence judge panel skipped because upstream required lanes are not X3_ALLOW.",
+            "Skipped coherence review never satisfies product_release_eligible.",
+        ],
+    }
+    out_path = output_dir / "full_resume_llm_coherence_review.json"
+    _write_json_atomic_local(out_path, review)
+    review["artifact_path"] = str(out_path)
+
+    x1d_path = output_dir / "x1d_full_resume_judge_outputs.json"
+    x1d_blob: dict[str, Any] = {
+        "schema": "apps_rg.x1d_full_resume_judge_outputs.v1",
+        "emitted_at_utc": emitted_at,
+        "judge_roster": roster,
+        "full_resume_ref": str(final_resume_path),
+        "final_resume_hash": final_hash,
+        "skipped": True,
+        "skip_reason": review["skip_reason"],
+        "non_allow_lanes": clean_non_allow,
+        "review_lanes": clean_review,
+        "policy_valid": True,
+        "judges": [],
+        "aggregation": {
+            "aggregation_method": "quorum_majority_model_backed",
+            "pass_threshold": DEFAULT_PASS_THRESHOLD,
+            "quorum_required": DEFAULT_QUORUM,
+            "quorum_met": False,
+            "full_resume_coherence_pass": False,
+            "decisive_reason": decisive_reason,
+            "blockers": blockers,
+            "warnings": [],
+            "skipped": True,
+            "skip_reason": review["skip_reason"],
+            "non_allow_lanes": clean_non_allow,
+        },
+        "explicit_non_claims": list(review["explicit_non_claims"]),
+    }
+    _write_json_atomic_local(x1d_path, x1d_blob)
+    review["x1d_full_resume_judge_outputs_json"] = str(x1d_path)
+    return review

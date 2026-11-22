@@ -1,6 +1,7 @@
 """Isolated Phase-1 lane execution context (serial + parallel dispatcher)."""
 from __future__ import annotations
 
+import contextlib
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -243,6 +244,7 @@ def run_lane_in_context(
     lane: str,
     *,
     dispatch_fn: Callable[..., dict[str, Any]],
+    cancel_event: Any = None,
 ) -> LaneDispatchOutcome:
     """Run one lane dispatch with the run-constant MODULAR_R4_SECTIONS_ROOT.
 
@@ -257,6 +259,14 @@ def run_lane_in_context(
     needed (the constant must persist for the run's lifetime). See memory
     ``apps-rg-parallel-orchestration-nonfunctional``.
     """
+    if cancel_event is not None and getattr(cancel_event, "is_set", lambda: False)():
+        msg = f"Lane '{lane}' cancelled before dispatch"
+        return LaneDispatchOutcome(
+            lane=lane,
+            dispatch_result={"fault": "cancelled", "error": msg, "exit_status": "error"},
+            exec_status="error:LANE_CANCELLED",
+            error=msg,
+        )
     operation = str(getattr(dispatch_fn, "__qualname__", "") or getattr(dispatch_fn, "__name__", ""))
     source_component = str(getattr(dispatch_fn, "__module__", ""))
     provider = ""
@@ -295,28 +305,36 @@ def run_lane_in_context(
         for k, v in ctx.env_overlay().items():
             if v is not None and os.environ.get(k) != v:
                 os.environ[k] = v
+        from apps_rg.runtime.providers.wallclock_http_guard import lane_cancellation_scope
+
         provider = ctx.provider_for_lane(lane)
         provider_resolution_source = ctx.provider_resolution_source_for_lane(lane)
         dispatch_invoked = True
-        result = dispatch_fn(
-            target_company=ctx.target_company,
-            target_role=ctx.target_role,
-            jd="",
-            job_description_ref=ctx.job_description_ref,
-            job_description_text=ctx.job_description_text,
-            manual_brief=ctx.manual_brief,
-            resume_path="",
-            source_resume_text="",
-            generation_mode=ctx.generation_mode,
-            artifact_dir=str(lane_dir),
-            section=lane,
-            lane_provider=provider,
-            lane_provider_resolution_source=provider_resolution_source,
-            lane_temperature=default_temperature_for_section(lane),
-            lane_x1d_judges=ctx.x1d_judges_for_lane(lane),
-            lane_mock_judges=ctx.lane_mock_judges,
-            lane_allow_non_allow_exit_zero=bool(ctx.lane_allow_non_allow_exit_zero),
+        scope = (
+            lane_cancellation_scope(cancel_event)
+            if cancel_event is not None
+            else contextlib.nullcontext()
         )
+        with scope:
+            result = dispatch_fn(
+                target_company=ctx.target_company,
+                target_role=ctx.target_role,
+                jd="",
+                job_description_ref=ctx.job_description_ref,
+                job_description_text=ctx.job_description_text,
+                manual_brief=ctx.manual_brief,
+                resume_path="",
+                source_resume_text="",
+                generation_mode=ctx.generation_mode,
+                artifact_dir=str(lane_dir),
+                section=lane,
+                lane_provider=provider,
+                lane_provider_resolution_source=provider_resolution_source,
+                lane_temperature=default_temperature_for_section(lane),
+                lane_x1d_judges=ctx.x1d_judges_for_lane(lane),
+                lane_mock_judges=ctx.lane_mock_judges,
+                lane_allow_non_allow_exit_zero=bool(ctx.lane_allow_non_allow_exit_zero),
+            )
         dr = dict(result) if isinstance(result, dict) else {}
         _persist_dispatch_attempt(ctx, lane, lane_dir, status="COMPLETED")
         return LaneDispatchOutcome(lane=lane, dispatch_result=dr, exec_status="ok")
