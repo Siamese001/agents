@@ -2179,33 +2179,51 @@ def run_whole_run_with_route_governance(
                     _r(art, x3_disposition=effective_x3)
                     emit_final_resume_product_outputs(art, repo_root=repo, required=True)
                     final_resume_outputs_pre_emitted = True
-                    stage_ledger.record(
-                        stage_id="L2",
-                        status="PASS",
-                        output_refs={"terminal_ret_packet": "terminal_ret_packet.json"},
-                    )
-                    stage_ledger.record(
-                        stage_id="X1",
-                        status="PASS",
-                        output_refs={"exit_review_packet": "exit_review_packet.json"},
-                    )
-                    stage_ledger.record(
-                        stage_id="X2",
-                        status="PASS",
-                        reason_code="EXIT_X2_AGGREGATED",
-                        output_refs={"runtime_execution_witness": "runtime_execution_witness.json"},
-                    )
-                    stage_ledger.record(
-                        stage_id="X3",
-                        status="PASS",
-                        reason_code=str(effective_x3),
-                        output_refs={"x3_disposition_receipt": "x3_disposition_receipt.json"},
-                    )
-                    stage_ledger.record(
-                        stage_id="CANDIDATE",
-                        status="PASS",
-                        output_refs={"apps_rg_output_manifest": "apps_rg_output_manifest.json"},
-                    )
+                    try:
+                        emit_l1_cognitive_treatment_execution_receipt(
+                            run_root=art,
+                            l1_plan=l1_plan,
+                        )
+                        rec_plan_artifacts = emit_plan_execution_artifacts(
+                            execution_witness=dict(getattr(result, "execution_witness", {}) or {}),
+                            l2_result=getattr(result, "l2_result", None),
+                            terminal_reason="",
+                        )
+                        plan_execution_receipt = rec_plan_artifacts["plan_execution_receipt"]
+                        plan_replan_decision = rec_plan_artifacts["plan_replan_decision"]
+                    except Exception:  # guardian: allow-broad-exception -- best-effort L1/plan receipt refresh after recovery
+                        pass
+                    if product_stage_ledger is None and stage_ledger is not None:
+                        try:
+                            stage_ledger.record(
+                                stage_id="L2",
+                                status="PASS",
+                                output_refs={"terminal_ret_packet": "terminal_ret_packet.json"},
+                            )
+                            stage_ledger.record(
+                                stage_id="X1",
+                                status="PASS",
+                                output_refs={"exit_review_packet": "exit_review_packet.json"},
+                            )
+                            stage_ledger.record(
+                                stage_id="X2",
+                                status="PASS",
+                                reason_code="EXIT_X2_AGGREGATED",
+                                output_refs={"runtime_execution_witness": "runtime_execution_witness.json"},
+                            )
+                            stage_ledger.record(
+                                stage_id="X3",
+                                status="PASS",
+                                reason_code=str(effective_x3),
+                                output_refs={"x3_disposition_receipt": "x3_disposition_receipt.json"},
+                            )
+                            stage_ledger.record(
+                                stage_id="CANDIDATE",
+                                status="PASS",
+                                output_refs={"apps_rg_output_manifest": "apps_rg_output_manifest.json"},
+                            )
+                        except Exception:  # guardian: allow-broad-exception -- compatibility ledger duplicate-stage must not abort authority re-emission
+                            pass
                     if is_integrated_whole_run_artifact_dir(art):
                         try:
                             from apps_rg.runtime.full_run_section_status import emit_full_run_section_status

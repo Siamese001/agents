@@ -46,8 +46,8 @@ PATCH_RUN_PREFLIGHT_ARTIFACT = "patch_run_preflight_receipt.json"
 _WHOLE_RUN_ENVELOPE_ENV = "APPS_RG_WHOLE_RUN_ENVELOPE"
 _CORRELATED_CLI_RUN_ENV = "APPS_RG_CORRELATED_CLI_RUN"
 
-DEFAULT_PATCH_LANE_TIMEOUT_SECONDS = 600.0
-DEFAULT_PATCH_RUN_TIMEOUT_SECONDS = 1200.0
+DEFAULT_PATCH_LANE_TIMEOUT_SECONDS = 180.0
+DEFAULT_PATCH_RUN_TIMEOUT_SECONDS = 240.0
 
 
 def _patch_log_stream() -> Any:
@@ -57,31 +57,45 @@ def _patch_log_stream() -> Any:
 def resolve_patch_lane_timeout_s(override: float | None = None) -> float:
     if override is not None and override > 0:
         return float(override)
+    base = DEFAULT_PATCH_LANE_TIMEOUT_SECONDS
     for env_key in ("APPS_RG_PATCH_LANE_TIMEOUT_SECONDS", "APPS_RG_SECTION_LANE_TIMEOUT_SECONDS"):
         raw = os.environ.get(env_key, "").strip()
         if raw:
             try:
                 val = float(raw)
                 if val > 0:
-                    return val
+                    base = val
+                    break
             except ValueError:
                 pass
-    return DEFAULT_PATCH_LANE_TIMEOUT_SECONDS
+    from apps_rg.runtime.providers.wallclock_http_guard import remaining_whole_run_budget_s
+
+    rem = remaining_whole_run_budget_s()
+    if rem is not None:
+        return min(base, max(5.0, rem - 15.0))
+    return base
 
 
 def resolve_patch_run_timeout_s(override: float | None = None) -> float:
     if override is not None and override > 0:
         return float(override)
+    base = DEFAULT_PATCH_RUN_TIMEOUT_SECONDS
     for env_key in ("APPS_RG_PATCH_RUN_TIMEOUT_SECONDS", "APPS_RG_SECTION_RUN_TIMEOUT_SECONDS"):
         raw = os.environ.get(env_key, "").strip()
         if raw:
             try:
                 val = float(raw)
                 if val > 0:
-                    return val
+                    base = val
+                    break
             except ValueError:
                 pass
-    return DEFAULT_PATCH_RUN_TIMEOUT_SECONDS
+    from apps_rg.runtime.providers.wallclock_http_guard import remaining_whole_run_budget_s
+
+    rem = remaining_whole_run_budget_s()
+    if rem is not None:
+        return min(base, max(5.0, rem - 15.0))
+    return base
 
 
 def _resolve_sections_root(run_dir: Path | str) -> Path:

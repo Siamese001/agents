@@ -313,26 +313,50 @@ def _env_or_ssot_seconds(env_key: str, ssot_path: str, fallback: float) -> float
         return fallback
 
 
+WHOLE_RUN_DEADLINE_ENV = "APPS_RG_WHOLE_RUN_DEADLINE_MONOTONIC"
+DEFAULT_WHOLE_RESUME_TIMEOUT_SECONDS = 480.0
+
+
+def remaining_whole_run_budget_s() -> float | None:
+    """Return remaining seconds against an active whole-resume monotonic deadline, if set."""
+    raw = os.environ.get(WHOLE_RUN_DEADLINE_ENV, "").strip()
+    if not raw:
+        return None
+    try:
+        deadline = float(raw)
+    except ValueError:
+        return None
+    return max(0.0, deadline - time.monotonic())
+
+
 def resolve_section_lane_timeout_s(override: float | None = None) -> float:
     """Resolve hard per-lane wall-clock deadline for Phase-1 section dispatch."""
     if override is not None and float(override) > 0:
         return float(override)
-    return _env_or_ssot_seconds(
+    base = _env_or_ssot_seconds(
         "APPS_RG_SECTION_LANE_TIMEOUT_SECONDS",
         "section_dispatch.lane_timeout_seconds",
-        600.0,  # ssot: exempt(HARDCODED_TIMEOUT)
+        180.0,  # ssot: exempt(HARDCODED_TIMEOUT)
     )
+    rem = remaining_whole_run_budget_s()
+    if rem is not None and rem > 0:
+        return min(base, max(5.0, rem))
+    return base
 
 
 def resolve_section_run_timeout_s(override: float | None = None) -> float:
     """Resolve hard whole-run wall-clock deadline for Phase-1 section dispatch."""
     if override is not None and float(override) > 0:
         return float(override)
-    return _env_or_ssot_seconds(
+    base = _env_or_ssot_seconds(
         "APPS_RG_SECTION_RUN_TIMEOUT_SECONDS",
         "section_dispatch.run_timeout_seconds",
-        1200.0,  # ssot: exempt(HARDCODED_TIMEOUT)
+        DEFAULT_WHOLE_RESUME_TIMEOUT_SECONDS,  # ssot: exempt(HARDCODED_TIMEOUT)
     )
+    rem = remaining_whole_run_budget_s()
+    if rem is not None and rem > 0:
+        return min(base, max(5.0, rem))
+    return base
 
 
 def resolve_judge_total_budget_s(override: float | None = None) -> float:

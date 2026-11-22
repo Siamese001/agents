@@ -3503,6 +3503,56 @@ def test_headline_voice_repair_ignores_pipe_separators_and_recovery_uses_low_eff
     assert plan_ov["lane_overrides"]["headline"]["reasoning_effort"] == "low"
 
 
+def test_whole_resume_480s_timeout_hierarchy_and_recovery_budget_guard(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    import time as _time
+    from apps_rg.runtime.orchestration.ResumeRunRecoveryAgent import ResumeRunRecoveryAgent
+    from apps_rg.runtime.orchestration.patch_run import (
+        DEFAULT_PATCH_LANE_TIMEOUT_SECONDS,
+        DEFAULT_PATCH_RUN_TIMEOUT_SECONDS,
+        resolve_patch_lane_timeout_s,
+        resolve_patch_run_timeout_s,
+    )
+    from apps_rg.runtime.providers.wallclock_http_guard import (
+        WHOLE_RUN_DEADLINE_ENV,
+        resolve_section_lane_timeout_s,
+        resolve_section_run_timeout_s,
+    )
+    from resume_engine.cli import _build_parser
+
+    monkeypatch.delenv("APPS_RG_SECTION_LANE_TIMEOUT_SECONDS", raising=False)
+    monkeypatch.delenv("APPS_RG_SECTION_RUN_TIMEOUT_SECONDS", raising=False)
+    monkeypatch.delenv("APPS_RG_PATCH_LANE_TIMEOUT_SECONDS", raising=False)
+    monkeypatch.delenv("APPS_RG_PATCH_RUN_TIMEOUT_SECONDS", raising=False)
+    monkeypatch.delenv(WHOLE_RUN_DEADLINE_ENV, raising=False)
+
+    assert resolve_section_lane_timeout_s() == 180.0
+    assert resolve_section_run_timeout_s() == 480.0
+    assert DEFAULT_PATCH_LANE_TIMEOUT_SECONDS == 180.0
+    assert DEFAULT_PATCH_RUN_TIMEOUT_SECONDS == 240.0
+
+    # Shared whole-run deadline clamps patch_run timeout instead of resetting to 1200s
+    monkeypatch.setenv(WHOLE_RUN_DEADLINE_ENV, f"{_time.monotonic() + 90.0:.6f}")
+    assert 60.0 <= resolve_patch_run_timeout_s() <= 76.0
+    assert 60.0 <= resolve_patch_lane_timeout_s() <= 76.0
+
+    # Exhausted whole-run budget (<25s remaining) skips recovery cleanly
+    monkeypatch.setenv(WHOLE_RUN_DEADLINE_ENV, f"{_time.monotonic() + 10.0:.6f}")
+    agent = ResumeRunRecoveryAgent(artifact_dir=tmp_path, repo_root=tmp_path)
+    assert (
+        agent.can_attempt_recovery(
+            {"status": "BLOCKED", "x3_disposition": "X3A_DENY_REROUTE", "signals": {"core_x3_non_authorizing_lanes": ["headline"]}}
+        )
+        is False
+    )
+
+    parsed_cli = _build_parser().parse_args(["run", "--timeout", "480", "--no-cache"])
+    assert parsed_cli.timeout == 480.0
+    assert parsed_cli.no_cache is True
+
+
+
 
 
 
