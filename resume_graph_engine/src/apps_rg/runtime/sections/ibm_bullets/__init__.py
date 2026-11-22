@@ -33,6 +33,7 @@ from .lane_constants import (
     extract_ibm_employment,
     load_base_resume,
     sha16,
+    should_hydrate_ibm_bullets_from_canonical,
     write_json,
 )
 from .metric_repairs import (

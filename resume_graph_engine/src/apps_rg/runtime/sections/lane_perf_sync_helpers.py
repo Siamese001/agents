@@ -641,7 +641,7 @@ def compact_overlong_headline_and_ledger(
         words = new_segs[idx].split()
         if len(words) < 4:
             continue
-        from apps_rg.runtime.sections.headline_repair_policy import candidate_3word_subsequences
+        from apps_rg.runtime.sections.headline_v2 import candidate_3word_subsequences
 
         for candidate_seg in candidate_3word_subsequences(new_segs[idx]):
             trial_segs = list(new_segs)

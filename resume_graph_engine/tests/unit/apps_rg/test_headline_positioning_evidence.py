@@ -8,7 +8,7 @@ from apps_rg.runtime.sections.headline_positioning_evidence import (
     derive_headline_title_anchor,
     infer_headline_prefix,
 )
-from apps_rg.runtime.sections.headline_repair_policy import candidate_3word_subsequences
+from apps_rg.runtime.sections.headline_v2 import candidate_3word_subsequences
 
 
 def test_derive_headline_title_anchor_abbreviates_svp_with_specialization() -> None:

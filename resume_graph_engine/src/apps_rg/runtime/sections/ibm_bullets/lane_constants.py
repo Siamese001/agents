@@ -156,3 +156,14 @@ def build_prompt_messages(runtime_payload: dict[str, Any]) -> list[dict[str, str
     """W7: PA-compiled system prompt via ``section_prompt_adapter`` (no inline fallback)."""
     rid = str(runtime_payload.get("run_id") or "ibm_bullets_prompt_build")
     return parent_attr("compile_ibm_bullets_prompt", compile_ibm_bullets_prompt)(runtime_payload, run_id=rid).artifact.messages
+
+
+def should_hydrate_ibm_bullets_from_canonical(
+    runtime_payload: dict[str, Any],
+    parsed: dict[str, Any] | None = None,
+) -> bool:
+    """Deprecated compatibility stub: production lanes never replace model output from static canonical files."""
+    _ = runtime_payload
+    _ = parsed
+    return False
+

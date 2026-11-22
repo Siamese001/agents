@@ -237,9 +237,9 @@ def _strip_targeting_only_experience_claims(
     text: str,
     *,
     target_company: str = "",
-    allow_prose_mutation: bool = True,
+    allow_prose_mutation: bool = False,
 ) -> tuple[str, list[str]]:
-    """Remove JD/briefing-only tail claims when allow_prose_mutation=True; detect-only on REAL_LLM."""
+    """Remove JD/briefing-only tail claims when allow_prose_mutation=True; detect-only by default (role_narrative_v2)."""
     original = str(text or "")
     if not allow_prose_mutation:
         return original, _targeting_only_experience_hits(original, target_company=target_company)

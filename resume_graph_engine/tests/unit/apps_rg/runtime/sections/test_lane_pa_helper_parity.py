@@ -22,7 +22,6 @@ _PA_PAIRS: list[tuple[str, str, str]] = [
     ("ibm_narrative_pa", "compile_ibm_narrative_prompt"),
     ("unify_bullets_pa", "compile_unify_bullets_prompt"),
     ("unify_narrative_pa", "compile_unify_narrative_prompt"),
-    ("executive_summary_pa", "compile_executive_summary_prompt"),
 ]
 
 
@@ -70,20 +69,19 @@ def test_competencies_lane_execution_import_surface() -> None:
 
 
 def test_ibm_narrative_lane_execution_import_surface() -> None:
-    from apps_rg.runtime.sections import ibm_narrative_lane_execution as ile
+    from apps_rg.runtime.sections import ibm_narrative_lane as ile
 
-    assert "run_ibm_narrative_lane_execution" in ile.__all__
-    assert "run_ibm_narrative_execution" in ile.__all__
+    assert hasattr(ile, "run_ibm_narrative_lane_execution")
+    assert hasattr(ile, "run_ibm_narrative_execution")
 
 
 def test_dispatch_execution_reexports_lane_ssot() -> None:
     from apps_rg.runtime.sections import competencies_lane_execution as cle
-    from apps_rg.runtime.sections import ibm_narrative_lane_execution as ile
+    from apps_rg.runtime.sections import ibm_narrative_lane as ile
 
     assert cle.run_competencies_execution is cle.run_competencies_execution
     assert cle.run_competencies_lane_execution is cle.run_competencies_lane_execution
-    assert ile.run_ibm_narrative_execution is ile.run_ibm_narrative_execution
-    assert ile.run_ibm_narrative_lane_execution is ile.run_ibm_narrative_lane_execution
+    assert ile.run_ibm_narrative_execution is ile.run_ibm_narrative_lane_execution
 
 
 def test_phase_d2_extracted_helpers_sections_runtime_ssot() -> None:
@@ -93,9 +91,8 @@ def test_phase_d2_extracted_helpers_sections_runtime_ssot() -> None:
     from apps_rg.runtime.sections import companion_lane_context as clc
     from apps_rg.runtime.sections import competencies_lane_defaults as cld
     from apps_rg.runtime.sections import competencies_term_phrase as ctp
-    from apps_rg.runtime.sections import ibm_narrative_lane_runtime as ind
+    from apps_rg.runtime.sections import ibm_narrative_lane as ind
     from apps_rg.runtime.sections import ibm_narrative_lane_defaults as ind_def
-    from apps_rg.runtime.sections import ibm_narrative_metric_trim as inmt
     from apps_rg.runtime.sections import lane_artifact_io as laio
     from apps_rg.runtime.sections import lane_base_resume as lbr
 
@@ -115,9 +112,4 @@ def test_phase_d2_extracted_helpers_sections_runtime_ssot() -> None:
     assert cd.JD_TEXT_DEFAULT is cld.JD_TEXT_DEFAULT
     assert ind.PROMPT_ID is ind_def.PROMPT_ID
     assert ind.REPO_ROOT == ind_def.REPO_ROOT
-    assert ind.collapse_narrative_sentence_for_companion_metric_budget is (
-        inmt.collapse_narrative_sentence_for_companion_metric_budget
-    )
-    assert ind.truncate_narrative_after_first_metric_hit is inmt.truncate_narrative_after_first_metric_hit
     assert cd.load_base_resume is lbr.load_base_resume
-    assert ind.load_base_resume is lbr.load_base_resume

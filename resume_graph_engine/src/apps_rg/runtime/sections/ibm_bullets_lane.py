@@ -117,10 +117,10 @@ from apps_rg.runtime.sections.ibm_bullets import (
     run_ibm_prompt_compile_stage,
     scrub_cross_slot_plan_metrics,
     sha16,
+    should_hydrate_ibm_bullets_from_canonical,
     write_json,
 )
 from apps_rg.runtime.sections.ibm_bullets_pa import compile_ibm_bullets_prompt
-from apps_rg.runtime.sections.ibm_canonical_hydration import should_hydrate_ibm_bullets_from_canonical
 from apps_rg.runtime.sections.section_generation import (
     build_section_request,
     generate_section,

@@ -13,6 +13,6 @@ def test_ibm_narrative_single_execution_entry() -> None:
 
 
 def test_ibm_narrative_runtime_module_importable() -> None:
-    from apps_rg.runtime.sections import ibm_narrative_lane_runtime
+    from apps_rg.runtime.sections import role_narrative_v2
 
-    assert inspect.ismodule(ibm_narrative_lane_runtime)
+    assert inspect.ismodule(role_narrative_v2)

@@ -167,7 +167,28 @@ def run_role_episode_lane_execution(
     *,
     artifact_dir_override: Path | None = None,
 ) -> dict[str, Any]:
-    """Execute a role-episode section lane through ingress, generation/deterministic_graph_render, and closeout."""
+    """Execute a role-episode section lane; narrative sections route through role_narrative_v2."""
+    if str(section_id or "").strip().lower() in {"slalom_narrative", "insurtech_narrative", "ey_narrative"}:
+        from apps_rg.runtime.sections.role_narrative_v2 import run_role_narrative_v2
+        return run_role_narrative_v2(
+            section_id,
+            args,
+            artifact_dir_override=artifact_dir_override,
+        )
+    return _run_role_episode_pipeline_internal(
+        section_id,
+        args,
+        artifact_dir_override=artifact_dir_override,
+    )
+
+
+def _run_role_episode_pipeline_internal(
+    section_id: str,
+    args: Any,
+    *,
+    artifact_dir_override: Path | None = None,
+) -> dict[str, Any]:
+    """Internal role-episode execution pipeline for bullet and narrative role-episode contracts."""
     ctx, early_return = run_role_episode_ingress_stage(
         section_id,
         args,

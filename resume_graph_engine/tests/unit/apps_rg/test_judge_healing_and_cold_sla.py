@@ -31,7 +31,7 @@ from apps_rg.runtime.reasoning.bullet_pool_reselection import (
 from apps_rg.runtime.reasoning.bullet_lane_self_consistency import SelfConsistencyPath
 from apps_rg.runtime.sections import ExecutiveVoiceRepairAgent as evra
 from apps_rg.runtime.sections.headline_lane import HEADLINE_MAX_OUTPUT_TOKENS
-from apps_rg.runtime.sections.ibm_narrative_lane_runtime import (
+from apps_rg.runtime.sections.ibm_narrative_lane import (
     apply_ibm_narrative_judge_feedback_rewrite,
 )
 from apps_rg.runtime.sections.role_episode.proof_selection import (
@@ -135,7 +135,7 @@ def test_ibm_narrative_judge_feedback_rewrite_accepts_only_on_rank_improvement(
     )
 
     monkeypatch.setattr(
-        "apps_rg.runtime.sections.ibm_narrative_lane_runtime.generate_section",
+        "apps_rg.runtime.sections.role_narrative_v2.blind_judge_and_loop.generate_section",
         lambda *_a, **_k: ProviderResult(
             provider_requested="external_openai",
             provider_attempted=True,
@@ -170,7 +170,7 @@ def test_ibm_narrative_judge_feedback_rewrite_accepts_only_on_rank_improvement(
             )
         ]
 
-    monkeypatch.setattr("apps_rg.runtime.sections.ibm_narrative_lane_runtime.run_ibm_narrative_judges", _fake_judges)
+    monkeypatch.setattr("apps_rg.runtime.sections.role_narrative_v2.blind_judge_and_loop.run_ibm_narrative_judges", _fake_judges)
     new_raw, new_parsed, new_x1d, accepted = apply_ibm_narrative_judge_feedback_rewrite(
         messages=[{"role": "user", "content": "Draft IBM narrative"}],
         provider_payload={"model": "gpt-5.6-luna"},
@@ -573,7 +573,7 @@ def test_employment_targeting_context_propagates_frozen_allocation_materialized(
 
 def test_feature2_real_llm_prose_mutators_are_gated_across_lanes() -> None:
     from apps_rg.runtime.sections.competencies_lane_runtime import reduce_competency_keyword_stuffing
-    from apps_rg.runtime.sections.ibm_narrative_lane_runtime import (
+    from apps_rg.runtime.sections.ibm_narrative_lane import (
         normalize_parsed_output as normalize_ibm_narr_parsed,
     )
     from apps_rg.runtime.sections.unify_bullets.repairs import (
@@ -897,7 +897,7 @@ def test_headline_healing_reverts_when_rejudge_score_does_not_improve(
 
 
 def test_cosine_035_alignment_in_ibm_narrative_diagnostic_and_pa() -> None:
-    from apps_rg.runtime.sections.ibm_narrative_lane_runtime import _cosine_echo_diagnostic_summary
+    from apps_rg.runtime.sections.ibm_narrative_lane import _cosine_echo_diagnostic_summary
     from apps_rg.runtime.sections.ibm_narrative_pa import _theme_budget_block
 
     diag = _cosine_echo_diagnostic_summary(
@@ -944,7 +944,7 @@ def test_unify_narrative_line979_runs_x1d_rewrite_after_pre_judge_rewrite_and_pr
     )
     responses = iter([pre_rw_raw, x1d_rw_raw])
     monkeypatch.setattr(
-        "apps_rg.runtime.providers.section_provider_call.call_section_model_provider",
+        "apps_rg.runtime.sections.role_narrative_v2.blind_judge_and_loop.call_section_model_provider",
         lambda *_a, **_k: ProviderResult(
             provider_requested="external_claude",
             provider_attempted=True,
@@ -958,8 +958,7 @@ def test_unify_narrative_line979_runs_x1d_rewrite_after_pre_judge_rewrite_and_pr
     )
     judge_scores = iter([3.7, 3.5])
     monkeypatch.setattr(
-        unl,
-        "run_unify_narrative_judges",
+        "apps_rg.runtime.sections.role_narrative_v2.blind_judge_and_loop.run_unify_narrative_judges",
         lambda **_kw: [
             JudgeOutput(
                 judge_id="j1",
@@ -1482,13 +1481,13 @@ def test_competencies_lane_x2_before_x1d_and_revert_on_worse(
 def test_ibm_narrative_lane_x2_before_x1d_skips_judges(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    from apps_rg.runtime.sections import ibm_narrative_lane_execution as ine
+    from apps_rg.runtime.sections import ibm_narrative_lane as il
+    from apps_rg.runtime.sections.role_narrative_v2 import contract_emitter as ine
     from apps_rg.runtime.c0 import section_proof_loader as spl
 
-    ine._ensure_helpers_hydrated()
     facts = [{"fact_id": "bul_ibm_001", "claim_text": "Led cloud modernization at IBM."}]
     monkeypatch.setattr(
-        spl,
+        ine,
         "load_section_proof_for_lane",
         lambda **_k: (
             _make_fake_pool("ibm_narrative", facts, {"bul_ibm_001"}),
@@ -1499,8 +1498,8 @@ def test_ibm_narrative_lane_x2_before_x1d_skips_judges(
         ),
     )
     monkeypatch.setattr(ine, "rel_posix", lambda *_a, **_k: "artifacts/test/ibm_narr")
-    monkeypatch.setattr("apps_rg.runtime.c0.section_proof_loader.apply_proof_pool_to_usage_ledger", lambda doc, _p: doc)
-    monkeypatch.setattr(ine, "load_companion_ibm_bullets_context", lambda: {"status": "FINALIZED", "text": "- bul_ibm_001: Led cloud modernization."})
+    monkeypatch.setattr(ine, "apply_proof_pool_to_usage_ledger", lambda doc, _p: doc)
+    monkeypatch.setattr(ine, "load_companion_bullets_context", lambda *_a, **_k: {"status": "FINALIZED", "text": "- bul_ibm_001: Led cloud modernization."})
     monkeypatch.setattr(ine, "resolve_effective_lane_l2_path", lambda *_a, **_k: None)
     def _fake_wire_fec(**kw: Any) -> None:
         rp = kw.get("runtime_payload")
@@ -1508,13 +1507,18 @@ def test_ibm_narrative_lane_x2_before_x1d_skips_judges(
             rp["canonical_evidence_set_digest"] = "dig_1"
             rp["fec_allowed_fact_ids_digest"] = "dig_1"
 
+    monkeypatch.setattr(ine, "wire_spine_c0_fec_or_block", _fake_wire_fec)
     monkeypatch.setattr("apps_rg.runtime.sections.upstream_evidence_block.wire_spine_c0_fec_or_block", _fake_wire_fec)
-    monkeypatch.setattr(ine, "compile_ibm_narrative_prompt", lambda *_a, **_k: SimpleNamespace(
+    monkeypatch.setattr(ine, "compile_narrative_v2_prompt", lambda *_a, **_k: SimpleNamespace(
         section_id="ibm_narrative",
         apps_rg_prompt_template_ref="ref",
         artifact=SimpleNamespace(template_id="tpl", prompt_hash="ph", slot_count=1, messages=[{"role": "user", "content": "u"}]),
     ))
     monkeypatch.setattr(ine, "run_ibm_narrative_judge_credentials_preflight", lambda *_a, **_k: {"preflight_blocked": False})
+    monkeypatch.setattr(ine, "prepare_section_l2_before_provider", lambda *_a, **_k: None)
+    monkeypatch.setattr(ine, "finalize_section_l2_after_output", lambda *_a, **_k: None)
+    monkeypatch.setattr(ine, "finalize_section_runtime_exhaust_before_l6", lambda *_a, **_k: None)
+    monkeypatch.setattr(ine, "gate_section_l6_shadow_after_exhaust", lambda *_a, **_k: None)
     monkeypatch.setattr("apps_rg.runtime.section_l2_lane_integration.prepare_section_l2_before_provider", lambda *_a, **_k: None)
     monkeypatch.setattr("apps_rg.runtime.section_l2_lane_integration.finalize_section_l2_after_output", lambda *_a, **_k: None)
     monkeypatch.setattr("apps_rg.runtime.section_runtime_exhaust_lane_integration.finalize_section_runtime_exhaust_before_l6", lambda *_a, **_k: None)
@@ -1522,7 +1526,8 @@ def test_ibm_narrative_lane_x2_before_x1d_skips_judges(
     monkeypatch.setattr("apps_rg.runtime.spine.exit_lane_hooks.finalize_section_exit_after_l2", lambda *_a, **_k: None)
     monkeypatch.setattr(ine, "finalize_runtime_proof_run", lambda *_a, **_k: None)
     monkeypatch.setattr(
-        "apps_rg.runtime.providers.section_provider_call.call_section_model_provider",
+        ine,
+        "call_section_model_provider",
         lambda *_a, **_k: ProviderResult(
             provider_requested="external_claude",
             provider_attempted=True,
@@ -1534,7 +1539,6 @@ def test_ibm_narrative_lane_x2_before_x1d_skips_judges(
             provider_response={},
         ),
     )
-    monkeypatch.setattr(ine, "apply_ibm_narrative_theme_overpack_repair", lambda **kw: (kw["raw_output"], kw["parsed"], False))
     monkeypatch.setattr(
         ine,
         "run_ibm_narrative_x2_gates",
@@ -1543,7 +1547,7 @@ def test_ibm_narrative_lane_x2_before_x1d_skips_judges(
     judge_calls: list[Any] = []
     monkeypatch.setattr(ine, "run_ibm_narrative_judges", lambda **kw: judge_calls.append(kw) or [])
 
-    res = ine.run_ibm_narrative_lane_execution(
+    res = il.run_ibm_narrative_lane_execution(
         SimpleNamespace(
             provider="external_openai",
             temperature=0.35,
@@ -1600,17 +1604,20 @@ def test_unify_narrative_full_execution_invokes_judges_after_pre_judge_rewrite_f
     _fake_pool = _make_fake_pool("unify_narrative", facts, {"bul_unify_001"})
     _fake_pool.proof_pool_digest = ""
     _fake_pool.proof_pool_ref = ""
+    from apps_rg.runtime.sections.role_narrative_v2 import blind_judge_and_loop as bjl
+    from apps_rg.runtime.sections.role_narrative_v2 import contract_emitter as uce
+
     monkeypatch.setattr(
-        spl,
+        uce,
         "load_section_proof_for_lane",
         lambda **_k: (_fake_pool, base, tmp_path / "base.json", "bh", None),
     )
-    monkeypatch.setattr(unl, "rel_posix", lambda *_a, **_k: "artifacts/test/unify_narr")
-    monkeypatch.setattr("apps_rg.runtime.c0.section_proof_loader.apply_proof_pool_to_usage_ledger", lambda doc, _p: doc)
+    monkeypatch.setattr(uce, "rel_posix", lambda *_a, **_k: "artifacts/test/unify_narr")
+    monkeypatch.setattr(uce, "apply_proof_pool_to_usage_ledger", lambda doc, _p: doc)
     monkeypatch.setattr(
-        unl,
-        "load_companion_unify_bullets_context",
-        lambda: {
+        uce,
+        "load_companion_bullets_context",
+        lambda *_a, **_k: {
             "status": "ACCEPTED_FINALIZED",
             "x3_code": "X3_ALLOW",
             "product_quality_status": "PASS",
@@ -1618,29 +1625,30 @@ def test_unify_narrative_full_execution_invokes_judges_after_pre_judge_rewrite_f
             "text": "- bul_unify_001: Scaled client delivery metrics across cloud operations.",
         },
     )
-    monkeypatch.setattr(unl, "resolve_effective_lane_l2_path", lambda *_a, **_k: None)
+    monkeypatch.setattr(uce, "resolve_effective_lane_l2_path", lambda *_a, **_k: None)
     def _fake_wire_fec(**kw: Any) -> None:
         rp = kw.get("runtime_payload")
         if isinstance(rp, dict):
             rp["canonical_evidence_set_digest"] = "dig_1"
             rp["fec_allowed_fact_ids_digest"] = "dig_1"
 
-    monkeypatch.setattr("apps_rg.runtime.sections.upstream_evidence_block.wire_spine_c0_fec_or_block", _fake_wire_fec)
+    monkeypatch.setattr(uce, "wire_spine_c0_fec_or_block", _fake_wire_fec)
     monkeypatch.setattr(
-        unl,
-        "compile_unify_narrative_prompt",
+        uce,
+        "compile_narrative_v2_prompt",
         lambda *_a, **_k: SimpleNamespace(
             section_id="unify_narrative",
             apps_rg_prompt_template_ref="ref",
             artifact=SimpleNamespace(template_id="tpl", prompt_hash="ph", slot_count=1, messages=[{"role": "user", "content": "u"}]),
         ),
     )
-    monkeypatch.setattr("apps_rg.runtime.section_l2_lane_integration.prepare_section_l2_before_provider", lambda *_a, **_k: None)
-    monkeypatch.setattr("apps_rg.runtime.section_l2_lane_integration.finalize_section_l2_after_output", lambda *_a, **_k: None)
-    monkeypatch.setattr("apps_rg.runtime.section_runtime_exhaust_lane_integration.finalize_section_runtime_exhaust_before_l6", lambda *_a, **_k: None)
+    monkeypatch.setattr(uce, "prepare_section_l2_before_provider", lambda *_a, **_k: None)
+    monkeypatch.setattr(uce, "finalize_section_l2_after_output", lambda *_a, **_k: None)
+    monkeypatch.setattr(uce, "finalize_section_runtime_exhaust_before_l6", lambda *_a, **_k: None)
+    monkeypatch.setattr(uce, "gate_section_l6_shadow_after_exhaust", lambda *_a, **_k: None)
     monkeypatch.setattr("apps_rg.runtime.section_runtime_exhaust_lane_integration.gate_section_l6_shadow_after_exhaust", lambda *_a, **_k: None)
     monkeypatch.setattr("apps_rg.runtime.spine.exit_lane_hooks.finalize_section_exit_after_l2", lambda *_a, **_k: None)
-    monkeypatch.setattr(unl, "finalize_runtime_proof_run", lambda *_a, **_k: None)
+    monkeypatch.setattr(uce, "finalize_runtime_proof_run", lambda *_a, **_k: None)
 
     full_ja = {
         "targeting_only": True,
@@ -1673,9 +1681,8 @@ def test_unify_narrative_full_execution_invokes_judges_after_pre_judge_rewrite_f
         }
     )
     responses = iter([bad_raw, clean_raw])
-    monkeypatch.setattr(
-        "apps_rg.runtime.providers.section_provider_call.call_section_model_provider",
-        lambda *_a, **_k: ProviderResult(
+    def _fake_provider(*_a: Any, **_k: Any) -> ProviderResult:
+        return ProviderResult(
             provider_requested="external_claude",
             provider_attempted=True,
             provider_available=True,
@@ -1684,8 +1691,10 @@ def test_unify_narrative_full_execution_invokes_judges_after_pre_judge_rewrite_f
             model="claude-sonnet-5-5-medium",
             raw_model_output=next(responses),
             provider_response={},
-        ),
-    )
+        )
+
+    monkeypatch.setattr(uce, "call_section_model_provider", _fake_provider)
+    monkeypatch.setattr(bjl, "call_section_model_provider", _fake_provider)
 
     judge_calls: list[dict[str, Any]] = []
 
@@ -1712,7 +1721,7 @@ def test_unify_narrative_full_execution_invokes_judges_after_pre_judge_rewrite_f
             for jk in (kw.get("judge_keys") or ["gemini_pro"])
         ]
 
-    monkeypatch.setattr(unl, "run_unify_narrative_judges", _fake_unify_judges)
+    monkeypatch.setattr(bjl, "run_unify_narrative_judges", _fake_unify_judges)
 
     unl.run_unify_narrative_execution(
         SimpleNamespace(
@@ -1950,14 +1959,14 @@ def test_blocked_pre_judge_gate_emits_all_required_providers_when_x1d_judges_emp
     from apps_rg.runtime.section_judge_policy import get_section_judge_policy
     from apps_rg.runtime.sections import ExecutiveVoiceRepairAgent as ev_mod
     from apps_rg.runtime.sections import competencies_lane_execution as cle
-    from apps_rg.runtime.sections import ibm_narrative_lane_execution as ine
+    from apps_rg.runtime.sections import ibm_narrative_lane as il
+    from apps_rg.runtime.sections.role_narrative_v2 import contract_emitter as ine
     from apps_rg.runtime.validators.exec_summary_x2.ledger_judge_checks import check_judge_rows_present
 
     # ibm_narrative with x1d_judges=""
-    ine._ensure_helpers_hydrated()
     ibm_facts = [{"fact_id": "bul_ibm_001", "claim_text": "Led cloud modernization at IBM."}]
     monkeypatch.setattr(
-        spl,
+        ine,
         "load_section_proof_for_lane",
         lambda **_k: (
             _make_fake_pool("ibm_narrative", ibm_facts, {"bul_ibm_001"}),
@@ -1968,8 +1977,8 @@ def test_blocked_pre_judge_gate_emits_all_required_providers_when_x1d_judges_emp
         ),
     )
     monkeypatch.setattr(ine, "rel_posix", lambda *_a, **_k: "artifacts/test/ibm_empty_judges")
-    monkeypatch.setattr("apps_rg.runtime.c0.section_proof_loader.apply_proof_pool_to_usage_ledger", lambda doc, _p: doc)
-    monkeypatch.setattr(ine, "load_companion_ibm_bullets_context", lambda: {"status": "FINALIZED", "text": "- bul_ibm_001: Led cloud modernization."})
+    monkeypatch.setattr(ine, "apply_proof_pool_to_usage_ledger", lambda doc, _p: doc)
+    monkeypatch.setattr(ine, "load_companion_bullets_context", lambda *_a, **_k: {"status": "FINALIZED", "text": "- bul_ibm_001: Led cloud modernization."})
     monkeypatch.setattr(ine, "resolve_effective_lane_l2_path", lambda *_a, **_k: None)
     def _fake_wire_fec(**kw: Any) -> None:
         rp = kw.get("runtime_payload")
@@ -1977,10 +1986,11 @@ def test_blocked_pre_judge_gate_emits_all_required_providers_when_x1d_judges_emp
             rp["canonical_evidence_set_digest"] = "dig_1"
             rp["fec_allowed_fact_ids_digest"] = "dig_1"
 
+    monkeypatch.setattr(ine, "wire_spine_c0_fec_or_block", _fake_wire_fec)
     monkeypatch.setattr("apps_rg.runtime.sections.upstream_evidence_block.wire_spine_c0_fec_or_block", _fake_wire_fec)
     monkeypatch.setattr(
         ine,
-        "compile_ibm_narrative_prompt",
+        "compile_narrative_v2_prompt",
         lambda *_a, **_k: SimpleNamespace(
             section_id="ibm_narrative",
             apps_rg_prompt_template_ref="ref",
@@ -1988,6 +1998,10 @@ def test_blocked_pre_judge_gate_emits_all_required_providers_when_x1d_judges_emp
         ),
     )
     monkeypatch.setattr(ine, "run_ibm_narrative_judge_credentials_preflight", lambda *_a, **_k: {"preflight_blocked": False})
+    monkeypatch.setattr(ine, "prepare_section_l2_before_provider", lambda *_a, **_k: None)
+    monkeypatch.setattr(ine, "finalize_section_l2_after_output", lambda *_a, **_k: None)
+    monkeypatch.setattr(ine, "finalize_section_runtime_exhaust_before_l6", lambda *_a, **_k: None)
+    monkeypatch.setattr(ine, "gate_section_l6_shadow_after_exhaust", lambda *_a, **_k: None)
     monkeypatch.setattr("apps_rg.runtime.section_l2_lane_integration.prepare_section_l2_before_provider", lambda *_a, **_k: None)
     monkeypatch.setattr("apps_rg.runtime.section_l2_lane_integration.finalize_section_l2_after_output", lambda *_a, **_k: None)
     monkeypatch.setattr("apps_rg.runtime.section_runtime_exhaust_lane_integration.finalize_section_runtime_exhaust_before_l6", lambda *_a, **_k: None)
@@ -1995,7 +2009,8 @@ def test_blocked_pre_judge_gate_emits_all_required_providers_when_x1d_judges_emp
     monkeypatch.setattr("apps_rg.runtime.spine.exit_lane_hooks.finalize_section_exit_after_l2", lambda *_a, **_k: None)
     monkeypatch.setattr(ine, "finalize_runtime_proof_run", lambda *_a, **_k: None)
     monkeypatch.setattr(
-        "apps_rg.runtime.providers.section_provider_call.call_section_model_provider",
+        ine,
+        "call_section_model_provider",
         lambda *_a, **_k: ProviderResult(
             provider_requested="external_openai",
             provider_attempted=True,
@@ -2007,7 +2022,6 @@ def test_blocked_pre_judge_gate_emits_all_required_providers_when_x1d_judges_emp
             provider_response={},
         ),
     )
-    monkeypatch.setattr(ine, "apply_ibm_narrative_theme_overpack_repair", lambda **kw: (kw["raw_output"], kw["parsed"], False))
     monkeypatch.setattr(
         ine,
         "run_ibm_narrative_x2_gates",
@@ -2017,7 +2031,7 @@ def test_blocked_pre_judge_gate_emits_all_required_providers_when_x1d_judges_emp
 
     ibm_dir = tmp_path / "ibm_empty"
     ibm_dir.mkdir()
-    ine.run_ibm_narrative_lane_execution(
+    il.run_ibm_narrative_lane_execution(
         SimpleNamespace(
             provider="external_openai",
             temperature=0.35,
@@ -2119,7 +2133,7 @@ def test_ibm_narrative_judge_feedback_rewrite_restores_usage_ledger_on_rejudge_n
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """Finding 4: section_input_usage_ledger.json bytes are restored on rejudge_not_improved."""
-    from apps_rg.runtime.sections import ibm_narrative_lane_runtime as inr
+    from apps_rg.runtime.sections.role_narrative_v2 import blind_judge_and_loop as inr
 
     usage_path = tmp_path / "section_input_usage_ledger.json"
     orig_bytes = b'{"original_ledger":true,"claim_count":1}\n'

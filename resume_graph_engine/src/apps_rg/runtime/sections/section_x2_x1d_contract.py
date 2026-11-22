@@ -30,13 +30,13 @@ _ALIGNMENT_MATRIX = _REPO_ROOT / "artifacts" / "apps_rg" / "prompt_authority" / 
 
 # Lane Python modules that invoke run_*_x2_gates in the product path.
 _STATIC_LANE_MODULE_IMPORT: dict[str, str] = {
-    "headline": "apps_rg.runtime.sections.headline_lane",
+    "headline": "apps_rg.runtime.sections.headline_v2.contract_emitter",
     "executive_summary": "apps_rg.runtime.sections.executive_summary_v2.contract_emitter",
     "competencies": "apps_rg.runtime.sections.competencies_lane_execution",
     "unify_bullets": "apps_rg.runtime.sections.unify_bullets_lane",
-    "unify_narrative": "apps_rg.runtime.sections.unify_narrative_lane",
+    "unify_narrative": "apps_rg.runtime.sections.role_narrative_v2.contract_emitter",
     "ibm_bullets": "apps_rg.runtime.sections.ibm_bullets_lane",
-    "ibm_narrative": "apps_rg.runtime.sections.ibm_narrative_lane_execution",
+    "ibm_narrative": "apps_rg.runtime.sections.role_narrative_v2.contract_emitter",
 }
 _ROLE_EPISODE_MODULE_IMPORT = "apps_rg.runtime.sections.role_episode_lane"
 

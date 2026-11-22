@@ -32,7 +32,6 @@ from apps_rg.runtime.section_proof.lane_proof_accounting import generation_statu
 from apps_rg.runtime.section_proof.section_input_usage_ledger import build_section_input_usage_ledger_v1
 from apps_rg.runtime.section_repair_lane_integration import record_mechanical, record_parse_json_retry
 from apps_rg.runtime.sections.executive_summary_lane import resolve_provider_model_name, write_x2_gate_outputs
-from apps_rg.runtime.sections.ibm_canonical_hydration import should_hydrate_ibm_bullets_from_canonical
 from apps_rg.runtime.sections.section_generation import generate_section, tag_reasoning_lane
 from apps_rg.runtime.validators.ibm_bullets_x2 import (
     IBM_BULLET_IDS,
@@ -56,6 +55,7 @@ from .lane_constants import (
     LANE_KEY,
     PROMPT_ID,
     REPO_ROOT,
+    should_hydrate_ibm_bullets_from_canonical,
     write_json,
 )
 from .metric_repairs import (
