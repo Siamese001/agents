@@ -315,6 +315,40 @@ def _evaluate_product_run(run_dir: Path) -> dict[str, Any]:
         "pipeline_complete": completed,
     })
 
+    failure_reasons: list[str] = []
+    if status != "PASS":
+        if not completed:
+            failure_reasons.append("pipeline_incomplete")
+        if not authorized:
+            failure_reasons.append("product_not_authorized")
+        if x3_disposition and x3_disposition != "X3D_ALLOW_FINISH":
+            failure_reasons.append(f"x3_disposition:{x3_disposition}")
+        if evaluation_status and evaluation_status != "PASS":
+            failure_reasons.append(f"evaluation_status:{evaluation_status}")
+        if not eval_records:
+            failure_reasons.append("missing_apps_eval_records")
+        if malformed_records:
+            failure_reasons.append(f"malformed_eval_records:{len(malformed_records)}")
+        if stale_records:
+            failure_reasons.append(f"stale_eval_records:{len(stale_records)}")
+        if non_passing_records:
+            failure_reasons.append(f"non_passing_eval_records:{len(non_passing_records)}")
+        if candidate_manifest_errors:
+            failure_reasons.extend(f"manifest:{e}" for e in candidate_manifest_errors[:3])
+        final_res_doc = _read_json_artifact(run_dir / "FINAL_RESUME_OUTPUT.json") or {}
+        for gid in (final_res_doc.get("failed_gate_ids") or [])[:5]:
+            failure_reasons.append(f"final_resume_gate:{gid}")
+        forensics_idx = _read_json_artifact(run_dir / "section_failure_forensics" / "index.json") or {}
+        for art_item in forensics_idx.get("artifacts") or []:
+            if isinstance(art_item, dict) and art_item.get("failure_type") == "independent_failure":
+                sec_id = str(art_item.get("section_id") or "")
+                sec_json = _read_json_artifact(run_dir / "section_failure_forensics" / f"{sec_id}.json") or {}
+                sec_gates = [str(g) for g in (sec_json.get("failed_gate_ids") or []) if g]
+                if sec_gates:
+                    failure_reasons.extend(f"section:{sec_id}:{g}" for g in sec_gates[:3])
+                elif sec_id:
+                    failure_reasons.append(f"section_failed:{sec_id}")
+
     return {
         "schema_version": "apps_rg.public_cli_product_evaluation.v1",
         "status": status,
@@ -330,6 +364,7 @@ def _evaluate_product_run(run_dir: Path) -> dict[str, Any]:
         "product_authorized": authorized,
         "x3_disposition": x3_disposition,
         "exit_code": exit_code,
+        "failure_reasons": failure_reasons,
         "candidate_manifest_errors": candidate_manifest_errors,
         "malformed_eval_records": malformed_records,
         "stale_eval_records": stale_records,

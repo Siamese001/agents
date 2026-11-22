@@ -347,12 +347,21 @@ def main(argv: list[str] | None = None, prog: str | None = None) -> int:
                 from agents.observability.eval_flywheel import EvalFlywheelEngine
 
                 passed = report.get("status") == "PASS"
+                observed_x3 = str(report.get("x3_disposition") or "").strip()
+                effective_x3 = (
+                    "X3D_ALLOW_FINISH"
+                    if passed
+                    else (observed_x3 if observed_x3 and observed_x3 != "X3D_ALLOW_FINISH" else "X3A_DENY_REROUTE")
+                )
+                reasons = [str(r) for r in (report.get("failure_reasons") or ()) if str(r).strip()]
+                if not passed and not reasons:
+                    reasons = [f"evaluation_status:{report.get('evaluation_status') or 'BLOCKED'}"]
                 EvalFlywheelEngine().ingest_product_run(
                     app_id="apps_rg",
                     run_id=run_path.name,
-                    x3_disposition="X3D_ALLOW_FINISH" if passed else "X3B_ESCALATE_HITL",
+                    x3_disposition=effective_x3,
                     passed=passed,
-                    failure_reasons=[str(r) for r in (report.get("failure_reasons") or ())],
+                    failure_reasons=reasons,
                     score=1.0 if passed else 0.0,
                 )
             except (ImportError, OSError, ValueError, RuntimeError):  # guardian: allow-silent-swallow -- observer-only flywheel hook must never fail resume eval

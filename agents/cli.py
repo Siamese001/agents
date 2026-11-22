@@ -271,12 +271,21 @@ def run_e2e(args: argparse.Namespace) -> int:
                 if isinstance(st, dict) and st.get("status") not in (None, "SKIPPED"):
                     ok = str(st.get("status", "")).upper() in ("SUCCESS", "PASS", "PASSED", "COMPLETED")
                     if app_id in ("apps_rg", "apps_lic"):
+                        st_x3 = str(st.get("x3_disposition") or "").strip()
+                        eff_x3 = (
+                            "X3D_ALLOW_FINISH"
+                            if ok
+                            else (st_x3 if st_x3 and st_x3 != "X3D_ALLOW_FINISH" else "X3A_DENY_REROUTE")
+                        )
+                        st_reasons = [str(r) for r in (st.get("failure_reasons") or ()) if str(r).strip()]
+                        if not ok and not st_reasons:
+                            st_reasons = [f"stage_failed:{stage_key}:{st.get('status') or 'FAILED'}"]
                         fw.ingest_product_run(
                             app_id=app_id,
                             run_id=run_id,
-                            x3_disposition="X3D_ALLOW_FINISH" if ok else "X3B_ESCALATE_HITL",
+                            x3_disposition=eff_x3,
                             passed=ok,
-                            failure_reasons=list(st.get("failure_reasons") or ()),
+                            failure_reasons=st_reasons,
                             score=1.0 if ok else 0.0,
                         )
                     emit_post_run_trace_safe(

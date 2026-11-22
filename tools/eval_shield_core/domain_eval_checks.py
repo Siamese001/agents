@@ -390,10 +390,82 @@ def check_agents_eval_flywheel_domain(repo_root: Path, *, inject_fault: bool = F
     if "expected_contract" in case.unlabeled_view or "SECRET_LABEL" in str(case.unlabeled_view):
         failures.append("eval_case_unlabeled_view_leaked_ground_truth")
 
+    import tempfile
+    from agents.observability.eval_flywheel import EvalFlywheelEngine
+    from apps_rg.__main__ import _evaluate_product_run
+
+    with tempfile.TemporaryDirectory(prefix="shield-fw-") as td:
+        td_path = Path(td)
+        fake_run = td_path / "full_resume_shield"
+        (fake_run / "section_failure_forensics").mkdir(parents=True)
+        (fake_run / "x3_disposition_receipt.json").write_text(
+            json.dumps({"payload": {"x3_disposition": "X3A_DENY_REROUTE"}}),
+            encoding="utf-8",
+        )
+        (fake_run / "FINAL_RESUME_OUTPUT.json").write_text(
+            json.dumps({"status": "FAIL", "failed_gate_ids": ["final_resume_no_gap_markers"]}),
+            encoding="utf-8",
+        )
+        (fake_run / "section_failure_forensics" / "index.json").write_text(
+            json.dumps(
+                {
+                    "artifacts": [
+                        {"section_id": "ibm_narrative", "failure_type": "independent_failure"}
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+        (fake_run / "section_failure_forensics" / "ibm_narrative.json").write_text(
+            json.dumps(
+                {"failed_gate_ids": ["x2_ibm_narrative_mechanisms_supported_by_cited_companion_bullets"]}
+            ),
+            encoding="utf-8",
+        )
+        eval_rep = _evaluate_product_run(fake_run)
+        rep_reasons = list(eval_rep.get("failure_reasons") or [])
+        if eval_rep.get("x3_disposition") != "X3A_DENY_REROUTE" or not any(
+            "section:ibm_narrative:" in r for r in rep_reasons
+        ):
+            failures.append(f"evaluate_product_run_missing_specific_failure_reasons:{rep_reasons}")
+
+        fw_eng = EvalFlywheelEngine(
+            learning_db_path=td_path / "learning" / "feedback.sqlite",
+            trajectory_store_path=td_path / "learning" / "traj.json",
+            calibration_history_path=td_path / "learning" / "cal.json",
+            graduation_state_path=td_path / "learning" / "grad.json",
+            triage_root=td_path / "triage",
+        )
+        fw_eng.ingest_product_run(
+            app_id="apps_rg",
+            run_id="run-fail-1",
+            x3_disposition=str(eval_rep["x3_disposition"]),
+            passed=False,
+            failure_reasons=rep_reasons,
+            score=0.0,
+        )
+        fw_eng.ingest_product_run(
+            app_id="apps_rg",
+            run_id="run-pass-2",
+            x3_disposition="X3D_ALLOW_FINISH",
+            passed=True,
+            failure_reasons=(),
+            score=1.0,
+        )
+        fb_check = fw_eng._open_feedback_store()
+        try:
+            unresolved = [
+                r for r in fb_check.get_failure_statistics() if float(r.get("success_rate") or 0.0) < 1.0
+            ]
+            if unresolved:
+                failures.append(f"product_run_pass_did_not_resolve_signatures:{len(unresolved)}")
+        finally:
+            fb_check.close()
+
     return {
         "domain": "agents_eval_flywheel",
         "status": "PASS" if not failures else "FAIL",
-        "checks_run": 4,
+        "checks_run": 6,
         "failures": failures,
     }
 

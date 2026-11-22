@@ -601,3 +601,88 @@ def test_empty_boundary_and_cli_sandbox_subprocess_contract_e2e(tmp_path: Path) 
     assert cli_q is not None
     assert len(cli_q["questions"]) == 1
     assert validate_hitl_presentation(cli_q, enforce_visibility_and_jargon=True) == []
+
+
+def test_product_run_flywheel_records_specific_failure_reasons_and_auto_resolves_on_pass_e2e(
+    tmp_path: Path,
+) -> None:
+    """Pinned unmocked regression for find-ac2635ccc0df (no generic x3b_escalate_hitl masking + pass auto-resolution)."""
+    rg_src = str((REPO_ROOT / "resume_graph_engine" / "src").resolve())
+    if rg_src not in sys.path:
+        sys.path.insert(0, rg_src)
+
+    from agents.observability.eval_flywheel import EvalFlywheelEngine
+    from apps_rg.__main__ import _evaluate_product_run
+
+    run_dir = tmp_path / "full_resume_pin_ac26"
+    (run_dir / "section_failure_forensics").mkdir(parents=True)
+    (run_dir / "x3_disposition_receipt.json").write_text(
+        json.dumps({"payload": {"x3_disposition": "X3A_DENY_REROUTE"}}),
+        encoding="utf-8",
+    )
+    (run_dir / "FINAL_RESUME_OUTPUT.json").write_text(
+        json.dumps({"status": "FAIL", "failed_gate_ids": ["final_resume_no_gap_markers"]}),
+        encoding="utf-8",
+    )
+    (run_dir / "section_failure_forensics" / "index.json").write_text(
+        json.dumps(
+            {"artifacts": [{"section_id": "ibm_narrative", "failure_type": "independent_failure"}]}
+        ),
+        encoding="utf-8",
+    )
+    (run_dir / "section_failure_forensics" / "ibm_narrative.json").write_text(
+        json.dumps(
+            {"failed_gate_ids": ["x2_ibm_narrative_mechanisms_supported_by_cited_companion_bullets"]}
+        ),
+        encoding="utf-8",
+    )
+
+    report = _evaluate_product_run(run_dir)
+    assert report["status"] == "BLOCKED"
+    assert report["x3_disposition"] == "X3A_DENY_REROUTE"
+    reasons = list(report["failure_reasons"])
+    assert "x3_disposition:X3A_DENY_REROUTE" in reasons
+    assert "section:ibm_narrative:x2_ibm_narrative_mechanisms_supported_by_cited_companion_bullets" in reasons
+
+    fw = EvalFlywheelEngine(
+        learning_db_path=tmp_path / "learning" / "feedback.sqlite",
+        trajectory_store_path=tmp_path / "learning" / "traj.json",
+        calibration_history_path=tmp_path / "learning" / "cal.json",
+        graduation_state_path=tmp_path / "learning" / "grad.json",
+        triage_root=tmp_path / "triage",
+    )
+    obs_fail = fw.ingest_product_run(
+        app_id="apps_rg",
+        run_id="full_resume_pin_ac26",
+        x3_disposition=report["x3_disposition"],
+        passed=False,
+        failure_reasons=reasons,
+        score=0.0,
+    )
+    assert len(obs_fail["harvested_signatures"]) >= 3
+
+    fb = fw._open_feedback_store()
+    try:
+        stats_before = fb.get_failure_statistics()
+        constraints = {r["normalized_constraint"] for r in stats_before}
+        assert "apps_rg:x3:x3b_escalate_hitl" not in constraints
+        assert any("section:ibm_narrative:" in c for c in constraints)
+        assert all(float(r["success_rate"]) == 0.0 for r in stats_before)
+    finally:
+        fb.close()
+
+    fw.ingest_product_run(
+        app_id="apps_rg",
+        run_id="full_resume_pin_ac26_pass",
+        x3_disposition="X3D_ALLOW_FINISH",
+        passed=True,
+        failure_reasons=(),
+        score=1.0,
+    )
+    fb2 = fw._open_feedback_store()
+    try:
+        stats_after = fb2.get_failure_statistics()
+        assert all(float(r["success_rate"]) == 1.0 for r in stats_after)
+    finally:
+        fb2.close()
+
