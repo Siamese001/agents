@@ -334,6 +334,10 @@ def _generate_employment_bullet_lane(
             requested_batch = 1 if sample_fast_path else initial_path_count
             batch = requested_batch
             batch_reason = "sample_1_fast_path" if sample_fast_path else "initial"
+        elif regen_round == 1 and gate.slots_missing and max_regen == 0:
+            requested_batch = 1
+            batch = 1
+            batch_reason = "missing_slot_single_path_recovery"
         elif adaptive_sc:
             requested_batch = regen_extra_path_count_for_lane(section_lane)
             remaining_budget = max(0, max_path_count - len(all_paths))
@@ -424,6 +428,9 @@ def _generate_employment_bullet_lane(
         if gate.ok:
             stop_reason = "selection_gate_passed"
             break
+        if regen_round == 0 and gate.slots_missing and judge_mode != "mocked":
+            regen_round += 1
+            continue
         if regen_round >= max_regen:
             stop_reason = "regen_round_cap_reached"
             break

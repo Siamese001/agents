@@ -75,7 +75,8 @@ _EXECUTIVE_ABSTRACTION_RE = re.compile(
     r"\badoption\b|\boperating\s+model\b|\bco-?sell\b|\bmotions?\b|"
     r"\bpartners?\b|\bpartnerships?\b|\balliances?\b|\benterprise\b|\bruntime\b|\binfrastructure\b|"
     r"\bproductization\b|\bcontrols?\b|\bcloud\s+data\b|\baccelerators?\b|\badvisory\b|"
-    r"\bresilience\b|\breliability\b|\bdevsecops\b|\bai\s+delivery\b|\bagentic\s+delivery\b|\borchestration\b|\bdeployments?\b)",
+    r"\bresilience\b|\breliability\b|\bdevsecops\b|\bdelivery\b|\bsolutions?\b|\benablement\b|"
+    r"\broadmaps?\b|\bstrategy\b|\bstrategies\b|\borchestration\b|\bdeployments?\b)",
     re.IGNORECASE,
 )
 

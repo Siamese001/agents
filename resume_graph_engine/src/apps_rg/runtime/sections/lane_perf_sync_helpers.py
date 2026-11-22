@@ -388,17 +388,21 @@ def execute_headline_judges_with_final_display_gate(
             if isinstance(allowed_fact_packet, list)
             else list((allowed_fact_packet or {}).get("facts") or fallback_facts or [])
         )
-        repaired_data, hl_repair_receipt = repair_section_with_executive_voice_agent(
-            section_id="headline",
-            candidate_data={"headline_line": headline_line, "claim_ledger": claim_ledger},
-            diagnostic=hl_diag,
-            allowed_facts=hl_allowed_facts,
-            targeting_context=hl_targeting_context,
-            mock_mode=judge_allowed_mock,
-            artifact_dir=artifact_dir,
-        )
-        cand_hl = str(repaired_data.get("headline_line") or "").strip()
-        if hl_repair_receipt.repair_succeeded and cand_hl and cand_hl != headline_line:
+        cur_diag = dict(hl_diag)
+        cur_hl_in = headline_line
+        for _hl_rep_attempt in range(2):
+            repaired_data, hl_repair_receipt = repair_section_with_executive_voice_agent(
+                section_id="headline",
+                candidate_data={"headline_line": cur_hl_in, "claim_ledger": claim_ledger},
+                diagnostic=cur_diag,
+                allowed_facts=hl_allowed_facts,
+                targeting_context=hl_targeting_context,
+                mock_mode=judge_allowed_mock,
+                artifact_dir=artifact_dir,
+            )
+            cand_hl = str(repaired_data.get("headline_line") or "").strip()
+            if not (hl_repair_receipt.repair_succeeded and cand_hl and cand_hl != headline_line):
+                break
             all_ids = [
                 str(fid)
                 for row in claim_ledger
@@ -468,6 +472,8 @@ def execute_headline_judges_with_final_display_gate(
                     min((float(j.get("score") or 0.0) for j in cand_x1d), default=0.0),
                 )
                 if new_rank > old_rank:
+                    from apps_rg.runtime.section_repair_ledger import KIND_REGEN_LLM, record_repair
+
                     headline_line = cand_hl
                     claim_ledger = cand_ledger
                     if isinstance(parsed, dict):
@@ -481,6 +487,13 @@ def execute_headline_judges_with_final_display_gate(
                     parsed_for_x2["text_claim_coverage"] = coverage
                     write_json_fn(artifact_dir / "canonical_claim_ledger_v2.json", canon_doc)
                     write_json_fn(artifact_dir / "text_claim_coverage.json", coverage)
+                    record_repair(
+                        artifact_dir,
+                        kind=KIND_REGEN_LLM,
+                        operation="headline_x1d_voice_repair",
+                        reason="x1d_judge_feedback",
+                        replaced_l2=True,
+                    )
                     rep_gate["voice_repair_accepted"] = True
                     rep_gate["old_rank"] = list(old_rank)
                     rep_gate["new_rank"] = list(new_rank)
@@ -496,12 +509,19 @@ def execute_headline_judges_with_final_display_gate(
                         "new_rank": list(new_rank),
                     }
                     write_json_fn(artifact_dir / "headline_final_display_pre_judge_gate.json", pre_gate)
-            else:
-                pre_gate["voice_repair_rejected"] = {
-                    "candidate_headline": cand_hl,
-                    "issues": rep_gate["issues"],
+                break
+            pre_gate["voice_repair_rejected"] = {
+                "candidate_headline": cand_hl,
+                "issues": rep_gate["issues"],
+            }
+            write_json_fn(artifact_dir / "headline_final_display_pre_judge_gate.json", pre_gate)
+            if _hl_rep_attempt == 0:
+                cur_hl_in = cand_hl
+                cur_diag = {
+                    **hl_diag,
+                    "findings": list(hl_diag.get("findings") or [])
+                    + [f"Deterministic headline check failed on '{cand_hl}': {iss}" for iss in rep_gate["issues"]],
                 }
-                write_json_fn(artifact_dir / "headline_final_display_pre_judge_gate.json", pre_gate)
     return headline_line, claim_ledger, canon_doc, coverage, x1d
 
 

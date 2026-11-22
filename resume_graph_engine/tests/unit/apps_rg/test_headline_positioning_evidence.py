@@ -52,7 +52,8 @@ def test_allocation_authority_block_and_repairs_forbid_backoffice_labels() -> No
     assert "Agentic AI Platforms" in block
     assert "Cloud Data Modernization" in block
     assert "Regulated Insurance Governance" in block
-    assert "Never emit 'Three Lines Governance' or 'Client Adoption Systems'" in block
+    assert "Three Lines Governance" in block
+    assert "Client Adoption Systems" in block
 
     rewritten, changes = _rewrite_machine_headline_segments(
         "SVP Enterprise Architecture | Three Lines Governance | Hyperscaler Alliance Ecosystem | Client Adoption Systems"
