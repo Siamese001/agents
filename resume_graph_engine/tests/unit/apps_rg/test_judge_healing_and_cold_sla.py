@@ -3552,6 +3552,115 @@ def test_whole_resume_480s_timeout_hierarchy_and_recovery_budget_guard(
     assert parsed_cli.no_cache is True
 
 
+def test_ide_cli_429_quota_circuit_breaker_and_orthogonal_failover(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from apps_rg.runtime.judges import x1d_ide_cli as ide_j
+    from apps_rg.runtime.providers import agy_cli_transport as agy_t
+    from apps_rg.runtime.providers import ide_cli_generation as ide_g
+    from apps_rg.runtime.validators.narrative_quality_x2 import check_narrative_seniority_floor
+
+    agy_t.clear_agy_quota_cooldowns()
+    assert agy_t.DEFAULT_AGY_MAX_CONCURRENCY == 8
+
+    # 1. Judge Slot-2 429 fails over immediately to orthogonal backup and registers cooldown
+    seen_judge_models: list[tuple[str, str | None]] = []
+    primary_slot2, _ = ide_j.second_judge_model("unify_bullets")
+
+    def _fake_judge_run(prompt: str, *, model: str, json_schema: Any = None, effort: str | None = None, **_kw: Any) -> agy_t.AgyResult:
+        seen_judge_models.append((model, effort))
+        if len(seen_judge_models) == 1:
+            agy_t.mark_agy_model_quota_exhausted(model, "RESOURCE_EXHAUSTED (code 429): Resets in 1h47m38s.")
+            raise agy_t.AgyQuotaExhaustedError("agy exit=3: RESOURCE_EXHAUSTED (code 429): Individual quota reached.")
+        good = {
+            "score_scale": "0_to_5",
+            "score": 4.8,
+            "threshold": 4.0,
+            "pass": True,
+            "decisive_failure": False,
+            "findings": ["Grounded."],
+            "cited_sentence_indexes": [1],
+            "remediation_suggestions": [],
+        }
+        return agy_t.AgyResult(
+            model_requested=model,
+            model_reported=model,
+            status="SUCCESS",
+            response=json.dumps(good),
+            structured_output=good,
+            usage={"input_tokens": 90, "output_tokens": 45, "total_tokens": 135},
+            duration_seconds=1.9,
+            conversation_id="conv-failover-1",
+        )
+
+    monkeypatch.setattr(ide_j, "run_agy", _fake_judge_run)
+    out1 = ide_j.call_ide_cli_judge(
+        prompt="Grade unify_bullets",
+        model=primary_slot2,
+        input_hash="h429",
+        provider_key="openai_chatgpt",
+        artifact_base=tmp_path,
+        reasoning_effort="low",
+        section_id="unify_bullets",
+    )
+    assert out1.pass_ is True
+    assert len(seen_judge_models) == 2
+    assert seen_judge_models[0][0] != seen_judge_models[1][0]
+    assert agy_t.is_agy_model_quota_cooled_down(seen_judge_models[0][0]) is True
+
+    # Subsequent call skips cooled-down primary slug without invoking it again
+    out2 = ide_j.call_ide_cli_judge(
+        prompt="Grade slalom_bullets",
+        model=primary_slot2,
+        input_hash="h430",
+        provider_key="openai_chatgpt",
+        artifact_base=tmp_path,
+        reasoning_effort="low",
+        section_id="slalom_bullets",
+    )
+    assert out2.pass_ is True
+    assert len(seen_judge_models) == 3
+    assert seen_judge_models[2][0] == seen_judge_models[1][0]
+
+    # 2. Generation 429 fails over to governed backup
+    agy_t.clear_agy_quota_cooldowns()
+    seen_gen_models: list[str] = []
+    gen_pin = ide_g.ide_cli_generation_models()[0]
+
+    def _fake_gen_run(prompt: str, *, model: str, effort: str | None = None, **_kw: Any) -> agy_t.AgyResult:
+        seen_gen_models.append(model)
+        if len(seen_gen_models) == 1:
+            raise agy_t.AgyQuotaExhaustedError("RESOURCE_EXHAUSTED (code 429): Individual quota reached.")
+        return agy_t.AgyResult(
+            model_requested=model,
+            model_reported=model,
+            status="SUCCESS",
+            response='{"bullets": []}',
+            structured_output=None,
+            usage={"input_tokens": 100, "output_tokens": 20, "total_tokens": 120},
+            duration_seconds=2.0,
+            conversation_id="conv-gen-failover",
+        )
+
+    monkeypatch.setattr(ide_g, "run_agy", _fake_gen_run)
+    gen_resp = ide_g.call_ide_cli_generation(
+        request={"model": gen_pin, "reasoning_effort": "low"},
+        body={"model": gen_pin, "messages": [{"role": "user", "content": "Write JSON"}]},
+        environ={"APPS_RG_GENERATION_TRANSPORT": "ide_cli"},
+    )
+    assert gen_resp["text"] == '{"bullets": []}'
+    assert len(seen_gen_models) == 2
+    assert seen_gen_models[0] != seen_gen_models[1]
+    agy_t.clear_agy_quota_cooldowns()
+
+    # 3. Plural authority signals satisfy check_narrative_seniority_floor
+    sen = check_narrative_seniority_floor(
+        "Championed ML signal workflows at IBM, establishing auditable leadership visibility across banking and insurance transformations."
+    )
+    assert sen.passed is True
+
+
+
 
 
 

@@ -420,19 +420,43 @@ def _call_llm_repair(
             return None
         try:
             from apps_rg.runtime.model_capabilities import try_model_capabilities
-            from apps_rg.runtime.providers.agy_cli_transport import run_agy
-
-            rep_slug = resolve_ide_cli_generation_slug(model)
-            rep_caps = try_model_capabilities(rep_slug)
-            if rep_caps is not None and "low" in (rep_caps.reasoning_efforts or ()) and rep_slug.endswith("-medium"):
-                rep_slug = f"{rep_slug[:-7]}-low"
-            cli_res = run_agy(
-                f"{prompt}\n\nReturn ONLY valid JSON with no markdown fences and no tool calls.",
-                model=rep_slug,
-                effort="low",
-                timeout_s=120,
+            from apps_rg.runtime.providers.agy_cli_transport import (
+                AgyTransportError,
+                is_agy_model_quota_cooled_down,
+                is_agy_quota_error,
+                mark_agy_model_quota_exhausted,
+                run_agy,
             )
-            return _parse_ide_cli_json_response(cli_res)
+            from apps_rg.runtime.providers.ide_cli_generation import ide_cli_generation_quota_backups
+
+            def _prep_rep_slug(pin_s: str) -> tuple[str, str | None]:
+                c = try_model_capabilities(pin_s)
+                if c is not None and "low" in (c.reasoning_efforts or ()):
+                    return (f"{pin_s[:-7]}-low" if pin_s.endswith("-medium") else pin_s, "low")
+                return pin_s, None
+
+            rep_cands: list[tuple[str, str | None]] = [_prep_rep_slug(resolve_ide_cli_generation_slug(model))]
+            for b_pin in ide_cli_generation_quota_backups():
+                b_slug, b_eff = _prep_rep_slug(b_pin)
+                if all(x[0] != b_slug for x in rep_cands):
+                    rep_cands.append((b_slug, b_eff))
+            ordered_rep = [x for x in rep_cands if not is_agy_model_quota_cooled_down(x[0])] + [
+                x for x in rep_cands if is_agy_model_quota_cooled_down(x[0])
+            ]
+            for idx_r, (cand_s, cand_e) in enumerate(ordered_rep):
+                try:
+                    cli_res = run_agy(
+                        f"{prompt}\n\nReturn ONLY valid JSON with no markdown fences and no tool calls.",
+                        model=cand_s,
+                        effort=cand_e,
+                        timeout_s=120,
+                    )
+                    return _parse_ide_cli_json_response(cli_res)
+                except AgyTransportError as exc_r:
+                    if is_agy_quota_error(exc_r) and idx_r + 1 < len(ordered_rep):
+                        mark_agy_model_quota_exhausted(cand_s, str(exc_r))
+                        continue
+                    return None
         except Exception:  # guardian: allow-broad-exception -- optional voice repair returns None on CLI or parse failure
             return None
     api_key = (

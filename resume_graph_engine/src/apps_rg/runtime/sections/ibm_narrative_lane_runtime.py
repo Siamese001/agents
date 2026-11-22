@@ -771,6 +771,9 @@ def apply_ibm_narrative_theme_overpack_repair(
     )
     from apps_rg.runtime.validators.narrative_quality_x2 import (
         check_narrative_bullet_cosine_similarity,
+        check_narrative_no_consulting_language,
+        check_narrative_seniority_floor,
+        check_narrative_technical_specificity,
     )
 
     companion_bullets_list = [ln.strip() for ln in str(companion_text or "").splitlines() if ln.strip()]
@@ -791,7 +794,19 @@ def apply_ibm_narrative_theme_overpack_repair(
         else None
     )
     cosine_failed_pre = bool(cosine_res_pre is not None and not cosine_res_pre.passed)
-    if not overpacked and not missing_pre and not unsupported_mechanisms_pre and not cosine_failed_pre:
+    sen_res_pre = check_narrative_seniority_floor(narrative_pre)
+    consult_res_pre = check_narrative_no_consulting_language(narrative_pre)
+    spec_res_pre = check_narrative_technical_specificity(narrative_pre)
+    quality_failed_pre = bool(
+        not sen_res_pre.passed or not consult_res_pre.passed or not spec_res_pre.passed
+    )
+    if (
+        not overpacked
+        and not missing_pre
+        and not unsupported_mechanisms_pre
+        and not cosine_failed_pre
+        and not quality_failed_pre
+    ):
         return raw_output, parsed, False
 
     from apps_rg.runtime.section_repair_ledger import KIND_REGEN_LLM, load_ledger, record_repair, set_authoritative_attempt
@@ -822,6 +837,16 @@ def apply_ibm_narrative_theme_overpack_repair(
     if cosine_failed_pre and cosine_res_pre is not None:
         trigger_gate_ids.append("x2_narrative_bullet_cosine_similarity")
         trigger_reasons.append(f"x2_narrative_bullet_cosine_similarity:{cosine_res_pre.failure_reason or 'echo'}")
+    if not trigger_gate_ids:
+        if not sen_res_pre.passed:
+            trigger_gate_ids.append("x2_narrative_seniority_floor")
+            trigger_reasons.append(f"x2_narrative_seniority_floor:{sen_res_pre.failure_reason or 'seniority'}")
+        if not consult_res_pre.passed:
+            trigger_gate_ids.append("x2_narrative_no_consulting_language")
+            trigger_reasons.append(f"x2_narrative_no_consulting_language:{consult_res_pre.failure_reason or 'consulting'}")
+        if not spec_res_pre.passed:
+            trigger_gate_ids.append("x2_narrative_technical_specificity_floor")
+            trigger_reasons.append(f"x2_narrative_technical_specificity_floor:{spec_res_pre.failure_reason or 'specificity'}")
     repair_reason = "+".join(trigger_reasons)
     receipt: dict[str, Any] = {
         "section_id": "ibm_narrative",
@@ -1050,6 +1075,12 @@ def apply_ibm_narrative_theme_overpack_repair(
                             forbid_repeated_metrics=True,
                         ).passed:
                             receipt["rejected_reason"] = "cosine_similarity_still_high"
+                        elif not check_narrative_seniority_floor(narrative_post).passed:
+                            receipt["rejected_reason"] = "seniority_floor_unsatisfied"
+                        elif not check_narrative_no_consulting_language(narrative_post).passed:
+                            receipt["rejected_reason"] = "consulting_language_present"
+                        elif not check_narrative_technical_specificity(narrative_post).passed:
+                            receipt["rejected_reason"] = "technical_specificity_unsatisfied"
                         else:
                             prior_log = (
                                 list(parsed.get("change_log") or [])
@@ -1176,14 +1207,25 @@ def apply_ibm_narrative_judge_feedback_rewrite(
         "accepted": False,
         "rejected_reason": None,
     }
+    model_backed_failures = [
+        j
+        for j in (x1d or [])
+        if not bool(j.get("pass"))
+        and not bool(j.get("provider_blocked"))
+        and not str(j.get("provider_status") or "").upper().startswith("BLOCKED_PROVIDER")
+    ]
     if (
         not isinstance(parsed, dict)
         or runtime_generation_status != "REAL_LLM"
         or judge_mode == "mocked"
         or not x1d
-        or all(bool(j.get("pass")) for j in x1d)
+        or not model_backed_failures
     ):
-        receipt["rejected_reason"] = "initial_judges_passed_or_not_real_llm"
+        receipt["rejected_reason"] = (
+            "initial_judges_passed_or_not_real_llm"
+            if (not x1d or all(bool(j.get("pass")) for j in x1d))
+            else "judge_provider_blocked_skip_content_rewrite"
+        )
         write_json(artifact_dir / "ibm_narrative_judge_rewrite_receipt.json", receipt)
         return raw_output, parsed, x1d, False
     from apps_rg.runtime.section_repair_ledger import KIND_REGEN_LLM, load_ledger, record_repair, set_authoritative_attempt

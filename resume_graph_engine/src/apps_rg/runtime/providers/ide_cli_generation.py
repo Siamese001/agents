@@ -22,6 +22,9 @@ from apps_rg.runtime.providers.agy_cli_transport import (
     AGY_CLI_ENV_VAR,
     AgyTransportError,
     ide_cli_ready,
+    is_agy_model_quota_cooled_down,
+    is_agy_quota_error,
+    mark_agy_model_quota_exhausted,
     run_agy,
 )
 from apps_rg.runtime.providers.provider_gateway import ProviderGatewayError
@@ -204,6 +207,41 @@ def _resolved_timeout_s(
     return DEFAULT_GENERATION_TIMEOUT_S
 
 
+def _step_generation_slug_for_effort(
+    base_slug: str,
+    effort: str | None,
+    *,
+    downgrade_high_effort: bool,
+    approved_models: tuple[str, ...],
+) -> tuple[str, str | None]:
+    from apps_rg.runtime.model_capabilities import try_model_capabilities
+
+    caps = try_model_capabilities(base_slug)
+    allowed_efforts = tuple((caps.reasoning_efforts or ()) if caps is not None else ())
+    eff_out = effort if (not caps or not effort or effort in allowed_efforts) else None
+    cli_slug = base_slug
+    if downgrade_high_effort and cli_slug.endswith("-high"):
+        cli_slug = cli_slug[:-5] + "-medium"
+    elif eff_out in {"low", "medium"} and cli_slug.endswith("-high"):
+        base_prefix = cli_slug[:-5]
+        stepped_slug = f"{base_prefix}-{eff_out}"
+        if stepped_slug in approved_models or any(m.startswith(base_prefix + "-") for m in approved_models):
+            cli_slug = stepped_slug
+    elif eff_out == "low" and cli_slug.endswith("-medium"):
+        base_prefix = cli_slug[:-7]
+        stepped_slug = f"{base_prefix}-low"
+        if stepped_slug in approved_models or any(m.startswith(base_prefix + "-") for m in approved_models):
+            cli_slug = stepped_slug
+    return cli_slug, eff_out
+
+
+def ide_cli_generation_quota_backups() -> tuple[str, ...]:
+    raw = _generation_cfg().get("quota_backup_models") or []
+    if not isinstance(raw, list):
+        return ()
+    return tuple(str(item).strip() for item in raw if str(item).strip())
+
+
 def call_ide_cli_generation(
     *,
     request: Mapping[str, Any],
@@ -218,22 +256,34 @@ def call_ide_cli_generation(
     requested_model = str(body.get("model") or request.get("model") or "").strip()
     if not requested_model:
         raise ProviderGatewayError("IDE CLI generation requires a non-empty model slug")
-    cli_slug = resolve_ide_cli_generation_slug(requested_model)
+    primary_base = resolve_ide_cli_generation_slug(requested_model)
     effort_raw = str(request.get("reasoning_effort") or "").strip().lower()
     effort = effort_raw if effort_raw in {"low", "medium", "high", "xhigh"} else None
     approved_models = ide_cli_generation_models()
-    if downgrade_high_effort and cli_slug.endswith("-high"):
-        cli_slug = cli_slug[:-5] + "-medium"
-    elif effort in {"low", "medium"} and cli_slug.endswith("-high"):
-        base_prefix = cli_slug[:-5]
-        stepped_slug = f"{base_prefix}-{effort}"
-        if stepped_slug in approved_models or any(m.startswith(base_prefix + "-") for m in approved_models):
-            cli_slug = stepped_slug
-    elif effort == "low" and cli_slug.endswith("-medium"):
-        base_prefix = cli_slug[:-7]
-        stepped_slug = f"{base_prefix}-low"
-        if stepped_slug in approved_models or any(m.startswith(base_prefix + "-") for m in approved_models):
-            cli_slug = stepped_slug
+    primary_slug, primary_eff = _step_generation_slug_for_effort(
+        primary_base,
+        effort,
+        downgrade_high_effort=downgrade_high_effort,
+        approved_models=approved_models,
+    )
+    candidates: list[tuple[str, str | None]] = [(primary_slug, primary_eff)]
+    for b_base in ide_cli_generation_quota_backups():
+        if b_base not in approved_models:
+            continue
+        b_slug, b_eff = _step_generation_slug_for_effort(
+            b_base,
+            effort,
+            downgrade_high_effort=downgrade_high_effort,
+            approved_models=approved_models,
+        )
+        if all(c[0] != b_slug for c in candidates):
+            candidates.append((b_slug, b_eff))
+    ordered_candidates = [
+        c for c in candidates if not is_agy_model_quota_cooled_down(c[0])
+    ] + [
+        c for c in candidates if is_agy_model_quota_cooled_down(c[0])
+    ]
+    cli_slug, active_eff = ordered_candidates[0]
     prompt = build_ide_cli_generation_prompt(
         system=body.get("system"),
         messages=body.get("messages"),
@@ -259,16 +309,27 @@ def call_ide_cli_generation(
             }
         )
 
-    try:
-        res = run_agy(
-            prompt,
-            model=cli_slug,
-            effort=effort,
-            timeout_s=effective_timeout,
-            agy_bin=resolved_bin,
-        )
-    except AgyTransportError as exc:
-        raise ProviderGatewayError(f"IDE CLI generation failed: {exc}") from exc
+    res = None
+    last_exc: AgyTransportError | None = None
+    for idx_c, (cand_slug, cand_eff) in enumerate(ordered_candidates):
+        try:
+            res = run_agy(
+                prompt,
+                model=cand_slug,
+                effort=cand_eff,
+                timeout_s=effective_timeout,
+                agy_bin=resolved_bin,
+            )
+            cli_slug = cand_slug
+            break
+        except AgyTransportError as exc:
+            last_exc = exc
+            if is_agy_quota_error(exc) and idx_c + 1 < len(ordered_candidates):
+                mark_agy_model_quota_exhausted(cand_slug, str(exc))
+                continue
+            break
+    if res is None:
+        raise ProviderGatewayError(f"IDE CLI generation failed: {last_exc}") from last_exc
 
     completed_after_s = round(time.monotonic() - t0, 4)
     text = _strip_outer_json_fence(str(res.response or ""))

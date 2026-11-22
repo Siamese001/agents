@@ -31,10 +31,20 @@ from typing import Any, Iterator
 
 AGY_CLI_ENV_VAR = "AGY_CLI_BIN"
 AGY_MAX_CONCURRENCY_ENV_VAR = "AGY_CLI_MAX_CONCURRENCY"
-DEFAULT_AGY_MAX_CONCURRENCY = 16
+DEFAULT_AGY_MAX_CONCURRENCY = 8
 _CONCURRENCY_LOCK = threading.Lock()
 _CONCURRENCY_LIMIT = DEFAULT_AGY_MAX_CONCURRENCY
 _CLI_CONCURRENCY_SEMAPHORE = threading.BoundedSemaphore(DEFAULT_AGY_MAX_CONCURRENCY)
+_QUOTA_LOCK = threading.Lock()
+_QUOTA_COOLDOWN_UNTIL: dict[str, float] = {}
+_QUOTA_ERROR_RE = re.compile(
+    r"(?:resource_exhausted|code\s*429|\b429\b|individual quota reached|rate[_\s-]*limit|quota[_\s-]*exceeded)",
+    re.IGNORECASE,
+)
+_QUOTA_RESET_RE = re.compile(
+    r"resets\s+in\s+(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?",
+    re.IGNORECASE,
+)
 
 
 def resolve_agy_max_concurrency(explicit: int | None = None) -> int:
@@ -86,6 +96,63 @@ NO_TOOLS_SETTINGS: dict[str, Any] = {
 
 class AgyTransportError(RuntimeError):
     """Raised for any violated guarantee; the message states which one."""
+
+
+class AgyQuotaExhaustedError(AgyTransportError):
+    """Raised when `agy` reports per-model 429 / RESOURCE_EXHAUSTED quota exhaustion."""
+
+
+def is_agy_quota_error(exc_or_msg: BaseException | str) -> bool:
+    """Return True when an exception or stderr/status message indicates 429 quota exhaustion."""
+    if isinstance(exc_or_msg, AgyQuotaExhaustedError):
+        return True
+    return bool(_QUOTA_ERROR_RE.search(str(exc_or_msg or "")))
+
+
+def _parse_quota_cooldown_seconds(detail: str, *, default_s: float = 120.0, max_s: float = 600.0) -> float:
+    m = _QUOTA_RESET_RE.search(str(detail or ""))
+    if m and any(m.groups()):
+        hours = int(m.group(1) or 0)
+        mins = int(m.group(2) or 0)
+        secs = int(m.group(3) or 0)
+        parsed = float(hours * 3600 + mins * 60 + secs)
+        if parsed > 0:
+            return min(max_s, max(30.0, parsed))
+    return default_s
+
+
+def mark_agy_model_quota_exhausted(model_slug: str, detail: str = "", *, ttl_s: float | None = None) -> float:
+    """Record an in-process cooldown deadline for an exhausted `agy` model slug."""
+    slug = str(model_slug or "").strip()
+    if not slug:
+        return 0.0
+    wait_s = float(ttl_s) if ttl_s is not None and ttl_s > 0 else _parse_quota_cooldown_seconds(detail)
+    until = time.monotonic() + wait_s
+    with _QUOTA_LOCK:
+        _QUOTA_COOLDOWN_UNTIL[slug] = max(_QUOTA_COOLDOWN_UNTIL.get(slug, 0.0), until)
+    return wait_s
+
+
+def is_agy_model_quota_cooled_down(model_slug: str) -> bool:
+    """Return True when `model_slug` is currently inside an active 429 cooldown window."""
+    slug = str(model_slug or "").strip()
+    if not slug:
+        return False
+    now = time.monotonic()
+    with _QUOTA_LOCK:
+        until = _QUOTA_COOLDOWN_UNTIL.get(slug)
+        if until is None:
+            return False
+        if now >= until:
+            _QUOTA_COOLDOWN_UNTIL.pop(slug, None)
+            return False
+        return True
+
+
+def clear_agy_quota_cooldowns() -> None:
+    """Reset in-process `agy` model quota cooldown state (primarily for unit tests)."""
+    with _QUOTA_LOCK:
+        _QUOTA_COOLDOWN_UNTIL.clear()
 
 
 @dataclass(frozen=True)
@@ -254,9 +321,20 @@ def run_agy(
     parsed = parse_stream(proc.stdout)
     res = parsed["result"]
     if proc.returncode != 0 or res is None:
-        raise AgyTransportError(f"agy exit={proc.returncode}, result={'missing' if res is None else res.get('status')}: {proc.stderr.strip()[:300]}")
+        err_msg = (
+            f"agy exit={proc.returncode}, result={'missing' if res is None else res.get('status')}: "
+            f"{proc.stderr.strip()[:300]}"
+        )
+        if is_agy_quota_error(err_msg) or is_agy_quota_error(proc.stderr):
+            mark_agy_model_quota_exhausted(model, proc.stderr or err_msg)
+            raise AgyQuotaExhaustedError(err_msg)
+        raise AgyTransportError(err_msg)
     if res.get("status") != "SUCCESS":
-        raise AgyTransportError(f"agy status={res.get('status')}: {str(res.get('error'))[:300]}")
+        err_msg = f"agy status={res.get('status')}: {str(res.get('error'))[:300]}"
+        if is_agy_quota_error(err_msg) or is_agy_quota_error(proc.stderr):
+            mark_agy_model_quota_exhausted(model, f"{err_msg} {proc.stderr}")
+            raise AgyQuotaExhaustedError(err_msg)
+        raise AgyTransportError(err_msg)
     if parsed["tool_calls"]:
         raise AgyTransportError(f"tool calls attempted despite deny-all settings: {parsed['tool_calls']}")
     if stray:

@@ -230,6 +230,22 @@ ide_cli_judging:
     anthropic: gemini-3.8-flash-medium
     openai: gemini-4-neon-medium
     google: gemini-3.8-flash-medium
+  quota_backup_second_judge_by_writer_maker:
+    anthropic:
+      - gpt-oss-120b-medium
+      - gemini-4-neon-medium
+    openai:
+      - gpt-oss-120b-medium
+      - gemini-3.8-flash-medium
+    google:
+      - gpt-oss-120b-medium
+  quota_backup_first_judge_by_tier:
+    enhanced:
+      - gemini-4-argon-medium
+      - gemini-4-neon-high
+    standard:
+      - gemini-4-neon-medium
+      - gemini-3.8-flash-high
 
 ide_cli_generation:
   transport: ide_cli
@@ -241,9 +257,15 @@ ide_cli_generation:
     - claude-sonnet-5-5-medium
     - gemini-4-neon-high
     - gemini-4-neon-medium
+    - gemini-3.8-flash-medium
+    - gpt-oss-120b-medium
   model_map:
     claude-sonnet-5-5-high: gemini-4-neon-medium
     claude-sonnet-5-5-medium: gemini-4-neon-medium
+  quota_backup_models:
+    - claude-sonnet-5-5-medium
+    - gemini-3.8-flash-medium
+    - gpt-oss-120b-medium
 
 judge_model_governance:
   owner: apps_rg.section_proof_judges
@@ -317,8 +339,8 @@ runtime_limits:
     timeout_seconds: 90
     total_budget_seconds: 150
   section_dispatch:
-    lane_timeout_seconds: 600
-    run_timeout_seconds: 1200
+    lane_timeout_seconds: 180
+    run_timeout_seconds: 480
   # W1 external-model spend guard.  This is a conservative reservation of
 
   # estimated input plus requested maximum output, not a truncation policy.
