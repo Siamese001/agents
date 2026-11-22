@@ -737,16 +737,19 @@ def repair_section_with_executive_voice_agent(
                         break
                     orig_cat: dict[str, Any] = {}
                     matched_idx: int | None = None
+                    matched_identity = False
                     for k in ("competency_bundle_id", "category_id"):
                         v = str(rep_cat.get(k) or "").strip()
                         if v and v in by_bundle_id and by_bundle_id[v][0] not in used_orig_indices:
                             matched_idx, orig_cat = by_bundle_id[v]
+                            matched_identity = True
                             break
                     if not orig_cat:
                         for k in ("category_label", "category", "resume_display_label"):
                             nl = _norm_label(rep_cat.get(k))
                             if nl and nl in by_label and by_label[nl][0] not in used_orig_indices:
                                 matched_idx, orig_cat = by_label[nl]
+                                matched_identity = True
                                 break
                     if not orig_cat and idx_c < len(orig_dicts) and idx_c not in used_orig_indices:
                         matched_idx = idx_c
@@ -765,11 +768,12 @@ def repair_section_with_executive_voice_agent(
                         .replace("—", ":")
                         .strip()
                     )
-                    new_skills = [
-                        str(s.get("term") or s.get("text") if isinstance(s, dict) else s).replace("—", ":").strip()
-                        for s in (rep_cat.get("skills") or rep_cat.get("terms") or [])
-                        if str(s.get("term") or s.get("text") if isinstance(s, dict) else s).strip()
-                    ]
+                    parsed_skills: list[tuple[str, dict[str, Any] | None]] = []
+                    for s in (rep_cat.get("skills") or rep_cat.get("terms") or []):
+                        raw_txt = (s.get("term") or s.get("text") or "") if isinstance(s, dict) else s
+                        cleaned_txt = str(raw_txt or "").replace("—", ":").strip()
+                        if cleaned_txt:
+                            parsed_skills.append((cleaned_txt, s if isinstance(s, dict) else None))
                     orig_terms = [t for t in (orig_cat.get("terms") or []) if isinstance(t, dict)]
 
                     rep_cat_fact_ids = [
@@ -789,27 +793,44 @@ def repair_section_with_executive_voice_agent(
                             orig_cat_fact_ids.append(sf)
 
                     cat_fact_ids = rep_cat_fact_ids or orig_cat_fact_ids or list(fallback_fact_pool[:2])
-                    if not cat_label or not new_skills or not cat_fact_ids:
+                    if not cat_label or not parsed_skills or not cat_fact_ids:
                         merged_comps = []
                         break
 
                     rebuilt_terms: list[dict[str, Any]] = []
-                    for idx_t, skill_str in enumerate(new_skills[:4]):
-                        template_t = dict(orig_terms[idx_t]) if idx_t < len(orig_terms) else {}
+                    for idx_t, (skill_str, rep_term_dict) in enumerate(parsed_skills[:4]):
+                        template_t = dict(orig_terms[idx_t]) if (matched_identity and idx_t < len(orig_terms)) else {}
                         template_t["term"] = skill_str
                         template_t["text"] = skill_str
-                        t_sids = [
-                            str(fid).strip()
-                            for fid in (template_t.get("source_fact_ids") or [])
-                            if str(fid).strip()
-                        ]
-                        if not t_sids:
-                            t_sids = list(cat_fact_ids[:2])
+                        rep_t_sids: list[str] = []
+                        if rep_term_dict is not None:
+                            raw_t_sids = list(rep_term_dict.get("source_fact_ids") or [])
+                            if rep_term_dict.get("source_fact_id"):
+                                raw_t_sids = [rep_term_dict.get("source_fact_id"), *raw_t_sids]
+                            for fid in raw_t_sids:
+                                sf = str(fid or "").strip()
+                                if sf and (not allowed_ids_set or sf in allowed_ids_set) and sf not in rep_t_sids:
+                                    rep_t_sids.append(sf)
+                        if rep_t_sids:
+                            t_sids = rep_t_sids
+                        else:
+                            t_sids = [
+                                str(fid).strip()
+                                for fid in (template_t.get("source_fact_ids") or [])
+                                if str(fid).strip()
+                            ]
+                            if not t_sids:
+                                t_sids = list(cat_fact_ids[:2])
                         template_t["source_fact_ids"] = t_sids
                         template_t["source_fact_id"] = t_sids[0]
                         rebuilt_terms.append(template_t)
 
-                    updated_cat = dict(orig_cat) if orig_cat else {}
+                    updated_cat = dict(orig_cat) if (orig_cat and matched_identity) else {}
+                    if not matched_identity:
+                        for id_key in ("competency_bundle_id", "category_id"):
+                            id_val = str(rep_cat.get(id_key) or "").strip()
+                            if id_val:
+                                updated_cat[id_key] = id_val
                     updated_cat["category"] = cat_label
                     updated_cat["category_label"] = cat_label
                     if "resume_display_label" in updated_cat:

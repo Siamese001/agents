@@ -1003,8 +1003,8 @@ def test_unify_narrative_line979_runs_x1d_rewrite_after_pre_judge_rewrite_and_pr
     assert out_parsed is not None and out_parsed["narrative_sentence"] == pre_rw_narr
     assert out_x1d[0]["score"] == 3.7
     receipt = json.loads((tmp_path / "unify_narrative_judge_rewrite_receipt.json").read_text(encoding="utf-8"))
-    assert receipt["pre_judge_rewrite"]["attempted"] is True
-    assert receipt["pre_judge_rewrite"]["accepted"] is True
+    assert receipt["pre_judge_rewrite"]["attempted"] is True, receipt["pre_judge_rewrite"]
+    assert receipt["pre_judge_rewrite"]["accepted"] is True, receipt["pre_judge_rewrite"]
     assert receipt["judge_feedback_rewrite"]["attempted"] is True
     assert receipt["judge_feedback_rewrite"]["accepted"] is False
     assert receipt["judge_feedback_rewrite"]["rejected_reason"] == "rejudge_not_improved"
@@ -1315,7 +1315,13 @@ def test_competencies_lane_x2_before_x1d_and_revert_on_worse(
             None,
         ),
     )
-    monkeypatch.setattr("apps_rg.runtime.sections.upstream_evidence_block.wire_spine_c0_fec_or_block", lambda **_k: None)
+    def _fake_wire_fec(**kw: Any) -> None:
+        rp = kw.get("runtime_payload")
+        if isinstance(rp, dict):
+            rp["canonical_evidence_set_digest"] = "dig_1"
+            rp["fec_allowed_fact_ids_digest"] = "dig_1"
+
+    monkeypatch.setattr("apps_rg.runtime.sections.upstream_evidence_block.wire_spine_c0_fec_or_block", _fake_wire_fec)
     monkeypatch.setattr(cle, "compile_competencies_prompt", lambda *_a, **_k: SimpleNamespace(
         section_id="competencies",
         apps_rg_prompt_template_ref="ref",
@@ -1494,7 +1500,13 @@ def test_ibm_narrative_lane_x2_before_x1d_skips_judges(
     monkeypatch.setattr("apps_rg.runtime.c0.section_proof_loader.apply_proof_pool_to_usage_ledger", lambda doc, _p: doc)
     monkeypatch.setattr(ine, "load_companion_ibm_bullets_context", lambda: {"status": "FINALIZED", "text": "- bul_ibm_001: Led cloud modernization."})
     monkeypatch.setattr(ine, "resolve_effective_lane_l2_path", lambda *_a, **_k: None)
-    monkeypatch.setattr("apps_rg.runtime.sections.upstream_evidence_block.wire_spine_c0_fec_or_block", lambda **_k: None)
+    def _fake_wire_fec(**kw: Any) -> None:
+        rp = kw.get("runtime_payload")
+        if isinstance(rp, dict):
+            rp["canonical_evidence_set_digest"] = "dig_1"
+            rp["fec_allowed_fact_ids_digest"] = "dig_1"
+
+    monkeypatch.setattr("apps_rg.runtime.sections.upstream_evidence_block.wire_spine_c0_fec_or_block", _fake_wire_fec)
     monkeypatch.setattr(ine, "compile_ibm_narrative_prompt", lambda *_a, **_k: SimpleNamespace(
         section_id="ibm_narrative",
         apps_rg_prompt_template_ref="ref",
@@ -1550,5 +1562,943 @@ def test_ibm_narrative_lane_x2_before_x1d_skips_judges(
     assert judge_calls == []
     ibm_x1d = json.loads((tmp_path / "x1d_llm_judge_outputs.json").read_text(encoding="utf-8"))["judges"]
     assert ibm_x1d[0]["evaluator_mode"] == "BLOCKED_PRE_JUDGE_GATE"
+
+
+def test_unify_narrative_full_execution_invokes_judges_after_pre_judge_rewrite_fixes_ibm_leakage(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Finding 1: full run_unify_narrative_execution invokes judges once pre_judge_rewrite fixes Attempt-1 IBM leakage."""
+    from apps_rg.runtime.c0 import section_proof_loader as spl
+    from apps_rg.runtime.sections import unify_narrative_lane as unl
+
+    facts = [
+        {
+            "fact_id": "bul_unify_001",
+            "claim_text": (
+                "Drove the platform roadmap, core architecture, and commercialization of a production-grade "
+                "agentic AI Solution Accelerator at Unify Consulting, serving Fortune 500 financial institutions "
+                "with reusable intellectual property and governed runtime controls."
+            ),
+        }
+    ]
+    base = {
+        "candidate_name": "Candidate",
+        "facts": {
+            "employment": [
+                {
+                    "employer": "Unify Consulting",
+                    "title": "Partner",
+                    "start_date": "2023",
+                    "end_date": "Present",
+                    "bullets": [{"bullet_id": "bul_unify_001", "text": facts[0]["claim_text"]}],
+                }
+            ]
+        },
+    }
+    _fake_pool = _make_fake_pool("unify_narrative", facts, {"bul_unify_001"})
+    _fake_pool.proof_pool_digest = ""
+    _fake_pool.proof_pool_ref = ""
+    monkeypatch.setattr(
+        spl,
+        "load_section_proof_for_lane",
+        lambda **_k: (_fake_pool, base, tmp_path / "base.json", "bh", None),
+    )
+    monkeypatch.setattr(unl, "rel_posix", lambda *_a, **_k: "artifacts/test/unify_narr")
+    monkeypatch.setattr("apps_rg.runtime.c0.section_proof_loader.apply_proof_pool_to_usage_ledger", lambda doc, _p: doc)
+    monkeypatch.setattr(
+        unl,
+        "load_companion_unify_bullets_context",
+        lambda: {
+            "status": "ACCEPTED_FINALIZED",
+            "x3_code": "X3_ALLOW",
+            "product_quality_status": "PASS",
+            "bullet_ids": ["bul_unify_001"],
+            "text": "- bul_unify_001: Scaled client delivery metrics across cloud operations.",
+        },
+    )
+    monkeypatch.setattr(unl, "resolve_effective_lane_l2_path", lambda *_a, **_k: None)
+    def _fake_wire_fec(**kw: Any) -> None:
+        rp = kw.get("runtime_payload")
+        if isinstance(rp, dict):
+            rp["canonical_evidence_set_digest"] = "dig_1"
+            rp["fec_allowed_fact_ids_digest"] = "dig_1"
+
+    monkeypatch.setattr("apps_rg.runtime.sections.upstream_evidence_block.wire_spine_c0_fec_or_block", _fake_wire_fec)
+    monkeypatch.setattr(
+        unl,
+        "compile_unify_narrative_prompt",
+        lambda *_a, **_k: SimpleNamespace(
+            section_id="unify_narrative",
+            apps_rg_prompt_template_ref="ref",
+            artifact=SimpleNamespace(template_id="tpl", prompt_hash="ph", slot_count=1, messages=[{"role": "user", "content": "u"}]),
+        ),
+    )
+    monkeypatch.setattr("apps_rg.runtime.section_l2_lane_integration.prepare_section_l2_before_provider", lambda *_a, **_k: None)
+    monkeypatch.setattr("apps_rg.runtime.section_l2_lane_integration.finalize_section_l2_after_output", lambda *_a, **_k: None)
+    monkeypatch.setattr("apps_rg.runtime.section_runtime_exhaust_lane_integration.finalize_section_runtime_exhaust_before_l6", lambda *_a, **_k: None)
+    monkeypatch.setattr("apps_rg.runtime.section_runtime_exhaust_lane_integration.gate_section_l6_shadow_after_exhaust", lambda *_a, **_k: None)
+    monkeypatch.setattr("apps_rg.runtime.spine.exit_lane_hooks.finalize_section_exit_after_l2", lambda *_a, **_k: None)
+    monkeypatch.setattr(unl, "finalize_runtime_proof_run", lambda *_a, **_k: None)
+
+    full_ja = {
+        "targeting_only": True,
+        "jd_used_as_proof": False,
+        "briefing_used_as_proof": False,
+        "selected_jd_themes": ["agentic AI platform leadership", "runtime governance"],
+        "selected_briefing_themes": ["LLMOps reliability", "retrieval rigor"],
+        "targeting_rationale": "Emphasize roadmap, architecture, and commercialization.",
+    }
+    bad_narr = (
+        "Architected IBM Watson migrations and generative AI Solution Accelerator roadmap at Unify Consulting."
+    )
+    bad_raw = json.dumps(
+        {
+            "narrative_sentence": bad_narr,
+            "claim_ledger": [{"claim_text": bad_narr, "source_fact_ids": ["bul_ibm_001"]}],
+            "jd_alignment": full_ja,
+        }
+    )
+    clean_narr = (
+        "Drove the platform roadmap, core architecture, and commercialization of a production-grade agentic AI "
+        "Solution Accelerator at Unify Consulting, serving Fortune 500 financial institutions and converting bespoke "
+        "programs into reusable intellectual property with governed runtime controls."
+    )
+    clean_raw = json.dumps(
+        {
+            "narrative_sentence": clean_narr,
+            "claim_ledger": [{"claim_text": clean_narr, "source_fact_ids": ["bul_unify_001"]}],
+            "jd_alignment": full_ja,
+        }
+    )
+    responses = iter([bad_raw, clean_raw])
+    monkeypatch.setattr(
+        "apps_rg.runtime.providers.section_provider_call.call_section_model_provider",
+        lambda *_a, **_k: ProviderResult(
+            provider_requested="external_claude",
+            provider_attempted=True,
+            provider_available=True,
+            exact_provider_error=None,
+            runtime_generation_status="REAL_LLM",
+            model="claude-sonnet-5-5-medium",
+            raw_model_output=next(responses),
+            provider_response={},
+        ),
+    )
+
+    judge_calls: list[dict[str, Any]] = []
+
+    def _fake_unify_judges(**kw: Any) -> list[JudgeOutput]:
+        judge_calls.append(kw)
+        return [
+            JudgeOutput(
+                judge_id=f"x1d_{jk}_unify_narrative",
+                provider_name=jk,
+                provider_key=jk,
+                evaluator_mode="MODEL_BACKED",
+                provider_status="MODEL_BACKED_PASS",
+                model_name="gemini-4-argon-medium",
+                provider_available=True,
+                provider_blocked=False,
+                exact_provider_error=None,
+                score=4.8,
+                normalized_score=0.96,
+                threshold=4.0,
+                normalized_threshold=0.8,
+                pass_=True,
+                findings=[],
+            )
+            for jk in (kw.get("judge_keys") or ["gemini_pro"])
+        ]
+
+    monkeypatch.setattr(unl, "run_unify_narrative_judges", _fake_unify_judges)
+
+    unl.run_unify_narrative_execution(
+        SimpleNamespace(
+            provider="external_openai",
+            temperature=0.35,
+            target_title="SVP",
+            target_company="Truist",
+            jd_text="JD",
+            briefing="Brief",
+            base_resume="",
+            mock_judges=False,
+            allow_non_allow_exit_zero=False,
+            allow_test_mock_judges=False,
+            allow_test_mock_provider=False,
+            x1d_judges="gemini_pro",
+        ),
+        artifact_dir_override=tmp_path,
+    )
+    receipt = json.loads((tmp_path / "unify_narrative_judge_rewrite_receipt.json").read_text(encoding="utf-8"))
+    assert receipt["pre_judge_rewrite"]["attempted"] is True, receipt["pre_judge_rewrite"]
+    assert receipt["pre_judge_rewrite"]["accepted"] is True, receipt["pre_judge_rewrite"]
+    assert len(judge_calls) >= 1
+    assert judge_calls[0]["narrative_sentence"] == clean_narr
+    x1d_rows = json.loads((tmp_path / "x1d_llm_judge_outputs.json").read_text(encoding="utf-8"))["judges"]
+    assert all(j["evaluator_mode"] == "MODEL_BACKED" for j in x1d_rows)
+
+
+def test_competencies_and_headline_real_llm_prose_integrity_verbatim(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Finding 2: allow_prose_mutation=False / REAL_LLM preserves competencies terms and headline verbatim."""
+    from apps_rg.runtime.c0 import section_proof_loader as spl
+    from apps_rg.runtime.judges import competencies_x1d as comp_x1d_mod
+    from apps_rg.runtime.sections import ExecutiveVoiceRepairAgent as ev_mod
+    from apps_rg.runtime.sections import competencies_lane_execution as cle
+    from apps_rg.runtime.sections import headline_lane
+    from apps_rg.runtime.sections.competencies_capability_projection import finalize_competencies_v3_output
+
+    # 1. finalize_competencies_v3_output(allow_prose_mutation=False) preserves repeated/1-word/metric terms verbatim
+    v3_input = {
+        "categories": [
+            {
+                "category_id": "ai_platform_leadership",
+                "category_label": "AI Platform Leadership",
+                "terms": [
+                    {"term": "Agentic orchestration runtime", "source_fact_ids": ["bul_unify_001"]},
+                    {"term": "Agentic policy enforcement", "source_fact_ids": ["bul_unify_001"]},
+                    {"term": "Cataloging", "source_fact_ids": ["bul_unify_001"]},
+                ],
+            },
+            {
+                "category_id": "tech_strategy_innovation",
+                "category_label": "Technology Strategy & Innovation",
+                "terms": [
+                    {"term": "Agentic retrieval routing", "source_fact_ids": ["bul_unify_001"]},
+                    {"term": "Agentic safety gates", "source_fact_ids": ["bul_unify_001"]},
+                    {"term": "$10M revenue scaling", "source_fact_ids": ["bul_unify_001"]},
+                ],
+            },
+        ],
+        "competencies": [],
+        "claim_ledger": [],
+        "jd_alignment": {"targeting_only": True, "jd_used_as_proof": False, "briefing_used_as_proof": False},
+        "change_log": [],
+    }
+    v3_out = finalize_competencies_v3_output(
+        json.loads(json.dumps(v3_input)),
+        allowed_fact_ids={"bul_unify_001"},
+        resume_support_blob_lower="unrelated blob",
+        allow_prose_mutation=False,
+    )
+    out_terms = [t["term"] for c in v3_out["categories"] for t in c["terms"]]
+    assert sorted(out_terms) == sorted(
+        [
+            "Agentic orchestration runtime",
+            "Agentic policy enforcement",
+            "Cataloging",
+            "Agentic retrieval routing",
+            "Agentic safety gates",
+            "$10M revenue scaling",
+        ]
+    )
+    ops = {e.get("operation") for e in (v3_out.get("change_log") or []) if isinstance(e, dict)}
+    assert "swap_keyword_repeat_for_safe_backfill" not in ops
+    assert "prune_rigor_failing_competency_terms" not in ops
+
+    # 2. run_competencies_lane_execution on REAL_LLM preserves ungrounded/1-word/4x repeated terms verbatim
+    cle._ensure_helpers_hydrated()
+    facts = [
+        {"fact_id": f"bul_unify_00{i}", "claim_text": f"Delivered Kubernetes enterprise platform work {i}.", "technologies": ["Kubernetes", "LangGraph"]}
+        for i in range(1, 7)
+    ]
+    monkeypatch.setattr(
+        spl,
+        "load_section_proof_for_lane",
+        lambda **_k: (
+            _make_fake_pool("competencies", facts, {f"bul_unify_00{i}" for i in range(1, 7)}),
+            {"candidate_name": "Candidate", "facts": {"employment": [{"employer": "Unify Consulting", "title": "Partner", "bullets": [{"bullet_id": f"bul_unify_00{i}", "text": facts[i - 1]["claim_text"]} for i in range(1, 7)]}]}},
+            tmp_path / "base.json",
+            "bh",
+            None,
+        ),
+    )
+    monkeypatch.setattr(cle, "rel_posix", lambda *_a, **_k: "artifacts/test/comp_verbatim")
+    monkeypatch.setattr("apps_rg.runtime.c0.section_proof_loader.apply_proof_pool_to_usage_ledger", lambda doc, _p: doc)
+    monkeypatch.setattr(cle, "load_companion_context", lambda *_a, **_k: "")
+    def _fake_wire_fec(**kw: Any) -> None:
+        rp = kw.get("runtime_payload")
+        if isinstance(rp, dict):
+            rp["canonical_evidence_set_digest"] = "dig_1"
+            rp["fec_allowed_fact_ids_digest"] = "dig_1"
+
+    monkeypatch.setattr("apps_rg.runtime.sections.upstream_evidence_block.wire_spine_c0_fec_or_block", _fake_wire_fec)
+    monkeypatch.setattr(
+        cle,
+        "compile_competencies_prompt",
+        lambda *_a, **_k: SimpleNamespace(
+            section_id="competencies",
+            apps_rg_prompt_template_ref="ref",
+            artifact=SimpleNamespace(template_id="tpl", prompt_hash="ph", slot_count=1, messages=[{"role": "user", "content": "u"}]),
+        ),
+    )
+    monkeypatch.setattr(cle, "competencies_provider_preflight_disabled", lambda: True)
+    monkeypatch.setattr("apps_rg.runtime.section_l2_lane_integration.prepare_section_l2_before_provider", lambda *_a, **_k: None)
+    monkeypatch.setattr("apps_rg.runtime.section_l2_lane_integration.finalize_section_l2_after_output", lambda *_a, **_k: None)
+    monkeypatch.setattr("apps_rg.runtime.section_runtime_exhaust_lane_integration.finalize_section_runtime_exhaust_before_l6", lambda *_a, **_k: None)
+    monkeypatch.setattr("apps_rg.runtime.section_runtime_exhaust_lane_integration.gate_section_l6_shadow_after_exhaust", lambda *_a, **_k: None)
+    monkeypatch.setattr("apps_rg.runtime.spine.exit_lane_hooks.finalize_section_exit_after_l2", lambda *_a, **_k: None)
+    monkeypatch.setattr(cle, "finalize_runtime_proof_run", lambda *_a, **_k: None)
+
+    raw_comps = [
+        {
+            "category_id": "ai_platform_leadership",
+            "category_label": "AI Platform Leadership",
+            "source_fact_ids": ["bul_unify_001"],
+            "terms": [
+                {"term": "Agentic orchestration runtime", "source_fact_id": "bul_unify_001", "source_fact_ids": ["bul_unify_001"]},
+                {"term": "Budget optimization", "source_fact_id": "bul_unify_002", "source_fact_ids": ["bul_unify_002"]},
+                {"term": "Cataloging", "source_fact_id": "bul_unify_003", "source_fact_ids": ["bul_unify_003"]},
+            ],
+        },
+        {
+            "category_id": "tech_strategy_innovation",
+            "category_label": "Technology Strategy & Innovation",
+            "source_fact_ids": ["bul_unify_004"],
+            "terms": [
+                {"term": "Agentic retrieval routing", "source_fact_id": "bul_unify_004", "source_fact_ids": ["bul_unify_004"]},
+                {"term": "Agentic safety gates", "source_fact_id": "bul_unify_005", "source_fact_ids": ["bul_unify_005"]},
+                {"term": "Agentic policy controls", "source_fact_id": "bul_unify_006", "source_fact_ids": ["bul_unify_006"]},
+            ],
+        },
+    ]
+    monkeypatch.setattr(
+        "apps_rg.runtime.reasoning.bullet_lane_generation.generate_bullet_lane_with_sc_and_claude",
+        lambda **_k: (
+            ProviderResult(
+                provider_requested="external_claude",
+                provider_attempted=True,
+                provider_available=True,
+                exact_provider_error=None,
+                runtime_generation_status="REAL_LLM",
+                model="claude-sonnet-5-5-medium",
+                raw_model_output=json.dumps({"categories": raw_comps, "competencies": raw_comps}),
+                provider_response={},
+            ),
+            json.dumps({"categories": raw_comps, "competencies": raw_comps}),
+            {"categories": raw_comps, "competencies": raw_comps, "claim_ledger": [{"claim_text": "Agentic orchestration runtime", "source_fact_ids": ["bul_unify_001"]}]},
+            "",
+            {"selection_mode": "sc"},
+        ),
+    )
+    monkeypatch.setattr(comp_x1d_mod, "run_competencies_judges", lambda **_k: [])
+    monkeypatch.setattr(ev_mod, "repair_section_with_executive_voice_agent", lambda **_k: ({}, SimpleNamespace(repair_attempted=False, repair_succeeded=False)))
+
+    comp_dir = tmp_path / "comp_verbatim"
+    comp_dir.mkdir()
+    cle.run_competencies_lane_execution(
+        SimpleNamespace(
+            provider="external_claude",
+            temperature=0.35,
+            target_title="Head of AI",
+            target_company="Truist",
+            jd_text="JD",
+            briefing="Brief",
+            base_resume="",
+            mock_judges=False,
+            allow_non_allow_exit_zero=False,
+            allow_test_mock_judges=False,
+            allow_test_mock_provider=False,
+            x1d_judges="",
+        ),
+        artifact_dir_override=comp_dir,
+        print_output=False,
+    )
+    emitted_comps = json.loads((comp_dir / "competencies_output.json").read_text(encoding="utf-8"))
+    emitted_terms = [t["term"] for c in emitted_comps for t in c["terms"]]
+    assert sorted(emitted_terms) == sorted(
+        [
+            "Agentic orchestration runtime",
+            "Budget optimization",
+            "Cataloging",
+            "Agentic retrieval routing",
+            "Agentic safety gates",
+            "Agentic policy controls",
+        ]
+    )
+
+    # 3. headline_lane.normalize_parsed_output(..., allow_prose_mutation=False) preserves headline verbatim
+    raw_hl = "SVP Engineering | Governed Runtime Spine | Alliance Co-Sell | Enterprise Partner Enablement"
+    hl_out = headline_lane.normalize_parsed_output(
+        {
+            "headline_line": raw_hl,
+            "claim_ledger": [
+                {"claim_text": "Governed Runtime Spine", "source_fact_ids": ["bul_unify_001"]},
+                {"claim_text": "Alliance Co-Sell", "source_fact_ids": ["bul_unify_002"]},
+                {"claim_text": "Enterprise Partner Enablement", "source_fact_ids": ["bul_unify_003"]},
+            ],
+            "jd_alignment": {"targeting_only": True, "jd_used_as_proof": False, "briefing_used_as_proof": False},
+        },
+        {"selected_fact_plan": {"section_id": "headline", "facts": []}},
+        {"bul_unify_001", "bul_unify_002", "bul_unify_003"},
+        raw_hl,
+        allow_prose_mutation=False,
+    )
+    assert hl_out is not None
+    assert hl_out["headline_line"] == raw_hl
+
+
+def test_blocked_pre_judge_gate_emits_all_required_providers_when_x1d_judges_empty(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Finding 3: empty args.x1d_judges still emits all required providers on BLOCKED_PRE_JUDGE_GATE."""
+    from apps_rg.runtime.c0 import section_proof_loader as spl
+    from apps_rg.runtime.judges import competencies_x1d as comp_x1d_mod
+    from apps_rg.runtime.section_judge_policy import get_section_judge_policy
+    from apps_rg.runtime.sections import ExecutiveVoiceRepairAgent as ev_mod
+    from apps_rg.runtime.sections import competencies_lane_execution as cle
+    from apps_rg.runtime.sections import ibm_narrative_lane_execution as ine
+    from apps_rg.runtime.validators.exec_summary_x2.ledger_judge_checks import check_judge_rows_present
+
+    # ibm_narrative with x1d_judges=""
+    ine._ensure_helpers_hydrated()
+    ibm_facts = [{"fact_id": "bul_ibm_001", "claim_text": "Led cloud modernization at IBM."}]
+    monkeypatch.setattr(
+        spl,
+        "load_section_proof_for_lane",
+        lambda **_k: (
+            _make_fake_pool("ibm_narrative", ibm_facts, {"bul_ibm_001"}),
+            {"candidate_name": "Candidate", "facts": {"employment": [{"employer": "IBM", "title": "Partner", "bullets": [{"bullet_id": "bul_ibm_001", "text": "Led cloud modernization."}]}]}},
+            tmp_path / "base.json",
+            "bh",
+            None,
+        ),
+    )
+    monkeypatch.setattr(ine, "rel_posix", lambda *_a, **_k: "artifacts/test/ibm_empty_judges")
+    monkeypatch.setattr("apps_rg.runtime.c0.section_proof_loader.apply_proof_pool_to_usage_ledger", lambda doc, _p: doc)
+    monkeypatch.setattr(ine, "load_companion_ibm_bullets_context", lambda: {"status": "FINALIZED", "text": "- bul_ibm_001: Led cloud modernization."})
+    monkeypatch.setattr(ine, "resolve_effective_lane_l2_path", lambda *_a, **_k: None)
+    def _fake_wire_fec(**kw: Any) -> None:
+        rp = kw.get("runtime_payload")
+        if isinstance(rp, dict):
+            rp["canonical_evidence_set_digest"] = "dig_1"
+            rp["fec_allowed_fact_ids_digest"] = "dig_1"
+
+    monkeypatch.setattr("apps_rg.runtime.sections.upstream_evidence_block.wire_spine_c0_fec_or_block", _fake_wire_fec)
+    monkeypatch.setattr(
+        ine,
+        "compile_ibm_narrative_prompt",
+        lambda *_a, **_k: SimpleNamespace(
+            section_id="ibm_narrative",
+            apps_rg_prompt_template_ref="ref",
+            artifact=SimpleNamespace(template_id="tpl", prompt_hash="ph", slot_count=1, messages=[{"role": "user", "content": "u"}]),
+        ),
+    )
+    monkeypatch.setattr(ine, "run_ibm_narrative_judge_credentials_preflight", lambda *_a, **_k: {"preflight_blocked": False})
+    monkeypatch.setattr("apps_rg.runtime.section_l2_lane_integration.prepare_section_l2_before_provider", lambda *_a, **_k: None)
+    monkeypatch.setattr("apps_rg.runtime.section_l2_lane_integration.finalize_section_l2_after_output", lambda *_a, **_k: None)
+    monkeypatch.setattr("apps_rg.runtime.section_runtime_exhaust_lane_integration.finalize_section_runtime_exhaust_before_l6", lambda *_a, **_k: None)
+    monkeypatch.setattr("apps_rg.runtime.section_runtime_exhaust_lane_integration.gate_section_l6_shadow_after_exhaust", lambda *_a, **_k: None)
+    monkeypatch.setattr("apps_rg.runtime.spine.exit_lane_hooks.finalize_section_exit_after_l2", lambda *_a, **_k: None)
+    monkeypatch.setattr(ine, "finalize_runtime_proof_run", lambda *_a, **_k: None)
+    monkeypatch.setattr(
+        "apps_rg.runtime.providers.section_provider_call.call_section_model_provider",
+        lambda *_a, **_k: ProviderResult(
+            provider_requested="external_openai",
+            provider_attempted=True,
+            provider_available=True,
+            exact_provider_error=None,
+            runtime_generation_status="REAL_LLM",
+            model="gpt-4o",
+            raw_model_output='{"narrative_sentence":"Directed IBM cloud delivery, establishing lineage.","claim_ledger":[{"claim_text":"Directed IBM cloud delivery","source_fact_ids":["bul_ibm_001"]}]}',
+            provider_response={},
+        ),
+    )
+    monkeypatch.setattr(ine, "apply_ibm_narrative_theme_overpack_repair", lambda **kw: (kw["raw_output"], kw["parsed"], False))
+    monkeypatch.setattr(
+        ine,
+        "run_ibm_narrative_x2_gates",
+        lambda **_k: [SimpleNamespace(to_dict=lambda: {"gate_id": "x2_ibm_narr_fail", "pass": False})],
+    )
+    monkeypatch.setattr(ine, "run_ibm_narrative_judges", lambda **_k: [])
+
+    ibm_dir = tmp_path / "ibm_empty"
+    ibm_dir.mkdir()
+    ine.run_ibm_narrative_lane_execution(
+        SimpleNamespace(
+            provider="external_openai",
+            temperature=0.35,
+            target_title="SVP",
+            target_company="Truist",
+            jd_text="JD",
+            briefing="Brief",
+            base_resume="",
+            mock_judges=False,
+            allow_non_allow_exit_zero=False,
+            allow_test_mock_judges=False,
+            allow_test_mock_provider=False,
+            x1d_judges="",
+        ),
+        artifact_dir_override=ibm_dir,
+        print_output=False,
+    )
+    ibm_x1d = json.loads((ibm_dir / "x1d_llm_judge_outputs.json").read_text(encoding="utf-8"))["judges"]
+    ibm_req = list(get_section_judge_policy("ibm_narrative").required_judge_providers)
+    assert check_judge_rows_present(ibm_x1d, required_providers=ibm_req)[0] is True
+
+    # competencies with x1d_judges=""
+    cle._ensure_helpers_hydrated()
+    comp_facts = [{"fact_id": "bul_unify_001", "claim_text": "Delivered governed platform."}]
+    monkeypatch.setattr(
+        spl,
+        "load_section_proof_for_lane",
+        lambda **_k: (
+            _make_fake_pool("competencies", comp_facts, {"bul_unify_001"}),
+            {"candidate_name": "Candidate", "facts": {"employment": [{"employer": "Unify Consulting", "title": "Partner", "bullets": [{"bullet_id": "bul_unify_001", "text": "Delivered governed platform."}]}]}},
+            tmp_path / "base.json",
+            "bh",
+            None,
+        ),
+    )
+    monkeypatch.setattr(cle, "rel_posix", lambda *_a, **_k: "artifacts/test/comp_empty_judges")
+    monkeypatch.setattr(cle, "load_companion_context", lambda *_a, **_k: "")
+    monkeypatch.setattr(
+        cle,
+        "compile_competencies_prompt",
+        lambda *_a, **_k: SimpleNamespace(
+            section_id="competencies",
+            apps_rg_prompt_template_ref="ref",
+            artifact=SimpleNamespace(template_id="tpl", prompt_hash="ph", slot_count=1, messages=[{"role": "user", "content": "u"}]),
+        ),
+    )
+    monkeypatch.setattr(cle, "competencies_provider_preflight_disabled", lambda: True)
+    monkeypatch.setattr(cle, "finalize_runtime_proof_run", lambda *_a, **_k: None)
+    base_comps = [{"category_label": f"Cat {i}", "source_fact_ids": ["bul_unify_001"], "terms": [{"term": f"Platform Architecture {i}", "text": f"Platform Architecture {i}", "source_fact_id": "bul_unify_001", "source_fact_ids": ["bul_unify_001"]}]} for i in range(1, 7)]
+    monkeypatch.setattr(
+        "apps_rg.runtime.reasoning.bullet_lane_generation.generate_bullet_lane_with_sc_and_claude",
+        lambda **_k: (
+            ProviderResult(
+                provider_requested="external_claude",
+                provider_attempted=True,
+                provider_available=True,
+                exact_provider_error=None,
+                runtime_generation_status="REAL_LLM",
+                model="claude-sonnet-5-5-medium",
+                raw_model_output=json.dumps({"competencies": base_comps}),
+                provider_response={},
+            ),
+            json.dumps({"competencies": base_comps}),
+            {"competencies": base_comps, "claim_ledger": [{"claim_text": "Platform Architecture 1", "source_fact_ids": ["bul_unify_001"]}]},
+            "",
+            {"selection_mode": "sc"},
+        ),
+    )
+    monkeypatch.setattr(cle, "run_competencies_x2_gates", lambda **_k: [SimpleNamespace(to_dict=lambda: {"gate_id": "x2_comp_fail", "pass": False, "severity": "BLOCK"})])
+    monkeypatch.setattr(comp_x1d_mod, "run_competencies_judges", lambda **_k: [])
+    monkeypatch.setattr(ev_mod, "repair_section_with_executive_voice_agent", lambda **_k: ({}, SimpleNamespace(repair_attempted=False, repair_succeeded=False)))
+
+    comp_dir = tmp_path / "comp_empty"
+    comp_dir.mkdir()
+    cle.run_competencies_lane_execution(
+        SimpleNamespace(
+            provider="external_claude",
+            temperature=0.35,
+            target_title="Head of AI",
+            target_company="Truist",
+            jd_text="JD",
+            briefing="Brief",
+            base_resume="",
+            mock_judges=False,
+            allow_non_allow_exit_zero=False,
+            allow_test_mock_judges=False,
+            allow_test_mock_provider=False,
+            x1d_judges="",
+        ),
+        artifact_dir_override=comp_dir,
+        print_output=False,
+    )
+    comp_x1d = json.loads((comp_dir / "x1d_llm_judge_outputs.json").read_text(encoding="utf-8"))["judges"]
+    comp_req = list(get_section_judge_policy("competencies").required_judge_providers)
+    assert check_judge_rows_present(comp_x1d, required_providers=comp_req)[0] is True
+
+
+def test_ibm_narrative_judge_feedback_rewrite_restores_usage_ledger_on_rejudge_not_improved(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Finding 4: section_input_usage_ledger.json bytes are restored on rejudge_not_improved."""
+    from apps_rg.runtime.sections import ibm_narrative_lane_runtime as inr
+
+    usage_path = tmp_path / "section_input_usage_ledger.json"
+    orig_bytes = b'{"original_ledger":true,"claim_count":1}\n'
+    usage_path.write_bytes(orig_bytes)
+
+    cand_raw = json.dumps(
+        {
+            "narrative_sentence": "Directed IBM cloud foundations, establishing governance discipline.",
+            "claim_ledger": [{"claim_text": "Directed IBM cloud foundations", "source_fact_ids": ["bul_ibm_001"]}],
+            "jd_alignment": {"targeting_only": True, "jd_used_as_proof": False, "briefing_used_as_proof": False},
+        }
+    )
+    monkeypatch.setattr(
+        inr,
+        "generate_section",
+        lambda *_a, **_k: ProviderResult(
+            provider_requested="external_openai",
+            provider_attempted=True,
+            provider_available=True,
+            exact_provider_error=None,
+            runtime_generation_status="REAL_LLM",
+            model="gpt-4o",
+            raw_model_output=cand_raw,
+            provider_response={},
+        ),
+    )
+    monkeypatch.setattr(
+        inr,
+        "run_ibm_narrative_judges",
+        lambda **_k: [
+            JudgeOutput(
+                judge_id="j1",
+                provider_name="Gemini",
+                provider_key="gemini_pro",
+                evaluator_mode="MODEL_BACKED",
+                provider_status="MODEL_BACKED_FAIL",
+                model_name="gemini-4-argon-medium",
+                provider_available=True,
+                provider_blocked=False,
+                exact_provider_error=None,
+                score=3.5,
+                normalized_score=0.70,
+                threshold=4.0,
+                normalized_threshold=0.80,
+                pass_=False,
+                findings=["Still weak"],
+            )
+        ],
+    )
+
+    def _x2_mutates_usage(_cand_p: dict[str, Any], _cand_raw: str) -> list[str]:
+        usage_path.write_bytes(b'{"candidate_rejected":true,"claim_count":99}')
+        return []
+
+    orig_x1d = [{"provider_key": "gemini_pro", "pass": False, "score": 3.8, "findings": ["Needs work"]}]
+    orig_parsed = {
+        "narrative_sentence": "Led IBM cloud architecture.",
+        "claim_ledger": [{"claim_text": "Led IBM cloud architecture.", "source_fact_ids": ["bul_ibm_001"]}],
+    }
+    _, _, _, accepted = inr.apply_ibm_narrative_judge_feedback_rewrite(
+        messages=[{"role": "user", "content": "Draft"}],
+        provider_payload={"model": "gpt-4o"},
+        raw_output="{}",
+        parsed=orig_parsed,
+        x1d=orig_x1d,
+        runtime_payload={
+            "run_id": "run-ibm-rollback",
+            "allowed_fact_ids": ["bul_ibm_001"],
+            "selected_fact_plan": {"facts": [{"fact_id": "bul_ibm_001", "claim_text": "Led IBM cloud foundations"}]},
+        },
+        artifact_dir=tmp_path,
+        runtime_generation_status="REAL_LLM",
+        companion_text="",
+        judge_keys=["gemini_pro"],
+        judge_mode="blocked_if_unavailable",
+        allowed_fact_packet={"allowed_fact_ids": ["bul_ibm_001"], "facts": []},
+        targeting_context={"target_title": "SVP"},
+        x2_check_fn=_x2_mutates_usage,
+    )
+    assert accepted is False
+    assert usage_path.read_bytes() == orig_bytes
+    rec = json.loads((tmp_path / "ibm_narrative_judge_rewrite_receipt.json").read_text(encoding="utf-8"))
+    assert rec["rejected_reason"] == "rejudge_not_improved"
+
+
+def test_evra_competencies_parity_and_judge_packet_rollback_on_rejudge_not_improved(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Finding 5: EVRA term fact_id preservation, no mislabeled unmatched category_id, and judge_packet rollback."""
+    from apps_rg.runtime.claim_ledger.headline_claim_ledger import build_headline_text_claim_coverage
+    from apps_rg.runtime.c0 import section_proof_loader as spl
+    from apps_rg.runtime.judges import competencies_x1d as comp_x1d_mod
+    from apps_rg.runtime.sections import ExecutiveVoiceRepairAgent as evra
+    from apps_rg.runtime.sections import competencies_lane_execution as cle
+    from apps_rg.runtime.sections.headline_lane import (
+        HEADLINE_WORD_MAX,
+        HEADLINE_WORD_MIN,
+        _coerce_segment_claim_ledger_rows,
+        build_headline_canonical_claim_ledger_v2,
+        evaluate_headline_literal_grounding,
+        has_valid_headline_prefix,
+        headline_resume_native_clarity_report,
+        headline_word_count,
+        normalize_headline_claim_ledger,
+        recite_canonical_segments_to_bundle_facts,
+        repair_headline_segment_citations_for_grounding,
+    )
+    from apps_rg.runtime.sections.lane_perf_sync_helpers import execute_headline_judges_with_final_display_gate
+
+    # 1. EVRA structured term fact_id preservation, empty-dict guard, and unmatched category_id guard
+    orig_comps = [
+        {
+            "category_id": f"orig_cid_{i}",
+            "category_label": f"Orig Label {i}",
+            "competency_bundle_id": f"orig_bundle_{i}",
+            "terms": [{"term": f"Orig Skill {i}", "text": f"Orig Skill {i}", "source_fact_ids": ["fact_a"]}],
+        }
+        for i in range(6)
+    ]
+    rep_payload = {
+        "repaired_competencies": [
+            {
+                "category": "Orig Label 0",
+                "terms": [
+                    {},  # lacks term/text -> skipped (not "None")
+                    {"term": "Term With Fact B", "source_fact_id": "fact_b", "source_fact_ids": ["fact_b", "fact_unapproved"]},
+                ],
+            },
+            *[
+                {"category": f"Orig Label {i}", "skills": [f"Skill {i}A"]}
+                for i in range(1, 5)
+            ],
+            {
+                "category": "Brand New Unmatched Category",
+                "skills": ["New Capability"],
+            },
+        ]
+    }
+    monkeypatch.setattr(evra, "_call_llm_repair", lambda *_a, **_k: rep_payload)
+    upd, rec = evra.repair_section_with_executive_voice_agent(
+        section_id="competencies",
+        candidate_data={"competencies": orig_comps},
+        diagnostic={"repair_needed": True, "findings": ["Improve specificity"]},
+        allowed_facts=[{"fact_id": "fact_a", "claim_text": "A"}, {"fact_id": "fact_b", "claim_text": "B"}],
+        targeting_context={"target_title": "SVP"},
+        mock_mode=False,
+        artifact_dir=tmp_path,
+    )
+    assert rec.repair_succeeded is True
+    c0_terms = upd["competencies"][0]["terms"]
+    assert len(c0_terms) == 1
+    assert c0_terms[0]["term"] == "Term With Fact B"
+    assert c0_terms[0]["source_fact_id"] == "fact_b"
+    assert c0_terms[0]["source_fact_ids"] == ["fact_b"]
+    unmatched_cat = upd["competencies"][5]
+    assert unmatched_cat["category_label"] == "Brand New Unmatched Category"
+    assert "category_id" not in unmatched_cat
+    assert "competency_bundle_id" not in unmatched_cat
+
+    # 2. headline_judge_packet.json byte-exact restore on rejudge_not_improved
+    hl_dir = tmp_path / "hl_pkt"
+    hl_dir.mkdir()
+    hl_pkt_path = hl_dir / "headline_judge_packet.json"
+    orig_hl = "SVP Engineering | Governed Agentic Platforms | Distributed Cloud Infrastructure | Regulated Delivery"
+    cand_hl = "SVP Agentic Transformation | Governed Cloud Architecture | Enterprise Risk Controls | Regulated Scale"
+    orig_ledger = _coerce_segment_claim_ledger_rows(orig_hl, ["bul_unify_001"])
+    monkeypatch.setattr(
+        evra,
+        "repair_section_with_executive_voice_agent",
+        lambda **_k: ({"headline_line": cand_hl, "claim_ledger": orig_ledger}, SimpleNamespace(repair_succeeded=True)),
+    )
+    hl_call_n = {"n": 0}
+
+    def _spy_hl_judges(**kw: Any) -> list[JudgeOutput]:
+        hl_call_n["n"] += 1
+        sc = 3.8 if hl_call_n["n"] == 1 else 3.4
+        (Path(kw["artifact_base"]) / "headline_judge_packet.json").write_text(
+            json.dumps({"attempt": hl_call_n["n"], "headline": kw["headline_line"]}), encoding="utf-8"
+        )
+        return [
+            JudgeOutput(
+                judge_id="j1",
+                provider_name="Gemini",
+                provider_key="gemini_pro",
+                evaluator_mode="MODEL_BACKED",
+                provider_status="MODEL_BACKED_FAIL",
+                model_name="gemini-4-argon-medium",
+                provider_available=True,
+                provider_blocked=False,
+                exact_provider_error=None,
+                score=sc,
+                normalized_score=sc / 5.0,
+                threshold=4.0,
+                normalized_threshold=0.8,
+                pass_=False,
+                findings=["Needs polish"],
+            )
+        ]
+
+    execute_headline_judges_with_final_display_gate(
+        headline_line=orig_hl,
+        parsed={"headline_line": orig_hl, "claim_ledger": orig_ledger},
+        parsed_for_x2={"headline_line": orig_hl},
+        claim_ledger=orig_ledger,
+        canon_doc={},
+        coverage={},
+        judge_keys=["gemini_pro"],
+        companion_context="",
+        judge_mode="blocked_if_unavailable",
+        artifact_dir=hl_dir,
+        allowed_fact_ids={"bul_unify_001"},
+        proof_pool_metadata=None,
+        runtime_payload={
+            "selected_fact_plan": {
+                "facts": [
+                    {
+                        "fact_id": "bul_unify_001",
+                        "claim_text": "Governed agentic platforms distributed cloud infrastructure enterprise risk controls regulated scale.",
+                    }
+                ]
+            },
+            "jd_text": "Lead AI",
+            "briefing": "Brief",
+        },
+        allowed_fact_packet={"facts": []},
+        target_title="SVP",
+        target_company="Truist",
+        judge_allowed_mock=False,
+        word_min=HEADLINE_WORD_MIN,
+        word_max=HEADLINE_WORD_MAX,
+        word_count_fn=headline_word_count,
+        has_valid_prefix_fn=has_valid_headline_prefix,
+        clarity_report_fn=headline_resume_native_clarity_report,
+        evaluate_grounding_fn=evaluate_headline_literal_grounding,
+        coerce_segment_ledger_fn=_coerce_segment_claim_ledger_rows,
+        recite_bundle_fn=recite_canonical_segments_to_bundle_facts,
+        repair_grounding_fn=repair_headline_segment_citations_for_grounding,
+        normalize_ledger_fn=normalize_headline_claim_ledger,
+        build_canon_fn=build_headline_canonical_claim_ledger_v2,
+        build_coverage_fn=build_headline_text_claim_coverage,
+        run_judges_fn=_spy_hl_judges,
+        write_json_fn=lambda p, obj: Path(p).write_text(json.dumps(obj), encoding="utf-8"),
+    )
+    assert json.loads(hl_pkt_path.read_text(encoding="utf-8")) == {"attempt": 1, "headline": orig_hl}
+
+    # 3. competencies_judge_packet.json byte-exact restore on rejudge_not_improved
+    cle._ensure_helpers_hydrated()
+    comp_dir = tmp_path / "comp_pkt"
+    comp_dir.mkdir()
+    comp_facts = [{"fact_id": f"bul_unify_00{i}", "claim_text": f"Fact {i}"} for i in range(1, 7)]
+    monkeypatch.setattr(
+        spl,
+        "load_section_proof_for_lane",
+        lambda **_k: (
+            _make_fake_pool("competencies", comp_facts, {f"bul_unify_00{i}" for i in range(1, 7)}),
+            {"candidate_name": "Candidate", "facts": {"employment": [{"employer": "Unify", "title": "Partner", "bullets": []}]}},
+            tmp_path / "base.json",
+            "bh",
+            None,
+        ),
+    )
+    monkeypatch.setattr(cle, "rel_posix", lambda *_a, **_k: "artifacts/test/comp_pkt")
+    monkeypatch.setattr("apps_rg.runtime.c0.section_proof_loader.apply_proof_pool_to_usage_ledger", lambda doc, _p: doc)
+    monkeypatch.setattr(cle, "load_companion_context", lambda *_a, **_k: "")
+    def _fake_wire_fec(**kw: Any) -> None:
+        rp = kw.get("runtime_payload")
+        if isinstance(rp, dict):
+            rp["canonical_evidence_set_digest"] = "dig_1"
+            rp["fec_allowed_fact_ids_digest"] = "dig_1"
+
+    monkeypatch.setattr("apps_rg.runtime.sections.upstream_evidence_block.wire_spine_c0_fec_or_block", _fake_wire_fec)
+    monkeypatch.setattr(
+        cle,
+        "compile_competencies_prompt",
+        lambda *_a, **_k: SimpleNamespace(
+            section_id="competencies",
+            apps_rg_prompt_template_ref="ref",
+            artifact=SimpleNamespace(template_id="tpl", prompt_hash="ph", slot_count=1, messages=[{"role": "user", "content": "u"}]),
+        ),
+    )
+    monkeypatch.setattr(cle, "competencies_provider_preflight_disabled", lambda: True)
+    monkeypatch.setattr("apps_rg.runtime.section_l2_lane_integration.prepare_section_l2_before_provider", lambda *_a, **_k: None)
+    monkeypatch.setattr("apps_rg.runtime.section_l2_lane_integration.finalize_section_l2_after_output", lambda *_a, **_k: None)
+    monkeypatch.setattr("apps_rg.runtime.section_runtime_exhaust_lane_integration.finalize_section_runtime_exhaust_before_l6", lambda *_a, **_k: None)
+    monkeypatch.setattr("apps_rg.runtime.section_runtime_exhaust_lane_integration.gate_section_l6_shadow_after_exhaust", lambda *_a, **_k: None)
+    monkeypatch.setattr("apps_rg.runtime.spine.exit_lane_hooks.finalize_section_exit_after_l2", lambda *_a, **_k: None)
+    monkeypatch.setattr(cle, "finalize_runtime_proof_run", lambda *_a, **_k: None)
+    base_comps = [{"category_label": f"Cat {i}", "source_fact_ids": [f"bul_unify_00{i}"], "terms": [{"term": f"Platform Architecture {i}", "text": f"Platform Architecture {i}", "source_fact_id": f"bul_unify_00{i}", "source_fact_ids": [f"bul_unify_00{i}"]}]} for i in range(1, 7)]
+    rep_comps = [{"category_label": f"Cat {i}", "source_fact_ids": [f"bul_unify_00{i}"], "terms": [{"term": f"Candidate Repaired {i}", "text": f"Candidate Repaired {i}", "source_fact_id": f"bul_unify_00{i}", "source_fact_ids": [f"bul_unify_00{i}"]}]} for i in range(1, 7)]
+    monkeypatch.setattr(
+        "apps_rg.runtime.reasoning.bullet_lane_generation.generate_bullet_lane_with_sc_and_claude",
+        lambda **_k: (
+            ProviderResult(
+                provider_requested="external_claude",
+                provider_attempted=True,
+                provider_available=True,
+                exact_provider_error=None,
+                runtime_generation_status="REAL_LLM",
+                model="claude-sonnet-5-5-medium",
+                raw_model_output=json.dumps({"competencies": base_comps}),
+                provider_response={},
+            ),
+            json.dumps({"competencies": base_comps}),
+            {"competencies": base_comps, "claim_ledger": [{"claim_text": "Platform Architecture 1", "source_fact_ids": ["bul_unify_001"]}]},
+            "",
+            {"selection_mode": "sc"},
+        ),
+    )
+    monkeypatch.setattr(cle, "collapse_duplicate_competency_terms", lambda *_a, **_k: None)
+    monkeypatch.setattr(cle, "repair_structured_competencies_source_facts", lambda *_a, **_k: None)
+    monkeypatch.setattr(cle, "coerce_structured_competencies_resume_support", lambda *_a, **_k: None)
+    monkeypatch.setattr(cle, "dedupe_structured_competency_terms", lambda *_a, **_k: None)
+    monkeypatch.setattr(cle, "reduce_competency_keyword_stuffing", lambda *_a, **_k: None)
+    monkeypatch.setattr(cle, "canonicalize_competency_terms_for_proof", lambda *_a, **_k: None)
+    monkeypatch.setattr(cle, "expand_structured_competencies_min_two_terms", lambda *_a, **_k: None)
+    monkeypatch.setattr(cle, "prune_claim_ledger_bullet_paste", lambda *_a, **_k: None)
+    monkeypatch.setattr("apps_rg.runtime.sections.competencies_capability_projection.finalize_competencies_v3_output", lambda p, **_k: p)
+    monkeypatch.setattr(
+        cle,
+        "run_competencies_x2_gates",
+        lambda **kw: [
+            SimpleNamespace(to_dict=lambda: {"gate_id": "x2_comp_ok", "pass": True, "severity": "BLOCK"}),
+            SimpleNamespace(to_dict=lambda: {"gate_id": "x2_x1d_required_judges_present", "pass": bool(kw.get("x1d_judges")), "severity": "BLOCK"}),
+        ],
+    )
+    comp_call_n = {"n": 0}
+
+    def _spy_comp_judges(**kw: Any) -> list[JudgeOutput]:
+        comp_call_n["n"] += 1
+        sc = 3.8 if comp_call_n["n"] == 1 else 3.2
+        (Path(kw["artifact_base"]) / "competencies_judge_packet.json").write_text(
+            json.dumps({"attempt": comp_call_n["n"], "first_term": kw["competencies"][0]["terms"][0]["term"]}), encoding="utf-8"
+        )
+        return [
+            JudgeOutput(
+                judge_id="x1d_gemini_pro_competencies",
+                provider_name="Gemini",
+                provider_key="gemini_pro",
+                evaluator_mode="MODEL_BACKED",
+                provider_status="MODEL_BACKED_FAIL",
+                model_name="gemini-4-argon-medium",
+                provider_available=True,
+                provider_blocked=False,
+                exact_provider_error=None,
+                score=sc,
+                normalized_score=sc / 5.0,
+                threshold=4.0,
+                normalized_threshold=0.8,
+                pass_=False,
+                findings=["Needs specificity"],
+            )
+        ]
+
+    monkeypatch.setattr(comp_x1d_mod, "run_competencies_judges", _spy_comp_judges)
+    monkeypatch.setattr(
+        evra,
+        "repair_section_with_executive_voice_agent",
+        lambda **_k: ({"competencies": rep_comps}, SimpleNamespace(repair_attempted=True, repair_succeeded=True)),
+    )
+    cle.run_competencies_lane_execution(
+        SimpleNamespace(
+            provider="external_claude",
+            temperature=0.35,
+            target_title="Head of AI",
+            target_company="Truist",
+            jd_text="JD",
+            briefing="Brief",
+            base_resume="",
+            mock_judges=False,
+            allow_non_allow_exit_zero=False,
+            allow_test_mock_judges=False,
+            allow_test_mock_provider=False,
+            x1d_judges="gemini_pro",
+        ),
+        artifact_dir_override=comp_dir,
+        print_output=False,
+    )
+    assert json.loads((comp_dir / "competencies_judge_packet.json").read_text(encoding="utf-8")) == {
+        "attempt": 1,
+        "first_term": "Platform Architecture 1",
+    }
+
 
 

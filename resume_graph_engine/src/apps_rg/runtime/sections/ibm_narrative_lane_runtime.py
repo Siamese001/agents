@@ -1256,8 +1256,9 @@ def apply_ibm_narrative_judge_feedback_rewrite(
         return raw_output, parsed, x1d, False
     cand_parsed["narrative_sentence"] = cand_narr
     cand_rows = [r for r in (cand_parsed.get("claim_ledger") or []) if isinstance(r, dict)]
+    usage_ledger_path = artifact_dir / "section_input_usage_ledger.json"
+    usage_snap: bytes | None = None
     if x2_check_fn is not None:
-        usage_ledger_path = artifact_dir / "section_input_usage_ledger.json"
         usage_snap = usage_ledger_path.read_bytes() if usage_ledger_path.is_file() else None
         cand_x2_failed = x2_check_fn(cand_parsed, cand_raw)
         if cand_x2_failed:
@@ -1298,6 +1299,8 @@ def apply_ibm_narrative_judge_feedback_rewrite(
     receipt["old_rank"] = list(old_rank)
     receipt["new_rank"] = list(new_rank)
     if new_rank <= old_rank:
+        if x2_check_fn is not None and usage_snap is not None:
+            usage_ledger_path.write_bytes(usage_snap)
         receipt["rejected_reason"] = "rejudge_not_improved"
         write_json(artifact_dir / "ibm_narrative_judge_rewrite_receipt.json", receipt)
         return raw_output, parsed, x1d, False

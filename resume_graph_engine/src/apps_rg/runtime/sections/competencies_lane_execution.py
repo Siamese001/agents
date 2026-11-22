@@ -511,44 +511,53 @@ def run_competencies_lane_execution(
 
         sync_categories_competencies(parsed)
         record_mechanical(artifact_dir, operation="competencies_pre_x2_deterministic_pipeline", reason="sync_and_coerce")
-        collapse_duplicate_competency_terms(parsed, bullet_rows, resume_blob)
+        _allow_comp_prose_mutation = runtime_generation_status != "REAL_LLM"
+        if _allow_comp_prose_mutation:
+            collapse_duplicate_competency_terms(
+                parsed, bullet_rows, resume_blob, allow_prose_mutation=True
+            )
         repair_structured_competencies_source_facts(
             parsed,
             allowed_fact_ids=allowed_fact_ids,
             resume_support_blob_lower=c0_proof_blob,
         )
-        coerce_structured_competencies_resume_support(
-            parsed,
-            bullet_rows,
-            c0_proof_blob,
-            bullet_lowers,
-            allowed_fact_ids=allowed_fact_ids,
-        )
-        dedupe_structured_competency_terms(parsed)
+        if _allow_comp_prose_mutation:
+            coerce_structured_competencies_resume_support(
+                parsed,
+                bullet_rows,
+                c0_proof_blob,
+                bullet_lowers,
+                allowed_fact_ids=allowed_fact_ids,
+                allow_prose_mutation=True,
+            )
+            dedupe_structured_competency_terms(parsed, allow_prose_mutation=True)
         reduce_competency_keyword_stuffing(
             parsed,
-            allow_prose_mutation=(runtime_generation_status != "REAL_LLM"),
+            allow_prose_mutation=_allow_comp_prose_mutation,
         )
         canonicalize_competency_terms_for_proof(parsed, allowed_fact_ids=allowed_fact_ids)
-        coerce_structured_competencies_resume_support(
-            parsed,
-            bullet_rows,
-            c0_proof_blob,
-            bullet_lowers,
-            allowed_fact_ids=allowed_fact_ids,
-        )
-        dedupe_structured_competency_terms(parsed)
-        from apps_rg.runtime.sections.competencies_lane_runtime import (
-            expand_structured_competencies_min_two_terms,
-        )
+        if _allow_comp_prose_mutation:
+            coerce_structured_competencies_resume_support(
+                parsed,
+                bullet_rows,
+                c0_proof_blob,
+                bullet_lowers,
+                allowed_fact_ids=allowed_fact_ids,
+                allow_prose_mutation=True,
+            )
+            dedupe_structured_competency_terms(parsed, allow_prose_mutation=True)
+            from apps_rg.runtime.sections.competencies_lane_runtime import (
+                expand_structured_competencies_min_two_terms,
+            )
 
-        expand_structured_competencies_min_two_terms(
-            parsed,
-            bullet_rows=bullet_rows,
-            allowed_fact_ids=allowed_fact_ids,
-            resume_support_blob_lower=c0_proof_blob,
-            bullet_texts_lower=bullet_lowers,
-        )
+            expand_structured_competencies_min_two_terms(
+                parsed,
+                bullet_rows=bullet_rows,
+                allowed_fact_ids=allowed_fact_ids,
+                resume_support_blob_lower=c0_proof_blob,
+                bullet_texts_lower=bullet_lowers,
+                allow_prose_mutation=True,
+            )
         rebuild_claim_ledger_from_competencies(parsed, allowed_fact_ids)
         prune_claim_ledger_bullet_paste(parsed)
         from apps_rg.runtime.sections.competencies_capability_projection import (
@@ -898,9 +907,11 @@ def run_competencies_lane_execution(
     )
     judge_keys = [j.strip() for j in str(getattr(args, "x1d_judges", "") or "").split(",") if j.strip()]
     if not judge_keys:
-        from apps_rg.runtime.section_cli_defaults import COMPETENCIES_DEFAULT_X1D_JUDGES
+        judge_keys = list(get_section_judge_policy("competencies").required_judge_providers)
+        if not judge_keys:
+            from apps_rg.runtime.section_cli_defaults import COMPETENCIES_DEFAULT_X1D_JUDGES
 
-        judge_keys = [j.strip() for j in COMPETENCIES_DEFAULT_X1D_JUDGES.split(",") if j.strip()]
+            judge_keys = [j.strip() for j in COMPETENCIES_DEFAULT_X1D_JUDGES.split(",") if j.strip()]
     _judge_target_kw = extract_lane_targeting_kwargs(args)
 
     comp_plan_facts = list((effective_sfp_c or {}).get("facts") or bullet_rows or [])
@@ -972,11 +983,56 @@ def run_competencies_lane_execution(
 
         cand_parsed = copy.deepcopy(parsed) if isinstance(parsed, dict) else {"competencies": []}
         cand_parsed["competencies"] = copy.deepcopy(new_comps)
+        for _stale_key in (
+            "competencies_allocation_claim_reconciliation",
+            "competencies_graph_authority_discrepancy_ledger",
+            "competencies_allocation_v3_sync",
+        ):
+            cand_parsed.pop(_stale_key, None)
         if isinstance(cand_parsed.get("categories"), list):
             cand_parsed["categories"] = [
                 category_v3_from_legacy(c) for c in new_comps if isinstance(c, dict)
             ]
-        cand_display = competencies_display_text(new_comps)
+        _cand_graph_plan = pp_meta.get("selected_graph_evidence_plan")
+        if isinstance(_cand_graph_plan, dict) and _cand_graph_plan.get("allocation_assignments"):
+            from apps_rg.runtime.c0.competencies_graph_authority import (
+                build_competencies_graph_authority_discrepancy_ledger,
+                reconcile_competencies_allocation_claim_units,
+                synchronize_competencies_allocation_bindings_to_categories,
+            )
+
+            _cand_v3_sync = synchronize_competencies_allocation_bindings_to_categories(cand_parsed)
+            _cand_alloc_rec = reconcile_competencies_allocation_claim_units(
+                cand_parsed,
+                selected_plan=_cand_graph_plan,
+                allowed_fact_ids=allowed_fact_ids,
+            )
+            _cand_disc_ledger = build_competencies_graph_authority_discrepancy_ledger(
+                selected_plan=_cand_graph_plan,
+                proof_pool_metadata=pp_meta,
+                parsed=cand_parsed,
+                reconciliation_receipt=_cand_alloc_rec,
+            )
+            cand_parsed["competencies_allocation_claim_reconciliation"] = {
+                "receipt_ref": _artifact_repo_rel(
+                    artifact_dir / "competencies_allocation_claim_reconciliation_receipt.json",
+                    REPO_ROOT,
+                ),
+                "receipt_digest": _cand_alloc_rec["receipt_digest"],
+                "pass": _cand_alloc_rec["pass"],
+            }
+            cand_parsed["competencies_graph_authority_discrepancy_ledger"] = {
+                "ledger_ref": _artifact_repo_rel(
+                    artifact_dir / "competencies_graph_authority_discrepancy_ledger.json",
+                    REPO_ROOT,
+                ),
+                "ledger_digest": _cand_disc_ledger["ledger_digest"],
+            }
+            cand_parsed["competencies_allocation_v3_sync"] = {
+                "receipt": _cand_v3_sync,
+                "pass": _cand_v3_sync["pass"],
+            }
+        cand_display = competencies_display_text(cand_parsed.get("competencies") or new_comps)
         rebuild_claim_ledger_from_competencies(cand_parsed, allowed_fact_ids)
         cand_ledger = list(cand_parsed.get("claim_ledger") or [])
         cand_cov = build_sentence_claim_coverage(cand_display, cand_ledger, allowed_fact_ids)
@@ -1174,6 +1230,8 @@ def run_competencies_lane_execution(
                 ]
                 voice_receipt["cand_x2_failed"] = cand_x2_failed
                 if not cand_x2_failed:
+                    comp_packet_path = artifact_dir / "competencies_judge_packet.json"
+                    comp_packet_snap = comp_packet_path.read_bytes() if comp_packet_path.is_file() else None
                     cand_x1d_outputs = run_competencies_judges(
                         competencies=new_comps,
                         claim_ledger=c_ledger,
@@ -1198,12 +1256,14 @@ def run_competencies_lane_execution(
                     voice_receipt["old_rank"] = list(old_rank)
                     voice_receipt["new_rank"] = list(new_rank)
                     if new_rank > old_rank:
-                        _commit_comp_candidate(new_comps, c_parsed, c_disp, c_ledger, c_cov, c_canon, c_usage, c_raw)
+                        _commit_comp_candidate(c_parsed.get("competencies") or new_comps, c_parsed, c_disp, c_ledger, c_cov, c_canon, c_usage, c_raw)
                         x1d = cand_x1d
                         voice_receipt["accepted"] = True
                     else:
                         if usage_snap is not None:
                             usage_ledger_path.write_bytes(usage_snap)
+                        if comp_packet_snap is not None:
+                            comp_packet_path.write_bytes(comp_packet_snap)
                         voice_receipt["rejected_reason"] = "rejudge_not_improved"
                 else:
                     if usage_snap is not None:

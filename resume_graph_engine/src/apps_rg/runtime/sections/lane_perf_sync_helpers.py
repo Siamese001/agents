@@ -431,6 +431,8 @@ def execute_headline_judges_with_final_display_gate(
                 evaluate_grounding_fn=evaluate_grounding_fn,
             )
             if rep_gate["pass"]:
+                hl_packet_path = artifact_dir / "headline_judge_packet.json"
+                hl_packet_snap = hl_packet_path.read_bytes() if hl_packet_path.is_file() else None
                 cand_x1d = [
                     j.to_dict()
                     for j in run_judges_fn(
@@ -473,6 +475,8 @@ def execute_headline_judges_with_final_display_gate(
                     write_json_fn(artifact_dir / "headline_final_display_pre_judge_gate.json", rep_gate)
                     x1d = cand_x1d
                 else:
+                    if hl_packet_snap is not None:
+                        hl_packet_path.write_bytes(hl_packet_snap)
                     pre_gate["voice_repair_rejected"] = {
                         "candidate_headline": cand_hl,
                         "reason": "rejudge_not_improved",

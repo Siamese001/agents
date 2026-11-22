@@ -950,53 +950,55 @@ def normalize_parsed_output(
     companion_nonempty: bool = False,
     employer_names_lower: list[str] | None = None,
     proof_pool_metadata: dict[str, Any] | None = None,
+    allow_prose_mutation: bool = True,
 ) -> dict[str, Any] | None:
     if not parsed:
         return parsed
     out = dict(parsed)
     hl = str(out.get("headline_line") or headline_line or "").strip()
-    selected_fact_plan_for_repair = (
-        out.get("selected_fact_plan")
-        if isinstance(out.get("selected_fact_plan"), dict)
-        else runtime_payload.get("selected_fact_plan")
-    )
-    repaired_hl, repaired_meta = _rewrite_partner_enablement_segment(
-        hl,
-        selected_fact_plan=selected_fact_plan_for_repair if isinstance(selected_fact_plan_for_repair, dict) else None,
-    )
-    if repaired_meta is not None and repaired_hl != hl:
-        hl = repaired_hl
-        out["headline_line"] = hl
-        change_log = out.setdefault("change_log", [])
-        if isinstance(change_log, list):
-            change_log.append(
-                {
-                    "operation": "headline_partner_enablement_grounding_repair",
-                    "reason": "replace_abstract_gsi_enablement_with_grounded_partner_label",
-                    **repaired_meta,
-                }
-            )
-    machine_repaired_hl, machine_repairs = _rewrite_machine_headline_segments(hl)
-    if machine_repairs and machine_repaired_hl != hl:
-        hl = machine_repaired_hl
-        out["headline_line"] = hl
-        change_log = out.setdefault("change_log", [])
-        if isinstance(change_log, list):
-            change_log.append(
-                {
-                    "operation": "headline_machine_phrase_repair",
-                    "reason": "replace_unnatural_aiish_segment_with_positioning_family_phrase",
-                    "repairs": machine_repairs,
-                }
-            )
-    expanded_hl = deterministic_headline_word_count_expand(hl)
-    if expanded_hl != hl:
-        change_log = out.setdefault("change_log", [])
-        if isinstance(change_log, list):
-            change_log.append({"operation": "headline_word_count_deterministic_expand", "reason": f"word_count={headline_word_count(hl)} below {HEADLINE_WORD_MIN}", "from": hl, "to": expanded_hl})
-        hl = expanded_hl
-    from apps_rg.runtime.sections.lane_perf_sync_helpers import compact_overlong_headline_and_ledger
-    hl = compact_overlong_headline_and_ledger(hl, out, clarity_report_fn=headline_resume_native_clarity_report)
+    if allow_prose_mutation:
+        selected_fact_plan_for_repair = (
+            out.get("selected_fact_plan")
+            if isinstance(out.get("selected_fact_plan"), dict)
+            else runtime_payload.get("selected_fact_plan")
+        )
+        repaired_hl, repaired_meta = _rewrite_partner_enablement_segment(
+            hl,
+            selected_fact_plan=selected_fact_plan_for_repair if isinstance(selected_fact_plan_for_repair, dict) else None,
+        )
+        if repaired_meta is not None and repaired_hl != hl:
+            hl = repaired_hl
+            out["headline_line"] = hl
+            change_log = out.setdefault("change_log", [])
+            if isinstance(change_log, list):
+                change_log.append(
+                    {
+                        "operation": "headline_partner_enablement_grounding_repair",
+                        "reason": "replace_abstract_gsi_enablement_with_grounded_partner_label",
+                        **repaired_meta,
+                    }
+                )
+        machine_repaired_hl, machine_repairs = _rewrite_machine_headline_segments(hl)
+        if machine_repairs and machine_repaired_hl != hl:
+            hl = machine_repaired_hl
+            out["headline_line"] = hl
+            change_log = out.setdefault("change_log", [])
+            if isinstance(change_log, list):
+                change_log.append(
+                    {
+                        "operation": "headline_machine_phrase_repair",
+                        "reason": "replace_unnatural_aiish_segment_with_positioning_family_phrase",
+                        "repairs": machine_repairs,
+                    }
+                )
+        expanded_hl = deterministic_headline_word_count_expand(hl)
+        if expanded_hl != hl:
+            change_log = out.setdefault("change_log", [])
+            if isinstance(change_log, list):
+                change_log.append({"operation": "headline_word_count_deterministic_expand", "reason": f"word_count={headline_word_count(hl)} below {HEADLINE_WORD_MIN}", "from": hl, "to": expanded_hl})
+            hl = expanded_hl
+        from apps_rg.runtime.sections.lane_perf_sync_helpers import compact_overlong_headline_and_ledger
+        hl = compact_overlong_headline_and_ledger(hl, out, clarity_report_fn=headline_resume_native_clarity_report)
     out["headline_line"] = hl
     jd = dict(out.get("jd_alignment") or {})
     jd.setdefault("targeting_only", True)
@@ -2565,6 +2567,7 @@ def run_headline_execution(
                         hl0,
                         companion_nonempty=companion_nonempty,
                         employer_names_lower=employer_names,
+                        allow_prose_mutation=(runtime_generation_status != "REAL_LLM"),
                     )
                     raw_output = json.dumps(parsed, sort_keys=True, separators=(",", ":"))
             else:
@@ -2578,6 +2581,7 @@ def run_headline_execution(
                     hl0,
                     companion_nonempty=companion_nonempty,
                     employer_names_lower=employer_names,
+                    allow_prose_mutation=(runtime_generation_status != "REAL_LLM"),
                 )
                 raw_output = json.dumps(parsed, sort_keys=True, separators=(",", ":"))
             hl = str(parsed.get("headline_line", "")).strip()

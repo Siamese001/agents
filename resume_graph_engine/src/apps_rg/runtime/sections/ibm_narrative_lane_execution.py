@@ -172,6 +172,10 @@ def run_ibm_narrative_lane_execution(
     _theme_repair_accepted = False
 
     judge_keys = [j.strip() for j in str(getattr(args, "x1d_judges", "") or "").split(",") if j.strip()]
+    if not judge_keys:
+        from apps_rg.runtime.section_judge_policy import get_section_judge_policy
+
+        judge_keys = list(get_section_judge_policy("ibm_narrative").required_judge_providers)
     judge_allowed_mock = bool(args.mock_judges and getattr(args, "allow_test_mock_judges", False))
     if judge_allowed_mock:
         preflight_art = {"skipped": True, "reason": "mock_judge_cli_flags"}
@@ -720,12 +724,18 @@ def run_ibm_narrative_lane_execution(
             blocker_detail or "judge credential preflight failed before narrative generation",
         )
     elif (pre_x2_failed or runtime_generation_status != "REAL_LLM") and not judge_allowed_mock:
+        from apps_rg.runtime.section_judge_policy import get_section_judge_policy
+
+        _default_ibm_judges = tuple(get_section_judge_policy("ibm_narrative").required_judge_providers) or (
+            "gemini_pro",
+            "openai_chatgpt",
+        )
         x1d = build_blocked_pre_judge_rows(
             section_id="ibm_narrative",
             judge_keys=judge_keys,
             failed_gate_ids=pre_x2_failed or [f"runtime_status:{runtime_generation_status}"],
             rubric_version=_IBM_NARR_RUBRIC_VERSION,
-            default_judge_keys=("gemini_pro",),
+            default_judge_keys=_default_ibm_judges,
         )
     else:
         x1d = [

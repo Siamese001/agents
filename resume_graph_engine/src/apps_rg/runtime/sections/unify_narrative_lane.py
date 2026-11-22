@@ -950,7 +950,7 @@ def apply_unify_narrative_in_lane_healing(
             judge_keys=eff_judge_keys,
             failed_gate_ids=block_reasons,
             rubric_version=JUDGE_RUBRIC_VERSION,
-            default_judge_keys=("gemini_pro",),
+            default_judge_keys=tuple(get_section_judge_policy("unify_narrative").required_judge_providers) or ("gemini_pro", "openai_chatgpt"),
         )
         receipt["rejected_reason"] = "not_real_llm"
         _sync_receipt()
@@ -1021,14 +1021,14 @@ def apply_unify_narrative_in_lane_healing(
             pre_rewrite_rec["rejected_reason"] = f"provider_not_real_llm:{res.runtime_generation_status}"
             receipt["rejected_reason"] = pre_rewrite_rec["rejected_reason"]
 
-    still_broken = _eval_pre_judge_issues(parsed, raw_output, is_candidate=False)
+    still_broken = [] if pre_judge_accepted else _eval_pre_judge_issues(parsed, raw_output, is_candidate=False)
     if still_broken:
         blocked_x1d = build_blocked_pre_judge_rows(
             section_id="unify_narrative",
             judge_keys=eff_judge_keys,
             failed_gate_ids=still_broken,
             rubric_version=JUDGE_RUBRIC_VERSION,
-            default_judge_keys=("gemini_pro",),
+            default_judge_keys=tuple(get_section_judge_policy("unify_narrative").required_judge_providers) or ("gemini_pro", "openai_chatgpt"),
         )
         _sync_receipt()
         write_json(artifact_dir / "unify_narrative_judge_rewrite_receipt.json", receipt)
@@ -1671,8 +1671,21 @@ def run_unify_narrative_execution(
     def _unify_run_pre_x2(cand_p: dict[str, Any], cand_px2: dict[str, Any]) -> list[dict[str, Any]]:
         cand_narr = str(cand_p.get("narrative_sentence") or "").strip()
         cand_ledger = list(cand_p.get("claim_ledger") or [])
-        cand_px2_eff = cand_px2 if cand_px2 is not cand_p else parsed_for_x2
-        cand_raw_eff = raw_output_for_x2 if cand_px2 is cand_p else json.dumps(cand_px2_eff, ensure_ascii=False, separators=(",", ":"))
+        if cand_px2 is not cand_p:
+            cand_px2_eff = cand_px2
+            cand_raw_eff = json.dumps(cand_px2_eff, ensure_ascii=False, separators=(",", ":"))
+        elif cand_p is parsed:
+            cand_px2_eff = parsed_for_x2
+            cand_raw_eff = raw_output_for_x2
+        else:
+            cand_cov = build_sentence_claim_coverage(cand_narr, cand_ledger, allowed_fact_ids)
+            cand_px2_eff = enrich_unify_narrative_parsed_for_x2(
+                cand_p,
+                coverage=cand_cov,
+                input_payload_hash=input_payload_hash,
+                allowed_fact_ids=allowed_fact_ids,
+            )
+            cand_raw_eff = json.dumps(cand_px2_eff, ensure_ascii=False, separators=(",", ":"))
         return [
             g.to_dict()
             for g in run_unify_narrative_x2_gates(

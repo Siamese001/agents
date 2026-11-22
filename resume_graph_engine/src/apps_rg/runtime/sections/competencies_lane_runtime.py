@@ -490,11 +490,14 @@ def coerce_structured_competencies_resume_support(
     bullet_texts_lower: list[str],
     *,
     allowed_fact_ids: set[str] | None = None,
+    allow_prose_mutation: bool = True,
 ) -> None:
     """Rewrite unsupported structured competency phrases using bullet-derived fragments already in blob.
 
     Terms with no grounding options are dropped rather than emitting resume-ungrounded payloads.
     """
+    if not allow_prose_mutation:
+        return
     comps = parsed.get("competencies")
     if not isinstance(comps, list):
         return
@@ -660,6 +663,8 @@ def reduce_competency_keyword_stuffing(
     candidate: an optional competing term must be removed instead, or the
     function leaves the result for the authoritative allocation gate to block.
     """
+    if not allow_prose_mutation:
+        return
     comps = parsed.get("competencies")
     if not isinstance(comps, list):
         return
@@ -845,8 +850,14 @@ def reduce_competency_keyword_stuffing(
         category["terms"] = kept
 
 
-def dedupe_structured_competency_terms(parsed: dict[str, Any]) -> None:
+def dedupe_structured_competency_terms(
+    parsed: dict[str, Any],
+    *,
+    allow_prose_mutation: bool = True,
+) -> None:
     """Collapse duplicate structured competency phrases deterministically (X2-aligned near-duplicate rule)."""
+    if not allow_prose_mutation:
+        return
     comps = parsed.get("competencies")
     if not isinstance(comps, list):
         return
@@ -907,6 +918,7 @@ def expand_structured_competencies_min_two_terms(
     allowed_fact_ids: set[str],
     resume_support_blob_lower: str,
     bullet_texts_lower: list[str],
+    allow_prose_mutation: bool = True,
 ) -> None:
     """Expand structured categories below executive rigor minimum (3 terms per category).
 
@@ -914,6 +926,8 @@ def expand_structured_competencies_min_two_terms(
     without inventing canonical fact ids — fragments are restricted to bullet ``technologies`` and short
     claim splits (see :func:`_candidate_phrases_for_category`).
     """
+    if not allow_prose_mutation:
+        return
     from apps_rg.runtime.sections.competencies_rigor import MIN_ITEMS_PER_CATEGORY
 
     min_terms = MIN_ITEMS_PER_CATEGORY
@@ -1186,8 +1200,12 @@ def collapse_duplicate_competency_terms(
     parsed: dict[str, Any],
     bullet_rows: list[dict[str, Any]],
     resume_support_blob_lower: str,
+    *,
+    allow_prose_mutation: bool = True,
 ) -> None:
     """Rewrite duplicate/near-duplicate term strings across categories before X2 (resume-grounded substitutes)."""
+    if not allow_prose_mutation:
+        return
     comps = parsed.get("competencies")
     if not isinstance(comps, list):
         return
