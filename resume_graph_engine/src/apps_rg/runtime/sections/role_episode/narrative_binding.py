@@ -258,7 +258,7 @@ def _strip_targeting_only_experience_claims(
     return (cleaned or original), _targeting_only_experience_hits(cleaned or original, target_company=target_company)
 
 
-def _narrative_from_parsed(parsed: dict[str, Any], *, allow_prose_mutation: bool = True) -> str:
+def _narrative_from_parsed(parsed: dict[str, Any], *, allow_prose_mutation: bool = False) -> str:
     text = parsed.get("narrative_sentence") if isinstance(parsed, dict) else None
     cleaned, _hits = _strip_targeting_only_experience_claims(
         str(text or ""),

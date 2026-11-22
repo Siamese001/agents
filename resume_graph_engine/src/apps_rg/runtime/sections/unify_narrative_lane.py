@@ -847,13 +847,37 @@ def apply_unify_narrative_in_lane_healing(
     judge_mode: str,
     allowed_fact_packet: dict[str, Any],
     targeting_context: dict[str, Any],
+    run_x2_fn: Any | None = None,
+    sync_artifacts_fn: Any | None = None,
 ) -> tuple[str, dict[str, Any] | None, list[dict[str, Any]], bool]:
     """Bounded 1-attempt fresh-turn LLM healing on deterministic prose or X1D judge failure."""
+    from apps_rg.runtime.judges.unify_narrative_x1d import JUDGE_RUBRIC_VERSION
     from apps_rg.runtime.providers.section_provider_call import call_section_model_provider
+    from apps_rg.runtime.section_judge_policy import get_section_judge_policy
     from apps_rg.runtime.section_repair_ledger import KIND_REGEN_LLM, load_ledger, record_repair, set_authoritative_attempt
+    from apps_rg.runtime.sections.lane_perf_sync_helpers import build_blocked_pre_judge_rows
+
+    eff_judge_keys = [str(k).strip() for k in (judge_keys or ()) if str(k).strip()]
+    if not eff_judge_keys:
+        eff_judge_keys = list(get_section_judge_policy("unify_narrative").required_judge_providers) or ["gemini_pro"]
 
     narrative = str((parsed or {}).get("narrative_sentence") or "").strip()
     claim_ledger = list((parsed or {}).get("claim_ledger") or [])
+    pre_judge_attempted = False
+    pre_judge_accepted = False
+    judge_rewrite_attempted = False
+    judge_rewrite_accepted = False
+    pre_rewrite_rec: dict[str, Any] = {
+        "attempted": False,
+        "accepted": False,
+        "issues": [],
+        "rejected_reason": None,
+    }
+    judge_rewrite_rec: dict[str, Any] = {
+        "attempted": False,
+        "accepted": False,
+        "rejected_reason": None,
+    }
     receipt: dict[str, Any] = {
         "schema_version": "unify_narrative_judge_rewrite_receipt_v1",
         "section_id": "unify_narrative",
@@ -862,15 +886,47 @@ def apply_unify_narrative_in_lane_healing(
         "accepted": False,
         "trigger": None,
         "rejected_reason": None,
+        "pre_judge_rewrite": pre_rewrite_rec,
+        "judge_feedback_rewrite": judge_rewrite_rec,
     }
 
-    if not isinstance(parsed, dict) or runtime_generation_status != "REAL_LLM" or judge_mode == "mocked":
+    def _sync_receipt() -> None:
+        pre_rewrite_rec["attempted"] = pre_judge_attempted
+        pre_rewrite_rec["accepted"] = pre_judge_accepted
+        judge_rewrite_rec["attempted"] = judge_rewrite_attempted
+        judge_rewrite_rec["accepted"] = judge_rewrite_accepted
+        receipt["attempted"] = pre_judge_attempted or judge_rewrite_attempted
+        receipt["accepted"] = pre_judge_accepted or judge_rewrite_accepted
+
+    def _eval_pre_judge_issues(
+        cand_parsed: dict[str, Any] | None,
+        cand_raw: str,
+        *,
+        is_candidate: bool = False,
+    ) -> list[str]:
+        if run_x2_fn is not None and isinstance(cand_parsed, dict):
+            cand_px2 = (
+                sync_artifacts_fn(cand_parsed, cand_raw)
+                if (is_candidate and sync_artifacts_fn is not None)
+                else cand_parsed
+            )
+            gates = run_x2_fn(cand_parsed, cand_px2)
+            return [
+                f"{g.get('gate_id')}: {g.get('failure_reason') or g.get('observed_value')}"
+                for g in gates
+                if not g.get("pass")
+                and str(g.get("gate_id") or "") not in {"x2_x1d_required_judges_present", "x2_x1d_schema_valid"}
+            ]
+        cand_narr = str((cand_parsed or {}).get("narrative_sentence") or "").strip()
+        return _unify_narrative_pre_judge_issues(cand_narr, companion_text)
+
+    if judge_mode == "mocked":
         x1d = [
             j.to_dict()
             for j in run_unify_narrative_judges(
                 narrative_sentence=narrative,
                 claim_ledger=claim_ledger,
-                judge_keys=judge_keys,
+                judge_keys=eff_judge_keys,
                 companion_bullets_context=companion_text,
                 mode=judge_mode,
                 artifact_base=artifact_dir,
@@ -878,15 +934,36 @@ def apply_unify_narrative_in_lane_healing(
                 targeting_context=targeting_context,
             )
         ]
-        receipt["rejected_reason"] = "not_real_llm_or_mock_judges"
+        receipt["rejected_reason"] = "mock_judges"
+        _sync_receipt()
         write_json(artifact_dir / "unify_narrative_judge_rewrite_receipt.json", receipt)
         return raw_output, parsed, x1d, False
 
-    pre_issues = _unify_narrative_pre_judge_issues(narrative, companion_text)
+    if not isinstance(parsed, dict) or runtime_generation_status != "REAL_LLM":
+        block_reasons = [
+            f"runtime_status:{runtime_generation_status}"
+            if isinstance(parsed, dict)
+            else "parsed_output_missing"
+        ]
+        blocked_x1d = build_blocked_pre_judge_rows(
+            section_id="unify_narrative",
+            judge_keys=eff_judge_keys,
+            failed_gate_ids=block_reasons,
+            rubric_version=JUDGE_RUBRIC_VERSION,
+            default_judge_keys=tuple(get_section_judge_policy("unify_narrative").required_judge_providers) or ("gemini_pro", "openai_chatgpt"),
+        )
+        receipt["rejected_reason"] = "not_real_llm"
+        _sync_receipt()
+        write_json(artifact_dir / "unify_narrative_judge_rewrite_receipt.json", receipt)
+        return raw_output, parsed, blocked_x1d, False
+
+    usage_ledger_path = artifact_dir / "section_input_usage_ledger.json"
+    pre_issues = _eval_pre_judge_issues(parsed, raw_output, is_candidate=False)
     if pre_issues:
-        receipt["attempted"] = True
+        pre_judge_attempted = True
         receipt["trigger"] = "deterministic_pre_judge"
         receipt["pre_issues"] = pre_issues
+        pre_rewrite_rec["issues"] = list(pre_issues)
         rewrite_msgs = [
             *messages,
             {"role": "assistant", "content": raw_output},
@@ -920,55 +997,49 @@ def apply_unify_narrative_in_lane_healing(
                 if cand_in
                 else None
             )
-            cand_narr = str((cand_parsed or {}).get("narrative_sentence") or "").strip()
-            post_issues = _unify_narrative_pre_judge_issues(cand_narr, companion_text) if cand_parsed else ["parse_failed"]
+            usage_snap = usage_ledger_path.read_bytes() if usage_ledger_path.is_file() else None
+            post_issues = (
+                _eval_pre_judge_issues(cand_parsed, cand_raw, is_candidate=True)
+                if cand_parsed is not None
+                else ["parse_failed"]
+            )
             if cand_parsed is not None and not post_issues:
-                raw_output, parsed, narrative = cand_raw, cand_parsed, cand_narr
+                raw_output, parsed = cand_raw, cand_parsed
+                narrative = str(cand_parsed.get("narrative_sentence") or "").strip()
                 claim_ledger = list(cand_parsed.get("claim_ledger") or [])
                 record_repair(artifact_dir, kind=KIND_REGEN_LLM, operation="unify_narrative_x2_prejudge_rewrite", reason="; ".join(pre_issues)[:160], replaced_l2=True)
                 cur_ledger = load_ledger(artifact_dir) or {}
                 next_att = 1 + sum(1 for r in (cur_ledger.get("repairs") or []) if r.get("kind") == KIND_REGEN_LLM and r.get("replaced_l2"))
                 set_authoritative_attempt(artifact_dir, next_att, reason="unify_narrative_x2_prejudge_rewrite")
-                receipt["accepted"] = True
+                pre_judge_accepted = True
             else:
-                receipt["rejected_reason"] = f"prejudge_rewrite_still_invalid:{post_issues}"
+                if usage_snap is not None:
+                    usage_ledger_path.write_bytes(usage_snap)
+                pre_rewrite_rec["rejected_reason"] = f"prejudge_rewrite_still_invalid:{post_issues}"
+                receipt["rejected_reason"] = pre_rewrite_rec["rejected_reason"]
         else:
-            receipt["rejected_reason"] = f"provider_not_real_llm:{res.runtime_generation_status}"
+            pre_rewrite_rec["rejected_reason"] = f"provider_not_real_llm:{res.runtime_generation_status}"
+            receipt["rejected_reason"] = pre_rewrite_rec["rejected_reason"]
 
-    still_broken = _unify_narrative_pre_judge_issues(narrative, companion_text)
+    still_broken = [] if pre_judge_accepted else _eval_pre_judge_issues(parsed, raw_output, is_candidate=False)
     if still_broken:
-        from apps_rg.runtime.judges.executive_summary_x1d import JudgeOutput
-        from apps_rg.runtime.judges.unify_narrative_x1d import JUDGE_RUBRIC_VERSION
-
-        blocked_x1d = [
-            JudgeOutput(
-                judge_id=f"x1d_{jk}_unify_narrative",
-                provider_name=jk,
-                provider_key=jk,
-                evaluator_mode="BLOCKED_PRE_JUDGE_GATE",
-                provider_status="BLOCKED_PRE_JUDGE_DETERMINISTIC_GATE",
-                model_name="deterministic_pre_judge_gate",
-                provider_available=False,
-                provider_blocked=True,
-                exact_provider_error="; ".join(still_broken),
-                rubric_version=JUDGE_RUBRIC_VERSION,
-                pass_=False,
-                decisive_failure=True,
-                findings=list(still_broken),
-                fail_reasons=list(still_broken),
-                section_id="unify_narrative",
-            ).to_dict()
-            for jk in (judge_keys or ["gemini_pro", "openai_chatgpt"])
-        ]
+        blocked_x1d = build_blocked_pre_judge_rows(
+            section_id="unify_narrative",
+            judge_keys=eff_judge_keys,
+            failed_gate_ids=still_broken,
+            rubric_version=JUDGE_RUBRIC_VERSION,
+            default_judge_keys=tuple(get_section_judge_policy("unify_narrative").required_judge_providers) or ("gemini_pro", "openai_chatgpt"),
+        )
+        _sync_receipt()
         write_json(artifact_dir / "unify_narrative_judge_rewrite_receipt.json", receipt)
-        return raw_output, parsed, blocked_x1d, bool(receipt["accepted"])
+        return raw_output, parsed, blocked_x1d, bool(pre_judge_accepted)
 
     x1d = [
         j.to_dict()
         for j in run_unify_narrative_judges(
             narrative_sentence=narrative,
             claim_ledger=claim_ledger,
-            judge_keys=judge_keys,
+            judge_keys=eff_judge_keys,
             companion_bullets_context=companion_text,
             mode=judge_mode,
             artifact_base=artifact_dir,
@@ -976,13 +1047,15 @@ def apply_unify_narrative_in_lane_healing(
             targeting_context=targeting_context,
         )
     ]
-    if receipt["attempted"] or not x1d or all(bool(j.get("pass")) for j in x1d):
-        if not receipt["attempted"]:
+    if not x1d or all(bool(j.get("pass")) for j in x1d):
+        if not pre_judge_attempted:
             receipt["rejected_reason"] = "initial_judges_passed"
+        judge_rewrite_rec["rejected_reason"] = "judges_passed"
+        _sync_receipt()
         write_json(artifact_dir / "unify_narrative_judge_rewrite_receipt.json", receipt)
-        return raw_output, parsed, x1d, bool(receipt["accepted"])
+        return raw_output, parsed, x1d, bool(pre_judge_accepted)
 
-    receipt["attempted"] = True
+    judge_rewrite_attempted = True
     receipt["trigger"] = "x1d_judge_feedback"
     findings = [
         f"{j.get('provider_key')}(score={j.get('score')}): {f}"
@@ -1014,9 +1087,11 @@ def apply_unify_narrative_in_lane_healing(
         run_id=str(runtime_payload.get("run_id") or ""),
     )
     if res.runtime_generation_status != "REAL_LLM":
-        receipt["rejected_reason"] = f"provider_not_real_llm:{res.runtime_generation_status}"
+        judge_rewrite_rec["rejected_reason"] = f"provider_not_real_llm:{res.runtime_generation_status}"
+        receipt["rejected_reason"] = judge_rewrite_rec["rejected_reason"]
+        _sync_receipt()
         write_json(artifact_dir / "unify_narrative_judge_rewrite_receipt.json", receipt)
-        return raw_output, parsed, x1d, False
+        return raw_output, parsed, x1d, bool(pre_judge_accepted)
     cand_raw = str(res.raw_model_output or "")
     cand_in, _ = parse_model_json(cand_raw)
     cand_parsed = (
@@ -1027,18 +1102,27 @@ def apply_unify_narrative_in_lane_healing(
         else None
     )
     cand_narr = str((cand_parsed or {}).get("narrative_sentence") or "").strip()
-    post_issues = _unify_narrative_pre_judge_issues(cand_narr, companion_text) if cand_parsed else ["parse_failed"]
+    usage_snap = usage_ledger_path.read_bytes() if usage_ledger_path.is_file() else None
+    post_issues = (
+        _eval_pre_judge_issues(cand_parsed, cand_raw, is_candidate=True)
+        if cand_parsed is not None
+        else ["parse_failed"]
+    )
     if cand_parsed is None or post_issues:
-        receipt["rejected_reason"] = f"judge_rewrite_failed_deterministic:{post_issues}"
+        if usage_snap is not None:
+            usage_ledger_path.write_bytes(usage_snap)
+        judge_rewrite_rec["rejected_reason"] = f"judge_rewrite_failed_deterministic:{post_issues}"
+        receipt["rejected_reason"] = judge_rewrite_rec["rejected_reason"]
+        _sync_receipt()
         write_json(artifact_dir / "unify_narrative_judge_rewrite_receipt.json", receipt)
-        return raw_output, parsed, x1d, False
+        return raw_output, parsed, x1d, bool(pre_judge_accepted)
     cand_rows = list(cand_parsed.get("claim_ledger") or [])
     cand_x1d = [
         j.to_dict()
         for j in run_unify_narrative_judges(
             narrative_sentence=cand_narr,
             claim_ledger=cand_rows,
-            judge_keys=judge_keys,
+            judge_keys=eff_judge_keys,
             companion_bullets_context=companion_text,
             mode=judge_mode,
             artifact_base=artifact_dir,
@@ -1050,15 +1134,22 @@ def apply_unify_narrative_in_lane_healing(
     new_rank = (sum(1 for j in cand_x1d if j.get("pass")), min((float(j.get("score") or 0.0) for j in cand_x1d), default=0.0))
     receipt["old_rank"] = list(old_rank)
     receipt["new_rank"] = list(new_rank)
+    judge_rewrite_rec["old_rank"] = list(old_rank)
+    judge_rewrite_rec["new_rank"] = list(new_rank)
     if new_rank <= old_rank:
+        if usage_snap is not None:
+            usage_ledger_path.write_bytes(usage_snap)
+        judge_rewrite_rec["rejected_reason"] = "rejudge_not_improved"
         receipt["rejected_reason"] = "rejudge_not_improved"
+        _sync_receipt()
         write_json(artifact_dir / "unify_narrative_judge_rewrite_receipt.json", receipt)
-        return raw_output, parsed, x1d, False
+        return raw_output, parsed, x1d, bool(pre_judge_accepted)
     record_repair(artifact_dir, kind=KIND_REGEN_LLM, operation="unify_narrative_judge_feedback_rewrite", reason="x1d_judge_feedback", replaced_l2=True)
     cur_ledger = load_ledger(artifact_dir) or {}
     next_att = 1 + sum(1 for r in (cur_ledger.get("repairs") or []) if r.get("kind") == KIND_REGEN_LLM and r.get("replaced_l2"))
     set_authoritative_attempt(artifact_dir, next_att, reason="unify_narrative_judge_feedback_rewrite")
-    receipt["accepted"] = True
+    judge_rewrite_accepted = True
+    _sync_receipt()
     write_json(artifact_dir / "unify_narrative_judge_rewrite_receipt.json", receipt)
     return cand_raw, cand_parsed, cand_x1d, True
 
@@ -1204,6 +1295,8 @@ def run_unify_narrative_execution(
         candidate_name=candidate_name,
     )
     runtime_payload["proof_pool_metadata"] = proof_pool_metadata
+    if focus := str(getattr(args, "diagnostic_focus", "") or "").strip():
+        runtime_payload["recovery_diagnostic_focus"] = focus
 
     if artifact_dir_override is not None:
         artifact_dir = Path(artifact_dir_override)
@@ -1327,6 +1420,8 @@ def run_unify_narrative_execution(
         model=section_model,
         provider_requested=str(args.provider),
         idempotent_replay_safe=True,
+        reasoning_effort=getattr(args, "reasoning_effort", None),
+        force_new_seed=bool(getattr(args, "force_new_seed", False)),
     )
     provider_payload = tag_reasoning_lane(provider_payload, LANE_KEY)
     provider_request_data = provider_req.to_dict()
@@ -1537,6 +1632,91 @@ def run_unify_narrative_execution(
         "briefing": str(runtime_payload.get("briefing") or ""),
         "targeting_only": True,
     }
+    from apps_rg.runtime.product_evidence_authority import x2_proof_pool_gate_flags
+
+    pp_x2 = runtime_payload.get("proof_pool_metadata") or {}
+    proof_pool_x2_active, srfs_slice_x2_active = x2_proof_pool_gate_flags(pp_x2)
+
+    def _unify_sync_usage_for_x2(cand_p: dict[str, Any], _cand_raw: str) -> dict[str, Any]:
+        cand_narr = str(cand_p.get("narrative_sentence") or "").strip()
+        cand_ledger = list(cand_p.get("claim_ledger") or [])
+        cand_cov = build_sentence_claim_coverage(cand_narr, cand_ledger, allowed_fact_ids)
+        cand_px2 = enrich_unify_narrative_parsed_for_x2(
+            cand_p,
+            coverage=cand_cov,
+            input_payload_hash=input_payload_hash,
+            allowed_fact_ids=allowed_fact_ids,
+        )
+        cand_ja_raw = cand_p.get("jd_alignment")
+        cand_ja = {**_shell_jd_alignment(), **cand_ja_raw} if isinstance(cand_ja_raw, dict) else _shell_jd_alignment()
+        cand_usage = build_section_input_usage_ledger_v1(
+            section_id="unify_narrative",
+            run_id=str(runtime_payload["run_id"]),
+            request_id=req_id,
+            trace_root=trace_rr,
+            repo_root=REPO_ROOT,
+            artifact_dir=artifact_dir,
+            runtime_payload=runtime_payload,
+            selected_fact_plan=cand_p.get("selected_fact_plan") or selected_fact_plan,
+            claim_ledger=cand_ledger,
+            allowed_fact_ids=allowed_fact_ids,
+            jd_text=str(runtime_payload.get("jd_text") or ""),
+            target_title=str(runtime_payload.get("target_title") or ""),
+            target_company=str(runtime_payload.get("target_company") or ""),
+            briefing_text=str(runtime_payload.get("briefing") or ""),
+            jd_alignment=cand_ja,
+        )
+        write_json(
+            artifact_dir / "section_input_usage_ledger.json",
+            apply_proof_pool_to_usage_ledger(cand_usage, pool),
+        )
+        return cand_px2
+
+    def _unify_run_pre_x2(cand_p: dict[str, Any], cand_px2: dict[str, Any]) -> list[dict[str, Any]]:
+        cand_narr = str(cand_p.get("narrative_sentence") or "").strip()
+        cand_ledger = list(cand_p.get("claim_ledger") or [])
+        if cand_px2 is not cand_p:
+            cand_px2_eff = cand_px2
+            cand_raw_eff = json.dumps(cand_px2_eff, ensure_ascii=False, separators=(",", ":"))
+        elif cand_p is parsed:
+            cand_px2_eff = parsed_for_x2
+            cand_raw_eff = raw_output_for_x2
+        else:
+            cand_cov = build_sentence_claim_coverage(cand_narr, cand_ledger, allowed_fact_ids)
+            cand_px2_eff = enrich_unify_narrative_parsed_for_x2(
+                cand_p,
+                coverage=cand_cov,
+                input_payload_hash=input_payload_hash,
+                allowed_fact_ids=allowed_fact_ids,
+            )
+            cand_raw_eff = json.dumps(cand_px2_eff, ensure_ascii=False, separators=(",", ":"))
+        return [
+            g.to_dict()
+            for g in run_unify_narrative_x2_gates(
+                narrative_sentence=cand_narr,
+                parsed_output=cand_px2_eff,
+                claim_ledger=cand_ledger,
+                jd_text=runtime_payload["jd_text"],
+                briefing_text=str(runtime_payload.get("briefing") or ""),
+                runtime_generation_status=runtime_generation_status,
+                companion_bullet_texts=companion_text or None,
+                companion_bullets_status=str(companion_context.get("status") or "UNKNOWN"),
+                companion_bullets_reason=str(companion_context.get("reason") or ""),
+                candidate_name=candidate_name,
+                provider_requested=args.provider,
+                provider_attempted=args.provider,
+                model_name=model_name,
+                raw_output=cand_raw_eff,
+                x1d_judges=[],
+                allowed_fact_ids=allowed_fact_ids,
+                artifacts_dir=artifact_dir,
+                srfs_source_fact_slice_gate_active=srfs_slice_x2_active,
+                proof_pool_metadata=pp_x2,
+                proof_pool_ref=str(pool.proof_pool_ref or ""),
+                proof_pool_digest=str(pool.proof_pool_digest or ""),
+            )
+        ]
+
     raw_output, parsed, x1d, _unify_rewrite_accepted = apply_unify_narrative_in_lane_healing(
         messages=messages,
         provider_payload=provider_payload,
@@ -1551,6 +1731,8 @@ def run_unify_narrative_execution(
         judge_mode=judge_mode,
         allowed_fact_packet=unify_allowed_fact_packet,
         targeting_context=unify_targeting_context,
+        run_x2_fn=_unify_run_pre_x2,
+        sync_artifacts_fn=_unify_sync_usage_for_x2,
     )
     if _unify_rewrite_accepted and isinstance(parsed, dict):
         narrative = str(parsed.get("narrative_sentence") or "").strip()
@@ -1651,11 +1833,6 @@ def run_unify_narrative_execution(
     # narrative.  A small pending placeholder cannot safely be overwritten by
     # an honest failed-gate list under the L2 write-amplification guard.
     _write_pre_x2_evaluation_state(artifact_dir)
-
-    from apps_rg.runtime.product_evidence_authority import x2_proof_pool_gate_flags
-
-    pp_x2 = runtime_payload.get("proof_pool_metadata") or {}
-    proof_pool_x2_active, srfs_slice_x2_active = x2_proof_pool_gate_flags(pp_x2)
 
     x2 = [
         g.to_dict()

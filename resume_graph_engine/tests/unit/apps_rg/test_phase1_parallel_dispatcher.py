@@ -16,6 +16,7 @@ from apps_rg.runtime.orchestration.section_lane_concurrency import (
     load_section_dag_manifest,
     phase1_parallel_enabled,
     section_dag_dependencies,
+    topological_lane_order,
 )
 from apps_rg.runtime.orchestration.section_lane_executor import LaneExecutionContext
 from apps_rg.runtime.runtime_proof_layout import MODULAR_R4_SECTIONS_ROOT_ENV
@@ -453,3 +454,64 @@ def test_dispatcher_invokes_prewarm_for_serial_and_parallel_single_and_multi_lan
     dispatch_phase1_lanes_managed(("headline",), ctx, dispatch_fn=_fn, parallel=True, max_parallel=2)
     dispatch_phase1_lanes_managed(("unify_bullets", "ibm_bullets"), ctx, dispatch_fn=_fn, parallel=True, max_parallel=2)
     assert len(prewarm_calls) == 3
+
+
+def test_serial_dispatch_blocks_only_descendants_of_failed_lane() -> None:
+    calls: list[str] = []
+
+    def _fn(**kwargs: object) -> dict[str, str]:
+        lane = str(kwargs.get("section") or "")
+        calls.append(lane)
+        if lane == "unify_bullets":
+            return {"section": lane, "exit_status": "error", "fault": "provider_timeout"}
+        return {"section": lane, "exit_status": "success"}
+
+    ctx = LaneExecutionContext(
+        sections_root="/tmp/sections",
+        target_company="Acme",
+        target_role="VP",
+        job_description_ref="",
+        job_description_text="",
+        manual_brief="",
+        lane_provider="mock",
+        lane_x1d_judges=(),
+        lane_mock_judges=True,
+    )
+    lanes = (
+        "unify_bullets",
+        "ibm_bullets",
+        "unify_narrative",
+        "ibm_narrative",
+        "executive_summary",
+    )
+    out = dispatch_phase1_lanes_managed(
+        lanes,
+        ctx,
+        dispatch_fn=_fn,
+        parallel=False,
+    )
+    assert "ibm_bullets" in calls
+    assert "ibm_narrative" in calls
+    assert "executive_summary" in calls
+    assert "unify_narrative" not in calls
+    assert out["unify_narrative"].exec_status == "pre_run_blocked:UPSTREAM_DEPENDENCY_FAILED"
+
+
+def test_topological_lane_order_preserves_generated_lanes_and_reorders_custom_dag() -> None:
+    from apps_rg.runtime.internal.generated_lane_contract import GENERATED_LANES
+
+    assert topological_lane_order(GENERATED_LANES) == GENERATED_LANES
+    custom = {
+        "competencies": ("executive_summary",),
+        "executive_summary": ("headline",),
+        "headline": (),
+    }
+    assert topological_lane_order(
+        ("competencies", "executive_summary", "headline"),
+        deps_by_lane=custom,
+    ) == ("headline", "executive_summary", "competencies")
+    with pytest.raises(ValueError, match="Cycle detected"):
+        topological_lane_order(
+            ("a", "b"),
+            deps_by_lane={"a": ("b",), "b": ("a",)},
+        )

@@ -98,6 +98,8 @@ def test_executive_summary_publish_disposition_apply_certified_path() -> None:
                 "evaluator_mode": "MODEL_BACKED",
                 "provider_status": "MODEL_BACKED_PASS",
                 "pass": True,
+                "score": 4.85,
+                "score_scale": "0_to_5",
                 "decisive_failure": False,
             },
             {
@@ -105,6 +107,8 @@ def test_executive_summary_publish_disposition_apply_certified_path() -> None:
                 "evaluator_mode": "MODEL_BACKED",
                 "provider_status": "MODEL_BACKED_PASS",
                 "pass": True,
+                "score": 4.85,
+                "score_scale": "0_to_5",
                 "decisive_failure": False,
             },
             {
@@ -112,6 +116,8 @@ def test_executive_summary_publish_disposition_apply_certified_path() -> None:
                 "evaluator_mode": "MODEL_BACKED",
                 "provider_status": "MODEL_BACKED_PASS",
                 "pass": True,
+                "score": 4.85,
+                "score_scale": "0_to_5",
                 "decisive_failure": False,
             },
         ],

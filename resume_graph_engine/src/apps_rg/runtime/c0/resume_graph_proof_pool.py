@@ -263,6 +263,7 @@ def bind_proof_pool_to_resume_graph_allocation(pool: Any) -> Any:
                 contract.get("contract_digest") or ""
             ),
             "durable_graph_state_mutated": False,
+            "frozen_allocation_materialized": True,
             "graph_skill_embeddings_required": graph_skill_embeddings_required(),
             "graph_skill_embeddings_enabled": bool(embedding_lane),
         }

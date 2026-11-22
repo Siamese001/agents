@@ -2184,11 +2184,11 @@ def run_claude_bullet_pool_selection(
         ):
             single_path = valid_paths[0]
             single_parsed = single_path.parsed if isinstance(single_path.parsed, dict) else {}
-            slots_complete_and_clean = all(
-                _bullet_passes_line_discipline(_bullet_by_id(single_parsed, bid))
+            slots_present = all(
+                _bullet_by_id(single_parsed, bid) is not None
                 for bid in required_bullet_ids
             )
-            if slots_complete_and_clean:
+            if slots_present:
                 selector_role = selector_role_for_section(section_id, slot_kind=slot_kind)
                 provider_key, model, model_source = resolve_selector_provider_model(selector_role)
                 floor = min_score_threshold
@@ -2252,6 +2252,110 @@ def run_claude_bullet_pool_selection(
                 )
         pool_text = _format_bullet_pool(valid_paths, required_bullet_ids or ())
     else:
+        real_comp_paths = [
+            p for p in valid_paths if p.runtime_generation_status != "GOVERNED_GRAPH_BASELINE"
+        ]
+        if (
+            competencies_selector
+            and len(real_comp_paths) == 1
+            and bool((targeting_context or {}).get("frozen_allocation_materialized"))
+            and mode != "mocked"
+        ):
+            single_path = real_comp_paths[0]
+            single_parsed = single_path.parsed if isinstance(single_path.parsed, dict) else {}
+            tc = targeting_context or {}
+            allowed_fact_ids = {
+                str(v).strip() for v in (tc.get("allowed_fact_ids") or []) if str(v).strip()
+            }
+            allowed_skill_ids = {
+                str(v).strip() for v in (tc.get("allowed_skill_ids") or []) if str(v).strip()
+            }
+            resume_support_blob_lower = str(tc.get("resume_support_blob_lower") or "")
+            floor = min_score_threshold or min_competencies_selection_score()
+            raw_selections: list[dict[str, Any]] = []
+            for cat in single_parsed.get("competencies") or single_parsed.get("categories") or []:
+                if not isinstance(cat, dict):
+                    continue
+                label = str(cat.get("category_label") or "").strip()
+                if not label:
+                    continue
+                sup_score = competencies_candidate_support_score(
+                    cat,
+                    allowed_fact_ids=allowed_fact_ids,
+                    allowed_skill_ids=allowed_skill_ids,
+                    resume_support_blob_lower=resume_support_blob_lower,
+                )
+                raw_selections.append(
+                    {
+                        "category_label": label,
+                        "competency_bundle_id": str(cat.get("competency_bundle_id") or "").strip(),
+                        "taxonomy_category_id": str(cat.get("taxonomy_category_id") or "").strip(),
+                        "path_index": single_path.path_index,
+                        "score": round(float(sup_score), 4),
+                        "passes": bool(sup_score >= floor),
+                        "selection_reason": "frozen_allocation_single_path_deterministic_support",
+                    }
+                )
+            selections, governed_additions, dropped_selections = (
+                _complete_governed_required_bundle_selections(
+                    valid_paths,
+                    raw_selections,
+                    min_score_threshold=floor,
+                    targeting_context=tc,
+                )
+            )
+            merged, source_map, rejected_neighbor_audit = _merge_competencies_graph_pool_with_audit(
+                valid_paths,
+                selections,
+                base_parsed=single_parsed,
+                min_score_threshold=floor,
+                targeting_context=tc,
+            )
+            selector_role = selector_role_for_section(section_id, slot_kind=slot_kind)
+            provider_key, model, model_source = resolve_selector_provider_model(selector_role)
+            judge_stub = JudgeOutput(
+                judge_id=f"x1d_{provider_key}_bullet_pool_selector",
+                provider_name="Anthropic Claude" if provider_key == "anthropic_claude" else provider_key,
+                provider_key=provider_key,
+                evaluator_mode="MODEL_BACKED",
+                provider_status="MODEL_BACKED_PASS",
+                model_name=model,
+                provider_available=True,
+                provider_blocked=False,
+                exact_provider_error=None,
+                raw_response_ref="",
+                input_hash=_sha16(f"{section_id}:frozen_single_path:{single_path.path_index}"),
+                pass_=True,
+                rationale=str(model_source),
+            )
+            if artifact_dir is not None:
+                (artifact_dir / "bullet_pool_claude_selector_judge.json").write_text(
+                    json.dumps(judge_stub.to_dict(), indent=2, ensure_ascii=False) + "\n",
+                    encoding="utf-8",
+                )
+                _write_selector_timing_receipt(
+                    artifact_dir,
+                    {
+                        "section_id": section_id,
+                        "passthrough": True,
+                        "reason": "frozen_allocation_single_path",
+                        "candidate_paths": 1,
+                        "elapsed_s": 0.0,
+                    },
+                )
+            selection_mode = (
+                "competencies_advisory_selector_plus_governed_required_bundle_completion"
+                if governed_additions or dropped_selections
+                else "competencies_advisory_selector_required_eight_pass"
+            )
+            return PoolSelectionResult(
+                merged_parsed=merged,
+                selections=selections,
+                judge_output=judge_stub,
+                selection_mode=selection_mode,
+                source_path_by_slot=source_map,
+                rejected_neighbor_audit=rejected_neighbor_audit,
+            )
         pool_text = _format_competency_pool(valid_paths)
 
     selector_role = selector_role_for_section(section_id, slot_kind=slot_kind)

@@ -115,6 +115,8 @@ def _compiled_prompt(cfg: RoleEpisodeLaneConfig, runtime_payload: dict[str, Any]
     )
     ppm = runtime_payload.get("proof_pool_metadata") or {}
     evidence_block = _role_episode_evidence_block(runtime_payload) if ppm.get("role_episode_bundle_consumption") else ""
+    focus = str(runtime_payload.get("recovery_diagnostic_focus") or "").strip()
+    focus_block = f"<RECOVERY_DIAGNOSTIC_FOCUS>\n{focus}\n</RECOVERY_DIAGNOSTIC_FOCUS>" if focus else ""
     if evidence_block:
         from apps_rg.runtime.sections.executive_summary_pa import format_jd_targeting_block
         jd_block = format_jd_targeting_block(
@@ -143,9 +145,9 @@ def _compiled_prompt(cfg: RoleEpisodeLaneConfig, runtime_payload: dict[str, Any]
             "source_fact_ids while keeping pairwise cosine similarity against each companion bullet <= 0.35. "
             "targeting_only=true; jd_used_as_proof=false."
         )
-        return "\n".join([b for b in [f"Section: {cfg.section_id}", role_methodology, instruction, jd_block, evidence_block, companion_block, shape, "Allowed facts (claim proof — source_fact_ids must cite only these):", *fact_lines] if b])
+        return "\n".join([b for b in [focus_block, f"Section: {cfg.section_id}", role_methodology, instruction, jd_block, evidence_block, companion_block, shape, "Allowed facts (claim proof — source_fact_ids must cite only these):", *fact_lines] if b])
 
-    return "\n".join([b for b in [f"Section: {cfg.section_id}", role_methodology, "Use only source_fact_ids from the allowed facts below. Do not use JD or briefing as claim proof.", companion_block, shape, "Allowed facts:", *fact_lines] if b])
+    return "\n".join([b for b in [focus_block, f"Section: {cfg.section_id}", role_methodology, "Use only source_fact_ids from the allowed facts below. Do not use JD or briefing as claim proof.", companion_block, shape, "Allowed facts:", *fact_lines] if b])
 
 
 def _prompt_object(prompt_text: str, *, run_id: str, prompt_hash: str) -> SimpleNamespace:

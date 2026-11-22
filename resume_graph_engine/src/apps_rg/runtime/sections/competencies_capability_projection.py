@@ -147,17 +147,21 @@ def _coerce_term_support(
     allowed_skill_ids: set[str],
     skill_rows_by_id: dict[str, dict[str, Any]],
     default_fact_id: str,
+    allow_prose_mutation: bool = True,
 ) -> dict[str, Any] | None:
     phrase = term_phrase(term)
-    if len(phrase.split()) == 1:
-        expanded = map_to_capability_synonym(phrase)
-        if expanded:
-            phrase = expanded
-    if not phrase or is_raw_fragment_term(phrase):
-        mapped = map_to_capability_synonym(phrase)
-        if not mapped or is_raw_fragment_term(mapped):
-            return None
-        phrase = mapped
+    if not phrase:
+        return None
+    if allow_prose_mutation:
+        if len(phrase.split()) == 1:
+            expanded = map_to_capability_synonym(phrase)
+            if expanded:
+                phrase = expanded
+        if not phrase or is_raw_fragment_term(phrase):
+            mapped = map_to_capability_synonym(phrase)
+            if not mapped or is_raw_fragment_term(mapped):
+                return None
+            phrase = mapped
 
     from apps_rg.runtime.sections.competencies_lane_runtime import _fix_fact_id_typos
 
@@ -183,7 +187,7 @@ def _coerce_term_support(
                 if fid_s in allowed_fact_ids and fid_s not in sids:
                     sids.append(fid_s)
 
-    if not sids and not skill_ids:
+    if allow_prose_mutation and not sids and not skill_ids:
         return None
 
     support = SUPPORT_CLASS_FACT_ONLY
@@ -198,17 +202,18 @@ def _coerce_term_support(
         "source_skill_ids": skill_ids,
         "support_class": support,
     }
-    if is_credential_competency_term(phrase):
-        return None
-    if _is_low_rigor_two_word_phrase(phrase):
-        ok, _ = check_competencies_no_all_generic_skill_phrase(
-            [{"category_label": "x", "terms": [{"text": phrase, "source_fact_id": sids[0] if sids else "", "source_fact_ids": sids}]}]
-        )
-        if not ok:
-            mapped = map_to_capability_synonym(phrase)
-            if not mapped:
-                return None
-            out["term"] = mapped
+    if allow_prose_mutation:
+        if is_credential_competency_term(phrase):
+            return None
+        if _is_low_rigor_two_word_phrase(phrase):
+            ok, _ = check_competencies_no_all_generic_skill_phrase(
+                [{"category_label": "x", "terms": [{"text": phrase, "source_fact_id": sids[0] if sids else "", "source_fact_ids": sids}]}]
+            )
+            if not ok:
+                mapped = map_to_capability_synonym(phrase)
+                if not mapped:
+                    return None
+                out["term"] = mapped
     return out
 
 
@@ -538,6 +543,7 @@ def apply_executive_capability_projection(
     allowed_skill_ids: set[str] | None = None,
     skill_rows_by_id: dict[str, dict[str, Any]] | None = None,
     resume_support_blob_lower: str = "",
+    allow_prose_mutation: bool = True,
 ) -> dict[str, Any]:
     """Project LLM output into approved taxonomy buckets; drop fragments; backfill capabilities."""
     allowed_skill_ids = allowed_skill_ids or set()
@@ -557,6 +563,7 @@ def apply_executive_capability_projection(
         if isinstance(row, dict) and row.get("category_id")
     }
     bucket_sources: dict[str, list[dict[str, Any]]] = {key: [] for key in buckets}
+    unmapped_cats: list[dict[str, Any]] = []
 
     for cat in extract_categories(parsed):
         if not isinstance(cat, dict):
@@ -567,12 +574,27 @@ def apply_executive_capability_projection(
             competency_bundle_id=str(cat.get("competency_bundle_id") or ""),
         )
         if not cid or cid not in buckets:
-            changelog.append(
-                {
-                    "operation": "drop_unmapped_category",
-                    "category_label": cat.get("category_label"),
-                }
-            )
+            if allow_prose_mutation:
+                changelog.append(
+                    {
+                        "operation": "drop_unmapped_category",
+                        "category_label": cat.get("category_label"),
+                    }
+                )
+            else:
+                preserved_terms: list[dict[str, Any]] = []
+                for raw_t in cat.get("terms") or []:
+                    coerced = _coerce_term_support(
+                        raw_t if isinstance(raw_t, dict) else {"term": str(raw_t)},
+                        allowed_fact_ids=allowed_fact_ids,
+                        allowed_skill_ids=allowed_skill_ids,
+                        skill_rows_by_id=skill_rows_by_id,
+                        default_fact_id=default_fid,
+                        allow_prose_mutation=False,
+                    )
+                    if coerced is not None:
+                        preserved_terms.append(coerced)
+                unmapped_cats.append({**cat, "terms": preserved_terms})
             continue
         bucket_sources[cid].append(cat)
         for raw_t in cat.get("terms") or []:
@@ -582,13 +604,14 @@ def apply_executive_capability_projection(
                 allowed_skill_ids=allowed_skill_ids,
                 skill_rows_by_id=skill_rows_by_id,
                 default_fact_id=default_fid,
+                allow_prose_mutation=allow_prose_mutation,
             )
             if coerced is None:
                 orig = term_phrase(raw_t)
                 if orig:
                     changelog.append({"operation": "drop_unsupported_term", "term": orig})
                 continue
-            if _norm(term_phrase(coerced)) in _FORBIDDEN_REPAIR_OUTPUTS:
+            if allow_prose_mutation and _norm(term_phrase(coerced)) in _FORBIDDEN_REPAIR_OUTPUTS:
                 continue
             buckets[cid].append(coerced)
             _register_phrase_keyword_freq(term_phrase(coerced), global_keyword_freq)
@@ -602,8 +625,10 @@ def apply_executive_capability_projection(
         cid = str(row.get("category_id") or "").strip()
         if preserve_selected_only and cid not in incoming_cids:
             continue
+        if not allow_prose_mutation and cid not in incoming_cids:
+            continue
         label = str(row.get("category_label") or "").strip()
-        terms = _dedupe_terms(buckets.get(cid) or [])
+        terms = _dedupe_terms(buckets.get(cid) or []) if allow_prose_mutation else list(buckets.get(cid) or [])
         cat_fact_ids: list[str] = []
         for t in terms:
             for fid in t.get("source_fact_ids") or []:
@@ -632,36 +657,43 @@ def apply_executive_capability_projection(
             "terms": terms,
             "source_fact_ids": cat_fact_ids,
         }
-        _backfill_terms_for_category(
-            new_cat,
-            allowed_fact_ids=allowed_fact_ids,
-            allowed_skill_ids=allowed_skill_ids,
-            skill_rows_by_id=skill_rows_by_id,
-            resume_support_blob_lower=resume_support_blob_lower,
-            changelog=changelog,
-            default_fid=default_fid,
-            global_keyword_freq=global_keyword_freq,
-        )
+        if allow_prose_mutation:
+            _backfill_terms_for_category(
+                new_cat,
+                allowed_fact_ids=allowed_fact_ids,
+                allowed_skill_ids=allowed_skill_ids,
+                skill_rows_by_id=skill_rows_by_id,
+                resume_support_blob_lower=resume_support_blob_lower,
+                changelog=changelog,
+                default_fid=default_fid,
+                global_keyword_freq=global_keyword_freq,
+            )
         projected.append(new_cat)
+    if unmapped_cats:
+        projected.extend(unmapped_cats)
 
     from apps_rg.runtime.sections.competencies_v3_contract import category_v3_from_legacy
 
-    legacy_cats = [legacy_category_from_v3(c) for c in projected]
-    sanitized, cert_log = sanitize_competencies_no_certification_category(legacy_cats)
-    if cert_log:
-        changelog.extend(cert_log)
-    v3_cats = [category_v3_from_legacy(c) for c in sanitized]
+    if allow_prose_mutation:
+        legacy_cats = [legacy_category_from_v3(c) for c in projected]
+        sanitized, cert_log = sanitize_competencies_no_certification_category(legacy_cats)
+        if cert_log:
+            changelog.extend(cert_log)
+        v3_cats = [category_v3_from_legacy(c) for c in sanitized]
+    else:
+        v3_cats = list(projected)
     for cat in v3_cats:
-        _backfill_terms_for_category(
-            cat,
-            allowed_fact_ids=allowed_fact_ids,
-            allowed_skill_ids=allowed_skill_ids,
-            skill_rows_by_id=skill_rows_by_id,
-            resume_support_blob_lower=resume_support_blob_lower,
-            changelog=changelog,
-            default_fid=default_fid,
-            global_keyword_freq=global_keyword_freq,
-        )
+        if allow_prose_mutation:
+            _backfill_terms_for_category(
+                cat,
+                allowed_fact_ids=allowed_fact_ids,
+                allowed_skill_ids=allowed_skill_ids,
+                skill_rows_by_id=skill_rows_by_id,
+                resume_support_blob_lower=resume_support_blob_lower,
+                changelog=changelog,
+                default_fid=default_fid,
+                global_keyword_freq=global_keyword_freq,
+            )
         cat_fact_ids: list[str] = []
         for t in cat.get("terms") or []:
             if not isinstance(t, dict):
@@ -673,26 +705,27 @@ def apply_executive_capability_projection(
         if not cat_fact_ids and default_fid:
             cat_fact_ids = [default_fid]
         cat["source_fact_ids"] = cat_fact_ids
-    max_emit = _taxonomy_emit_max_count(tax)
-    if not preserve_selected_only:
-        max_emit = min(max_emit, _taxonomy_default_emit_count(tax))
-    tax_rows = [r for r in tax.get("categories") or [] if isinstance(r, dict)]
-    v3_cats, dropped = _trim_categories_to_emit_count(
-        v3_cats,
-        tax_categories=tax_rows,
-        max_count=max_emit,
-        priority_category_ids=incoming_cids,
-    )
-    if dropped:
-        changelog.append(
-            {
-                "operation": "trim_taxonomy_to_graph_8x8_emit",
-                "kept": max_emit,
-                "dropped_category_ids": [
-                    str(c.get("category_id") or "") for c in dropped if isinstance(c, dict)
-                ],
-            }
+    if allow_prose_mutation:
+        max_emit = _taxonomy_emit_max_count(tax)
+        if not preserve_selected_only:
+            max_emit = min(max_emit, _taxonomy_default_emit_count(tax))
+        tax_rows = [r for r in tax.get("categories") or [] if isinstance(r, dict)]
+        v3_cats, dropped = _trim_categories_to_emit_count(
+            v3_cats,
+            tax_categories=tax_rows,
+            max_count=max_emit,
+            priority_category_ids=incoming_cids,
         )
+        if dropped:
+            changelog.append(
+                {
+                    "operation": "trim_taxonomy_to_graph_8x8_emit",
+                    "kept": max_emit,
+                    "dropped_category_ids": [
+                        str(c.get("category_id") or "") for c in dropped if isinstance(c, dict)
+                    ],
+                }
+            )
     parsed["categories"] = v3_cats
     sync_categories_competencies(parsed)
     parsed["change_log"] = changelog
@@ -711,6 +744,7 @@ def run_competencies_v3_post_llm_pipeline(
     resume_support_blob: str,
     c0_proof_blob: str,
     bullet_texts_lower: list[str],
+    allow_prose_mutation: bool = True,
 ) -> dict[str, Any]:
     """Mirror competencies_lane_execution post-LLM repairs with finalize-last projection."""
     from apps_rg.runtime.sections.competencies_lane_runtime import (
@@ -727,30 +761,33 @@ def run_competencies_v3_post_llm_pipeline(
     allowed_skill_ids = allowed_skill_ids or set()
     skill_rows_by_id = skill_rows_by_id or {}
     sync_categories_competencies(parsed)
-    collapse_duplicate_competency_terms(parsed, bullet_rows, resume_support_blob)
+    if allow_prose_mutation:
+        collapse_duplicate_competency_terms(parsed, bullet_rows, resume_support_blob)
     repair_structured_competencies_source_facts(
         parsed,
         allowed_fact_ids=allowed_fact_ids,
         resume_support_blob_lower=c0_proof_blob,
     )
-    coerce_structured_competencies_resume_support(
-        parsed,
-        bullet_rows,
-        c0_proof_blob,
-        bullet_texts_lower,
-        allowed_fact_ids=allowed_fact_ids,
-    )
-    dedupe_structured_competency_terms(parsed)
-    reduce_competency_keyword_stuffing(parsed)
+    if allow_prose_mutation:
+        coerce_structured_competencies_resume_support(
+            parsed,
+            bullet_rows,
+            c0_proof_blob,
+            bullet_texts_lower,
+            allowed_fact_ids=allowed_fact_ids,
+        )
+        dedupe_structured_competency_terms(parsed)
+    reduce_competency_keyword_stuffing(parsed, allow_prose_mutation=allow_prose_mutation)
     canonicalize_competency_terms_for_proof(parsed, allowed_fact_ids=allowed_fact_ids)
-    coerce_structured_competencies_resume_support(
-        parsed,
-        bullet_rows,
-        c0_proof_blob,
-        bullet_texts_lower,
-        allowed_fact_ids=allowed_fact_ids,
-    )
-    dedupe_structured_competency_terms(parsed)
+    if allow_prose_mutation:
+        coerce_structured_competencies_resume_support(
+            parsed,
+            bullet_rows,
+            c0_proof_blob,
+            bullet_texts_lower,
+            allowed_fact_ids=allowed_fact_ids,
+        )
+        dedupe_structured_competency_terms(parsed)
     rebuild_claim_ledger_from_competencies(parsed, allowed_fact_ids)
     prune_claim_ledger_bullet_paste(parsed)
     out = finalize_competencies_v3_output(
@@ -759,6 +796,7 @@ def run_competencies_v3_post_llm_pipeline(
         allowed_skill_ids=allowed_skill_ids,
         skill_rows_by_id=skill_rows_by_id,
         resume_support_blob_lower=c0_proof_blob,
+        allow_prose_mutation=allow_prose_mutation,
     )
     if competency_capability_packet:
         from apps_rg.runtime.sections.competency_capability_evidence import (
@@ -965,6 +1003,7 @@ def _reapply_taxonomy_floors(
     allowed_skill_ids: set[str],
     skill_rows_by_id: dict[str, dict[str, Any]],
     resume_support_blob_lower: str,
+    allow_prose_mutation: bool = True,
 ) -> dict[str, Any]:
     """Re-backfill categories after post-projection dedupe/keyword reduction."""
     from apps_rg.runtime.sections.competencies_v3_contract import category_v3_from_legacy
@@ -988,17 +1027,18 @@ def _reapply_taxonomy_floors(
         if isinstance(t, dict) and term_phrase(t)
     }
     for cat in cats:
-        _backfill_terms_for_category(
-            cat,
-            allowed_fact_ids=allowed_fact_ids,
-            allowed_skill_ids=allowed_skill_ids,
-            skill_rows_by_id=skill_rows_by_id,
-            resume_support_blob_lower=resume_support_blob_lower,
-            changelog=changelog,
-            default_fid=default_fid,
-            global_keyword_freq=global_keyword_freq,
-            global_phrase_seen=global_phrase_seen,
-        )
+        if allow_prose_mutation:
+            _backfill_terms_for_category(
+                cat,
+                allowed_fact_ids=allowed_fact_ids,
+                allowed_skill_ids=allowed_skill_ids,
+                skill_rows_by_id=skill_rows_by_id,
+                resume_support_blob_lower=resume_support_blob_lower,
+                changelog=changelog,
+                default_fid=default_fid,
+                global_keyword_freq=global_keyword_freq,
+                global_phrase_seen=global_phrase_seen,
+            )
         cat_fact_ids: list[str] = []
         for t in cat.get("terms") or []:
             if not isinstance(t, dict):
@@ -1022,6 +1062,7 @@ def finalize_competencies_v3_output(
     allowed_skill_ids: set[str] | None = None,
     skill_rows_by_id: dict[str, dict[str, Any]] | None = None,
     resume_support_blob_lower: str = "",
+    allow_prose_mutation: bool = True,
 ) -> dict[str, Any]:
     """Final seam: executive projection must run after collapse/dedupe/keyword reduction."""
     from apps_rg.runtime.sections.competencies_lane_runtime import (
@@ -1039,55 +1080,60 @@ def finalize_competencies_v3_output(
         allowed_skill_ids=allowed_skill_ids,
         skill_rows_by_id=skill_rows_by_id,
         resume_support_blob_lower=resume_support_blob_lower,
+        allow_prose_mutation=allow_prose_mutation,
     )
     sync_categories_competencies(out)
-    dedupe_structured_competency_terms(out)
-    reduce_competency_keyword_stuffing(out)
-    _reapply_taxonomy_floors(
-        out,
-        allowed_fact_ids=allowed_fact_ids,
-        allowed_skill_ids=allowed_skill_ids,
-        skill_rows_by_id=skill_rows_by_id,
-        resume_support_blob_lower=resume_support_blob_lower,
-    )
-    reduce_competency_keyword_stuffing(out)
-    _reapply_taxonomy_floors(
-        out,
-        allowed_fact_ids=allowed_fact_ids,
-        allowed_skill_ids=allowed_skill_ids,
-        skill_rows_by_id=skill_rows_by_id,
-        resume_support_blob_lower=resume_support_blob_lower,
-    )
-    default_fid = _select_default_bullet_fact_id(allowed_fact_ids, skill_rows_by_id)
-    _trim_excess_keyword_repeats(
-        out,
-        allowed_fact_ids=allowed_fact_ids,
-        default_fid=default_fid,
-    )
-    from apps_rg.runtime.sections.section_authority_repairs import prune_competencies_rigor_failing_terms
-
-    pruned = prune_competencies_rigor_failing_terms(out)
-    if pruned:
-        clog = list(out.get("change_log") or [])
-        clog.append(
-            {
-                "operation": "prune_rigor_failing_competency_terms",
-                "reason": "; ".join(pruned[:8]),
-            }
+    if allow_prose_mutation:
+        dedupe_structured_competency_terms(out)
+        reduce_competency_keyword_stuffing(out, allow_prose_mutation=allow_prose_mutation)
+        _reapply_taxonomy_floors(
+            out,
+            allowed_fact_ids=allowed_fact_ids,
+            allowed_skill_ids=allowed_skill_ids,
+            skill_rows_by_id=skill_rows_by_id,
+            resume_support_blob_lower=resume_support_blob_lower,
+            allow_prose_mutation=allow_prose_mutation,
         )
-        out["change_log"] = clog
-    _reapply_taxonomy_floors(
-        out,
-        allowed_fact_ids=allowed_fact_ids,
-        allowed_skill_ids=allowed_skill_ids,
-        skill_rows_by_id=skill_rows_by_id,
-        resume_support_blob_lower=resume_support_blob_lower,
-    )
-    _trim_excess_keyword_repeats(
-        out,
-        allowed_fact_ids=allowed_fact_ids,
-        default_fid=default_fid,
-    )
+        reduce_competency_keyword_stuffing(out, allow_prose_mutation=allow_prose_mutation)
+        _reapply_taxonomy_floors(
+            out,
+            allowed_fact_ids=allowed_fact_ids,
+            allowed_skill_ids=allowed_skill_ids,
+            skill_rows_by_id=skill_rows_by_id,
+            resume_support_blob_lower=resume_support_blob_lower,
+            allow_prose_mutation=allow_prose_mutation,
+        )
+        default_fid = _select_default_bullet_fact_id(allowed_fact_ids, skill_rows_by_id)
+        _trim_excess_keyword_repeats(
+            out,
+            allowed_fact_ids=allowed_fact_ids,
+            default_fid=default_fid,
+        )
+        from apps_rg.runtime.sections.section_authority_repairs import prune_competencies_rigor_failing_terms
+
+        pruned = prune_competencies_rigor_failing_terms(out, allow_prose_mutation=allow_prose_mutation)
+        if pruned:
+            clog = list(out.get("change_log") or [])
+            clog.append(
+                {
+                    "operation": "prune_rigor_failing_competency_terms",
+                    "reason": "; ".join(pruned[:8]),
+                }
+            )
+            out["change_log"] = clog
+        _reapply_taxonomy_floors(
+            out,
+            allowed_fact_ids=allowed_fact_ids,
+            allowed_skill_ids=allowed_skill_ids,
+            skill_rows_by_id=skill_rows_by_id,
+            resume_support_blob_lower=resume_support_blob_lower,
+            allow_prose_mutation=allow_prose_mutation,
+        )
+        _trim_excess_keyword_repeats(
+            out,
+            allowed_fact_ids=allowed_fact_ids,
+            default_fid=default_fid,
+        )
     from apps_rg.runtime.sections.competencies_lane_runtime import (
         repair_structured_competencies_source_facts,
     )
@@ -1097,22 +1143,25 @@ def finalize_competencies_v3_output(
         allowed_fact_ids=allowed_fact_ids,
         resume_support_blob_lower=resume_support_blob_lower,
     )
-    dedupe_structured_competency_terms(out)
-    _reapply_taxonomy_floors(
-        out,
-        allowed_fact_ids=allowed_fact_ids,
-        allowed_skill_ids=allowed_skill_ids,
-        skill_rows_by_id=skill_rows_by_id,
-        resume_support_blob_lower=resume_support_blob_lower,
-    )
-    dedupe_structured_competency_terms(out)
-    _reapply_taxonomy_floors(
-        out,
-        allowed_fact_ids=allowed_fact_ids,
-        allowed_skill_ids=allowed_skill_ids,
-        skill_rows_by_id=skill_rows_by_id,
-        resume_support_blob_lower=resume_support_blob_lower,
-    )
+    if allow_prose_mutation:
+        dedupe_structured_competency_terms(out)
+        _reapply_taxonomy_floors(
+            out,
+            allowed_fact_ids=allowed_fact_ids,
+            allowed_skill_ids=allowed_skill_ids,
+            skill_rows_by_id=skill_rows_by_id,
+            resume_support_blob_lower=resume_support_blob_lower,
+            allow_prose_mutation=allow_prose_mutation,
+        )
+        dedupe_structured_competency_terms(out)
+        _reapply_taxonomy_floors(
+            out,
+            allowed_fact_ids=allowed_fact_ids,
+            allowed_skill_ids=allowed_skill_ids,
+            skill_rows_by_id=skill_rows_by_id,
+            resume_support_blob_lower=resume_support_blob_lower,
+            allow_prose_mutation=allow_prose_mutation,
+        )
     from apps_rg.runtime.sections.competencies_v3_contract import category_v3_from_legacy
 
     comps_final = out.get("competencies")

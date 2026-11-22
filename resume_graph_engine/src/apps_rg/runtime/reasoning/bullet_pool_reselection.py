@@ -1045,6 +1045,7 @@ def run_bullet_judge_llm_rewrite(
                 rw_receipt["new_rank"] = list(new_rank)
                 new_all_pass = bool(cand_proof_x1d) and all(bool(j.get("pass")) for j in cand_proof_x1d)
                 if (bool(x2_failed) and new_all_pass) or new_rank > old_rank:
+                    cand_x2 = run_x2(cand_state, cand_x1d)
                     write_lane_artifacts(cand_state, cand_x2)
                     _write_json(
                         artifact_dir / "x1d_llm_judge_outputs.json",

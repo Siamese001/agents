@@ -613,8 +613,10 @@ def test_execute_patch_run_dispatch_order_receipt_and_exit_zero(
         aggregate_fn=_stub_aggregate,
     )
 
-    # Dispatch order: bullets before its companion narrative; canonical order overall.
-    assert calls == ["ibm_bullets", "ibm_narrative", "executive_summary", "headline"]
+    # Dispatch order: Wave-0 independent lanes first, then Wave-1 companion narrative.
+    assert set(calls[:3]) == {"ibm_bullets", "executive_summary", "headline"}
+    assert calls[3] == "ibm_narrative"
+    assert calls.index("ibm_bullets") < calls.index("ibm_narrative")
 
     assert result["exit_code"] == 0
     assert result["all_lanes_authorized"] is True
@@ -1013,3 +1015,347 @@ def test_aggregate_refreshes_evidence_status_and_fails_on_missing_lane(
     assert calls_doc["lane_provider_by_lane"]["ibm_bullets"] == "external_claude"
     assert calls_doc["lane_provider_by_lane"]["ibm_narrative"] == "external_openai"
     assert agg["lane_provider_by_lane"]["competencies"] == "external_claude"
+
+
+@pytest.mark.parametrize(
+    "x3_code",
+    ["X3_REVIEW_JUDGE_SOFT_FAIL", "X3_REVIEW_JUDGE_PROVIDER_BLOCKED"],
+)
+def test_classify_lane_state_rejects_soft_fail_and_selects_for_patch(
+    tmp_path: Path,
+    x3_code: str,
+) -> None:
+    repo, run_dir = _seed_integrated_run(tmp_path)
+    _seed_lane_run(
+        repo,
+        run_dir,
+        "headline",
+        f"headline_soft_fail_{x3_code}",
+        x3_code=x3_code,
+        successful_pointer=True,
+    )
+    states = classify_all_lane_states(repo, run_dir)
+    st = states["headline"]
+    assert st["authorized"] is False
+    assert st["state"] == f"EXECUTED_{x3_code}"
+    assert st["reason"] == f"x3_not_allow:{x3_code}"
+    targets = select_patch_lanes(states)
+    assert "headline" in targets
+
+
+def test_patch_wave_dispatch_isolates_failures_to_dag_dependents(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repo, run_dir = _seed_integrated_run(
+        tmp_path,
+        green=tuple(
+            l
+            for l in GENERATED_LANES
+            if l
+            not in (
+                "ibm_bullets",
+                "ibm_narrative",
+                "unify_bullets",
+                "unify_narrative",
+                "executive_summary",
+                "headline",
+            )
+        ),
+        blocked=("ibm_bullets", "unify_bullets", "executive_summary", "headline"),
+        pre_run_blocked={
+            "ibm_narrative": "UPSTREAM_BULLETS_NOT_FINALIZED",
+            "unify_narrative": "UPSTREAM_BULLETS_NOT_FINALIZED",
+        },
+    )
+    real_find_repo_root = pr.find_repo_root
+    monkeypatch.setattr(
+        pr,
+        "find_repo_root",
+        lambda start=None: repo if start is None else real_find_repo_root(start),
+    )
+    import apps_rg.runtime.validators.companion_bullet_finalization as cbf
+
+    monkeypatch.setattr(
+        cbf,
+        "companion_accepted_in_modular_sections_root",
+        lambda _repo, _sr, *, upstream_section_id, **kw: upstream_section_id != "ibm_bullets",
+    )
+    _patch_embedding_preflight(monkeypatch, [])
+
+    dispatched: list[str] = []
+
+    def _dispatch(*, plan: Any, lane: str, lane_provider: str) -> dict[str, Any]:
+        dispatched.append(lane)
+        if lane == "ibm_bullets":
+            return {"exit_status": "error", "fault": "provider_timeout"}
+        rd = _seed_lane_run(repo, run_dir, lane, f"{lane}_20260611_090000")
+        return {"exit_status": "success", "x3_disposition": "X3_ALLOW", "artifact_dir": str(rd)}
+
+    plan = build_patch_plan(run_dir)
+    result = execute_patch_run(
+        plan,
+        dispatch_fn=_dispatch,
+        aggregate_fn=lambda plan_arg, **kw: {
+            "decisive_status": "FAIL",
+            "failure_reason": "partial",
+            "full_success_eligibility": {"eligible": False, "reasons": ["ibm_bullets"]},
+        },
+    )
+    assert "ibm_bullets" in dispatched
+    assert "ibm_narrative" not in dispatched
+    for independent in ("unify_bullets", "unify_narrative", "executive_summary", "headline"):
+        assert independent in dispatched
+    pre_fail = json.loads(
+        (
+            run_dir
+            / "modular_r4"
+            / "sections"
+            / "ibm_narrative"
+            / "integrated_lane_pre_run_failure.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert pre_fail["blocker"] == "PHASE1_PRIOR_LANE_FAILED"
+    assert "ibm_bullets" in pre_fail["dispatch_result"]["blocked_by"]
+    assert result["exit_code"] == 1
+
+
+def test_patch_wave_dispatch_propagates_transitive_dependency_skips(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from apps_rg.runtime.orchestration import patch_run_wave_dispatch as pwd
+    import apps_rg.runtime.section_execution_plan as sep
+    import apps_rg.runtime.validators.companion_bullet_finalization as cbf
+
+    repo, run_dir = _seed_integrated_run(tmp_path)
+    monkeypatch.setattr(
+        cbf,
+        "companion_accepted_in_modular_sections_root",
+        lambda *a, **k: True,
+    )
+    monkeypatch.setattr(
+        sep,
+        "execution_waves_for_lanes",
+        lambda lanes: [("ibm_bullets", "headline"), ("ibm_narrative",), ("executive_summary",)],
+    )
+    deps_map = {
+        "ibm_bullets": (),
+        "headline": (),
+        "ibm_narrative": ("ibm_bullets",),
+        "executive_summary": ("ibm_narrative",),
+    }
+    monkeypatch.setattr(sep, "dependencies_for_section", lambda sid: deps_map.get(sid, ()))
+
+    class _Plan:
+        pass
+
+    plan = _Plan()
+    plan.repo = repo
+    plan.run_dir = run_dir
+    plan.target_lanes = ["ibm_bullets", "headline", "ibm_narrative", "executive_summary"]
+
+    dispatched: list[str] = []
+
+    def _dispatch(*, plan: Any, lane: str, lane_provider: str) -> dict[str, Any]:
+        dispatched.append(lane)
+        if lane == "ibm_bullets":
+            return {"exit_status": "error", "fault": "provider_timeout"}
+        return {"exit_status": "success", "x3_disposition": "X3_ALLOW"}
+
+    results = pwd.dispatch_patch_lanes_wave_parallel(
+        plan,
+        lane_provider="external_claude",
+        dispatch=_dispatch,
+        sections_root=run_dir / "modular_r4" / "sections",
+        lane_timeout=30.0,
+        run_timeout=120.0,
+        clock_start=0.0 if False else __import__("time").monotonic(),
+    )
+    assert set(dispatched) == {"ibm_bullets", "headline"}
+    assert results["ibm_narrative"]["blocked_by"] == ["ibm_bullets"]
+    assert results["executive_summary"]["blocked_by"] == ["ibm_narrative"]
+
+
+def test_run_lane_in_context_accepts_and_enforces_cancel_event(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import threading
+    from apps_rg.runtime.orchestration.section_lane_executor import (
+        LaneExecutionContext,
+        run_lane_in_context,
+    )
+    from apps_rg.runtime.providers.wallclock_http_guard import current_cancel_event
+
+    monkeypatch.setenv("APPS_RG_MODULAR_R4_SECTIONS_ROOT", str(tmp_path / "sections"))
+
+    ctx = LaneExecutionContext(
+        sections_root=str(tmp_path / "sections"),
+        target_company="Anthropic",
+        target_role="Manager",
+        job_description_ref="",
+        job_description_text="AI systems",
+        manual_brief="",
+        lane_provider="external_claude",
+        lane_x1d_judges="gemini_pro",
+        lane_mock_judges=True,
+    )
+    cancelled = threading.Event()
+    cancelled.set()
+    called: list[str] = []
+
+    oc_cancelled = run_lane_in_context(
+        ctx,
+        "headline",
+        dispatch_fn=lambda **kw: called.append("ran") or {"exit_status": "success"},
+        cancel_event=cancelled,
+    )
+    assert called == []
+    assert oc_cancelled.exec_status == "error:LANE_CANCELLED"
+    assert oc_cancelled.dispatch_result["fault"] == "cancelled"
+
+    active_ev = threading.Event()
+    tls_seen: list[Any] = []
+    oc_ok = run_lane_in_context(
+        ctx,
+        "headline",
+        dispatch_fn=lambda **kw: tls_seen.append(current_cancel_event()) or {"exit_status": "success"},
+        cancel_event=active_ev,
+    )
+    assert oc_ok.exec_status == "ok"
+    assert tls_seen == [active_ev]
+
+
+def test_recovery_directives_plumbing_prompt_effort_and_replay_bypass(tmp_path: Path) -> None:
+    from apps_rg.runtime.providers.section_provider_call import _exact_response_reuse_requested
+    from apps_rg.runtime.sections.executive_summary_v2.prompt_and_generate import (
+        build_v2_prompt_messages,
+    )
+    from apps_rg.runtime.sections.role_episode.lane_config import RoleEpisodeLaneConfig
+    from apps_rg.runtime.sections.role_episode.prompt_compiler import _compiled_prompt
+    from apps_rg.runtime.sections.section_generation import build_section_request
+    from apps_rg.runtime.sections.headline_pa import compile_headline_prompt
+
+    # 1. Section request suppresses exact_response_reuse when force_new_seed=True and preserves effort
+    _, req_payload = build_section_request(
+        messages=[{"role": "user", "content": "hi"}],
+        prompt_hash="abc",
+        input_payload_hash="def",
+        model="claude-opus-4-7",
+        provider_requested="external_claude",
+        idempotent_replay_safe=True,
+        reasoning_effort="medium",
+        force_new_seed=True,
+    )
+    assert req_payload["reasoning_effort"] == "medium"
+    assert req_payload["force_new_seed"] is True
+    assert "exact_response_reuse" not in req_payload
+    assert _exact_response_reuse_requested({"exact_response_reuse": "IDEMPOTENT", "force_new_seed": True}) is False
+
+    # 2. executive_summary_v2 injects <RECOVERY_DIAGNOSTIC_FOCUS>
+    msgs = build_v2_prompt_messages(
+        target_company="Truist",
+        target_title="Head of FDE",
+        jd_text="Lead FDE.",
+        briefing_text="105 engineers.",
+        allowed_fact_ids_ordered=["bul_unify_001"],
+        compact_verified_facts=[{"fact_id": "bul_unify_001", "claim_text": "Built AI platform."}],
+        diagnostic_focus="Ensure human executive actor in sentence 2.",
+    )
+    assert "<RECOVERY_DIAGNOSTIC_FOCUS>\nEnsure human executive actor in sentence 2.\n</RECOVERY_DIAGNOSTIC_FOCUS>" in msgs[1]["content"]
+
+    # 3. role_episode prompt_compiler injects <RECOVERY_DIAGNOSTIC_FOCUS>
+    cfg = RoleEpisodeLaneConfig(
+        section_id="slalom_bullets",
+        role_key="slalom",
+        employer_label="Slalom",
+        header_key="slalom_header",
+        bullet_prefix="bul_slalom_",
+        output_filename="slalom_bullets_output.txt",
+        output_kind="bullets",
+    )
+    rp_text = _compiled_prompt(
+        cfg,
+        {
+            "selected_fact_plan": {"facts": [{"fact_id": "bul_slalom_001", "claim_text": "Delivered AI platform."}]},
+            "recovery_diagnostic_focus": "Strengthen business outcome.",
+        },
+    )
+    assert "<RECOVERY_DIAGNOSTIC_FOCUS>\nStrengthen business outcome.\n</RECOVERY_DIAGNOSTIC_FOCUS>" in rp_text
+
+    # 4. PA-compiled lane (compile_section_prompt) injects <RECOVERY_DIAGNOSTIC_FOCUS>
+    from apps_rg.prompt_assembly.contracts import EvidenceSource, PromptAssemblyInput
+    from apps_rg.runtime.bindings.section_prompt_adapter import compile_section_prompt
+
+    assembly = PromptAssemblyInput(
+        template_id="strategic_tailor_v1",
+        request_id="hl_test_1",
+        run_id="hl_test_1",
+        trace_root="headline:hl_test_1",
+        s0_system_preamble="NO FABRICATION — System",
+        d0_fences="D0 fence",
+        i0_instructions="Instructions",
+        e0_examples="E0 example",
+        y0_style_preferences="Y0 style",
+        c0_candidate_facts=EvidenceSource(
+            source_type="candidate_facts",
+            content="- bul_unify_001: Built AI platform.",
+            confidence=1.0,
+            source_tag="candidate_facts",
+        ),
+        c0_jd_requirements=EvidenceSource(
+            source_type="jd_requirements",
+            content="Lead FDE.",
+            confidence=0.0,
+            source_tag="jd_requirements",
+        ),
+        u0_user_task="Write headline.",
+        r0_response_schema="{}",
+        render_context={"section_id": "headline"},
+    )
+    compiled_hl = compile_section_prompt(
+        assembly,
+        section_id="headline",
+        diagnostic_focus="Keep headline <= 12 words.",
+    )
+    user_contents = "\n".join(m.get("content", "") for m in compiled_hl.artifact.messages)
+    assert "<RECOVERY_DIAGNOSTIC_FOCUS>\nKeep headline <= 12 words.\n</RECOVERY_DIAGNOSTIC_FOCUS>" in user_contents
+
+    # 5. call_section_model_provider attaches recovery_seed metadata when force_new_seed=True without altering HTTP body
+    from apps_rg.runtime.providers.provider_contract import ProviderResult
+    from apps_rg.runtime.providers.section_provider_call import call_section_model_provider
+
+    class _FakeGateway:
+        def generate(self, profile: Any, compiled: Any, **kw: Any) -> ProviderResult:
+            self.last_effort = getattr(compiled, "reasoning_effort", "")
+            return ProviderResult(
+                provider_requested="external_claude",
+                provider_attempted=True,
+                provider_available=True,
+                exact_provider_error=None,
+                runtime_generation_status="REAL_LLM",
+                model="claude-opus-4-7",
+                raw_model_output="{}",
+                provider_response={"ok": True},
+            )
+
+    gw = _FakeGateway()
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(
+            "apps_rg.runtime.providers.section_provider_call.build_section_provider_gateway",
+            lambda **kw: gw,
+        )
+        res = call_section_model_provider(
+            "external_claude",
+            {
+                "messages": [{"role": "user", "content": "hello"}],
+                "reasoning_effort": "medium",
+                "force_new_seed": True,
+                "exact_response_reuse": "IDEMPOTENT",
+            },
+            section_id="headline",
+        )
+    assert gw.last_effort == "medium"
+    assert isinstance(res.provider_response.get("recovery_seed"), str)
+    assert len(res.provider_response["recovery_seed"]) == 12

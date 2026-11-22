@@ -1564,7 +1564,12 @@ def _perform_bounded_section_retrieval(
     # Dense path health: invalid/missing persist dir or collection must be UNKNOWN,
     # not EMPTY (bounded-section contract tests + operator clarity).
     _verified_count: int | None = None
-    if chroma_collection is None and chroma_path:
+    if chroma_collection is not None:
+        try:
+            _verified_count = int(chroma_collection.count())
+        except Exception:  # guardian: allow-broad-exception -- fail-soft optional collection count probe
+            _verified_count = None
+    elif chroma_path:
         try:
             _probe_client = _persistent_chroma_client(chroma_path)
             from apps_rg.runtime.c0.chroma_persistent_client import (
@@ -1588,7 +1593,7 @@ def _perform_bounded_section_retrieval(
             )
             return [], [verdict], "UNKNOWN", [], [], []
 
-    if chroma_collection is None and chroma_path and _verified_count is not None and not app_payload.get("_uncached_bounded_retrieval"):
+    if chroma_path and _verified_count is not None and not app_payload.get("_uncached_bounded_retrieval"):
         from apps_rg.runtime.c0.c0_perf_sync_helpers import get_or_compute_bounded_section_retrieval
 
         return get_or_compute_bounded_section_retrieval(
@@ -1603,7 +1608,7 @@ def _perform_bounded_section_retrieval(
                 {**app_payload, "_uncached_bounded_retrieval": True},
                 evidence_digest,
                 timestamp_iso,
-                chroma_collection=None,
+                chroma_collection=chroma_collection,
                 section_id_filter=section_id_filter,
             ),
         )

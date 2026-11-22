@@ -112,6 +112,8 @@ def _repair_unify_archive_verbatim_overlap(
 def normalize_unify_parsed_without_ledger_synthesis(
     parsed: dict[str, Any] | None,
     runtime_payload: dict[str, Any],
+    *,
+    allow_prose_mutation: bool = True,
 ) -> dict[str, Any] | None:
     """Normalize bullet IDs / metric phrasing only.
 
@@ -158,13 +160,13 @@ def normalize_unify_parsed_without_ledger_synthesis(
                 }
             )
         bt = row.get("bullet_text")
-        if isinstance(bt, str):
+        if allow_prose_mutation and isinstance(bt, str):
             row["bullet_text"] = parent_attr("_canonicalize_unify_gate_metric_text", _canonicalize_unify_gate_metric_text)(bt)
         normalized_bullets.append(row)
 
     out = dict(parsed)
     out["bullets"] = normalized_bullets
-    if isinstance(out.get("claim_ledger"), list):
+    if allow_prose_mutation and isinstance(out.get("claim_ledger"), list):
         for cl in out["claim_ledger"]:
             if not isinstance(cl, dict):
                 continue
@@ -186,15 +188,21 @@ def normalize_unify_parsed_without_ledger_synthesis(
         out["change_log"].extend(source_scope_repairs)
     out.setdefault("self_check", {"normalized_by_lane": True})
     _sync_unify_claim_ledger_to_bullets(out, remap=legacy_remap, allowed=allowed)
-    _repair_protected_unify_bullet_metrics(
+    if allow_prose_mutation:
+        _repair_protected_unify_bullet_metrics(
+            out,
+            runtime_payload,
+            protected_bullet_id=protected_default,
+        )
+        _repair_unify_bullet_seniority_tense(out)
+    _enforce_unify_metric_outcome_surfaces(
         out,
         runtime_payload,
-        protected_bullet_id=protected_default,
+        allow_prose_mutation=allow_prose_mutation,
     )
-    _repair_unify_bullet_seniority_tense(out)
-    _enforce_unify_metric_outcome_surfaces(out, runtime_payload)
-    _repair_unify_archive_verbatim_overlap(out, runtime_payload)
-    _repair_unify_bullet_evidence_density(out)
+    if allow_prose_mutation:
+        _repair_unify_archive_verbatim_overlap(out, runtime_payload)
+        _repair_unify_bullet_evidence_density(out)
     _sync_unify_claim_ledger_to_bullets(out, remap=legacy_remap, allowed=allowed)
     from apps_rg.runtime.reasoning.employment_bullet_output_sanitize import (
         strip_employment_bullet_intensity_model,

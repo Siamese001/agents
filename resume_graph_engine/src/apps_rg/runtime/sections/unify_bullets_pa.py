@@ -186,6 +186,7 @@ def compile_unify_bullets_prompt(
         l1_cognitive_revision_advisory=runtime_payload.get(
             "l1_cognitive_revision_advisory"
         ),
+        diagnostic_focus=runtime_payload.get("recovery_diagnostic_focus"),
     )
     return finalize_section_compiled_with_proof_pool(compiled, runtime_payload=runtime_payload)
 

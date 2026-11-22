@@ -32,8 +32,14 @@ def sanitize_ibm_narrative_display_text(narrative_sentence: str) -> tuple[str, b
     return text, text != original
 
 
-def prune_competencies_rigor_failing_terms(parsed: dict[str, Any]) -> list[str]:
+def prune_competencies_rigor_failing_terms(
+    parsed: dict[str, Any],
+    *,
+    allow_prose_mutation: bool = True,
+) -> list[str]:
     """Drop or remap terms that fail low-rigor / metrics-as-skills X2 gates."""
+    if not allow_prose_mutation:
+        return []
     from apps_rg.runtime.sections.competencies_certification_contract import (
         is_credential_competency_term,
     )

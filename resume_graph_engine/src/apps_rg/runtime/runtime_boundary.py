@@ -181,7 +181,7 @@ def configure_apps_rg_runtime_boundary(
     env.setdefault("APPS_RG_ANTHROPIC_PROMPT_CACHE", "1")
     env.setdefault("APPS_RG_ANTHROPIC_PROMPT_CACHE_TELEMETRY", "1")
     env.setdefault("APPS_RG_PARALLEL_PHASE1_LANES", "1")
-    env.setdefault("APPS_RG_PHASE1_MAX_PARALLEL", "6")
+    env.setdefault("APPS_RG_PHASE1_MAX_PARALLEL", "7")
     return AppsRgRuntimeBoundary(
         repo_root=root,
         policy_path=path,

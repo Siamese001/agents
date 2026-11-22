@@ -237,6 +237,8 @@ def compute_section_lane_cache_key(
                 kwargs.get("lane_x1d_judges") or kwargs.get("x1d_judges") or ""
             ).strip(),
             "lane_mock_judges": bool(kwargs.get("lane_mock_judges", False)),
+            "diagnostic_focus": str(kwargs.get("diagnostic_focus") or "").strip(),
+            "reasoning_effort_override": str(kwargs.get("reasoning_effort") or "").strip().lower(),
             "section_fec_digest": _extract_section_evidence_slice_digest(section_id),
             "upstream_companion_digest": _extract_upstream_companion_digest(
                 sections_root, section_id
@@ -342,7 +344,7 @@ def dispatch_lane_with_section_cache(
     sections_root: Path,
     kwargs: Mapping[str, Any],
 ) -> dict[str, Any]:
-    if not section_lane_cache_enabled():
+    if not section_lane_cache_enabled() or bool(kwargs.get("force_new_seed")):
         raw = dispatch_fn(**kwargs)
         return dict(raw) if isinstance(raw, dict) else {}
 
@@ -364,62 +366,64 @@ def dispatch_lane_with_section_cache(
         except (OSError, json.JSONDecodeError):
             meta = {}
         if isinstance(meta, dict) and meta.get("cache_key") == cache_key:
-            target_lane_dir.mkdir(parents=True, exist_ok=True)
-            _copy_tree_unlinked(files_dir, target_lane_dir)
-            old_rel = str(meta.get("source_rel_posix") or "")
-            new_rel = _repo_rel_posix(target_lane_dir, repo)
-            for ptr_name in _POINTER_REWRITE_NAMES:
-                _rewrite_pointer_json(target_lane_dir / ptr_name, old_rel, new_rel)
-            if (get_runtime_env_str("APPS_RG_WHOLE_RUN_ENVELOPE", "") or "").strip() in ("1", "true", "yes"):
-                try:
-                    from apps_rg.runtime.runtime_proof_layout import finalize_runtime_proof_run
+            ok_src, _ = lane_run_dir_meets_product_bar(files_dir)
+            if ok_src:
+                target_lane_dir.mkdir(parents=True, exist_ok=True)
+                _copy_tree_unlinked(files_dir, target_lane_dir)
+                old_rel = str(meta.get("source_rel_posix") or "")
+                new_rel = _repo_rel_posix(target_lane_dir, repo)
+                for ptr_name in _POINTER_REWRITE_NAMES:
+                    _rewrite_pointer_json(target_lane_dir / ptr_name, old_rel, new_rel)
+                if (get_runtime_env_str("APPS_RG_WHOLE_RUN_ENVELOPE", "") or "").strip() in ("1", "true", "yes"):
+                    try:
+                        from apps_rg.runtime.runtime_proof_layout import finalize_runtime_proof_run
 
-                    rm_doc = _load_json_memoized(str(target_lane_dir / "run_manifest.json"))
-                    prov_req = str(
-                        rm_doc.get("provider_requested") or kwargs.get("lane_provider") or ""
-                    )
-                    rt_stat = str(rm_doc.get("runtime_generation_status") or "REAL_LLM")
-                    if prov_req:
-                        finalize_runtime_proof_run(
-                            repo,
-                            section_id,
-                            prov_req,
-                            target_lane_dir,
-                            run_id=str(rm_doc.get("run_id") or f"{section_id}_cached"),
-                            section_id=section_id,
-                            runtime_generation_status=rt_stat,
-                            provider_requested=prov_req,
-                            provider_attempted=True,
+                        rm_doc = _load_json_memoized(str(target_lane_dir / "run_manifest.json"))
+                        prov_req = str(
+                            rm_doc.get("provider_requested") or kwargs.get("lane_provider") or ""
                         )
-                except (OSError, ValueError, TypeError, KeyError, RuntimeError):
-                    pass
-            ok, _ = lane_run_dir_meets_product_bar(target_lane_dir)
-            if ok:
-                elapsed_ms = round((time.perf_counter() - t0) * 1000.0, 3)
-                receipt = {
-                    "schema_version": "apps_rg.section_lane_cache_hit_receipt.v1",
-                    "section_id": section_id,
-                    "cache_key": cache_key,
-                    "provider_call_count": 0,
-                    "elapsed_ms": elapsed_ms,
-                    "source_rel_posix": old_rel,
-                    "target_rel_posix": new_rel,
-                }
-                (target_lane_dir / "section_lane_cache_hit_receipt.json").write_text(
-                    json.dumps(receipt, indent=2, sort_keys=True) + "\n",
-                    encoding="utf-8",
-                )
-                saved = meta.get("dispatch_result")
-                out = dict(saved) if isinstance(saved, dict) else {}
-                out.update(
-                    {
-                        "artifact_dir": str(target_lane_dir),
-                        "exit_status": str(out.get("exit_status") or "success"),
-                        "section_cache_hit": True,
+                        rt_stat = str(rm_doc.get("runtime_generation_status") or "REAL_LLM")
+                        if prov_req:
+                            finalize_runtime_proof_run(
+                                repo,
+                                section_id,
+                                prov_req,
+                                target_lane_dir,
+                                run_id=str(rm_doc.get("run_id") or f"{section_id}_cached"),
+                                section_id=section_id,
+                                runtime_generation_status=rt_stat,
+                                provider_requested=prov_req,
+                                provider_attempted=True,
+                            )
+                    except (OSError, ValueError, TypeError, KeyError, RuntimeError):
+                        pass
+                ok, _ = lane_run_dir_meets_product_bar(target_lane_dir)
+                if ok:
+                    elapsed_ms = round((time.perf_counter() - t0) * 1000.0, 3)
+                    receipt = {
+                        "schema_version": "apps_rg.section_lane_cache_hit_receipt.v1",
+                        "section_id": section_id,
+                        "cache_key": cache_key,
                         "provider_call_count": 0,
+                        "elapsed_ms": elapsed_ms,
+                        "source_rel_posix": old_rel,
+                        "target_rel_posix": new_rel,
                     }
-                )
-                return out
+                    (target_lane_dir / "section_lane_cache_hit_receipt.json").write_text(
+                        json.dumps(receipt, indent=2, sort_keys=True) + "\n",
+                        encoding="utf-8",
+                    )
+                    saved = meta.get("dispatch_result")
+                    out = dict(saved) if isinstance(saved, dict) else {}
+                    out.update(
+                        {
+                            "artifact_dir": str(target_lane_dir),
+                            "exit_status": str(out.get("exit_status") or "success"),
+                            "section_cache_hit": True,
+                            "provider_call_count": 0,
+                        }
+                    )
+                    return out
 
     raw = dispatch_fn(**kwargs)
     res = dict(raw) if isinstance(raw, dict) else {}

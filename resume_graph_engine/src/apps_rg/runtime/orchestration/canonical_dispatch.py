@@ -489,6 +489,9 @@ def run_canonical_apps_rg_from_cli_primitives(
     lane_allow_test_mock_judges: bool = False,
     career_thesis_plan_path: str = "",
     career_thesis_alignment_digest: str = "",
+    diagnostic_focus: str = "",
+    force_new_seed: bool = False,
+    reasoning_effort: str = "",
 ) -> dict[str, Any]:
     """Dispatch full scope to product entry; section scope is non-product tooling."""
     _ = career_thesis_alignment_digest
@@ -534,6 +537,9 @@ def run_canonical_apps_rg_from_cli_primitives(
         lane_mock_judges=lane_mock_judges,
         lane_allow_non_allow_exit_zero=lane_allow_non_allow_exit_zero,
         lane_allow_test_mock_judges=lane_allow_test_mock_judges,
+        diagnostic_focus=diagnostic_focus,
+        force_new_seed=force_new_seed,
+        reasoning_effort=reasoning_effort,
     )
 
 
@@ -556,6 +562,9 @@ def execute_executive_summary_section_from_cli(
     lane_x1d_judges: str = _DEFAULT_X1D_JUDGES,
     lane_mock_judges: bool = False,
     lane_allow_test_mock_judges: bool = False,
+    diagnostic_focus: str = "",
+    force_new_seed: bool = False,
+    reasoning_effort: str = "",
 ) -> dict[str, Any]:
     """Section-only executive_summary CLI primitive (compat for integrated materialization tests)."""
     from apps_rg.runtime.spine.section_cli_runners import run_section_executive_summary_spine
@@ -578,6 +587,9 @@ def execute_executive_summary_section_from_cli(
         lane_x1d_judges=lane_x1d_judges,
         lane_mock_judges=lane_mock_judges,
         lane_allow_test_mock_judges=lane_allow_test_mock_judges,
+        diagnostic_focus=diagnostic_focus,
+        force_new_seed=force_new_seed,
+        reasoning_effort=reasoning_effort,
     )
 
 

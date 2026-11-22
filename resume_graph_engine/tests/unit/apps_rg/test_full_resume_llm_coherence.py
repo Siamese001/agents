@@ -589,3 +589,34 @@ def test_build_full_resume_evidence_packet_includes_locked_inline_sections():
     assert early_career_sec["selected_candidate_facts"][0]["metric_values"] == ["$15M transformation program"]
     assert early_career_sec["graph_claim_bindings"][0]["metric_value"] == "$15M transformation program"
 
+
+def test_emit_skipped_full_resume_llm_coherence_review_writes_fail_closed_stubs(tmp_path: Path) -> None:
+    from apps_rg.runtime.assembly.final_resume_x2 import gate_x2_full_resume_llm_coherence_aggregation
+    from apps_rg.runtime.assembly.full_resume_llm_coherence import (
+        emit_skipped_full_resume_llm_coherence_review,
+    )
+
+    out_dir = tmp_path / "asm"
+    final_resume = {"final_resume_hash": "hash123", "sections": []}
+    review = emit_skipped_full_resume_llm_coherence_review(
+        final_resume=final_resume,
+        final_resume_path=out_dir / "final_resume.json",
+        output_dir=out_dir,
+        skip_reason="upstream_lanes_not_x3_allow",
+        non_allow_lanes=["headline", "ibm_narrative"],
+        review_lanes=["headline"],
+    )
+    assert review["skipped"] is True
+    assert review["full_resume_coherence_pass"] is False
+    assert review["decisive_reason"] == "skipped_upstream_lanes_not_x3_allow"
+    assert review["non_allow_lanes"] == ["headline", "ibm_narrative"]
+    x1d = json.loads((out_dir / "x1d_full_resume_judge_outputs.json").read_text(encoding="utf-8"))
+    assert x1d["policy_valid"] is True
+    assert x1d["judges"] == []
+    assert x1d["aggregation"]["full_resume_coherence_pass"] is False
+    gate = gate_x2_full_resume_llm_coherence_aggregation(review, required=True)
+    assert gate.pass_ is False
+    assert gate.failure_reason == "skipped_upstream_lanes_not_x3_allow"
+    assert gate.observed_value["skipped"] is True
+    assert gate.observed_value["non_allow_lanes"] == ["headline", "ibm_narrative"]
+

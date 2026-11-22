@@ -24,6 +24,11 @@ from apps_rg.runtime.judges.executive_summary_x1d import (
     _resolve_gemini_model,
     resolve_x1d_provider_credentials,
 )
+from apps_rg.runtime.judges.grade_only_judge_packet import (
+    build_grade_only_judge_packet,
+    judge_packet_hash,
+    write_judge_packet,
+)
 from apps_rg.runtime.judges.section_judge_profile import resolve_section_proof_judge_model
 
 JUDGE_RUBRIC_VERSION = "competencies_x1d_v4"
@@ -122,6 +127,8 @@ def _build_prompt(
     target_role: str = "",
     target_company: str = "",
     jd_text: str = "",
+    briefing: str = "",
+    allowed_fact_packet: dict[str, Any] | list[dict[str, Any]] | None = None,
 ) -> str:
     block = (
         f"\nREAD_ONLY_GENERATED_SECTIONS:\n{companion_context}\n"
@@ -133,6 +140,12 @@ def _build_prompt(
         f"TARGET_ROLE: {target_role}\n"
         f"TARGET_COMPANY: {target_company}\n"
         f"JD_TEXT: {jd_text}\n"
+        f"BRIEFING: {briefing}\n"
+    )
+    fact_packet_block = (
+        f"\nALLOWED_FACT_PACKET:\n{json.dumps(allowed_fact_packet, ensure_ascii=False, separators=(',', ':'))}\n"
+        if allowed_fact_packet is not None
+        else ""
     )
     return (
         f"{COMPETENCIES_RUBRIC}\n\n{JUDGE_COMPACT_OUTPUT}\n\n"
@@ -140,6 +153,7 @@ def _build_prompt(
         f"{targeting_block}\n"
         f"COMPETENCIES_JSON:\n{competencies_json}\n"
         f"{block}\n"
+        f"{fact_packet_block}"
         f"CLAIM_LEDGER:\n{json.dumps(claim_ledger, separators=(',', ':'))}"
     )
 
@@ -236,27 +250,69 @@ def run_competencies_judges(
     target_role: str = "",
     target_company: str = "",
     jd_text: str = "",
+    briefing: str = "",
+    targeting_context: dict[str, Any] | None = None,
+    allowed_fact_packet: dict[str, Any] | list[dict[str, Any]] | None = None,
+    deterministic_gate_summary: dict[str, Any] | None = None,
     mode: str = "blocked_if_unavailable",
     artifact_base: Path | None = None,
 ) -> list[JudgeOutput]:
+    tc = dict(targeting_context or {})
+    eff_role = str(tc.get("target_title") or tc.get("target_role") or target_role or "")
+    eff_company = str(tc.get("target_company") or target_company or "")
+    eff_jd = str(tc.get("jd_text") or jd_text or "")
+    eff_briefing = str(tc.get("briefing") or briefing or "")
+
     competencies_json = json.dumps(competencies, separators=(",", ":"), ensure_ascii=False)
     input_payload = {
         "competencies": competencies,
         "claim_ledger": claim_ledger,
         "companion_context": companion_context,
-        "target_role": target_role,
-        "target_company": target_company,
-        "jd_text": jd_text,
+        "target_role": eff_role,
+        "target_company": eff_company,
+        "jd_text": eff_jd,
+        "briefing": eff_briefing,
+        "allowed_fact_packet": allowed_fact_packet,
+        "deterministic_gate_summary": deterministic_gate_summary,
         "rubric": COMPETENCIES_RUBRIC,
     }
     input_hash = hashlib.sha256(json.dumps(input_payload, sort_keys=True).encode()).hexdigest()[:16]
+    packet = build_grade_only_judge_packet(
+        section_id="competencies",
+        candidate_output={
+            "competencies": competencies,
+            "companion_context": companion_context,
+        },
+        section_rubric=f"{COMPETENCIES_RUBRIC}\n\n{COMPETENCIES_JUDGE_OUTPUT_CONTRACT}",
+        rubric_ref="apps_rg/runtime/judges/competencies_x1d.py#COMPETENCIES_RUBRIC",
+        claim_ledger=claim_ledger,
+        allowed_fact_packet=allowed_fact_packet,
+        targeting_context={
+            "target_title": eff_role,
+            "target_company": eff_company,
+            "jd_text": eff_jd,
+            "briefing": eff_briefing,
+        },
+        deterministic_gate_summary=deterministic_gate_summary,
+    )
+    judge_receipt: dict[str, Any] | None = None
+    if artifact_base is not None and mode != "mocked":
+        packet_ref = write_judge_packet(artifact_base / "competencies_judge_packet.json", packet)
+        judge_receipt = {
+            "judge_packet_hash": judge_packet_hash(packet),
+            "judge_packet_ref": packet_ref,
+            "rubric_ref": packet["rubric_ref"],
+            "deterministic_gate_summary": packet["deterministic_gate_summary"],
+        }
     prompt = _build_prompt(
         competencies_json,
         claim_ledger,
         companion_context,
-        target_role=target_role,
-        target_company=target_company,
-        jd_text=jd_text,
+        target_role=eff_role,
+        target_company=eff_company,
+        jd_text=eff_jd,
+        briefing=eff_briefing,
+        allowed_fact_packet=allowed_fact_packet,
     )
 
     outputs: list[JudgeOutput] = []
@@ -301,6 +357,7 @@ def run_competencies_judges(
                             artifact_base=artifact_base,
                             reasoning_effort=_ef,
                             model_requested=_mr,
+                            judge_receipt=judge_receipt,
                             model_env_source=_ms,
                             attempt=attempt_no,
                             section_id="competencies",
@@ -315,6 +372,7 @@ def run_competencies_judges(
                         model_source=_ms,
                         artifact_base=artifact_base,
                         model_requested=_mr,
+                        judge_receipt=judge_receipt,
                         thinking_level=_ef,
                         attempt=attempt_no,
                         section_id="competencies",
@@ -416,6 +474,7 @@ def run_competencies_judges(
                                 artifact_base=artifact_base,
                                 reasoning_effort=reasoning_effort,
                                 model_requested=model_requested,
+                                judge_receipt=judge_receipt,
                                 model_env_source=model_source,
                                 attempt=attempt_no,
                                 section_id="competencies",
@@ -430,6 +489,7 @@ def run_competencies_judges(
                             model_source=model_source,
                             artifact_base=artifact_base,
                             model_requested=model_requested,
+                            judge_receipt=judge_receipt,
                             thinking_level=reasoning_effort,
                             attempt=attempt_no,
                             section_id="competencies",

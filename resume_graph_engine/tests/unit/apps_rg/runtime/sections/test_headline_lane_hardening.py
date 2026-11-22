@@ -841,10 +841,10 @@ class TestHeadlineContentSignalRepairRung:
             None,
         ]
 
-    def test_live_hyphenated_cosell_repair_is_expanded_before_shape_acceptance(
+    def test_live_hyphenated_cosell_repair_preserves_real_llm_verbatim_without_expansion(
         self, tmp_path, monkeypatch
     ):
-        """A model's Co-Sell word count must not discard an otherwise accepted repair."""
+        """REAL_LLM repairs must not deterministically expand <10-word output or rewrite machine phrases."""
         from apps_rg.runtime.section_repair_ledger import init_ledger
 
         initial = (
@@ -855,8 +855,14 @@ class TestHeadlineContentSignalRepairRung:
             "SVP Engineering | Alliance Co-Sell | Runtime Governance | "
             "Enterprise Sales Leadership"
         )
+        expected = (
+            "SVP Engineering | Hyperscaler Alliance Revenue | Runtime Governance | "
+            "Agentic AI Platforms"
+        )
         init_ledger(tmp_path, section_id="headline", run_id="csr-test")
-        provider = _RecordingProvider("REAL_LLM", _regen_json(candidate))
+        provider = _RecordingProvider(
+            "REAL_LLM", [_regen_json(candidate), _regen_json(expected)]
+        )
 
         _raw, out, snap, accepted = _run_content_signal_rung(
             tmp_path,
@@ -865,21 +871,29 @@ class TestHeadlineContentSignalRepairRung:
             parsed=_attempt1_parsed(initial),
         )
 
-        expected = (
-            "SVP Engineering | Alliance Co-Sell Motions | Runtime Governance | "
-            "Enterprise Sales Leadership"
-        )
-        assert provider.calls == 1
+        assert provider.calls == 2
         assert accepted is True
         assert out["headline_line"] == expected
-        assert snap is not None and snap["headline_line"] == candidate
-        assert _read_receipt(tmp_path)["rejected_reason"] is None
+        assert snap is not None and snap["headline_line"] == expected
+        receipt = _read_receipt(tmp_path)
+        assert receipt["rejected_reason"] is None
+        assert [row["rejected_reason"] for row in receipt["attempts"]] == [
+            "shape_invalid",
+            None,
+        ]
 
-    def test_deterministic_clarity_segment_trim_when_enabled(
+    def test_deterministic_clarity_segment_trim_disabled_on_real_llm_and_production(
         self, tmp_path, monkeypatch
     ):
-        """When APPS_RG_HEADLINE_DETERMINISTIC_CLARITY_TRIM=1, trims trailing word without LLM provider calls."""
+        """Production and REAL_LLM paths never run deterministic clarity trimming even if env var is set."""
         from apps_rg.runtime.section_repair_ledger import init_ledger
+        from apps_rg.runtime.sections.headline_repair_policy import (
+            deterministic_clarity_trim_enabled,
+        )
+
+        assert deterministic_clarity_trim_enabled(environ={"APPS_RG_PRODUCTION_RUN": "1"}) is False
+        assert deterministic_clarity_trim_enabled(environ={"APPS_RG_WHOLE_RUN_ENVELOPE": "1"}) is False
+        assert deterministic_clarity_trim_enabled(environ={}) is False
 
         monkeypatch.setenv("APPS_RG_HEADLINE_DETERMINISTIC_CLARITY_TRIM", "1")
         initial = (
@@ -887,7 +901,7 @@ class TestHeadlineContentSignalRepairRung:
             "Enterprise Portfolio Expansion Leadership"
         )
         init_ledger(tmp_path, section_id="headline", run_id="csr-test")
-        provider = _RecordingProvider("REAL_LLM", [])
+        provider = _RecordingProvider("REAL_LLM", _regen_json(RESUME_NATIVE_HL))
 
         _raw, out, snap, accepted = _run_content_signal_rung(
             tmp_path,
@@ -896,15 +910,12 @@ class TestHeadlineContentSignalRepairRung:
             parsed=_attempt1_parsed(initial),
         )
 
-        expected = (
-            "SVP Engineering | Hyperscaler Alliance Co-Sell | Runtime Reliability Governance | "
-            "Enterprise Portfolio Expansion"
-        )
-        assert provider.calls == 0
+        assert provider.calls == 1
         assert accepted is True
-        assert out["headline_line"] == expected
+        assert out["headline_line"] == RESUME_NATIVE_HL
+        assert snap is not None and snap["headline_line"] == RESUME_NATIVE_HL
         receipt = _read_receipt(tmp_path)
-        assert receipt["repair_mechanism"] == "deterministic_clarity_segment_trim"
+        assert receipt.get("repair_mechanism") != "deterministic_clarity_segment_trim"
         assert receipt["accepted"] is True
 
     def test_third_attempt_repairs_retry8_opaque_noun_stack(self, tmp_path, monkeypatch):

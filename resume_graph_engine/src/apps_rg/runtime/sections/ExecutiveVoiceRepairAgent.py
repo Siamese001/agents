@@ -58,6 +58,32 @@ def _split_into_sentences(text: str) -> list[str]:
     return [s.strip() for s in raw if s.strip()]
 
 
+def _format_allowed_facts_for_prompt(
+    allowed_facts: list[dict[str, Any]] | None,
+    *,
+    limit: int = 30,
+) -> list[str]:
+    facts_summary: list[str] = []
+    for f in (allowed_facts or [])[:limit]:
+        if isinstance(f, dict):
+            txt = str(
+                f.get("claim_text")
+                or f.get("fact_text")
+                or f.get("canonical_bullet")
+                or ""
+            ).strip()
+            fid = str(f.get("fact_id") or f.get("assertion_id") or "").strip()
+            reb = str(f.get("role_episode_bundle_id") or "").strip()
+            if txt:
+                prefix = f"[{fid}]" if fid else "[fact]"
+                if reb and reb != fid:
+                    prefix = f"[{fid} | {reb}]"
+                facts_summary.append(f"- {prefix} {txt}")
+        elif isinstance(f, str) and f.strip():
+            facts_summary.append(f"- {f.strip()}")
+    return facts_summary
+
+
 def _build_executive_summary_repair_prompt(
     current_text: str,
     diagnostic: dict[str, Any],
@@ -69,15 +95,7 @@ def _build_executive_summary_repair_prompt(
     findings = diagnostic.get("findings") or []
     suggestions = diagnostic.get("remediation_suggestions") or []
 
-    facts_summary = []
-    for f in (allowed_facts or [])[:15]:
-        if isinstance(f, dict):
-            txt = f.get("fact_text") or f.get("canonical_bullet") or ""
-            fid = f.get("assertion_id") or ""
-            if txt:
-                facts_summary.append(f"- [{fid}] {txt}")
-        elif isinstance(f, str) and f.strip():
-            facts_summary.append(f"- {f.strip()}")
+    facts_summary = _format_allowed_facts_for_prompt(allowed_facts, limit=15)
 
     t_role = (targeting_context or {}).get("target_role", "Executive")
     t_company = (targeting_context or {}).get("target_company", "Enterprise")
@@ -132,8 +150,23 @@ def _build_headline_repair_prompt(
 ) -> str:
     findings = diagnostic.get("findings") or []
     suggestions = diagnostic.get("remediation_suggestions") or []
+    tc = dict(targeting_context or {})
+    t_role = str(tc.get("target_title") or tc.get("target_role") or "Executive").strip()
+    t_company = str(tc.get("target_company") or "Enterprise").strip()
+    jd_excerpt = str(tc.get("jd_text") or "").strip()[:1200]
+    briefing_excerpt = str(tc.get("briefing") or "").strip()[:600]
+    facts_summary = _format_allowed_facts_for_prompt(allowed_facts, limit=20)
 
     prompt = f"""You are an elite executive resume editor. Your task is to repair a Headline draft.
+
+TARGETING CONTEXT ONLY — NOT PROOF (evaluate alignment, never cite JD/briefing as candidate experience):
+- Target Role: {t_role}
+- Target Company: {t_company}
+- JD Excerpt: {jd_excerpt or "(none)"}
+- Briefing Excerpt: {briefing_excerpt or "(none)"}
+
+ALLOWED GROUNDED FACTS (Every headline claim must trace to these verified candidate facts):
+{chr(10).join(facts_summary) if facts_summary else "Preserve only facts already supported in the current draft."}
 
 CURRENT HEADLINE:
 "{current_headline}"
@@ -143,11 +176,11 @@ DIAGNOSTIC FEEDBACK:
 - Suggestions: {json.dumps(suggestions)}
 
 RULES:
-1. Exact format: "SVP Engineering | <Core Pillar 1> | <Core Pillar 2> | <Differentiating Impact>"
+1. Exact format: "<Approved Seniority Prefix> | <Core Pillar 1> | <Core Pillar 2> | <Differentiating Impact>" (approved prefixes: SVP Engineering, SVP Enterprise Architecture, SVP AI Strategy, SVP IT Strategy, SVP Agentic Transformation, SVP Transformation, SVP Enterprise AI, SVP Technology Strategy, SVP Agentic AI Platforms, Partner, Executive Director, Managing Director).
 2. Must contain exactly 4 pipe-delimited segments.
 3. Word count must be strictly between 10 and 13 words total.
 4. Avoid noun stacks, buzzword salads, and clichés.
-5. Ground all terms in executive engineering leadership.
+5. Ground all terms in the ALLOWED GROUNDED FACTS above and executive engineering leadership.
 
 OUTPUT FORMAT:
 Return a JSON object:
@@ -167,10 +200,25 @@ def _build_competencies_repair_prompt(
 ) -> str:
     findings = diagnostic.get("findings") or []
     suggestions = diagnostic.get("remediation_suggestions") or []
+    tc = dict(targeting_context or {})
+    t_role = str(tc.get("target_title") or tc.get("target_role") or "Executive").strip()
+    t_company = str(tc.get("target_company") or "Enterprise").strip()
+    jd_excerpt = str(tc.get("jd_text") or "").strip()[:1500]
+    briefing_excerpt = str(tc.get("briefing") or "").strip()[:800]
+    facts_summary = _format_allowed_facts_for_prompt(allowed_facts, limit=30)
 
     comps_str = json.dumps(current_competencies, indent=2)
 
     prompt = f"""You are an elite executive resume editor. Your task is to repair the Core Competencies grid.
+
+TARGETING CONTEXT ONLY — NOT PROOF (use for ATS/label prioritization only, never treat JD/briefing as candidate experience):
+- Target Role: {t_role}
+- Target Company: {t_company}
+- JD Excerpt: {jd_excerpt or "(none)"}
+- Briefing Excerpt: {briefing_excerpt or "(none)"}
+
+ALLOWED GROUNDED FACTS (All competency terms MUST remain strictly grounded in these facts):
+{chr(10).join(facts_summary) if facts_summary else "Preserve only capabilities grounded in the current competencies."}
 
 CURRENT COMPETENCIES:
 {comps_str}
@@ -180,10 +228,11 @@ DIAGNOSTIC FEEDBACK:
 - Suggestions: {json.dumps(suggestions)}
 
 RULES:
-1. Maintain exactly 6 to 8 competency categories.
-2. Each category must have a bold category label and 2-4 specific competencies.
+1. Maintain 6 to 8 competency categories.
+2. Each category must have a crisp category label and 2-4 specific grounded competencies.
 3. No em-dashes (—) in labels; use clean colons or commas.
-4. Emphasize senior executive leadership, architecture governance, and modern AI/cloud systems.
+4. Emphasize senior executive leadership, architecture governance, and modern AI/cloud systems grounded in ALLOWED GROUNDED FACTS.
+5. Preserve any existing allocation_claim_unit_id / competency_bundle_id / frozen graph bindings when present.
 
 OUTPUT FORMAT:
 Return a JSON object:
@@ -616,6 +665,8 @@ def repair_section_with_executive_voice_agent(
                 mech = "a2a_socratic_repair_loop_failed_audit"
 
     elif sec == "headline":
+        from apps_rg.runtime.validators.headline_x2 import has_valid_headline_prefix
+
         prompt = _build_headline_repair_prompt(
             str(candidate_data.get("headline_line") or ""), diagnostic, allowed_facts, targeting_context,
         )
@@ -624,7 +675,7 @@ def repair_section_with_executive_voice_agent(
             hl = resp["repaired_headline"].strip()
             parts = [p.strip() for p in hl.split("|")]
             words = hl.split()
-            if len(parts) == 4 and parts[0] == "SVP Engineering" and 10 <= len(words) <= 13:
+            if len(parts) == 4 and has_valid_headline_prefix(hl) and 10 <= len(words) <= 13:
                 updated_data["headline_line"] = hl
                 ok = True
 
@@ -640,48 +691,174 @@ def repair_section_with_executive_voice_agent(
                 if isinstance(c, dict)
                 for t in (c.get("terms") or [])
             )
-            if has_structured_terms and len(repaired_list) == len(comps_in):
+            if has_structured_terms:
+                def _norm_label(val: Any) -> str:
+                    return re.sub(r"[^a-z0-9]+", " ", str(val or "").lower()).strip()
+
+                orig_dicts = [c for c in comps_in if isinstance(c, dict)]
+                allowed_fact_id_pool: list[str] = []
+                for af in allowed_facts or []:
+                    if isinstance(af, dict):
+                        fid = str(af.get("fact_id") or af.get("assertion_id") or "").strip()
+                        if fid and fid not in allowed_fact_id_pool:
+                            allowed_fact_id_pool.append(fid)
+                all_orig_fact_ids: list[str] = []
+                for oc in orig_dicts:
+                    for fid in oc.get("source_fact_ids") or []:
+                        sf = str(fid).strip()
+                        if sf and sf not in all_orig_fact_ids:
+                            all_orig_fact_ids.append(sf)
+                    for ot in oc.get("terms") or []:
+                        if isinstance(ot, dict):
+                            for fid in ot.get("source_fact_ids") or ([ot.get("source_fact_id")] if ot.get("source_fact_id") else []):
+                                sf = str(fid or "").strip()
+                                if sf and sf not in all_orig_fact_ids:
+                                    all_orig_fact_ids.append(sf)
+                allowed_ids_set = set(allowed_fact_id_pool) | set(all_orig_fact_ids)
+                fallback_fact_pool = all_orig_fact_ids or allowed_fact_id_pool
+
+                by_bundle_id: dict[str, tuple[int, dict[str, Any]]] = {}
+                by_label: dict[str, tuple[int, dict[str, Any]]] = {}
+                for o_idx, oc in enumerate(orig_dicts):
+                    for k in ("competency_bundle_id", "category_id"):
+                        v = str(oc.get(k) or "").strip()
+                        if v and v not in by_bundle_id:
+                            by_bundle_id[v] = (o_idx, oc)
+                    for k in ("category_label", "category", "resume_display_label"):
+                        nl = _norm_label(oc.get(k))
+                        if nl and nl not in by_label:
+                            by_label[nl] = (o_idx, oc)
+
+                used_orig_indices: set[int] = set()
                 merged_comps: list[dict[str, Any]] = []
-                for orig_cat, rep_cat in zip(comps_in, repaired_list, strict=True):
-                    if not isinstance(orig_cat, dict) or not isinstance(rep_cat, dict):
-                        merged_comps = []
-                        break
+                if not all(isinstance(rep_cat, dict) for rep_cat in repaired_list):
+                    repaired_list_valid = False
+                else:
+                    repaired_list_valid = True
+                if repaired_list_valid:
+                    matched_indices: list[int | None] = [None] * len(repaired_list)
+                    matched_identity_flags: list[bool] = [False] * len(repaired_list)
+                    # Pass 1a: match by explicit competency_bundle_id / category_id first
+                    for idx_c, rep_cat in enumerate(repaired_list):
+                        for k in ("competency_bundle_id", "category_id"):
+                            v = str(rep_cat.get(k) or "").strip()
+                            if v and v in by_bundle_id and by_bundle_id[v][0] not in used_orig_indices:
+                                m_idx = by_bundle_id[v][0]
+                                matched_indices[idx_c] = m_idx
+                                matched_identity_flags[idx_c] = True
+                                used_orig_indices.add(m_idx)
+                                break
+                    # Pass 1b: match remaining entries by normalized category label
+                    for idx_c, rep_cat in enumerate(repaired_list):
+                        if matched_indices[idx_c] is not None:
+                            continue
+                        for k in ("category_label", "category", "resume_display_label"):
+                            nl = _norm_label(rep_cat.get(k))
+                            if nl and nl in by_label and by_label[nl][0] not in used_orig_indices:
+                                m_idx = by_label[nl][0]
+                                matched_indices[idx_c] = m_idx
+                                matched_identity_flags[idx_c] = True
+                                used_orig_indices.add(m_idx)
+                                break
+                    # Pass 2: positional fallback only over remaining unused orig_dicts (matched_identity=False)
+                    remaining_unused = [i for i in range(len(orig_dicts)) if i not in used_orig_indices]
+                    for idx_c in range(len(repaired_list)):
+                        if matched_indices[idx_c] is not None:
+                            continue
+                        if idx_c < len(orig_dicts) and idx_c not in used_orig_indices:
+                            matched_indices[idx_c] = idx_c
+                            remaining_unused.remove(idx_c)
+                            used_orig_indices.add(idx_c)
+                        elif remaining_unused:
+                            pick = remaining_unused.pop(0)
+                            matched_indices[idx_c] = pick
+                            used_orig_indices.add(pick)
+                for idx_c, rep_cat in enumerate(repaired_list if repaired_list_valid else []):
+                    m_idx = matched_indices[idx_c]
+                    orig_cat = orig_dicts[m_idx] if m_idx is not None else {}
+                    matched_identity = matched_identity_flags[idx_c]
+
                     cat_label = (
-                        str(rep_cat.get("category") or rep_cat.get("category_label") or orig_cat.get("category_label") or orig_cat.get("category") or "")
+                        str(
+                            rep_cat.get("category")
+                            or rep_cat.get("category_label")
+                            or orig_cat.get("category_label")
+                            or orig_cat.get("category")
+                            or ""
+                        )
                         .replace("—", ":")
                         .strip()
                     )
-                    new_skills = [
-                        str(s.get("term") or s.get("text") if isinstance(s, dict) else s).replace("—", ":").strip()
-                        for s in (rep_cat.get("skills") or rep_cat.get("terms") or [])
-                        if str(s.get("term") or s.get("text") if isinstance(s, dict) else s).strip()
-                    ]
+                    parsed_skills: list[tuple[str, dict[str, Any] | None]] = []
+                    for s in (rep_cat.get("skills") or rep_cat.get("terms") or []):
+                        raw_txt = (s.get("term") or s.get("text") or "") if isinstance(s, dict) else s
+                        cleaned_txt = str(raw_txt or "").replace("—", ":").strip()
+                        if cleaned_txt:
+                            parsed_skills.append((cleaned_txt, s if isinstance(s, dict) else None))
                     orig_terms = [t for t in (orig_cat.get("terms") or []) if isinstance(t, dict)]
-                    cat_fact_ids: list[str] = []
+
+                    rep_cat_fact_ids = [
+                        str(fid).strip()
+                        for fid in (rep_cat.get("source_fact_ids") or [])
+                        if str(fid).strip() and (not allowed_ids_set or str(fid).strip() in allowed_ids_set)
+                    ]
+                    orig_cat_fact_ids: list[str] = []
                     for ot in orig_terms:
-                        for fid in ot.get("source_fact_ids") or []:
-                            sf = str(fid).strip()
-                            if sf and sf not in cat_fact_ids:
-                                cat_fact_ids.append(sf)
-                    if not new_skills or not cat_fact_ids:
+                        for fid in ot.get("source_fact_ids") or ([ot.get("source_fact_id")] if ot.get("source_fact_id") else []):
+                            sf = str(fid or "").strip()
+                            if sf and sf not in orig_cat_fact_ids:
+                                orig_cat_fact_ids.append(sf)
+                    for fid in orig_cat.get("source_fact_ids") or []:
+                        sf = str(fid).strip()
+                        if sf and sf not in orig_cat_fact_ids:
+                            orig_cat_fact_ids.append(sf)
+
+                    cat_fact_ids = rep_cat_fact_ids or orig_cat_fact_ids or list(fallback_fact_pool[:2])
+                    if not cat_label or not parsed_skills or not cat_fact_ids:
                         merged_comps = []
                         break
+
                     rebuilt_terms: list[dict[str, Any]] = []
-                    for idx_t, skill_str in enumerate(new_skills[:4]):
-                        template_t = dict(orig_terms[idx_t]) if idx_t < len(orig_terms) else {"source_fact_ids": list(cat_fact_ids[:2])}
+                    for idx_t, (skill_str, rep_term_dict) in enumerate(parsed_skills[:4]):
+                        template_t = dict(orig_terms[idx_t]) if (matched_identity and idx_t < len(orig_terms)) else {}
                         template_t["term"] = skill_str
-                        if "text" in template_t:
-                            template_t["text"] = skill_str
-                        if not template_t.get("source_fact_ids"):
-                            template_t["source_fact_ids"] = list(cat_fact_ids[:2])
+                        template_t["text"] = skill_str
+                        rep_t_sids: list[str] = []
+                        if rep_term_dict is not None:
+                            raw_t_sids = list(rep_term_dict.get("source_fact_ids") or [])
+                            if rep_term_dict.get("source_fact_id"):
+                                raw_t_sids = [rep_term_dict.get("source_fact_id"), *raw_t_sids]
+                            for fid in raw_t_sids:
+                                sf = str(fid or "").strip()
+                                if sf and (not allowed_ids_set or sf in allowed_ids_set) and sf not in rep_t_sids:
+                                    rep_t_sids.append(sf)
+                        if rep_t_sids:
+                            t_sids = rep_t_sids
+                        else:
+                            t_sids = [
+                                str(fid).strip()
+                                for fid in (template_t.get("source_fact_ids") or [])
+                                if str(fid).strip()
+                            ]
+                            if not t_sids:
+                                t_sids = list(cat_fact_ids[:2])
+                        template_t["source_fact_ids"] = t_sids
+                        template_t["source_fact_id"] = t_sids[0]
                         rebuilt_terms.append(template_t)
-                    updated_cat = dict(orig_cat)
+
+                    updated_cat = dict(orig_cat) if (orig_cat and matched_identity) else {}
+                    if not matched_identity:
+                        for id_key in ("competency_bundle_id", "category_id"):
+                            id_val = str(rep_cat.get(id_key) or "").strip()
+                            if id_val:
+                                updated_cat[id_key] = id_val
                     updated_cat["category"] = cat_label
                     updated_cat["category_label"] = cat_label
                     if "resume_display_label" in updated_cat:
                         updated_cat["resume_display_label"] = cat_label
                     updated_cat["terms"] = rebuilt_terms
                     updated_cat["skills"] = [t["term"] for t in rebuilt_terms]
+                    updated_cat["source_fact_ids"] = list(cat_fact_ids)
                     merged_comps.append(updated_cat)
                 if merged_comps:
                     updated_data["competencies"] = merged_comps

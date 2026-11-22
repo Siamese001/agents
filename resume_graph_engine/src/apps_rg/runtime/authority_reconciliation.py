@@ -622,8 +622,8 @@ def run_l0_parallel_artifact_replay(
         for values in dependencies.values()
         for dependency in values
     )
-    cap = max(2, min(int(max_parallel), len(selected)))
     root_lanes = tuple(lane for lane in selected if not dependencies.get(lane))
+    cap = max(2, len(root_lanes), min(int(max_parallel), len(selected)))
     barrier = threading.Barrier(len(root_lanes)) if len(root_lanes) > 1 else None
     lock = threading.Lock()
     active = 0

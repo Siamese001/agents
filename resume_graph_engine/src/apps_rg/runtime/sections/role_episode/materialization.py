@@ -68,13 +68,18 @@ def _materialize_bullet_generation(
     facts: list[dict[str, Any]],
     allowed: list[str],
     graph_packet_digest: str,
+    allow_prose_mutation: bool | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    allow_prose_mutation = provider_runtime_generation_status != "REAL_LLM"
+    effective_allow_mutation = (
+        provider_runtime_generation_status != "REAL_LLM"
+        if allow_prose_mutation is None
+        else bool(allow_prose_mutation)
+    )
     model_bullets = _normalize_bullets(
         parsed or {},
         cfg=cfg,
         allowed=allowed,
-        allow_prose_mutation=allow_prose_mutation,
+        allow_prose_mutation=effective_allow_mutation,
     )
     llm_status = _llm_generation_status(
         provider_runtime_generation_status=provider_runtime_generation_status,
@@ -106,10 +111,13 @@ def _materialize_bullet_generation(
             if final_ok
             else ""
         )
-        bullets, density_repairs = _repair_role_episode_bullet_evidence_density(
-            bullets,
-            facts=facts,
-        )
+        if effective_allow_mutation:
+            bullets, density_repairs = _repair_role_episode_bullet_evidence_density(
+                bullets,
+                facts=facts,
+            )
+        else:
+            density_repairs = []
     else:
         bullets = []
         density_repairs = []
@@ -221,8 +229,8 @@ def _reconcile_final_materialized_selection_gate(
         selections=selections,
         merged_parsed={"bullets": bullets},
     ).to_dict()
-    producer_gate = dict(generation_meta.get("selection_gate") or {})
-    generation_meta["producer_selection_gate"] = producer_gate
+    if "producer_selection_gate" not in generation_meta:
+        generation_meta["producer_selection_gate"] = dict(generation_meta.get("selection_gate") or {})
     generation_meta["final_materialized_selection_gate"] = final_gate
     generation_meta["selection_gate"] = final_gate
     return final_gate

@@ -103,6 +103,8 @@ def build_section_request(
     anthropic_cache_receipt_seed: dict[str, Any] | None = None,
     anthropic_cache_strategy: str | None = None,
     idempotent_replay_safe: bool = False,
+    reasoning_effort: str | None = None,
+    force_new_seed: bool = False,
 ) -> tuple[ProviderRequest, dict[str, Any]]:
     """Build an OpenAI-compatible section generation request for the apps_rg provider gateway.
 
@@ -151,11 +153,16 @@ def build_section_request(
         payload["anthropic_cache_receipt_seed"] = dict(anthropic_cache_receipt_seed)
     if str(anthropic_cache_strategy or "").strip():
         payload["anthropic_cache_strategy"] = str(anthropic_cache_strategy).strip()
+    eff_clean = str(reasoning_effort or "").strip().lower()
+    if eff_clean in {"low", "medium", "high", "xhigh", "max"}:
+        payload["reasoning_effort"] = eff_clean
+    if force_new_seed:
+        payload["force_new_seed"] = True
     # A lane must explicitly declare that its repeated request is a
     # resume/replay duplicate rather than another independent sample.  The
     # provider layer then requires an explicit run binding and opt-in
     # environment switch before it can replay a result.
-    if idempotent_replay_safe:
+    if idempotent_replay_safe and not force_new_seed:
         payload["exact_response_reuse"] = "IDEMPOTENT"
     return provider_request, payload
 

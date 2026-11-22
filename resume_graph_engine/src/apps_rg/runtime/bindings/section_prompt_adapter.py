@@ -194,6 +194,7 @@ def compile_section_prompt(
     l1_cognitive_revision: Mapping[str, Any] | None = None,
     l1_cognitive_revision_advisory: Mapping[str, Any] | None = None,
     career_thesis_plan: Mapping[str, Any] | Any | None = None,
+    diagnostic_focus: str | None = None,
 ) -> SectionCompiledPrompt:
     """Validate ``section_id`` against its stub contract and compile ``assembly_input``.
 
@@ -335,6 +336,18 @@ def compile_section_prompt(
         assembly_input = replace(
             assembly_input,
             u0_user_task=revision_block + assembly_input.u0_user_task,
+        )
+
+    focus_text = str(diagnostic_focus or "").strip()
+    if focus_text:
+        focus_block = (
+            "<RECOVERY_DIAGNOSTIC_FOCUS>\n"
+            f"{focus_text}\n"
+            "</RECOVERY_DIAGNOSTIC_FOCUS>\n\n"
+        )
+        assembly_input = replace(
+            assembly_input,
+            u0_user_task=focus_block + assembly_input.u0_user_task,
         )
 
     artifact = compile_prompt(assembly_input, base_path=_APPS_RG_ROOT / "prompt_assembly")

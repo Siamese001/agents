@@ -292,7 +292,26 @@ def test_bounded_loop_skips_judge_on_x2_fail_and_forwards_decisive_judge_feedbac
     assert all(judge_row_passes_4_7_human_bar(r) for r in outcome.final_x1d_rows)
 
 
-def test_contract_emitter_writes_all_15_required_lane_contract_artifacts(tmp_path: Path) -> None:
+def test_contract_emitter_writes_all_15_required_lane_contract_artifacts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import subprocess as _sp
+
+    local_chroma = REPO_ROOT / "resume_graph_engine" / "artifacts" / "apps_rg" / "cache" / "chromadb"
+    if not (local_chroma / "chroma.sqlite3").is_file():
+        proc = _sp.run(
+            ["git", "-C", str(REPO_ROOT), "rev-parse", "--git-common-dir"],
+            capture_output=True, text=True, check=False, shell=False, timeout=10,
+        )
+        if proc.returncode == 0 and proc.stdout.strip():
+            common_git = Path(proc.stdout.strip())
+            if not common_git.is_absolute():
+                common_git = (REPO_ROOT / common_git).resolve()
+            primary_chroma = common_git.parent / "resume_graph_engine" / "artifacts" / "apps_rg" / "cache" / "chromadb"
+            if (primary_chroma / "chroma.sqlite3").is_file():
+                local_chroma = primary_chroma
+    monkeypatch.setenv("CHROMA_PERSIST_DIR", str(local_chroma))
+
     contract = json.loads(LANE_CONTRACT_PATH.read_text(encoding="utf-8"))
     fmap = contract["artifact_role_filename_map"]
     required_files = [
@@ -543,3 +562,11 @@ def test_anti_chronology_employer_roll_call_and_unify_dependency_graph_mechanism
         "Owned Unify Consulting's platform mandate, applying dependency-graph intelligence to enterprise modernization."
     )
     assert check_narrative_technical_specificity(grounded_unify).passed is True
+
+
+def test_judge_row_passes_4_7_human_bar_accepts_exact_0_94_on_0_to_1_scale() -> None:
+    base = {"evaluator_mode": "MODEL_BACKED", "pass": True}
+    assert judge_row_passes_4_7_human_bar({**base, "score": 0.94, "score_scale": "0_to_1"}) is True
+    assert judge_row_passes_4_7_human_bar({**base, "score": 0.9399, "score_scale": "0_to_1"}) is False
+    assert judge_row_passes_4_7_human_bar({**base, "score": 4.7, "score_scale": "0_to_5"}) is True
+    assert judge_row_passes_4_7_human_bar({**base, "score": 4.6999, "score_scale": "0_to_5"}) is False

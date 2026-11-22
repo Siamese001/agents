@@ -213,3 +213,38 @@ def test_modular_phase0_blocked_on_product_fail_closed(
     assert "phase0_synthetic_not_permitted" in (result.failure_reason or "")
     block_doc = art / "modular_r4" / "phase0_product_fail_closed_block.json"
     assert block_doc.is_file()
+
+
+@pytest.mark.parametrize(
+    "x3_code",
+    ["X3_REVIEW_JUDGE_SOFT_FAIL", "X3_REVIEW_JUDGE_PROVIDER_BLOCKED"],
+)
+def test_lane_run_dir_meets_product_bar_requires_strict_x3_allow_by_default(
+    product_fail_closed_env: None,
+    tmp_path: Path,
+    x3_code: str,
+) -> None:
+    parsed, _ = unify_bullets_parsed_from_mock()
+    run_dir = tmp_path / "unify_bullets" / "real" / f"run_{x3_code.lower()}"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    (run_dir / "l2_output.json").write_text(
+        json.dumps(
+            {
+                "section_id": "unify_bullets",
+                "runtime_generation_status": "REAL_LLM",
+                "product_quality_status": "PASS",
+                "bullets": parsed["bullets"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (run_dir / "x3_disposition.json").write_text(
+        json.dumps({"x3_code": x3_code}),
+        encoding="utf-8",
+    )
+    (run_dir / "provider_request.json").write_text(
+        json.dumps({"provider_requested": "external_claude"}),
+        encoding="utf-8",
+    )
+    assert lane_run_dir_meets_product_bar(run_dir) == (False, f"x3_not_allow:{x3_code}")
+    assert lane_run_dir_meets_product_bar(run_dir, require_x3_allow=False) == (True, "ok")

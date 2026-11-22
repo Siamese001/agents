@@ -153,6 +153,17 @@ def call_ide_cli_judge(
     norm_effort = str(reasoning_effort or "").strip().lower() or None
     if norm_effort not in {"low", "medium", "high", "xhigh", "max"}:
         norm_effort = None
+    cli_model = model
+    if norm_effort:
+        from apps_rg.runtime.model_capabilities import try_model_capabilities
+
+        caps = try_model_capabilities(cli_model)
+        allowed_efforts = tuple((caps.reasoning_efforts or ()) if caps is not None else ())
+        if norm_effort in allowed_efforts:
+            if norm_effort in {"low", "medium"} and cli_model.endswith("-high"):
+                cli_model = f"{cli_model[:-5]}-{norm_effort}"
+            elif norm_effort == "low" and cli_model.endswith("-medium"):
+                cli_model = f"{cli_model[:-7]}-low"
     req_path = x._artifact_path(provider_key, "provider_request", artifact_base=artifact_base)
     x._write_artifact(
         req_path,
@@ -160,7 +171,7 @@ def call_ide_cli_judge(
             "transport": "ide_cli",
             "provider_key": provider_key,
             "section_id": sid,
-            "resolved_model": model,
+            "resolved_model": cli_model,
             "model_requested": model_requested or model,
             "reasoning_effort": norm_effort,
             "attempt": attempt,
@@ -176,7 +187,7 @@ def call_ide_cli_judge(
     try:
         res = run_agy(
             full_prompt,
-            model=model,
+            model=cli_model,
             json_schema=schema,
             effort=norm_effort,
             timeout_s=_timeout_s(),

@@ -1,6 +1,8 @@
 """external model-aware Phase-1 lane wave scheduling (plan apps-rg-parallel-section-orchestration-f2a8c4)."""
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
+import heapq
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -50,7 +52,7 @@ def phase1_parallel_enabled(*, profile_flag: bool = False) -> bool:
     return bool(profile_flag)
 
 
-def resolve_max_parallel(*, default: int = 6) -> int:
+def resolve_max_parallel(*, default: int = 7) -> int:
     raw = str(os.environ.get(_ENV_MAX_PARALLEL, "")).strip()
     if raw.isdigit():
         return max(1, min(12, int(raw)))
@@ -123,6 +125,48 @@ def section_dag_dependencies(*, lanes: tuple[str, ...] | None = None) -> dict[st
     return out
 
 
+def topological_lane_order(
+    lanes: Sequence[str],
+    *,
+    deps_by_lane: Mapping[str, Sequence[str]] | None = None,
+) -> tuple[str, ...]:
+    """Return ``lanes`` in topological dependency order, preserving input order as tie-breaker."""
+    ordered = tuple(dict.fromkeys(str(lane) for lane in lanes if str(lane)))
+    if not ordered:
+        return ()
+    deps_map = deps_by_lane if deps_by_lane is not None else section_dag_dependencies(lanes=ordered)
+    index_of = {lane: idx for idx, lane in enumerate(ordered)}
+    in_degree: dict[str, int] = {}
+    dependents: dict[str, list[str]] = {lane: [] for lane in ordered}
+    for lane in ordered:
+        valid_deps = [
+            dep
+            for dep in dict.fromkeys(deps_map.get(lane, ()))
+            if dep in index_of and dep != lane
+        ]
+        in_degree[lane] = len(valid_deps)
+        for dep in valid_deps:
+            dependents[dep].append(lane)
+
+    ready: list[tuple[int, str]] = [
+        (index_of[lane], lane) for lane in ordered if in_degree[lane] == 0
+    ]
+    heapq.heapify(ready)
+    result: list[str] = []
+    while ready:
+        _idx, lane = heapq.heappop(ready)
+        result.append(lane)
+        for child in dependents[lane]:
+            in_degree[child] -= 1
+            if in_degree[child] == 0:
+                heapq.heappush(ready, (index_of[child], child))
+
+    if len(result) != len(ordered):
+        remaining = [lane for lane in ordered if lane not in set(result)]
+        raise ValueError(f"Cycle detected in section lane DAG: {remaining}")
+    return tuple(result)
+
+
 def build_phase1_waves() -> tuple[LaneWave, ...]:
     """Ordered waves respecting DAG; wave 0 exec solo when parallel mode on."""
     manifest = load_section_dag_manifest()
@@ -151,4 +195,5 @@ __all__ = [
     "phase1_parallel_enabled",
     "resolve_max_parallel",
     "section_dag_dependencies",
+    "topological_lane_order",
 ]

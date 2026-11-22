@@ -78,6 +78,9 @@ def run_apps_rg_spine(
     lane_mock_judges: bool = False,
     lane_allow_non_allow_exit_zero: bool = False,
     lane_allow_test_mock_judges: bool = False,
+    diagnostic_focus: str = "",
+    force_new_seed: bool = False,
+    reasoning_effort: str = "",
 ) -> dict[str, Any]:
     """Run apps_rg governed spine for section-only or full résumé scope."""
     tc = str(target_company).strip()
@@ -196,6 +199,9 @@ def run_apps_rg_spine(
                     "lane_mock_judges": lane_mock_judges,
                     "lane_allow_non_allow_exit_zero": lane_allow_non_allow_exit_zero,
                     "lane_allow_test_mock_judges": lane_allow_test_mock_judges,
+                    "diagnostic_focus": str(diagnostic_focus or "").strip(),
+                    "force_new_seed": bool(force_new_seed),
+                    "reasoning_effort": str(reasoning_effort or "").strip().lower(),
                 },
             }
         )

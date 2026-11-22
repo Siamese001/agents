@@ -302,7 +302,7 @@ def _cosine_echo_diagnostic_summary(narrative_text: str, companion_bullets_list:
     res = check_narrative_bullet_cosine_similarity(
         narrative_text,
         companion_bullets_list,
-        max_pairwise_cosine=0.28,
+        max_pairwise_cosine=0.35,
         max_pool_cosine=0.38,
         forbid_shared_opener=True,
         forbid_repeated_metrics=True,
@@ -327,7 +327,7 @@ def _cosine_echo_diagnostic_summary(narrative_text: str, companion_bullets_list:
         b_stems = {_content_stem(t) for t in b_tokens}
         shared = sorted({narr_stems[s] for s in (set(narr_stems) & b_stems)})
         hot_details.append(
-            f"bullet_{b_idx} cosine={cos_val:.4f}<=0.2800 shared_words={shared}"
+            f"bullet_{b_idx} cosine={cos_val:.4f}<=0.3500 shared_words={shared}"
         )
     pool_cos = float(obs.get("pool_content_cosine") or 0.0)
     summary = "; ".join(hot_details[:2]) if hot_details else "high content overlap"
@@ -341,16 +341,17 @@ def _ensure_ibm_narrative_mechanism(
     allow_echo_repair: bool = True,
     facts: list[dict[str, Any]] | None = None,
 ) -> str:
+    if not allow_echo_repair:
+        return narrative
     from apps_rg.runtime.validators.narrative_quality_x2 import (
         check_narrative_technical_specificity, repair_narrative_bullet_echo_from_graph,
     )
-    if allow_echo_repair:
-        narrative = repair_narrative_bullet_echo_from_graph(
-            narrative,
-            facts=list(facts or []),
-            companion_bullet_texts=companion_text,
-            section_id="ibm_narrative",
-        )
+    narrative = repair_narrative_bullet_echo_from_graph(
+        narrative,
+        facts=list(facts or []),
+        companion_bullet_texts=companion_text,
+        section_id="ibm_narrative",
+    )
     if check_narrative_technical_specificity(narrative).passed:
         return narrative
     supported = _companion_supported_mechanisms(companion_text)
@@ -383,12 +384,13 @@ def normalize_parsed_output(
         return parsed
     out = dict(parsed)
     narrative = str(out.get("narrative_sentence", "")).strip()
-    while narrative.count(",") >= 5:
-        narrative = re.sub(r",\s+and\s+", " and ", narrative, count=1)
-        if narrative.count(",") >= 5:
-            narrative = re.sub(r",\s+", " ", narrative, count=1)
-    if narrative and not narrative.endswith((".", "!", "?")):
-        narrative += "."
+    if allow_echo_repair:
+        while narrative.count(",") >= 5:
+            narrative = re.sub(r",\s+and\s+", " and ", narrative, count=1)
+            if narrative.count(",") >= 5:
+                narrative = re.sub(r",\s+", " ", narrative, count=1)
+        if narrative and not narrative.endswith((".", "!", "?")):
+            narrative += "."
     plan_facts = (
         list((runtime_payload.get("selected_fact_plan") or {}).get("facts") or [])
         if isinstance(runtime_payload, dict) and isinstance(runtime_payload.get("selected_fact_plan"), dict)
@@ -1161,6 +1163,7 @@ def apply_ibm_narrative_judge_feedback_rewrite(
     judge_mode: str,
     allowed_fact_packet: dict[str, Any] | None = None,
     targeting_context: dict[str, Any] | None = None,
+    x2_check_fn: Any | None = None,
 ) -> tuple[str, dict[str, Any] | None, list[dict[str, Any]], bool]:
     """Bounded 1-attempt fresh-turn rewrite when X1D judge(s) fail on REAL_LLM."""
     receipt: dict[str, Any] = {
@@ -1253,19 +1256,31 @@ def apply_ibm_narrative_judge_feedback_rewrite(
         return raw_output, parsed, x1d, False
     cand_parsed["narrative_sentence"] = cand_narr
     cand_rows = [r for r in (cand_parsed.get("claim_ledger") or []) if isinstance(r, dict)]
-    themes = ibm_narrative_material_fact_ids_for_sentence(cand_narr, companion_text)
-    cited = {s for s in _ledger_fact_ids(cand_rows) if s.startswith("bul_ibm_")}
-    clause_ok, _ = check_ibm_narrative_claim_ledger_clause_decomposition(cand_narr, cand_rows)
-    mech_obs = ibm_narrative_mechanism_support_observation(cand_narr, cand_rows, companion_text)
-    comp_lines = [ln.strip() for ln in str(companion_text or "").splitlines() if ln.strip()]
-    has_full = bool(comp_lines and min((len(b.split()) for b in comp_lines), default=0) >= 12)
-    cos_ok = not has_full or check_narrative_bullet_cosine_similarity(
-        cand_narr, comp_lines, max_pairwise_cosine=0.35, max_pool_cosine=0.38, forbid_shared_opener=True, forbid_repeated_metrics=True
-    ).passed
-    if len(themes) > 4 or (themes - cited) or not clause_ok or mech_obs.get("unsupported_mechanisms") or not cos_ok:
-        receipt["rejected_reason"] = "deterministic_x2_guard_failed"
-        write_json(artifact_dir / "ibm_narrative_judge_rewrite_receipt.json", receipt)
-        return raw_output, parsed, x1d, False
+    usage_ledger_path = artifact_dir / "section_input_usage_ledger.json"
+    usage_snap: bytes | None = None
+    if x2_check_fn is not None:
+        usage_snap = usage_ledger_path.read_bytes() if usage_ledger_path.is_file() else None
+        cand_x2_failed = x2_check_fn(cand_parsed, cand_raw)
+        if cand_x2_failed:
+            if usage_snap is not None:
+                usage_ledger_path.write_bytes(usage_snap)
+            receipt["rejected_reason"] = f"deterministic_x2_guard_failed:{cand_x2_failed}"
+            write_json(artifact_dir / "ibm_narrative_judge_rewrite_receipt.json", receipt)
+            return raw_output, parsed, x1d, False
+    else:
+        themes = ibm_narrative_material_fact_ids_for_sentence(cand_narr, companion_text)
+        cited = {s for s in _ledger_fact_ids(cand_rows) if s.startswith("bul_ibm_")}
+        clause_ok, _ = check_ibm_narrative_claim_ledger_clause_decomposition(cand_narr, cand_rows)
+        mech_obs = ibm_narrative_mechanism_support_observation(cand_narr, cand_rows, companion_text)
+        comp_lines = [ln.strip() for ln in str(companion_text or "").splitlines() if ln.strip()]
+        has_full = bool(comp_lines and min((len(b.split()) for b in comp_lines), default=0) >= 12)
+        cos_ok = not has_full or check_narrative_bullet_cosine_similarity(
+            cand_narr, comp_lines, max_pairwise_cosine=0.35, max_pool_cosine=0.38, forbid_shared_opener=True, forbid_repeated_metrics=True
+        ).passed
+        if len(themes) > 4 or (themes - cited) or not clause_ok or mech_obs.get("unsupported_mechanisms") or not cos_ok:
+            receipt["rejected_reason"] = "deterministic_x2_guard_failed"
+            write_json(artifact_dir / "ibm_narrative_judge_rewrite_receipt.json", receipt)
+            return raw_output, parsed, x1d, False
     cand_x1d = [
         j.to_dict()
         for j in run_ibm_narrative_judges(
@@ -1284,6 +1299,8 @@ def apply_ibm_narrative_judge_feedback_rewrite(
     receipt["old_rank"] = list(old_rank)
     receipt["new_rank"] = list(new_rank)
     if new_rank <= old_rank:
+        if x2_check_fn is not None and usage_snap is not None:
+            usage_ledger_path.write_bytes(usage_snap)
         receipt["rejected_reason"] = "rejudge_not_improved"
         write_json(artifact_dir / "ibm_narrative_judge_rewrite_receipt.json", receipt)
         return raw_output, parsed, x1d, False

@@ -255,8 +255,8 @@ def build_headline_assembly_input(
 
     t_title = str(runtime_payload.get("target_title") or "")
     t_company = str(runtime_payload.get("target_company") or "")
-    jd = str(runtime_payload.get("jd_text") or "")
-    briefing = str(runtime_payload.get("briefing") or "")
+    jd = str(runtime_payload.get("jd_text") or "").strip()[:900]
+    briefing = str(runtime_payload.get("briefing") or "").strip()[:500]
 
     positioning_block = ""
     pp_meta = runtime_payload.get("proof_pool_metadata") if isinstance(runtime_payload.get("proof_pool_metadata"), dict) else {}
@@ -393,6 +393,7 @@ def compile_headline_prompt(
         l1_cognitive_revision_advisory=runtime_payload.get(
             "l1_cognitive_revision_advisory"
         ),
+        diagnostic_focus=runtime_payload.get("recovery_diagnostic_focus"),
     )
     ids = sorted(str(x) for x in (runtime_payload.get("allowed_fact_ids") or []))
     pp_meta, _fec = resolve_pa_proof_authority_for_compile(runtime_payload)

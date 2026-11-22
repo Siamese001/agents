@@ -74,6 +74,8 @@ def run_unify_ingress_stage(
         briefing=str(getattr(args, "briefing", "") or "").strip() or BRIEFING_DEFAULT,
     )
     runtime_payload["proof_pool_metadata"] = proof_pool_metadata
+    if focus := str(getattr(args, "diagnostic_focus", "") or "").strip():
+        runtime_payload["recovery_diagnostic_focus"] = focus
     if artifact_dir_override is not None:
         artifact_dir = Path(artifact_dir_override)
         _wg.ensure_dir(artifact_dir)

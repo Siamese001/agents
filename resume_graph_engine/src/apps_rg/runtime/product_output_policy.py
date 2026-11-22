@@ -49,6 +49,7 @@ def require_live_bge_embeddings() -> bool:
 PRODUCT_QUALITY_PASS = "PASS"
 RUNTIME_REAL_LLM = "REAL_LLM"
 PHASE1_PRIOR_LANE_FAILED_BLOCKER = "PHASE1_PRIOR_LANE_FAILED"
+PRODUCT_AUTHORIZING_X3_CODES: frozenset[str] = frozenset({"X3_ALLOW"})
 
 
 def product_pass_allows_c02_write(
@@ -72,11 +73,14 @@ def product_pass_allows_c02_write(
     return False, "same_run_c02_chroma_write_not_product_proof"
 
 
-def lane_run_dir_meets_product_bar(run_dir: Path) -> tuple[bool, str]:
-    """True when run_dir l2+x3 evidence meets product lane bar (REAL_LLM + PASS + X3 allow family)."""
+def lane_run_dir_meets_product_bar(
+    run_dir: Path,
+    *,
+    require_x3_allow: bool = True,
+) -> tuple[bool, str]:
+    """True when run_dir l2+x3 evidence meets product lane bar (REAL_LLM + PASS + X3 allow)."""
     from apps_rg.runtime.c02_chroma_lifecycle import index_build_receipt_bound
     from apps_rg.runtime.runtime_proof_layout import _is_accepted_real_llm_provider_bundle
-    from apps_rg.runtime.validators.companion_bullet_finalization import COMPANION_FINALIZED_X3_CODES
 
     room_receipt = run_dir / "c0_evidence_room_receipt.json"
     if room_receipt.is_file():
@@ -138,8 +142,16 @@ def lane_run_dir_meets_product_bar(run_dir: Path) -> tuple[bool, str]:
         x3_code = str(x3.get("x3_code") or x3.get("x3_disposition") or "UNKNOWN")
     except (json.JSONDecodeError, OSError):
         return False, "x3_unreadable"
-    if x3_code not in COMPANION_FINALIZED_X3_CODES:
-        return False, f"x3_not_allow:{x3_code}"
+    if require_x3_allow:
+        if x3_code not in PRODUCT_AUTHORIZING_X3_CODES:
+            return False, f"x3_not_allow:{x3_code}"
+    else:
+        from apps_rg.runtime.validators.companion_bullet_finalization import (
+            COMPANION_FINALIZED_X3_CODES,
+        )
+
+        if x3_code not in COMPANION_FINALIZED_X3_CODES:
+            return False, f"x3_not_allow:{x3_code}"
     return True, "ok"
 
 
@@ -165,6 +177,7 @@ def phase1_dispatch_hard_failed(dispatch_result: dict | object | None) -> bool:
 
 __all__ = [
     "PHASE1_PRIOR_LANE_FAILED_BLOCKER",
+    "PRODUCT_AUTHORIZING_X3_CODES",
     "PRODUCT_QUALITY_PASS",
     "RUNTIME_REAL_LLM",
     "docx_output_required",

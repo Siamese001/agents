@@ -107,7 +107,7 @@ class ResumeRunRecoveryAgent:
         return directives
 
     def _load_assembly_coherence_failures(self) -> tuple[set[str], dict[str, str]]:
-        """Inspect final_resume_assembly X2 and 12th-stage coherence judge outputs for implicated lanes."""
+        """Inspect final_resume_assembly X2, review policy, and 12th-stage coherence outputs for implicated lanes."""
         from apps_rg.runtime.internal.generated_lane_rollup import GENERATED_LANES
 
         implicated: set[str] = set()
@@ -115,6 +115,25 @@ class ResumeRunRecoveryAgent:
         asm_dir = self.artifact_dir / "modular_r4" / "final_resume_assembly"
         if not asm_dir.is_dir():
             return implicated, notes
+
+        valid_lanes = set(GENERATED_LANES)
+        emp_aliases = {
+            "executive_summary": ("executive summary", "executive_summary", "summary", "target_mandate", "jd_resonance", "unsupported_jd_proof"),
+            "headline": ("headline",),
+            "competencies": ("competencies", "core competencies", "competenc", "credential"),
+            "slalom_narrative": ("slalom narrative", "slalom_narrative"),
+            "slalom_bullets": ("slalom bullet", "slalom_bullets"),
+            "unify_narrative": ("unify narrative", "unify_narrative"),
+            "unify_bullets": ("unify bullet", "unify_bullets"),
+            "ibm_narrative": ("ibm narrative", "ibm_narrative"),
+            "ibm_bullets": ("ibm bullet", "ibm_bullets"),
+            "insurtech_narrative": ("insurtech narrative", "insurtech_narrative"),
+            "insurtech_bullets": ("insurtech bullet", "insurtech_bullets"),
+        }
+
+        def _match_aliases(text_blob: str) -> list[str]:
+            lowered = text_blob.lower()
+            return [ln for ln, toks in emp_aliases.items() if any(tok in lowered for tok in toks)]
 
         x2_path = asm_dir / "final_resume_x2_gate_outputs.json"
         if x2_path.is_file():
@@ -126,52 +145,175 @@ class ResumeRunRecoveryAgent:
                         continue
                     gid = str(g.get("gate_id") or "")
                     reason = str(g.get("failure_reason") or gid)
-                    matched = [ln for ln in GENERATED_LANES if ln in gid or ln in reason]
+                    obs = g.get("observed_value")
+                    obs_blob = json.dumps(obs, default=str) if obs is not None else ""
+                    matched = [
+                        ln
+                        for ln in GENERATED_LANES
+                        if ln in gid or ln in reason or ln in obs_blob
+                    ]
+                    if gid == "x2_full_resume_llm_coherence_aggregation" and isinstance(obs, Mapping):
+                        for nl in obs.get("non_allow_lanes") or []:
+                            nl_s = str(nl).strip()
+                            if nl_s in valid_lanes and nl_s not in matched:
+                                matched.append(nl_s)
+                        blockers_blob = json.dumps(obs.get("blockers") or [], default=str)
+                        for ln in _match_aliases(blockers_blob):
+                            if ln not in matched:
+                                matched.append(ln)
                     for ln in matched:
                         implicated.add(ln)
-                        notes[ln] = f"Failed cross-section X2 gate {gid}: {reason[:160]}"
+                        notes.setdefault(ln, f"Failed final_resume X2 gate {gid}: {reason[:160]}")
             except (OSError, json.JSONDecodeError, TypeError, ValueError):
                 pass
 
-        coh_path = asm_dir / "x1d_full_resume_judge_outputs.json"
-        if coh_path.is_file():
+        cross_path = asm_dir / "cross_section_x2_gate_outputs.json"
+        if cross_path.is_file():
             try:
-                coh_doc = json.loads(coh_path.read_text(encoding="utf-8"))
-                if isinstance(coh_doc, Mapping) and coh_doc.get("full_resume_coherence_pass") is False:
-                    judges = coh_doc.get("judges") if isinstance(coh_doc.get("judges"), list) else []
-                    findings = [
-                        str(f)
-                        for j in judges
-                        if isinstance(j, Mapping) and not bool(j.get("pass", True))
-                        for f in (j.get("findings") or [])
-                    ]
-                    blob = " ".join(findings).lower()
-                    emp_aliases = {
-                        "executive_summary": ("executive summary", "executive_summary", "summary"),
-                        "headline": ("headline",),
-                        "competencies": ("competencies", "core competencies"),
-                        "slalom_narrative": ("slalom narrative", "slalom_narrative"),
-                        "slalom_bullets": ("slalom bullet", "slalom_bullets"),
-                        "unify_narrative": ("unify narrative", "unify_narrative"),
-                        "unify_bullets": ("unify bullet", "unify_bullets"),
-                        "ibm_narrative": ("ibm narrative", "ibm_narrative"),
-                        "ibm_bullets": ("ibm bullet", "ibm_bullets"),
-                        "insurtech_narrative": ("insurtech narrative", "insurtech_narrative"),
-                        "insurtech_bullets": ("insurtech bullet", "insurtech_bullets"),
-                    }
-                    coh_matched = [
-                        ln
-                        for ln, toks in emp_aliases.items()
-                        if any(tok in blob for tok in toks)
-                    ]
-                    if not coh_matched:
-                        coh_matched = ["executive_summary"]
-                    critique = "; ".join(findings[:4]) or "12th-stage full_resume_llm_coherence failed"
-                    for ln in coh_matched:
-                        implicated.add(ln)
-                        notes.setdefault(ln, f"12th-stage coherence critique: {critique[:200]}")
+                cross_doc = json.loads(cross_path.read_text(encoding="utf-8"))
+                gates = cross_doc.get("gates") if isinstance(cross_doc, Mapping) else []
+                for g in gates if isinstance(gates, list) else []:
+                    if not isinstance(g, Mapping):
+                        continue
+                    verdict = str(g.get("verdict") or "").strip().upper()
+                    failed_cross = verdict in {"FAIL", "UNKNOWN"} or (not verdict and g.get("pass") is False)
+                    if not failed_cross:
+                        continue
+                    gid = str(g.get("gate_id") or "")
+                    reason = str(g.get("decisive_reason") or g.get("failure_reason") or gid)
+                    obs_blob = json.dumps(g.get("observed"), default=str) if g.get("observed") is not None else ""
+                    for ln in GENERATED_LANES:
+                        if ln in gid or ln in reason or ln in obs_blob:
+                            implicated.add(ln)
+                            notes.setdefault(ln, f"Failed cross-section X2 gate {gid}: {reason[:160]}")
             except (OSError, json.JSONDecodeError, TypeError, ValueError):
                 pass
+
+        rp_path = asm_dir / "review_lane_policy.json"
+        if rp_path.is_file():
+            try:
+                rp_doc = json.loads(rp_path.read_text(encoding="utf-8"))
+                if isinstance(rp_doc, Mapping):
+                    rp_sum = rp_doc.get("summary") if isinstance(rp_doc.get("summary"), Mapping) else {}
+                    for bucket_key in ("review_lanes", "blocked_lanes", "mock_plumbing_lanes"):
+                        for ln in rp_sum.get(bucket_key) or []:
+                            ln_s = str(ln).strip()
+                            if ln_s in valid_lanes:
+                                implicated.add(ln_s)
+                                notes.setdefault(ln_s, f"review_lane_policy {bucket_key}")
+                    for row in rp_doc.get("per_lane") or []:
+                        if not isinstance(row, Mapping):
+                            continue
+                        ln_s = str(row.get("lane") or "").strip()
+                        disp = str(row.get("disposition_class") or "").strip()
+                        x3c = str(row.get("x3_code") or "").strip()
+                        if ln_s in valid_lanes and (disp != "ALLOW" or x3c != "X3_ALLOW"):
+                            implicated.add(ln_s)
+                            notes.setdefault(ln_s, f"review_lane_policy mismatch ({disp}:{x3c})")
+            except (OSError, json.JSONDecodeError, TypeError, ValueError):
+                pass
+
+        final_path = asm_dir / "final_resume.json"
+        if final_path.is_file():
+            try:
+                final_doc = json.loads(final_path.read_text(encoding="utf-8"))
+                for sec in final_doc.get("sections") or []:
+                    if not isinstance(sec, Mapping):
+                        continue
+                    ln_s = str(sec.get("section_id") or "").strip()
+                    snap = sec.get("l2_output_snapshot")
+                    if ln_s in valid_lanes and isinstance(snap, Mapping) and snap.get("assembly_gap") is True:
+                        implicated.add(ln_s)
+                        reason_gap = str(snap.get("assembly_gap_reason") or "assembly_gap")
+                        notes.setdefault(ln_s, f"Assembly gap placeholder: {reason_gap[:160]}")
+            except (OSError, json.JSONDecodeError, TypeError, ValueError):
+                pass
+
+        coh_triggered = False
+        coh_findings: list[str] = []
+        for coh_name in ("full_resume_llm_coherence_review.json", "x1d_full_resume_judge_outputs.json"):
+            coh_path = asm_dir / coh_name
+            if not coh_path.is_file():
+                continue
+            try:
+                coh_doc = json.loads(coh_path.read_text(encoding="utf-8"))
+                if not isinstance(coh_doc, Mapping):
+                    continue
+                agg = coh_doc.get("aggregation") if isinstance(coh_doc.get("aggregation"), Mapping) else {}
+                coh_pass = coh_doc.get("full_resume_coherence_pass")
+                if coh_pass is None:
+                    coh_pass = agg.get("full_resume_coherence_pass")
+                quorum_met = coh_doc.get("quorum_met")
+                if quorum_met is None:
+                    quorum_met = agg.get("quorum_met")
+                decisive = str(coh_doc.get("decisive_reason") or agg.get("decisive_reason") or "").strip()
+                is_fail = (
+                    coh_pass is False
+                    or quorum_met is False
+                    or decisive in {
+                        "quorum_not_met",
+                        "judge_blockers",
+                        "deterministic_blocker",
+                        "skipped_upstream_lanes_not_x3_allow",
+                    }
+                )
+                if not is_fail:
+                    continue
+                coh_triggered = True
+                for ln in (
+                    list(coh_doc.get("non_allow_lanes") or [])
+                    + list(agg.get("non_allow_lanes") or [])
+                    + list(coh_doc.get("review_lanes") or [])
+                ):
+                    ln_s = str(ln).strip()
+                    if ln_s in valid_lanes:
+                        implicated.add(ln_s)
+                        notes.setdefault(ln_s, f"12th-stage coherence skipped/blocked ({decisive or 'non_allow'})")
+                judges_raw = coh_doc.get("judges")
+                if not isinstance(judges_raw, list):
+                    judges_raw = coh_doc.get("judge_verdicts")
+                judges = judges_raw if isinstance(judges_raw, list) else []
+                for j in judges:
+                    if not isinstance(j, Mapping):
+                        continue
+                    j_status = str(j.get("provider_status") or "").upper()
+                    j_failed = (
+                        not bool(j.get("pass", True))
+                        or bool(j.get("decisive_failure"))
+                        or j_status.endswith(("FAIL", "BLOCKED", "ERROR"))
+                        or bool(j.get("exact_provider_error"))
+                    )
+                    if not j_failed:
+                        continue
+                    for field_key in (
+                        "findings",
+                        "remediation_suggestions",
+                        "unsupported_claims",
+                        "rationale",
+                        "exact_provider_error",
+                        "decisive_failure_reason",
+                    ):
+                        val = j.get(field_key)
+                        if isinstance(val, list):
+                            coh_findings.extend(str(item) for item in val if str(item).strip())
+                        elif isinstance(val, str) and val.strip():
+                            coh_findings.append(val.strip())
+                for blk in list(coh_doc.get("blockers") or []) + list(agg.get("blockers") or []):
+                    if str(blk).strip():
+                        coh_findings.append(str(blk).strip())
+            except (OSError, json.JSONDecodeError, TypeError, ValueError):
+                pass
+
+        if coh_triggered:
+            blob = " ".join(coh_findings)
+            coh_matched = _match_aliases(blob) if blob else []
+            if not coh_matched and not implicated:
+                coh_matched = ["executive_summary"]
+            critique = "; ".join(coh_findings[:4]) or "12th-stage full_resume_llm_coherence failed"
+            for ln in coh_matched:
+                implicated.add(ln)
+                notes.setdefault(ln, f"12th-stage coherence critique: {critique[:200]}")
+
         return implicated, notes
 
     def _call_diagnostic_agent(self, lanes: list[str], exit_data: dict[str, Any]) -> dict[str, Any]:
@@ -184,6 +326,24 @@ class ResumeRunRecoveryAgent:
             if isinstance(r, Mapping) and str(r.get("lane") or "").strip()
         }
         _asm_lanes, asm_notes = self._load_assembly_coherence_failures()
+        exec_cert_note = ""
+        if "executive_summary" in lanes:
+            try:
+                from apps_rg.runtime.executive_summary_certification import (
+                    executive_summary_certification_block,
+                )
+
+                cert_block = executive_summary_certification_block(self.artifact_dir)
+                if isinstance(cert_block, Mapping) and cert_block.get("blocked"):
+                    judges = [str(j) for j in (cert_block.get("blocking_judge_ids") or []) if str(j).strip()]
+                    pub = str(cert_block.get("publish_disposition") or "").strip()
+                    exec_cert_note = (
+                        f"Executive summary judge certification blocked"
+                        f"{f' (publish_disposition={pub})' if pub else ''}"
+                        f"{f': blocking judges {chr(44).join(judges)}' if judges else ''}"
+                    )
+            except (ImportError, OSError, ValueError, TypeError, json.JSONDecodeError):
+                pass
         failing_diagnostics: dict[str, str] = {}
         root_causes: set[str] = set()
         for lane in lanes:
@@ -196,6 +356,9 @@ class ResumeRunRecoveryAgent:
             elif lane in asm_notes:
                 failing_diagnostics[lane] = asm_notes[lane]
                 root_causes.add("WHOLE_RESUME_COHERENCE_OR_CROSS_SECTION_VIOLATION")
+            elif lane == "executive_summary" and exec_cert_note:
+                failing_diagnostics[lane] = exec_cert_note
+                root_causes.add("EXECUTIVE_SUMMARY_JUDGE_CERTIFICATION_BLOCK")
             else:
                 failing_diagnostics[lane] = f"Non-authorizing X3 disposition ({x3_code})"
                 root_causes.add("EVIDENCE_DEFICIT")
@@ -235,9 +398,14 @@ class ResumeRunRecoveryAgent:
         exec_summary_block: Mapping[str, Any] | None = None,
     ) -> list[str]:
         """Identify which lanes failed or contributed to the non-authorizing disposition."""
+        from apps_rg.runtime.internal.generated_lane_rollup import GENERATED_LANES
+
         failing: set[str] = set()
+        valid_lanes = set(GENERATED_LANES)
 
         signals = whole_run_exit.get("signals")
+        final_asm_failed: list[Any] = []
+        final_out_failed: list[Any] = []
         if isinstance(signals, Mapping):
             for key in (
                 "core_x3_non_authorizing_lanes",
@@ -246,6 +414,7 @@ class ResumeRunRecoveryAgent:
                 "judge_execution_incomplete_lanes",
                 "l2_handoff_failed_lanes",
                 "l2_spine_failed_lanes",
+                "mirror_authority_violation_lanes",
             ):
                 lanes = signals.get(key)
                 if isinstance(lanes, (list, tuple)):
@@ -253,22 +422,34 @@ class ResumeRunRecoveryAgent:
                         if isinstance(lane, str) and lane.strip():
                             failing.add(lane.strip())
 
-            lane_rows = signals.get("lane_rows")
-            if isinstance(lane_rows, list):
-                for row in lane_rows:
-                    if isinstance(row, Mapping):
-                        lane = str(row.get("lane") or "").strip()
-                        if not lane:
-                            continue
-                        x3_code = str(row.get("x3_code") or "").strip()
-                        x2_failed = int(row.get("x2_failed") or 0)
-                        prod_status = str(row.get("product_quality_status") or "").strip().upper()
-                        if x3_code and x3_code not in AUTHORIZING_X3_CODES:
-                            failing.add(lane)
-                        elif x2_failed > 0:
-                            failing.add(lane)
-                        elif prod_status not in {"", "PASS"}:
-                            failing.add(lane)
+            for row_key in ("lane_rows", "lane_authority_rows"):
+                lane_rows = signals.get(row_key)
+                if isinstance(lane_rows, list):
+                    for row in lane_rows:
+                        if isinstance(row, Mapping):
+                            lane = str(row.get("lane") or "").strip()
+                            if not lane:
+                                continue
+                            x3_code = str(
+                                row.get("x3_code") or row.get("authoritative_x3_code") or ""
+                            ).strip()
+                            x2_failed = int(row.get("x2_failed") or 0)
+                            prod_status = str(row.get("product_quality_status") or "").strip().upper()
+                            if row.get("authorized") is False:
+                                failing.add(lane)
+                            elif x3_code and x3_code not in AUTHORIZING_X3_CODES:
+                                failing.add(lane)
+                            elif x2_failed > 0:
+                                failing.add(lane)
+                            elif prod_status not in {"", "PASS"}:
+                                failing.add(lane)
+
+            raw_asm_failed = signals.get("final_assembly_authority_failed_checks")
+            if isinstance(raw_asm_failed, (list, tuple)):
+                final_asm_failed = [str(c).strip() for c in raw_asm_failed if str(c).strip()]
+            raw_out_failed = signals.get("final_resume_output_failed_gate_ids")
+            if isinstance(raw_out_failed, (list, tuple)):
+                final_out_failed = [str(c).strip() for c in raw_out_failed if str(c).strip()]
 
         agg = whole_run_exit.get("aggregated_from_lane_x3")
         if isinstance(agg, list):
@@ -279,17 +460,73 @@ class ResumeRunRecoveryAgent:
                     if lane and x3 and x3 not in AUTHORIZING_X3_CODES:
                         failing.add(lane)
 
-        if exec_summary_block and bool(exec_summary_block.get("blocked")):
+        resolved_exec_block = exec_summary_block
+        if resolved_exec_block is None:
+            embedded_block = whole_run_exit.get("executive_summary_certification_block")
+            if isinstance(embedded_block, Mapping):
+                resolved_exec_block = embedded_block
+            else:
+                try:
+                    from apps_rg.runtime.executive_summary_certification import (
+                        executive_summary_certification_block,
+                    )
+
+                    resolved_exec_block = executive_summary_certification_block(self.artifact_dir)
+                except (ImportError, OSError, ValueError, TypeError, json.JSONDecodeError):
+                    resolved_exec_block = None
+
+        if resolved_exec_block and bool(resolved_exec_block.get("blocked")):
             failing.add("executive_summary")
 
         exit_x3 = str(whole_run_exit.get("x3_disposition") or "").strip()
         exit_status = str(whole_run_exit.get("status") or "").strip().upper()
-        if (exit_x3 and exit_x3 not in AUTHORIZING_X3_CODES) or (exit_status and exit_status != "PASS"):
+        signals_map = signals if isinstance(signals, Mapping) else {}
+        x1d_overall = str(signals_map.get("x1d_overall") or "").strip().upper()
+        assembly_or_coherence_flagged = (
+            (exit_x3 and exit_x3 not in AUTHORIZING_X3_CODES)
+            or (exit_status and exit_status != "PASS")
+            or bool(final_asm_failed)
+            or bool(final_out_failed)
+            or signals_map.get("final_assembly_product_release_eligible") is False
+            or signals_map.get("final_resume_x2_all_pass") is False
+            or signals_map.get("judge_quorum_satisfied") is False
+            or (x1d_overall not in {"", "PASS"})
+        )
+        if assembly_or_coherence_flagged:
             asm_lanes, _ = self._load_assembly_coherence_failures()
             failing.update(asm_lanes)
 
-        # Canonical ordering
-        from apps_rg.runtime.internal.generated_lane_rollup import GENERATED_LANES
+        if final_out_failed:
+            for out_base in (
+                self.artifact_dir,
+                self.artifact_dir / "modular_r4" / "final_resume_assembly",
+            ):
+                out_json = out_base / "FINAL_RESUME_OUTPUT.json"
+                if out_json.is_file():
+                    try:
+                        odoc = json.loads(out_json.read_text(encoding="utf-8"))
+                        for gate in odoc.get("gates") or []:
+                            if not isinstance(gate, Mapping) or bool(gate.get("pass", True)):
+                                continue
+                            blob = json.dumps(gate, default=str)
+                            for ln in GENERATED_LANES:
+                                if ln in blob:
+                                    failing.add(ln)
+                    except (OSError, json.JSONDecodeError, TypeError, ValueError):
+                        pass
+                out_txt = out_base / "FINAL_RESUME_OUTPUT.txt"
+                if out_txt.is_file():
+                    try:
+                        txt = out_txt.read_text(encoding="utf-8")
+                        for ln in GENERATED_LANES:
+                            if f"[NOT COMPLETED: {ln}]" in txt:
+                                failing.add(ln)
+                    except OSError:
+                        pass
+
+        if (final_asm_failed or final_out_failed) and not (failing & valid_lanes):
+            failing.add("executive_summary")
+
         return [lane for lane in GENERATED_LANES if lane in failing]
 
     def can_attempt_recovery(

@@ -490,11 +490,14 @@ def coerce_structured_competencies_resume_support(
     bullet_texts_lower: list[str],
     *,
     allowed_fact_ids: set[str] | None = None,
+    allow_prose_mutation: bool = True,
 ) -> None:
     """Rewrite unsupported structured competency phrases using bullet-derived fragments already in blob.
 
     Terms with no grounding options are dropped rather than emitting resume-ungrounded payloads.
     """
+    if not allow_prose_mutation:
+        return
     comps = parsed.get("competencies")
     if not isinstance(comps, list):
         return
@@ -647,7 +650,11 @@ def _competency_term_content_words(phrase: str) -> list[str]:
     ]
 
 
-def reduce_competency_keyword_stuffing(parsed: dict[str, Any]) -> None:
+def reduce_competency_keyword_stuffing(
+    parsed: dict[str, Any],
+    *,
+    allow_prose_mutation: bool = True,
+) -> None:
     """Drop optional terms until the final X2 keyword limit (<=3) is met.
 
     ``categories`` is the rich V3 representation and ``competencies`` is the
@@ -656,6 +663,8 @@ def reduce_competency_keyword_stuffing(parsed: dict[str, Any]) -> None:
     candidate: an optional competing term must be removed instead, or the
     function leaves the result for the authoritative allocation gate to block.
     """
+    if not allow_prose_mutation:
+        return
     comps = parsed.get("competencies")
     if not isinstance(comps, list):
         return
@@ -761,6 +770,8 @@ def reduce_competency_keyword_stuffing(parsed: dict[str, Any]) -> None:
                 cat["terms"] = kept
                 break
         if not removed:
+            if not allow_prose_mutation:
+                break
             synonym_map = {
                 "execution": "rollout", "operating": "operational", "governance": "controls",
                 "management": "oversight", "workflows": "pipelines", "discovery": "assessment",
@@ -839,8 +850,14 @@ def reduce_competency_keyword_stuffing(parsed: dict[str, Any]) -> None:
         category["terms"] = kept
 
 
-def dedupe_structured_competency_terms(parsed: dict[str, Any]) -> None:
+def dedupe_structured_competency_terms(
+    parsed: dict[str, Any],
+    *,
+    allow_prose_mutation: bool = True,
+) -> None:
     """Collapse duplicate structured competency phrases deterministically (X2-aligned near-duplicate rule)."""
+    if not allow_prose_mutation:
+        return
     comps = parsed.get("competencies")
     if not isinstance(comps, list):
         return
@@ -901,6 +918,7 @@ def expand_structured_competencies_min_two_terms(
     allowed_fact_ids: set[str],
     resume_support_blob_lower: str,
     bullet_texts_lower: list[str],
+    allow_prose_mutation: bool = True,
 ) -> None:
     """Expand structured categories below executive rigor minimum (3 terms per category).
 
@@ -908,6 +926,8 @@ def expand_structured_competencies_min_two_terms(
     without inventing canonical fact ids — fragments are restricted to bullet ``technologies`` and short
     claim splits (see :func:`_candidate_phrases_for_category`).
     """
+    if not allow_prose_mutation:
+        return
     from apps_rg.runtime.sections.competencies_rigor import MIN_ITEMS_PER_CATEGORY
 
     min_terms = MIN_ITEMS_PER_CATEGORY
@@ -1049,7 +1069,11 @@ def expand_structured_competencies_min_two_terms(
                 break
 
 
-def backfill_graph_bundle_min_terms(parsed: dict[str, Any]) -> None:
+def backfill_graph_bundle_min_terms(
+    parsed: dict[str, Any],
+    *,
+    allow_prose_mutation: bool = True,
+) -> None:
     """Fill graph-bundle competency categories below the min-term floor (W2.2).
 
     Plan: typed-edge-role-facet-guardrails-a6f3d2. The fact-centric
@@ -1069,6 +1093,8 @@ def backfill_graph_bundle_min_terms(parsed: dict[str, Any]) -> None:
     Only categories that BOTH carry a ``competency_bundle_id`` AND fall below the floor
     are touched; fact-based categories and already-compliant categories are untouched.
     """
+    if not allow_prose_mutation:
+        return
     from apps_rg.runtime.sections.competencies_capability_projection import (
         _accumulate_keyword_freq_from_categories,
         _phrase_violates_keyword_budget,
@@ -1180,8 +1206,12 @@ def collapse_duplicate_competency_terms(
     parsed: dict[str, Any],
     bullet_rows: list[dict[str, Any]],
     resume_support_blob_lower: str,
+    *,
+    allow_prose_mutation: bool = True,
 ) -> None:
     """Rewrite duplicate/near-duplicate term strings across categories before X2 (resume-grounded substitutes)."""
+    if not allow_prose_mutation:
+        return
     comps = parsed.get("competencies")
     if not isinstance(comps, list):
         return
@@ -1458,7 +1488,13 @@ def prune_claim_ledger_bullet_paste(parsed: dict[str, Any]) -> None:
     parsed["claim_ledger"] = cleaned
 
 
-def normalize_parsed_output(parsed: dict[str, Any] | None, runtime_payload: dict[str, Any], allowed_fact_ids: set[str]) -> dict[str, Any] | None:
+def normalize_parsed_output(
+    parsed: dict[str, Any] | None,
+    runtime_payload: dict[str, Any],
+    allowed_fact_ids: set[str],
+    *,
+    allow_prose_mutation: bool = True,
+) -> dict[str, Any] | None:
     if not parsed:
         return parsed
     out = dict(parsed)
@@ -1525,17 +1561,20 @@ def normalize_parsed_output(parsed: dict[str, Any] | None, runtime_payload: dict
     out.setdefault("gap_notes", [])
     out.setdefault("change_log", [])
     out.setdefault("self_check", {"normalized_by_dispatch": True})
-    from apps_rg.runtime.sections.competencies_certification_contract import (
-        sanitize_competencies_no_certification_category,
-    )
+    if allow_prose_mutation:
+        from apps_rg.runtime.sections.competencies_certification_contract import (
+            sanitize_competencies_no_certification_category,
+        )
 
-    sanitized, cert_log = sanitize_competencies_no_certification_category(out.get("competencies") or [])
-    out["competencies"] = sanitized
-    if cert_log:
-        cl = out.get("change_log")
-        if not isinstance(cl, list):
-            cl = []
-        out["change_log"] = [*cl, *cert_log]
+        sanitized, cert_log = sanitize_competencies_no_certification_category(
+            out.get("competencies") or []
+        )
+        out["competencies"] = sanitized
+        if cert_log:
+            cl = out.get("change_log")
+            if not isinstance(cl, list):
+                cl = []
+            out["change_log"] = [*cl, *cert_log]
     prune_claim_ledger_bullet_paste(out)
     ensure_claim_ledger_coverage(out, allowed_fact_ids)
     return out
@@ -1771,7 +1810,12 @@ def retry_provider_competency_restatement(
     new_parsed, _err = parse_model_json(new_raw)
     if new_parsed is None:
         return raw_output, parsed
-    new_parsed = normalize_parsed_output(new_parsed, runtime_payload, allowed_fact_ids)
+    new_parsed = normalize_parsed_output(
+        new_parsed,
+        runtime_payload,
+        allowed_fact_ids,
+        allow_prose_mutation=False,
+    )
     if not isinstance(new_parsed.get("change_log"), list):
         new_parsed["change_log"] = []
     new_parsed["change_log"] = list(parsed.get("change_log") or []) + list(new_parsed.get("change_log") or [])

@@ -259,10 +259,21 @@ def dispatch_phase1_lanes_managed(
         _prewarm_parallel_graph_sqlite()
 
     if not parallel:
+        selected_serial = tuple(dict.fromkeys(lanes_in_order))
+        dependencies_serial = section_dag_dependencies(lanes=selected_serial)
         with DaemonWorkerPool(max_workers=1, thread_name_prefix="apps-rg-serial-lane") as pool:
             for lane in lanes_in_order:
                 if should_skip_remaining_waves and should_skip_remaining_waves():
                     _record(lane, _skipped_prior_lane_abort(lane))
+                    continue
+                deps = dependencies_serial.get(lane, ())
+                failed = tuple(
+                    dep
+                    for dep in deps
+                    if dep in outcomes and not _outcome_succeeded(outcomes[dep])
+                )
+                if failed:
+                    _record(lane, _skipped_dependency(lane, failed, "dependency_failed"))
                     continue
                 rem_run = run_deadline - time.monotonic()
                 if rem_run <= 0:

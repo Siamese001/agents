@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, is_dataclass
+import inspect
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
@@ -16,6 +17,7 @@ from .x2_invariants import evaluate_executive_summary_v2_x2
 
 MAX_V2_ATTEMPTS = 3
 EXEC_SUMMARY_PASS_FLOOR = 4.7
+EXEC_SUMMARY_PASS_FLOOR_0_TO_1 = round(EXEC_SUMMARY_PASS_FLOOR / 5.0, 4)
 
 
 @dataclass(frozen=True)
@@ -53,7 +55,7 @@ def judge_row_passes_4_7_human_bar(row: Mapping[str, Any]) -> bool:
     except (TypeError, ValueError):
         return False
     scale = str(row.get("score_scale") or "0_to_5")
-    if (scale == "0_to_5" and score < EXEC_SUMMARY_PASS_FLOOR) or (scale == "0_to_1" and score < (EXEC_SUMMARY_PASS_FLOOR / 5.0)):
+    if (scale == "0_to_5" and score < EXEC_SUMMARY_PASS_FLOOR) or (scale == "0_to_1" and score < EXEC_SUMMARY_PASS_FLOOR_0_TO_1):
         return False
     if isinstance(dim_verdicts := row.get("dimension_verdicts"), dict):
         dims_ok, _ = executive_summary_human_dimension_floor_passes(dim_verdicts)
@@ -122,6 +124,7 @@ def run_bounded_v2_generation_and_judge_loop(
     verified_numbers: frozenset[str], verified_corpus_lower: str, proof_pool_metadata: dict[str, Any],
     generate_turn_fn: Callable[..., GenerationTurnOutput] = generate_executive_summary_v2_turn,
     evaluate_judges_fn: Callable[..., tuple[list[dict[str, Any]], dict[str, Any]]] = evaluate_blind_dual_judges,
+    diagnostic_focus: str = "", force_new_seed: bool = False, reasoning_effort: str = "",
 ) -> LoopExecutionOutcome:
     prior_draft, rejection_feedback = "", ""
     attempt_history: list[dict[str, Any]] = []
@@ -131,13 +134,16 @@ def run_bounded_v2_generation_and_judge_loop(
     last_packet: dict[str, Any] | None = None
     winning_attempt = 1
     best_rank: tuple[int, float, float] | None = None
+    fn_params = inspect.signature(generate_turn_fn).parameters
+    accepts_kw = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in fn_params.values())
+    extra_turn_kw = {k: v for k, v in (("diagnostic_focus", diagnostic_focus), ("force_new_seed", force_new_seed), ("reasoning_effort", reasoning_effort)) if accepts_kw or k in fn_params}
     for attempt in range(1, MAX_V2_ATTEMPTS + 1):
         turn = generate_turn_fn(
             attempt=attempt, provider_name=provider_name, temperature=temperature, input_payload_hash=input_payload_hash,
             run_id=run_id, artifact_dir=artifact_dir, target_company=target_company, target_title=target_title,
             jd_text=jd_text, briefing_text=briefing_text, allowed_fact_ids=allowed_fact_ids,
             allowed_fact_ids_ordered=allowed_fact_ids_ordered, compact_verified_facts=compact_verified_facts,
-            prior_draft=prior_draft, rejection_feedback=rejection_feedback,
+            prior_draft=prior_draft, rejection_feedback=rejection_feedback, **extra_turn_kw,
         )
         if last_turn is None:
             last_turn = turn

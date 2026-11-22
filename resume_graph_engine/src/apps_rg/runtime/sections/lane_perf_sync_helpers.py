@@ -54,7 +54,47 @@ def extract_lane_targeting_kwargs(args: Any) -> dict[str, str]:
         "target_role": str(getattr(args, "target_title", "") or getattr(args, "target_role", "") or ""),
         "target_company": str(getattr(args, "target_company", "") or ""),
         "jd_text": str(getattr(args, "jd_text", "") or ""),
+        "briefing": str(getattr(args, "briefing", "") or ""),
     }
+
+
+def build_blocked_pre_judge_rows(
+    *,
+    section_id: str,
+    judge_keys: list[str] | tuple[str, ...],
+    failed_gate_ids: list[str],
+    rubric_version: str = "",
+    default_judge_keys: tuple[str, ...] = ("gemini_pro", "openai_chatgpt"),
+) -> list[dict[str, Any]]:
+    """Build schema-valid BLOCKED_PRE_JUDGE_GATE JudgeOutput rows when deterministic X2 fails."""
+    from apps_rg.runtime.judges.executive_summary_x1d import JudgeOutput
+
+    keys = [str(k).strip() for k in (judge_keys or default_judge_keys) if str(k).strip()]
+    if not keys:
+        keys = list(default_judge_keys)
+    summary = ", ".join(str(g) for g in failed_gate_ids[:5] if str(g)) or "pre_x2_failed"
+    return [
+        JudgeOutput(
+            judge_id=f"x1d_{jk}_{section_id}",
+            provider_name=jk,
+            provider_key=jk,
+            evaluator_mode="BLOCKED_PRE_JUDGE_GATE",
+            provider_status="BLOCKED_PRE_JUDGE_DETERMINISTIC_GATE",
+            model_name="deterministic_pre_judge_gate",
+            provider_available=False,
+            provider_blocked=True,
+            exact_provider_error=f"Skipped LLM judge due to X2 failure: {summary}",
+            rubric_version=rubric_version or f"{section_id}_x1d_v1",
+            pass_=False,
+            decisive_failure=True,
+            findings=list(failed_gate_ids),
+            fail_reasons=list(failed_gate_ids),
+            proof_eligible_judge=False,
+            advisory_only=False,
+            section_id=section_id,
+        ).to_dict()
+        for jk in keys
+    ]
 
 
 def select_non_colliding_competency_synonym(
@@ -311,8 +351,8 @@ def execute_headline_judges_with_final_display_gate(
     hl_targeting_context = {
         "target_title": target_title,
         "target_company": target_company,
-        "jd_text": str(runtime_payload.get("jd_text") or ""),
-        "briefing": str(runtime_payload.get("briefing") or ""),
+        "jd_text": str(runtime_payload.get("jd_text") or "").strip()[:1500],
+        "briefing": str(runtime_payload.get("briefing") or "").strip()[:800],
         "targeting_only": True,
     }
     x1d = [
@@ -331,11 +371,17 @@ def execute_headline_judges_with_final_display_gate(
     ]
     hl_diag = extract_x1d_diagnostic(x1d, "headline")
     if hl_diag.get("repair_needed"):
+        hl_allowed_facts = (
+            list(allowed_fact_packet)
+            if isinstance(allowed_fact_packet, list)
+            else list((allowed_fact_packet or {}).get("facts") or fallback_facts or [])
+        )
         repaired_data, hl_repair_receipt = repair_section_with_executive_voice_agent(
             section_id="headline",
             candidate_data={"headline_line": headline_line, "claim_ledger": claim_ledger},
             diagnostic=hl_diag,
-            targeting_context={"target_title": target_title, "target_company": target_company},
+            allowed_facts=hl_allowed_facts,
+            targeting_context=hl_targeting_context,
             mock_mode=judge_allowed_mock,
             artifact_dir=artifact_dir,
         )
@@ -385,26 +431,13 @@ def execute_headline_judges_with_final_display_gate(
                 evaluate_grounding_fn=evaluate_grounding_fn,
             )
             if rep_gate["pass"]:
-                headline_line = cand_hl
-                claim_ledger = cand_ledger
-                if isinstance(parsed, dict):
-                    parsed["headline_line"] = headline_line
-                    parsed["claim_ledger"] = claim_ledger
-                norm_rows = normalize_ledger_fn(claim_ledger)
-                canon_doc = build_canon_fn(norm_rows, parse_status="OK", invalid_reason=None)
-                coverage = build_coverage_fn(headline_line, claim_ledger, allowed_fact_ids)
-                parsed_for_x2["headline_line"] = headline_line
-                parsed_for_x2["claim_ledger"] = claim_ledger
-                parsed_for_x2["text_claim_coverage"] = coverage
-                write_json_fn(artifact_dir / "canonical_claim_ledger_v2.json", canon_doc)
-                write_json_fn(artifact_dir / "text_claim_coverage.json", coverage)
-                rep_gate["voice_repair_accepted"] = True
-                write_json_fn(artifact_dir / "headline_final_display_pre_judge_gate.json", rep_gate)
-                x1d = [
+                hl_packet_path = artifact_dir / "headline_judge_packet.json"
+                hl_packet_snap = hl_packet_path.read_bytes() if hl_packet_path.is_file() else None
+                cand_x1d = [
                     j.to_dict()
                     for j in run_judges_fn(
-                        headline_line=headline_line,
-                        claim_ledger=claim_ledger,
+                        headline_line=cand_hl,
+                        claim_ledger=cand_ledger,
                         judge_keys=judge_keys,
                         companion_context=companion_context,
                         mode=judge_mode,
@@ -414,6 +447,43 @@ def execute_headline_judges_with_final_display_gate(
                         targeting_context=hl_targeting_context,
                     )
                 ]
+                old_rank = (
+                    sum(1 for j in x1d if j.get("pass")),
+                    min((float(j.get("score") or 0.0) for j in x1d), default=0.0),
+                )
+                new_rank = (
+                    sum(1 for j in cand_x1d if j.get("pass")),
+                    min((float(j.get("score") or 0.0) for j in cand_x1d), default=0.0),
+                )
+                if new_rank > old_rank:
+                    headline_line = cand_hl
+                    claim_ledger = cand_ledger
+                    if isinstance(parsed, dict):
+                        parsed["headline_line"] = headline_line
+                        parsed["claim_ledger"] = claim_ledger
+                    norm_rows = normalize_ledger_fn(claim_ledger)
+                    canon_doc = build_canon_fn(norm_rows, parse_status="OK", invalid_reason=None)
+                    coverage = build_coverage_fn(headline_line, claim_ledger, allowed_fact_ids)
+                    parsed_for_x2["headline_line"] = headline_line
+                    parsed_for_x2["claim_ledger"] = claim_ledger
+                    parsed_for_x2["text_claim_coverage"] = coverage
+                    write_json_fn(artifact_dir / "canonical_claim_ledger_v2.json", canon_doc)
+                    write_json_fn(artifact_dir / "text_claim_coverage.json", coverage)
+                    rep_gate["voice_repair_accepted"] = True
+                    rep_gate["old_rank"] = list(old_rank)
+                    rep_gate["new_rank"] = list(new_rank)
+                    write_json_fn(artifact_dir / "headline_final_display_pre_judge_gate.json", rep_gate)
+                    x1d = cand_x1d
+                else:
+                    if hl_packet_snap is not None:
+                        hl_packet_path.write_bytes(hl_packet_snap)
+                    pre_gate["voice_repair_rejected"] = {
+                        "candidate_headline": cand_hl,
+                        "reason": "rejudge_not_improved",
+                        "old_rank": list(old_rank),
+                        "new_rank": list(new_rank),
+                    }
+                    write_json_fn(artifact_dir / "headline_final_display_pre_judge_gate.json", pre_gate)
             else:
                 pre_gate["voice_repair_rejected"] = {
                     "candidate_headline": cand_hl,
