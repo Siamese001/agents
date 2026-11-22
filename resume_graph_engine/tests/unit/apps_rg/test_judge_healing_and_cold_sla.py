@@ -3437,6 +3437,43 @@ def test_competencies_frozen_single_path_with_governed_baseline_skips_llm_select
     assert proj["categories"][0]["terms"][0]["allocation_claim_unit_id"] == "competencies:skill:01"
 
 
+def test_competencies_compact_sc_preserves_mandatory_skills_and_label_alias() -> None:
+    from apps_rg.runtime.sections.competency_capability_evidence import (
+        compact_competencies_self_consistency_messages,
+    )
+    from apps_rg.runtime.sections.competencies_v3_contract import category_v3_from_legacy
+
+    sys_msg = (
+        "<candidate_facts>\n"
+        "CANONICAL_EMPLOYMENT_BULLETS:\n- bul_slalom_001: Hybrid retrieval architecture\n"
+        "ALLOWED_SOURCE_FACT_IDS:\nbul_slalom_001\n"
+        "COMPETENCY_BUNDLE ccb_retrieval_context_engineering | family: retrieval\n"
+        "  display_label_candidate: Context Engineering & GraphRAG\n"
+        "  target_taxonomy_category_ids: ['context_engineering_graphrag']\n"
+        "  graph_skill_node_ids: ['skill_metadata_acl_freshness_filtering']\n"
+        "  linked_source_fact_ids: ['bul_slalom_001']\n\n"
+        "MANDATORY_ALLOCATED_GRAPH_SKILLS (HARD X2 GATE):\n"
+        '- allocation_claim_unit_id="competencies:skill:01", source_skill_ids=["skill_metadata_acl_freshness_filtering"], source_fact_id="bul_slalom_001"\n\n'
+        "SELECTED_FACT_PLAN_STUB:\n{}\n"
+        "</candidate_facts>"
+    )
+    compacted = compact_competencies_self_consistency_messages(
+        [{"role": "system", "content": sys_msg}]
+    )
+    assert "MANDATORY_ALLOCATED_GRAPH_SKILLS" in compacted[0]["content"]
+    assert 'allocation_claim_unit_id="competencies:skill:01"' in compacted[0]["content"]
+
+    v3_cat = category_v3_from_legacy(
+        {
+            "label": "Context Engineering & GraphRAG",
+            "competency_bundle_id": "ccb_retrieval_context_engineering",
+            "terms": [{"text": "ACL freshness filtered context grounding", "source_fact_id": "bul_slalom_001", "source_fact_ids": ["bul_slalom_001"]}],
+        }
+    )
+    assert v3_cat["category_label"] == "Context Engineering & GraphRAG"
+
+
+
 
 
 

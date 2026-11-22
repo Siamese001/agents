@@ -595,6 +595,7 @@ def _category_by_label(parsed: dict[str, Any], label: str) -> dict[str, Any] | N
                 or row.get("display_label")
                 or row.get("resume_display_label")
                 or row.get("category")
+                or row.get("label")
                 or ""
             ).strip().lower() == norm:
                 return row
@@ -2069,12 +2070,22 @@ def _complete_governed_required_bundle_selections(
         if support_score < min_score_threshold:
             continue
         taxonomy_id, _ = visible_graph_surface_taxonomy_for_bundle(bundle_id)
+        diff_baseline_score = round(
+            min(
+                0.965,
+                max(
+                    float(min_score_threshold),
+                    float(support_score) - 0.012 - 0.006 * len(additions),
+                ),
+            ),
+            4,
+        )
         row = {
             "category_label": str(category.get("category_label") or "").strip(),
             "competency_bundle_id": bundle_id,
             "taxonomy_category_id": taxonomy_id,
             "path_index": path.path_index,
-            "score": round(float(support_score), 4),
+            "score": diff_baseline_score,
             "passes": True,
             "rationale": "governed required bundle baseline with graph/fact support",
             "selection_origin": "governed_required_bundle_completion",
@@ -2283,9 +2294,18 @@ def run_claude_bullet_pool_selection(
             for idx, cat in enumerate(single_parsed.get("competencies") or single_parsed.get("categories") or []):
                 if not isinstance(cat, dict):
                     continue
-                label = str(cat.get("category_label") or "").strip()
+                label = str(
+                    cat.get("category_label")
+                    or cat.get("display_label")
+                    or cat.get("resume_display_label")
+                    or cat.get("category")
+                    or cat.get("label")
+                    or ""
+                ).strip()
                 if not label:
                     continue
+                if not str(cat.get("category_label") or "").strip():
+                    cat["category_label"] = label
                 sup_score = competencies_candidate_support_score(
                     cat,
                     allowed_fact_ids=allowed_fact_ids,

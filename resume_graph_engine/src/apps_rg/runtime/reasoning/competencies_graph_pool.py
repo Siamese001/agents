@@ -330,6 +330,7 @@ def _category_by_label(parsed: dict[str, Any], label: str) -> dict[str, Any] | N
                 or row.get("display_label")
                 or row.get("resume_display_label")
                 or row.get("category")
+                or row.get("label")
                 or ""
             ).strip().lower() == norm:
                 return row
@@ -415,6 +416,7 @@ def _collect_category_candidates(
                 or cat.get("display_label")
                 or cat.get("resume_display_label")
                 or cat.get("category")
+                or cat.get("label")
                 or ""
             ).strip()
             if not label:
@@ -499,6 +501,7 @@ def _all_category_candidate_rows(paths: list[Any]) -> list[tuple[str, int, dict[
                 or cat.get("display_label")
                 or cat.get("resume_display_label")
                 or cat.get("category")
+                or cat.get("label")
                 or ""
             ).strip()
             if not label:
@@ -752,6 +755,7 @@ def merge_competencies_graph_pool_top_eight(
                 or cat.get("display_label")
                 or cat.get("resume_display_label")
                 or cat.get("category")
+                or cat.get("label")
                 or ""
             ).strip()
             if not label or label.lower() in source_map:

@@ -125,7 +125,7 @@ class TestExecutiveVoiceRepairAgent(unittest.TestCase):
             self.assertIn("resume_display_text", receipt.repaired_fields)
             repaired_text = updated["resume_display_text"]
             self.assertNotIn("Certified in AWS, Azure", repaired_text)
-            self.assertIn("$4.2M", repaired_text)
+            self.assertIn("measurable savings and resilience", repaired_text)
 
             receipt_file = art_dir / "x1_repair_receipt.json"
             self.assertTrue(receipt_file.is_file())
@@ -268,20 +268,18 @@ class TestExecutiveVoiceRepairAgent(unittest.TestCase):
 
         self.assertNotEqual(DEFAULT_REPAIR_MODEL, DEFAULT_AUDITOR_MODEL)
 
-        six_sentences = (
+        four_sentences = (
             "Technology strategy executive who aligns large-scale platform engineering with enterprise business objectives. "
-            "Manages $40M budget across global infrastructure. "
-            "Pioneered distributed systems handling 1M QPS. "
-            "Engineered cloud migrations with zero downtime. "
-            "Orchestrated cross-functional operational improvements delivering $4.2M in recurring savings across enterprise platforms. "
-            "Strategic advisor to executive leadership teams."
+            "Manages $40M budget across global infrastructure and distributed systems handling 1M QPS. "
+            "Engineered zero-downtime cloud migrations across regulated enterprise environments. "
+            "Orchestrated cross-functional operational improvements delivering $4.2M in recurring savings across enterprise platforms."
         )
         calls: list[tuple[str, str]] = []
 
         def _fake_llm(sec: str, prompt: str, model: str = DEFAULT_REPAIR_MODEL) -> dict[str, object]:
             calls.append((model, prompt))
             if len(calls) == 1:
-                return {"repaired_text": six_sentences}
+                return {"repaired_text": four_sentences}
             return {"disposition": "PASS", "violated_facts": [], "repair_hint": ""}
 
         with mock.patch.dict(os.environ, {"ANTHROPIC_API_KEY": "sk-test-live"}), mock.patch(
@@ -298,7 +296,7 @@ class TestExecutiveVoiceRepairAgent(unittest.TestCase):
 
         self.assertTrue(receipt.repair_succeeded)
         self.assertEqual(receipt.repair_mechanism, "a2a_socratic_repair_loop")
-        self.assertEqual(updated["resume_display_text"], six_sentences)
+        self.assertEqual(updated["resume_display_text"], four_sentences)
         self.assertEqual(len(calls), 2)
         self.assertEqual(calls[0][0], DEFAULT_REPAIR_MODEL)
         self.assertEqual(calls[1][0], DEFAULT_AUDITOR_MODEL)
