@@ -66,7 +66,8 @@
         "non_compensating_case_flip_detection",
         "trajectory_oscillation_loop_rejected",
         "eval_case_unlabeled_view_strips_expected_contract",
-        "product_run_flywheel_records_specific_failure_and_auto_resolves_on_pass"
+        "product_run_flywheel_records_specific_failure_and_auto_resolves_on_pass",
+        "triage_packets_use_trigger_reason_and_auto_resolve_on_pass"
       ]
     },
     {

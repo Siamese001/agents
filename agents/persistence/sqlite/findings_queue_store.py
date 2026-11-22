@@ -307,6 +307,10 @@ class SqliteFindingsQueueStore:
             merged_files = sorted(set(prev_files) | {str(f) for f in target_files if f})[:20]
             merged_samples = list(dict.fromkeys([*prev_samples, *(str(s) for s in sample_trace_ids if s)]))[:12]
             merged_meta = {**prev_meta, **dict(metadata or {})}
+            pkt_path = dict(metadata or {}).get("packet_path")
+            if pkt_path:
+                prev_pkts = list(prev_meta.get("packet_paths") or ([prev_meta["packet_path"]] if prev_meta.get("packet_path") else []))
+                merged_meta["packet_paths"] = list(dict.fromkeys([*prev_pkts, str(pkt_path)]))[:20]
 
             first_seen = min(str(existing["first_seen_utc"]), seen_iso)
             last_seen = max(str(existing["last_seen_utc"]), seen_iso)

@@ -276,10 +276,20 @@ def _collect_triage_packet_findings(
             pkt = json.loads(pkt_file.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             continue
-        if not isinstance(pkt, dict) or str(pkt.get("status") or "").upper() == "PROMOTED":
+        if not isinstance(pkt, dict) or str(pkt.get("status") or "").upper() in {
+            "PROMOTED",
+            "RESOLVED",
+            "ARCHIVED",
+        }:
             continue
         app_id = str(pkt.get("app_id") or "agents_core")
-        fmode = str(pkt.get("failure_mode") or pkt.get("trigger_signal") or "triage_defect")
+        fmode = str(
+            pkt.get("failure_mode")
+            or pkt.get("trigger_reason")
+            or pkt.get("trigger_signal")
+            or "triage_defect"
+        )
+        seen_ts = pkt.get("staged_at") or pkt.get("created_at")
         queue.upsert_finding(
             source_surface="eval_harness",
             app_id=app_id,
@@ -294,7 +304,7 @@ def _collect_triage_packet_findings(
             occurrence_count=1,
             sample_trace_ids=[str(pkt.get("candidate_id") or pkt_file.stem)],
             metadata={"packet_path": pkt_file.as_posix()},
-            seen_at_utc=pkt.get("created_at"),
+            seen_at_utc=seen_ts,
             cutoff_utc=cutoff_utc,
         )
         upserted += 1
