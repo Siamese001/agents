@@ -646,6 +646,67 @@ class TestResumeRunRecoveryAgent(unittest.TestCase):
         self.assertTrue(kw["force_new_seed"])
         self.assertEqual(kw["reasoning_effort"], "medium")
 
+    def test_identify_failing_lanes_ignores_cross_section_warn_and_catches_fail(self) -> None:
+        asm_dir = self.artifact_dir / "modular_r4" / "final_resume_assembly"
+        asm_dir.mkdir(parents=True, exist_ok=True)
+        cross_path = asm_dir / "cross_section_x2_gate_outputs.json"
+
+        # 1. Advisory WARN gate emits pass=False in CrossSectionGateResult.to_dict(), must NOT implicate healthy lanes
+        cross_path.write_text(
+            json.dumps(
+                {
+                    "gates": [
+                        {
+                            "gate_id": "x2_cross_section_section_intent_conflict",
+                            "verdict": "WARN",
+                            "observed": ["executive_summary_vs_slalom_bullets_cosine(S1_vs_B1=0.38>0.35)"],
+                            "pass": False,
+                        }
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+        agent = ResumeRunRecoveryAgent(artifact_dir=self.artifact_dir)
+        mock_exit = {
+            "x3_disposition": "X3A_DENY_REROUTE",
+            "status": "BLOCKED",
+            "signals": {"core_x3_non_authorizing_lanes": ["headline"]},
+        }
+        failing_warn = agent.identify_failing_lanes(mock_exit, exec_summary_block={"blocked": False})
+        self.assertEqual(failing_warn, ["headline"])
+
+        # 2. Blocking FAIL and UNKNOWN verdicts MUST implicate the referenced lane
+        cross_path.write_text(
+            json.dumps(
+                {
+                    "gates": [
+                        {
+                            "gate_id": "x2_cross_section_section_intent_conflict",
+                            "verdict": "WARN",
+                            "observed": ["executive_summary_vs_ibm_bullets_cosine(S1_vs_B1=0.38>0.35)"],
+                            "pass": False,
+                        },
+                        {
+                            "gate_id": "x2_cross_section_duplicate_claim",
+                            "verdict": "FAIL",
+                            "observed": ["slalom_bullets"],
+                            "pass": False,
+                        },
+                        {
+                            "gate_id": "x2_cross_section_metric_consistency",
+                            "verdict": "UNKNOWN",
+                            "observed": ["unify_bullets"],
+                            "pass": False,
+                        },
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+        failing_fail = agent.identify_failing_lanes(mock_exit, exec_summary_block={"blocked": False})
+        self.assertEqual(failing_fail, ["slalom_bullets", "unify_bullets", "headline"])
+
 
 if __name__ == "__main__":
     unittest.main()

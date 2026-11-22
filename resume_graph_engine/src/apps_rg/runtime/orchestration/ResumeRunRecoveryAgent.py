@@ -175,7 +175,8 @@ class ResumeRunRecoveryAgent:
                 for g in gates if isinstance(gates, list) else []:
                     if not isinstance(g, Mapping):
                         continue
-                    failed_cross = (str(g.get("verdict") or "").upper() == "FAIL") or (g.get("pass") is False)
+                    verdict = str(g.get("verdict") or "").strip().upper()
+                    failed_cross = verdict in {"FAIL", "UNKNOWN"} or (not verdict and g.get("pass") is False)
                     if not failed_cross:
                         continue
                     gid = str(g.get("gate_id") or "")

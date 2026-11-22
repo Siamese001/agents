@@ -543,3 +543,11 @@ def test_anti_chronology_employer_roll_call_and_unify_dependency_graph_mechanism
         "Owned Unify Consulting's platform mandate, applying dependency-graph intelligence to enterprise modernization."
     )
     assert check_narrative_technical_specificity(grounded_unify).passed is True
+
+
+def test_judge_row_passes_4_7_human_bar_accepts_exact_0_94_on_0_to_1_scale() -> None:
+    base = {"evaluator_mode": "MODEL_BACKED", "pass": True}
+    assert judge_row_passes_4_7_human_bar({**base, "score": 0.94, "score_scale": "0_to_1"}) is True
+    assert judge_row_passes_4_7_human_bar({**base, "score": 0.9399, "score_scale": "0_to_1"}) is False
+    assert judge_row_passes_4_7_human_bar({**base, "score": 4.7, "score_scale": "0_to_5"}) is True
+    assert judge_row_passes_4_7_human_bar({**base, "score": 4.6999, "score_scale": "0_to_5"}) is False

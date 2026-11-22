@@ -17,6 +17,7 @@ from .x2_invariants import evaluate_executive_summary_v2_x2
 
 MAX_V2_ATTEMPTS = 3
 EXEC_SUMMARY_PASS_FLOOR = 4.7
+EXEC_SUMMARY_PASS_FLOOR_0_TO_1 = round(EXEC_SUMMARY_PASS_FLOOR / 5.0, 4)
 
 
 @dataclass(frozen=True)
@@ -54,7 +55,7 @@ def judge_row_passes_4_7_human_bar(row: Mapping[str, Any]) -> bool:
     except (TypeError, ValueError):
         return False
     scale = str(row.get("score_scale") or "0_to_5")
-    if (scale == "0_to_5" and score < EXEC_SUMMARY_PASS_FLOOR) or (scale == "0_to_1" and score < (EXEC_SUMMARY_PASS_FLOOR / 5.0)):
+    if (scale == "0_to_5" and score < EXEC_SUMMARY_PASS_FLOOR) or (scale == "0_to_1" and score < EXEC_SUMMARY_PASS_FLOOR_0_TO_1):
         return False
     if isinstance(dim_verdicts := row.get("dimension_verdicts"), dict):
         dims_ok, _ = executive_summary_human_dimension_floor_passes(dim_verdicts)
