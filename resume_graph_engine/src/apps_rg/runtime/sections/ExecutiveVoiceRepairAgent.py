@@ -179,8 +179,9 @@ RULES:
 1. Exact format: "<Approved Seniority Prefix> | <Core Pillar 1> | <Core Pillar 2> | <Differentiating Impact>" (approved prefixes: SVP Engineering, SVP Enterprise Architecture, SVP AI Strategy, SVP IT Strategy, SVP Agentic Transformation, SVP Transformation, SVP Enterprise AI, SVP Technology Strategy, SVP Agentic AI Platforms, Partner, Executive Director, Managing Director).
 2. Must contain exactly 4 pipe-delimited segments.
 3. Word count must be strictly between 10 and 13 words total.
-4. Avoid noun stacks, buzzword salads, and clichés.
-5. Ground all terms in the ALLOWED GROUNDED FACTS above and executive engineering leadership.
+4. Avoid noun stacks, buzzword salads, narrow hardware/plumbing labels ('SCADA', 'Telemetry', 'Portal Agentic', 'Compliance AI Governance'), and clichés.
+5. Every X/Y/Z segment (segments 2, 3, and 4) MUST include an executive operating abstraction noun (Platforms, Architecture, Governance, Systems, Ecosystems, Delivery, Orchestration, Modernization, Transformation, Commercialization, Regulated, or Enterprise), with zero digits, $, %, or employer/company names.
+6. Ground all terms in the ALLOWED GROUNDED FACTS above and executive engineering leadership.
 
 OUTPUT FORMAT:
 Return a JSON object:
