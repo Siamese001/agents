@@ -13,7 +13,7 @@ import json
 import os
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Mapping
+from typing import TYPE_CHECKING, Any, Mapping
 
 from apps_rg.config_root import get_provider_profiles_path
 from apps_rg.runtime.providers.agy_cli_transport import (
@@ -23,6 +23,9 @@ from apps_rg.runtime.providers.agy_cli_transport import (
     list_agy_models,
     run_agy,
 )
+
+if TYPE_CHECKING:
+    from apps_rg.runtime.judges.executive_summary_x1d import JudgeOutput
 
 IDE_CLI_SESSION_MARKER = "ide-cli-session"
 JUDGE_TRANSPORT_ENV = "APPS_RG_JUDGE_TRANSPORT"
@@ -136,7 +139,7 @@ def call_ide_cli_judge(
     section_id: str | None = None,
     response_schema: dict[str, Any] | None = None,
     agy_bin: str | None = None,
-):
+) -> JudgeOutput:
     """Run one proof-judge call through the headless CLI and return a JudgeOutput (BLOCKED on any failure)."""
     from apps_rg.runtime.judges import executive_summary_x1d as x  # lazy: avoids an import cycle
 
