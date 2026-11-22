@@ -196,12 +196,15 @@ def _coerce_term_support(
     elif skill_ids:
         support = SUPPORT_CLASS_SKILL_GRAPH_ONLY
 
-    out = {
+    out: dict[str, Any] = {
         "term": phrase,
         "source_fact_ids": sids,
         "source_skill_ids": skill_ids,
         "support_class": support,
     }
+    alloc_uid = str(term.get("allocation_claim_unit_id") or "").strip()
+    if alloc_uid:
+        out["allocation_claim_unit_id"] = alloc_uid
     if allow_prose_mutation:
         if is_credential_competency_term(phrase):
             return None

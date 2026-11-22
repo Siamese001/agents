@@ -106,12 +106,16 @@ def v3_term_from_legacy(raw: Any) -> dict[str, Any]:
                 support = SUPPORT_CLASS_SKILL_GRAPH_ONLY
             else:
                 support = SUPPORT_CLASS_FACT_ONLY
-        return {
+        out_v3: dict[str, Any] = {
             "term": phrase,
             "source_fact_ids": [str(x) for x in sids if str(x).strip()],
             "source_skill_ids": [str(x) for x in skill_ids if str(x).strip()],
             "support_class": support,
         }
+        alloc_uid = str(raw.get("allocation_claim_unit_id") or "").strip()
+        if alloc_uid:
+            out_v3["allocation_claim_unit_id"] = alloc_uid
+        return out_v3
     phrase = str(raw or "").strip()
     return {
         "term": phrase,
@@ -135,6 +139,9 @@ def legacy_term_from_v3(term: dict[str, Any]) -> dict[str, Any]:
         out["source_skill_ids"] = list(term.get("source_skill_ids") or [])
     if term.get("support_class"):
         out["support_class"] = term.get("support_class")
+    alloc_uid = str(term.get("allocation_claim_unit_id") or "").strip()
+    if alloc_uid:
+        out["allocation_claim_unit_id"] = alloc_uid
     return out
 
 

@@ -3402,6 +3402,41 @@ def test_competencies_frozen_single_path_with_governed_baseline_skips_llm_select
     assert slot1.reasoning_effort == "high"
     assert slot2.reasoning_effort == "low"
 
+    from apps_rg.runtime.sections.competencies_capability_projection import finalize_competencies_v3_output
+    from apps_rg.runtime.sections.competencies_lane_runtime import canonicalize_competency_terms_for_proof
+    from apps_rg.runtime.sections.competencies_v3_contract import legacy_term_from_v3, v3_term_from_legacy
+
+    sample_term = {
+        "text": "ACL and freshness-filtered context grounding",
+        "source_fact_id": "fact_slalom_011",
+        "source_fact_ids": ["fact_slalom_011"],
+        "source_skill_ids": ["skill_metadata_acl_freshness_filtering"],
+        "allocation_claim_unit_id": "competencies:skill:01",
+    }
+    rt_doc = {
+        "competencies": [
+            {
+                "category_id": "tech_strategy_innovation",
+                "category_label": "Technology Strategy & Innovation",
+                "competency_bundle_id": "ccb_graphrag_context_pipelines",
+                "source_fact_ids": ["fact_slalom_011"],
+                "terms": [dict(sample_term)],
+            }
+        ]
+    }
+    canonicalize_competency_terms_for_proof(rt_doc, allowed_fact_ids={"fact_slalom_011"})
+    assert rt_doc["competencies"][0]["terms"][0]["allocation_claim_unit_id"] == "competencies:skill:01"
+    roundtrip = legacy_term_from_v3(v3_term_from_legacy(rt_doc["competencies"][0]["terms"][0]))
+    assert roundtrip["allocation_claim_unit_id"] == "competencies:skill:01"
+    proj = finalize_competencies_v3_output(
+        rt_doc,
+        allowed_fact_ids={"fact_slalom_011"},
+        allowed_skill_ids={"skill_metadata_acl_freshness_filtering"},
+        allow_prose_mutation=False,
+    )
+    assert proj["categories"][0]["terms"][0]["allocation_claim_unit_id"] == "competencies:skill:01"
+
+
 
 
 

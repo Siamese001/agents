@@ -238,7 +238,15 @@ OUTPUT FORMAT:
 Return a JSON object:
 {{
   "repaired_competencies": [
-    {{"category": "Enterprise Architecture", "skills": ["Cloud-Native Distributed Systems", "Zero-Trust Security"]}}
+    {{
+      "category_label": "Agentic Control Plane & Orchestration",
+      "competency_bundle_id": "ccb_agentic_platforms",
+      "terms": [
+        {{"term": "Multi-agent orchestration control planes", "source_fact_id": "fact_engineering_platform_001", "source_fact_ids": ["fact_engineering_platform_001"], "allocation_claim_unit_id": "competencies:skill:01"}},
+        {{"term": "Deterministic agentic workflow routing", "source_fact_id": "fact_slalom_007", "source_fact_ids": ["fact_slalom_007"]}},
+        {{"term": "Sandboxed agent tool execution", "source_fact_id": "fact_slalom_009", "source_fact_ids": ["fact_slalom_009"]}}
+      ]
+    }}
   ],
   "rationale": "Explanation of fixes"
 }}
@@ -410,11 +418,17 @@ def _call_llm_repair(
         if ide_cli_generation_unavailable_reason(os.environ):
             return None
         try:
+            from apps_rg.runtime.model_capabilities import try_model_capabilities
             from apps_rg.runtime.providers.agy_cli_transport import run_agy
 
+            rep_slug = resolve_ide_cli_generation_slug(model)
+            rep_caps = try_model_capabilities(rep_slug)
+            if rep_caps is not None and "low" in (rep_caps.reasoning_efforts or ()) and rep_slug.endswith("-medium"):
+                rep_slug = f"{rep_slug[:-7]}-low"
             cli_res = run_agy(
                 f"{prompt}\n\nReturn ONLY valid JSON with no markdown fences and no tool calls.",
-                model=resolve_ide_cli_generation_slug(model),
+                model=rep_slug,
+                effort="low",
                 timeout_s=120,
             )
             return _parse_ide_cli_json_response(cli_res)
@@ -825,6 +839,11 @@ def repair_section_with_executive_voice_agent(
                         template_t["text"] = skill_str
                         rep_t_sids: list[str] = []
                         if rep_term_dict is not None:
+                            rep_alloc_uid = str(rep_term_dict.get("allocation_claim_unit_id") or "").strip()
+                            if rep_alloc_uid:
+                                template_t["allocation_claim_unit_id"] = rep_alloc_uid
+                            if isinstance(rep_term_dict.get("source_skill_ids"), list) and rep_term_dict.get("source_skill_ids"):
+                                template_t["source_skill_ids"] = [str(x) for x in rep_term_dict["source_skill_ids"] if str(x).strip()]
                             raw_t_sids = list(rep_term_dict.get("source_fact_ids") or [])
                             if rep_term_dict.get("source_fact_id"):
                                 raw_t_sids = [rep_term_dict.get("source_fact_id"), *raw_t_sids]

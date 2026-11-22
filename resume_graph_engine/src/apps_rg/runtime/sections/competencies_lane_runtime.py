@@ -186,6 +186,11 @@ def canonicalize_competency_terms_for_proof(
                 row: dict[str, Any] = {"text": txt, "source_fact_id": sid, "source_fact_ids": sf_ids}
                 if isinstance(jd_sig, list):
                     row["jd_signal_ids"] = jd_sig
+                if isinstance(t.get("source_skill_ids"), list) and t.get("source_skill_ids"):
+                    row["source_skill_ids"] = [str(x) for x in t["source_skill_ids"] if str(x).strip()]
+                alloc_uid = str(t.get("allocation_claim_unit_id") or "").strip()
+                if alloc_uid:
+                    row["allocation_claim_unit_id"] = alloc_uid
                 new_terms.append(row)
             elif isinstance(t, str) and t.strip():
                 sid0 = ids_norm[0] if ids_norm else ""
