@@ -246,33 +246,87 @@ def selected_rationale(reason: str, note: str) -> str:
 
 
 def render_batch_html(candidates: Sequence[Mapping[str, str]], *, completed: int, total: int, message: str = "") -> str:
-    """Render plain local HTML; candidate references remain server-side."""
+    """Render pure-white (#ffffff) DIE-parity local HTML; candidate references remain server-side."""
     cards: list[str] = []
+    grade_specs = (
+        (3, "Authoritative / Core", "Directly and completely demonstrates a core competency for this role"),
+        (2, "Supporting / Relevant", "Relevant supporting proof, but secondary or missing a key detail"),
+        (1, "Marginal / Contextual", "High-level background or transferable context without direct proof"),
+        (0, "Irrelevant / Confounder", "Wrong role, generic filler, or off-topic keyword overlap"),
+    )
     for position, candidate in enumerate(candidates, start=1):
         grade_options = "".join(
-            f'<label class="grade"><input required type="radio" name="grade_{position}" value="{grade}"><b>{grade}</b> {label}</label>'
-            for grade, label in ((0, "irrelevant"), (1, "weak / contextual"), (2, "relevant"), (3, "directly useful"))
+            f'<label class="grade" title="{html.escape(desc, quote=True)}">'
+            f'<input required type="radio" name="grade_{position}" value="{grade}">'
+            f'<b>Grade {grade}</b> <span class="g-sub">{html.escape(label)}</span></label>'
+            for grade, label, desc in grade_specs
         )
         reason_options = "".join(
             f'<label class="reason"><input required type="radio" name="reason_{position}" value="{html.escape(reason, quote=True)}">{html.escape(reason)}</label>'
             for reason in RATIONALE_OPTIONS
         )
-        scope = f'<p><strong>Scope:</strong> {html.escape(candidate["scope"])}</p>' if candidate["scope"] else ""
+        scope_drawer = (
+            f'<details class="ref-drawer"><summary>Reference Only: Scope Context (do not grade boilerplate)</summary>'
+            f'<p>{html.escape(candidate["scope"])}</p></details>'
+            if candidate["scope"]
+            else ""
+        )
         cards.append(
-            f'''<article class="card"><h2>Card {chr(64 + position)}</h2>
-<p><strong>Action:</strong> {html.escape(candidate["action"])}</p><details><summary>Show scope</summary>{scope}</details>
-<p><strong>Evidence:</strong> {html.escape(candidate["evidence"])}</p>
-<fieldset><legend>Grade</legend>{grade_options}</fieldset>
-<fieldset class="reasons"><legend>Why?</legend>{reason_options}</fieldset>
+            f'''<article class="card"><div class="card-head"><h2>Card {chr(64 + position)}</h2><span class="badge">Blinded Candidate</span></div>
+<div class="core-box"><div class="kicker">Core Statement &amp; Evidence (Grade Only This Text)</div>
+<p><strong>Action:</strong> {html.escape(candidate["action"])}</p>
+<p><strong>Evidence:</strong> {html.escape(candidate["evidence"])}</p></div>{scope_drawer}
+<div class="decision-box"><div class="kicker">Step 1: Relevance Grade (3-2-1-0)</div>
+<p class="box-guide">Hover any grade button for full behavior-anchored criteria.</p>
+<fieldset>{grade_options}</fieldset></div>
+<div class="decision-box"><div class="kicker">Step 2: Explicit Human Rationale (Required)</div>
+<p class="box-guide">Pick the single reason that best explains your grade; add optional detail below.</p>
+<fieldset class="reasons">{reason_options}</fieldset>
 <label class="rationale">Optional note <span>Only if the buttons do not capture it</span>
-<textarea name="note_{position}" rows="2" maxlength="1000" placeholder="Optional detail in your own words"></textarea></label>
+<textarea name="note_{position}" rows="2" maxlength="1000" placeholder="Optional detail in your own words"></textarea></label></div>
 </article>'''
         )
     notice = f'<p class="notice">{html.escape(message)}</p>' if message else ""
-    return f'''<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Brown &amp; Brown competency review</title><style>
-body{{font:16px/1.45 system-ui,sans-serif;max-width:920px;margin:0 auto;padding:24px;background:#f5f7fb;color:#162033}}h1{{margin-bottom:4px}}.sub{{color:#526177;margin-top:0}}.notice{{background:#e9f7ee;padding:12px;border-radius:8px}}.card{{background:#fff;border:1px solid #d6deeb;border-radius:12px;margin:18px 0;padding:18px;box-shadow:0 1px 3px #0001}}h2{{margin-top:0}}fieldset{{border:0;padding:0;margin:16px 0 10px;display:flex;gap:8px;flex-wrap:wrap}}.grade,.reason{{border:1px solid #adb9cb;border-radius:7px;padding:7px 9px;cursor:pointer}}.grade:has(input:checked),.reason:has(input:checked){{background:#dceeff;border:2px solid #1769aa;padding:6px 8px}}.reasons{{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}}textarea{{display:block;width:100%;box-sizing:border-box;margin-top:5px;font:inherit}}.rationale span{{font-size:.9em;color:#526177}}button{{font:600 17px system-ui;padding:13px 18px;border:0;border-radius:8px;background:#0b63a3;color:white;cursor:pointer}}.warning{{background:#fff4d6;border-left:4px solid #c88700;padding:12px}}
-</style><body><h1>Brown &amp; Brown — competencies</h1>
-<p class="sub">Target: SVP, IT Strategy &amp; Innovation. Completed: {completed} of {total}. This is a blinded, owner-solo targeted calibration review; it is not release qualification.</p>{notice}
-<p class="warning">Grade each card for usefulness in the competencies section: 0 irrelevant, 1 weak/contextual, 2 relevant, 3 highly relevant and directly useful. Click one reason too; that exact selection is saved as your human rationale.</p>
-<form method="post">{''.join(cards)}<button type="submit">Save this batch</button></form></body></html>'''
+    return f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light only">
+<title>Brown &amp; Brown Competency QRELS Review</title><style>
+:root{{color-scheme:light only;--border:#cbd5e1;--border-strong:#94a3b8;--text:#0f172a;--muted:#475569;--pass:#047857;}}
+*{{box-sizing:border-box;}}
+html,body{{margin:0;background:#ffffff !important;background-color:#ffffff !important;color:var(--text);color-scheme:light only;font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}}
+main{{max-width:980px;margin:0 auto;padding:20px 24px 32px;background:#ffffff;}}
+h1{{margin:0 0 4px;font-size:19px;}}
+.sub{{color:var(--muted);margin:0 0 12px;font-size:13px;}}
+details.guide-banner{{background:#ffffff;border:1px solid var(--border-strong);border-left:4px solid var(--text);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12.5px;}}
+details.guide-banner summary{{cursor:pointer;font-weight:700;}}
+.guide-steps{{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px;}}
+@media(max-width:860px){{.guide-steps{{grid-template-columns:1fr;}}}}
+.guide-step{{background:#ffffff;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12px;}}
+.notice{{background:#ffffff;border:1px solid var(--pass);color:var(--pass);padding:10px 12px;border-radius:8px;font-size:13px;}}
+.card{{background:#ffffff;border:1px solid var(--border);border-radius:10px;margin:16px 0;padding:16px;box-shadow:0 1px 2px rgba(15,23,42,0.04);}}
+.card-head{{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:10px;}}
+.card-head h2{{margin:0;font-size:15px;}}
+.badge{{background:#ffffff;border:1px solid var(--border);padding:2px 8px;border-radius:6px;font-size:11px;font-family:ui-monospace,Menlo,monospace;}}
+.kicker{{font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--text);margin-bottom:4px;}}
+.box-guide{{font-size:12px;color:var(--muted);margin:0 0 8px;}}
+.core-box{{background:#ffffff;border:1px solid var(--border-strong);border-radius:8px;padding:12px;margin-bottom:10px;}}
+.core-box p{{margin:6px 0;}}
+details.ref-drawer{{background:#ffffff;border:1px dashed var(--border-strong);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:12px;color:var(--muted);}}
+details.ref-drawer summary{{cursor:pointer;font-weight:600;}}
+.decision-box{{background:#ffffff;border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-top:10px;}}
+fieldset{{border:0;padding:0;margin:0;display:flex;gap:8px;flex-wrap:wrap;}}
+.grade,.reason{{background:#ffffff;border:1px solid var(--border-strong);border-radius:7px;padding:7px 10px;cursor:pointer;font-size:13px;}}
+.g-sub{{color:var(--muted);font-size:11.5px;}}
+.grade:has(input:checked),.reason:has(input:checked){{background:#0f172a;color:#ffffff;border-color:#0f172a;}}
+.grade:has(input:checked) .g-sub{{color:#e2e8f0;}}
+.reasons{{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));margin-bottom:8px;}}
+textarea{{display:block;width:100%;margin-top:5px;padding:8px;border:1px solid var(--border-strong);border-radius:6px;background:#ffffff;color:var(--text);font:inherit;}}
+.rationale span{{font-size:12px;color:var(--muted);}}
+button{{font:700 14px system-ui;padding:11px 18px;border:1px solid var(--pass);border-radius:8px;background:var(--pass);color:#ffffff;cursor:pointer;}}
+</style></head><body><main><h1>Brown &amp; Brown — Core Competencies QRELS Review</h1>
+<p class="sub">Target: SVP, IT Strategy &amp; Innovation | Completed: {completed} of {total} | Blinded Owner-Solo Calibration (Not Release Qualification)</p>{notice}
+<details open class="guide-banner"><summary>Quick Start Guide: How to Grade Each Card (~30 seconds) - click to collapse</summary>
+<div class="guide-steps">
+<div class="guide-step"><strong>1. Read Core Statement Only:</strong> Focus on Action and Evidence inside the solid box. Dimmed Scope drawers are reference-only.</div>
+<div class="guide-step"><strong>2. Score 3-2-1-0:</strong> <strong>3</strong> Authoritative/Core, <strong>2</strong> Supporting, <strong>1</strong> Marginal/Contextual, <strong>0</strong> Irrelevant/Confounder.</div>
+<div class="guide-step"><strong>3. Select Rationale &amp; Save:</strong> Pick one rationale per card and submit; selections append immutably to the owner ledger.</div>
+</div></details>
+<form method="post">{''.join(cards)}<button type="submit">Save this batch</button></form></main></body></html>'''

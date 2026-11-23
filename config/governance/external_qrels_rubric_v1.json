@@ -1,0 +1,103 @@
+{
+  "atomic_checks": [
+    {
+      "caps_grade_at_1_when_false": true,
+      "id": "core_answers_query",
+      "label": "Core statement directly addresses the query (ignoring boilerplate footer)"
+    },
+    {
+      "caps_grade_at_1_when_false": false,
+      "id": "exact_entity_or_metric_grounded",
+      "label": "Concrete facts, entities, or metrics match the query need"
+    },
+    {
+      "caps_grade_at_1_when_false": true,
+      "id": "section_and_role_fit",
+      "label": "Fits the target resume/outreach/research surface and employer boundary"
+    },
+    {
+      "caps_grade_at_1_when_false": true,
+      "id": "not_boilerplate_stub",
+      "label": "Substantive evidence (not a bare org label, bio, or boilerplate stub)"
+    },
+    {
+      "caps_grade_at_1_when_false": true,
+      "id": "policy_and_clearance_eligible",
+      "label": "Permitted for external/target use with zero policy or clearance conflict"
+    }
+  ],
+  "consistency_rules": [
+    "core_statement_only_grading_required",
+    "failed_cap_atomic_check_caps_grade_at_1",
+    "grade_0_requires_rejection_tag_or_8_char_rationale",
+    "quarantined_items_excluded_from_scored_denominators"
+  ],
+  "grade_values": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "grades": {
+    "0": {
+      "meaning": "Wrong employer, wrong system/domain, policy-ineligible record, or off-topic lexical keyword trap.",
+      "short_label": "Irrelevant / Confounder"
+    },
+    "1": {
+      "meaning": "Core statement gives only high-level topical background, an org label, role bio, or generic boilerplate without directly answering the query.",
+      "short_label": "Marginal / Background Stub"
+    },
+    "2": {
+      "meaning": "Core statement gives specific supporting evidence relevant to the query, but misses a secondary condition, metric, or detail.",
+      "short_label": "Supporting / Acceptable"
+    },
+    "3": {
+      "meaning": "Core statement directly and completely answers the query with concrete facts, metrics, owners, or boundaries actionable for the target surface.",
+      "short_label": "Authoritative / Perfect"
+    }
+  },
+  "quarantine_reasons": [
+    "ABSTAIN_INSUFFICIENT_EVIDENCE",
+    "DEFECTIVE_QUERY"
+  ],
+  "rejection_tags": [
+    {
+      "id": "WRONG_EMPLOYER",
+      "label": "Wrong employer, engagement, or career band"
+    },
+    {
+      "id": "SECTION_MISMATCH",
+      "label": "Wrong target section or retrieval surface"
+    },
+    {
+      "id": "LEXICAL_CONFOUNDER_TRAP",
+      "label": "Superficial keyword match in unrelated context"
+    },
+    {
+      "id": "BOILERPLATE_STUB",
+      "label": "Bare org/role stub or repeated boilerplate shell"
+    },
+    {
+      "id": "INSUFFICIENT_EVIDENCE",
+      "label": "Lacks concrete facts or verifiable grounding"
+    },
+    {
+      "id": "POLICY_RESTRICTED",
+      "label": "Restricted, held, or policy-ineligible record"
+    }
+  ],
+  "relevant_grade_floor": 2,
+  "rubric_id": "external_qrels_rubric_v1",
+  "rubric_sha256": "e492d3e66224d11daeb587ceabb25ee17b1342439f5a17e73d1e8970d492a3c6",
+  "scale_range": [
+    0,
+    3
+  ],
+  "schema_version": "1.0.0",
+  "standard_lineage": [
+    "Anthropic-Contextual-Retrieval-2025",
+    "Anthropic-Demystifying-Evals-2026",
+    "Google-TREC-Depth-10-Pooling",
+    "DIE-External-Rubric-Calibration-v1"
+  ]
+}
