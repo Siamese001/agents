@@ -8,7 +8,7 @@ from apps_rg.runtime.section_repair_ledger import KIND_REGEN_LLM, load_ledger, r
 from apps_rg.runtime.sections.lane_perf_sync_helpers import extract_all_headline_graph_allocations, format_headline_clarity_reason
 from apps_rg.runtime.sections.section_generation import generate_section, tag_reasoning_lane
 from apps_rg.runtime.sections.section_product_shape_ssot import HEADLINE_WORD_MAX, HEADLINE_WORD_MIN
-from apps_rg.runtime.validators.headline_positioning_x2 import GOVERNANCE_SIGNAL_FAMILIES, POSITIONING_FAMILY_FLOOR, governance_signal_families_matched, headline_positioning_consumption_active, narrowing_labels_found, positioning_families_matched
+from apps_rg.runtime.validators.headline_positioning_x2 import GOVERNANCE_SIGNAL_FAMILIES, PLATFORM_RUNTIME_SIGNAL_FAMILIES, POSITIONING_FAMILY_FLOOR, governance_signal_families_matched, headline_positioning_consumption_active, narrowing_labels_found, platform_or_runtime_signal_families_matched, positioning_families_matched
 from apps_rg.runtime.validators.headline_quality_x2 import POSITIONING_FAMILIES
 from apps_rg.runtime.validators.headline_x2 import evaluate_headline_literal_grounding, has_valid_headline_prefix, headline_executive_abstraction_report, headline_word_count, repair_headline_segment_citations_for_grounding
 from .evidence_firewall import HEADLINE_MAX_OUTPUT_TOKENS, LANE_KEY, content_signal_repair_enabled, content_signal_repair_env_state, resolve_content_signal_repair_max_attempts, snapshot_raw_jd_alignment, sync_selected_fact_plan_required_ids, write_json
@@ -81,6 +81,8 @@ def retry_headline_proof_shape(messages: list[dict[str, str]], provider_payload:
 def _content_signal_emphasis(trigger_arm: str, families_matched_pre: list[str], narrowing_labels_pre: list[str] | None = None, missing_abstraction_pre: list[str] | None = None, grounding_failure_pre: str | None = None, clarity_report_pre: dict[str, Any] | None = None, graph_binding_context_pre: list[dict[str, Any]] | None = None, all_graph_allocations: list[dict[str, Any]] | None = None) -> str:
     arms = _content_signal_arms(trigger_arm)
     parts: list[str] = []
+    if "platform_runtime_signal" in arms:
+        parts.append("CONTENT_SIGNAL_REVISION (x2_headline_platform_or_runtime_signal_required): At least one of X/Y/Z MUST express a platform or runtime positioning family (agentic ai, ai platforms, cloud platforms, runtime governance, enterprise ai, distributed systems).")
     if "governance_signal" in arms:
         parts.append("CONTENT_SIGNAL_REVISION (x2_headline_governance_or_regulated_ai_signal_required): At least one of X/Y/Z MUST express a governance or regulated-AI positioning family (governance, governed, runtime, gates, policy, deterministic, regulated, regulatory, compliance).")
     if "specificity_floor" in arms:
@@ -135,7 +137,7 @@ def retry_headline_content_signal(
         final_grounding_ok, _, _ = evaluate_headline_literal_grounding(headline_line=final_hl, parsed_output=new_p, claim_ledger=rep_led, proof_pool_metadata=runtime_payload.get("proof_pool_metadata") if isinstance(runtime_payload.get("proof_pool_metadata"), dict) else None, allowed_fact_ids=allowed_fact_ids, fallback_facts=fb_facts)
         fg_gate, _ = headline_graph_binding_repair_state(new_p, runtime_payload)
         final_graph_ok = bool(fg_gate is None or fg_gate.get("pass") is True)
-    final_sig_missing = bool(not governance_signal_families_matched(final_hl) or len(positioning_families_matched(final_hl)) < POSITIONING_FAMILY_FLOOR or narrowing_labels_found(final_hl) or final_abs.get("segments_missing_executive_abstraction"))
+    final_sig_missing = bool(not platform_or_runtime_signal_families_matched(final_hl) or not governance_signal_families_matched(final_hl) or len(positioning_families_matched(final_hl)) < POSITIONING_FAMILY_FLOOR or narrowing_labels_found(final_hl) or final_abs.get("segments_missing_executive_abstraction"))
     cl_fin = headline_resume_native_clarity_report(final_hl)
     final_clarity_ok = not cl_fin.get("opaque_segments") and (bool(cl_fin.get("pass")) if graph_active else True)
     if final_sig_missing or not final_grounding_ok or not final_clarity_ok or not final_graph_ok:
@@ -145,7 +147,7 @@ def retry_headline_content_signal(
     return json.dumps(new_p, sort_keys=True, separators=(",", ":")), new_p, raw_snap, None, prov_res
 
 def _evaluate_content_signal_state(hl: str, parsed: dict[str, Any] | None, runtime_payload: dict[str, Any], allowed_fact_ids: set[str], pp_meta: dict[str, Any] | None) -> dict[str, Any]:
-    gov, spec, narrow = governance_signal_families_matched(hl), positioning_families_matched(hl), narrowing_labels_found(hl)
+    pr, gov, spec, narrow = platform_or_runtime_signal_families_matched(hl), governance_signal_families_matched(hl), positioning_families_matched(hl), narrowing_labels_found(hl)
     missing_abs = list(headline_executive_abstraction_report(hl).get("segments_missing_executive_abstraction") or [])
     graph_active = headline_graph_content_contract_active(parsed, runtime_payload, allowed_fact_ids)
     fb_facts = runtime_payload.get("selected_fact_plan", {}).get("facts") if isinstance(runtime_payload.get("selected_fact_plan"), dict) else None
@@ -153,6 +155,8 @@ def _evaluate_content_signal_state(hl: str, parsed: dict[str, Any] | None, runti
     gb_gate, gb_ctx = headline_graph_binding_repair_state(parsed, runtime_payload) if graph_active else (None, [])
     clarity = headline_resume_native_clarity_report(hl)
     arms, gates, reasons = [], [], []
+    if not pr:
+        arms.append("platform_runtime_signal"); gates.append("x2_headline_platform_or_runtime_signal_required"); reasons.append("x2_headline_platform_or_runtime_signal_required:none")
     if not gov:
         arms.append("governance_signal"); gates.append("x2_headline_governance_or_regulated_ai_signal_required"); reasons.append("x2_headline_governance_or_regulated_ai_signal_required:none")
     if len(spec) < POSITIONING_FAMILY_FLOOR:
@@ -167,7 +171,7 @@ def _evaluate_content_signal_state(hl: str, parsed: dict[str, Any] | None, runti
         arms.append("resume_native_clarity"); gates.append("headline_pre_x1d_resume_native_clarity"); reasons.append(format_headline_clarity_reason(clarity))
     if graph_active and gb_gate is not None and gb_gate.get("pass") is not True:
         arms.append("graph_claim_binding"); gates.append("x2_resume_graph_claim_binding"); reasons.append("x2_resume_graph_claim_binding:orphan_allocation")
-    return {"gov": gov, "spec": spec, "narrow": narrow, "missing_abs": missing_abs, "g_ok": g_ok, "g_obs": g_obs, "g_fail": g_fail, "gb_gate": gb_gate, "gb_ctx": gb_ctx, "clarity": clarity, "arms": arms, "gates": gates, "reasons": reasons}
+    return {"pr": pr, "gov": gov, "spec": spec, "narrow": narrow, "missing_abs": missing_abs, "g_ok": g_ok, "g_obs": g_obs, "g_fail": g_fail, "gb_gate": gb_gate, "gb_ctx": gb_ctx, "clarity": clarity, "arms": arms, "gates": gates, "reasons": reasons}
 
 def apply_headline_content_signal_repair(*, messages: list[dict[str, str]], provider_payload: dict[str, Any], raw_output: str, parsed: dict[str, Any] | None, runtime_payload: dict[str, Any], allowed_fact_ids: set[str], artifact_dir: Path, runtime_generation_status: str, prior_repair_provider_call_made: bool, companion_nonempty: bool, employer_names_lower: list[str]) -> tuple[str, dict[str, Any] | None, dict[str, Any] | None, bool]:
     if not isinstance(parsed, dict):
