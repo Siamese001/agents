@@ -1,0 +1,42 @@
+{
+  "wave": "Wave 3",
+  "title": "C0 Whole-Resume Solver Anti-Starvation & Executive Summary Coexistence",
+  "status": "PASS",
+  "completed_at": "2026-11-23T02:21:00Z",
+  "deliverables": {
+    "diversify_slot_candidates_hardened": {
+      "file": "resume_graph_engine/src/apps_rg/runtime/c0/c0_perf_sync_helpers.py",
+      "ibm_bullets_per_root_cap": 6,
+      "pass_1a_distinct_metric_and_fact": true,
+      "pass_1b_distinct_metric_fact_pair": true
+    },
+    "solver_facet_level_coexistence": {
+      "file": "resume_graph_engine/src/apps_rg/runtime/c0/allocation/solver.py",
+      "prefer_non_exec_exemption_for_high_margin_ibm_bullets": true,
+      "unify_slalom_insurtech_disjoint_from_exec_roots": true
+    },
+    "insurtech_bullets_qualitative_preservation": {
+      "file": "resume_graph_engine/src/apps_rg/runtime/c0/allocation/slot_candidates.py",
+      "insurtech_bullets_qualitative_slots": ["bul_insurtech_001", "bul_insurtech_002"]
+    },
+    "anthropic_ibm_partner_allocation_proof": {
+      "executive_summary_claim_03_root": "reb_ibm_aws_alliance_partner_cosell_gtm",
+      "executive_summary_claim_03_skill": "skill_partner_ibm_aws_alliance_joint_revenue",
+      "executive_summary_claim_03_metric": "metric_ibm_20pct_joint_revenue_growth",
+      "ibm_bullets_roots": [
+        "reb_ibm_aws_alliance_partner_cosell_gtm",
+        "reb_ibm_presales_solution_engineering",
+        "reb_ibm_aws_modernization_architecture",
+        "reb_ibm_revenue_sales_target_execution",
+        "reb_ibm_offering_accelerator_management"
+      ],
+      "ibm_bullets_partner_gtm_bundle_count": 4,
+      "devsecops_or_bi_fallback_in_anthropic_ibm_bullets": 0
+    }
+  },
+  "verification": {
+    "pytest_command": "pytest resume_graph_engine/tests/unit/apps_rg/runtime/c0/test_ibm_partner_allocation_anti_starvation.py resume_graph_engine/tests/unit/apps_rg/runtime/c0/test_whole_resume_graph_allocation_fidelity.py resume_graph_engine/tests/unit/apps_rg/runtime/c0/test_resume_graph_allocation_w4.py -q --timeout=60",
+    "passed": 19,
+    "failed": 0
+  }
+}

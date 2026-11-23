@@ -57,16 +57,11 @@ def test_metric_outcome_edge_types_disjoint_from_existing_taxonomy() -> None:
         assert "metric_outcome" in edge_type, edge_type
     assert set(METRIC_OUTCOME_EDGE_SIGNATURES) == set(METRIC_OUTCOME_EDGE_TYPES)
     assert METRIC_OUTCOME_EDGE_SIGNATURES == {
-        "metric_outcome_anchors_bundle": frozenset({("metric_outcome", "graph_ref")}),
-        "metric_outcome_section_eligible": frozenset({("metric_outcome", "graph_ref")}),
+        "metric_outcome_anchors_bundle": frozenset({("metric_outcome", "engagement")}),
+        "metric_outcome_section_eligible": frozenset({("metric_outcome", "section")}),
         "metric_outcome_bound_to_employer": frozenset({("metric_outcome", "employment")}),
-        "fact_has_metric_outcome": frozenset(
-            {
-                ("fact", "metric_outcome"),
-                ("employment", "metric_outcome"),
-                ("locked_bullet", "metric_outcome"),
-            }
-        ),
+        "fact_has_metric_outcome": frozenset({("fact", "metric_outcome")}),
+        "locked_bullet_has_metric_outcome": frozenset({("locked_bullet", "metric_outcome")}),
         "skill_surfaces_metric_outcome": frozenset({("skill", "metric_outcome")}),
     }
 

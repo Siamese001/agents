@@ -214,9 +214,12 @@ IBM_NARRATIVE_THEME_TRIGGERS: tuple[tuple[str, tuple[str, ...]], ...] = (
         "bul_ibm_005",
         (
             "partnership",
+            "partner",
             "hyperscaler",
             "hyperscalers",
             "alliance",
+            "co-sell",
+            "cosell",
             "ecosystems",
             "ecosystem",
         ),
@@ -319,9 +322,27 @@ def ibm_narrative_material_fact_ids_for_sentence(
                 }
             elif fid == "bul_ibm_005" and normalized_phrase in {
                 "partnership",
+                "partner",
                 "alliance",
+                "hyperscaler",
+                "hyperscalers",
+                "ecosystem",
+                "ecosystems",
+                "co sell",
+                "cosell",
             }:
-                normalized_family_phrases = {"partnership", "alliance"}
+                normalized_family_phrases = {
+                    "partnership",
+                    "partner",
+                    "alliance",
+                    "hyperscaler",
+                    "hyperscalers",
+                    "ecosystem",
+                    "ecosystems",
+                    "co sell",
+                    "cosell",
+                    "ibm aws",
+                }
             matching_companion_ids = {
                 bullet_id
                 for bullet_id, bullet_text in companion_rows.items()

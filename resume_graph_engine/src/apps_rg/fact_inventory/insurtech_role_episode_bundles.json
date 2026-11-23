@@ -57,7 +57,8 @@
       "graph_skill_node_ids": [
         "skill_zero_to_one_insurtech_venture_building",
         "skill_founder_market_thesis_development",
-        "skill_early_adopter_insurer_customer_development"
+        "skill_early_adopter_insurer_customer_development",
+        "skill_sr_insurtech_cto_it_enablement"
       ],
       "linked_source_fact_ids": [
         "exp_insurtech_001",
@@ -178,7 +179,8 @@
       "linked_metric_outcome_ids": [
         "metric_insurtech_mvp_to_production_cycle_time",
         "metric_insurtech_control_ownership_matrix_count",
-        "metric_insurtech_safety_operating_model_artifacts_count"
+        "metric_insurtech_safety_operating_model_artifacts_count",
+        "metric_insurtech_migration_waves_completed_count"
       ],
       "held_metrics": [],
       "excluded_metrics": [],
@@ -233,7 +235,8 @@
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
         "metric_insurtech_cloud_economics_comparison_models",
-        "metric_insurtech_workloads_classified_by_cloud_fit_count"
+        "metric_insurtech_workloads_classified_by_cloud_fit_count",
+        "metric_insurtech_core_workloads_migrated_count"
       ],
       "held_metrics": [],
       "excluded_metrics": [],
@@ -300,7 +303,8 @@
       "linked_metric_outcome_ids": [
         "metric_insurtech_cloud_economics_comparison_models",
         "metric_insurtech_reserved_instance_coverage_pct",
-        "metric_insurtech_cost_allocation_coverage_pct"
+        "metric_insurtech_cost_allocation_coverage_pct",
+        "metric_insurtech_core_workloads_migrated_count"
       ],
       "held_metrics": [
         "40% TCO reduction (HOLD - source artifact required before numeric claim)"
@@ -360,7 +364,8 @@
         "skill_migration_wave_cutover_planning",
         "skill_database_migration_dms_sct",
         "skill_sr_insurtech_legacy_cloud_modernization",
-        "skill_p2_tech_aws_modernization_patterns"
+        "skill_p2_tech_aws_modernization_patterns",
+        "skill_cloud_aws_rehosting"
       ],
       "linked_source_fact_ids": [
         "exp_insurtech_001",
@@ -428,7 +433,8 @@
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
         "metric_insurtech_control_ownership_matrix_count",
-        "metric_insurtech_safety_operating_model_artifacts_count"
+        "metric_insurtech_safety_operating_model_artifacts_count",
+        "metric_insurtech_controls_mapped_count"
       ],
       "held_metrics": [],
       "excluded_metrics": [],
@@ -710,7 +716,8 @@
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
         "metric_insurtech_rto_rpo_targets_met_count",
-        "metric_insurtech_incident_runbooks_count"
+        "metric_insurtech_incident_runbooks_count",
+        "metric_insurtech_guidewire_workflows_mapped_count"
       ],
       "held_metrics": [
         "99.99% uptime (HOLD - source artifact required before numeric claim)"
@@ -1022,7 +1029,8 @@
       "approval_status": "APPROVED_GRAPH_SSOT",
       "support_level": "verified_base_resume",
       "bundle_bindings": [
-        "reb_insurtech_aws_migration_execution"
+        "reb_insurtech_aws_migration_execution",
+        "reb_insurtech_lean_delivery_operating_model"
       ],
       "claim_text": "InsurTech graph evidence supports 7 zero-rollback completed insurer workload migration waves across policy, data, and operations platforms.",
       "surface_tokens": [
@@ -1050,7 +1058,9 @@
       "approval_status": "APPROVED_GRAPH_SSOT",
       "support_level": "verified_base_resume",
       "bundle_bindings": [
-        "reb_insurtech_aws_migration_execution"
+        "reb_insurtech_aws_migration_execution",
+        "reb_insurtech_public_vs_private_cloud_strategy",
+        "reb_insurtech_aws_cloud_economics"
       ],
       "claim_text": "InsurTech graph evidence supports 9 core insurance workloads and 11 legacy Oracle/SQL Server databases (14TB) migrated and replatformed onto AWS architecture.",
       "surface_tokens": [
@@ -1232,7 +1242,8 @@
       "approval_status": "APPROVED_GRAPH_SSOT",
       "support_level": "verified_base_resume",
       "bundle_bindings": [
-        "reb_insurtech_regulated_aws_control_implementation"
+        "reb_insurtech_regulated_aws_control_implementation",
+        "reb_insurtech_aws_shared_responsibility_operating_model"
       ],
       "claim_text": "InsurTech graph evidence supports 78 AWS IAM, KMS, VPC, and Config controls mapped to SOC 2 Type II and insurer cybersecurity requirements.",
       "surface_tokens": [
@@ -1315,7 +1326,8 @@
       "approval_status": "APPROVED_GRAPH_SSOT",
       "support_level": "verified_base_resume",
       "bundle_bindings": [
-        "reb_insurtech_aws_guidewire_core_modernization"
+        "reb_insurtech_aws_guidewire_core_modernization",
+        "reb_insurtech_resilient_core_operations"
       ],
       "claim_text": "InsurTech graph evidence supports 18 Guidewire PolicyCenter, ClaimCenter, and BillingCenter workflows mapped and decoupled into AWS modernization architecture.",
       "surface_tokens": [

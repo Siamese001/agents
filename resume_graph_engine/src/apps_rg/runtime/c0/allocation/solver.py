@@ -178,13 +178,37 @@ def allocate_candidate_sets(
             and (slot.metric_required or has_lane_metric_headroom)
         )
         prefer_non_exec = is_bullet_section and not slot.required_root_id and any(str(r.get("root_id") or "") not in exec_roots for r in rows)
+        max_non_exec_align = max(
+            (float(r.get("target_alignment_score") or 0.0) for r in rows if str(r.get("root_id") or "") not in exec_roots),
+            default=0.0,
+        )
         rows.sort(
             key=lambda row: (
                 1 if (slot.section_id == "headline" and str(row.get("skill_id") or "") in {"skill_risk_three_lines_of_defense", "skill_p2_tech_adoption_derisking"}) else 0,
-                0 if (not is_metric_preferred_section or (bool(row.get("metric_outcome_id")) and is_quantified_metric_outcome_text(str(row.get("metric_text") or "")))) else 1,
-                1 if (prefer_non_exec and str(row.get("root_id") or "") in exec_roots) else 0,
-                fact_counts[_fact_reuse_key(row)],
+                1
+                if (
+                    prefer_non_exec
+                    and str(row.get("root_id") or "") in exec_roots
+                    and not (
+                        slot.section_id == "ibm_bullets"
+                        and float(row.get("target_alignment_score") or 0.0) >= max_non_exec_align + 0.9
+                    )
+                )
+                else 0,
+                0 if (
+                    not (
+                        is_metric_preferred_section
+                        and (
+                            slot.metric_required
+                            or not is_bullet_section
+                            or slot.section_id == "ibm_bullets"
+                        )
+                    )
+                    or (bool(row.get("metric_outcome_id")) and is_quantified_metric_outcome_text(str(row.get("metric_text") or "")))
+                ) else 1,
+                0 if is_bullet_section else fact_counts[_fact_reuse_key(row)],
                 *_candidate_sort_key(row),
+                fact_counts[_fact_reuse_key(row)] if is_bullet_section else 0,
             )
         )
         return rows

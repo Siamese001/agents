@@ -1,0 +1,25 @@
+{
+  "wave": "Wave 1",
+  "title": "Full Archive-Backed Fact & Skill Promotion, Orphan Binding & Verified Metric Reconciliation",
+  "status": "PASS",
+  "promoted_candidate_facts_count": 28,
+  "remaining_needs_review_candidate_facts": [
+    "fact_customer_success_001"
+  ],
+  "promoted_archive_draft_skills_count": 7,
+  "remaining_archive_draft_skills_count": 0,
+  "orphaned_archive_active_skills_count": 0,
+  "zero_metric_active_role_episode_bundles_count": 0,
+  "fact_provenance_audit_status": "PASS",
+  "fact_provenance_violations": 0,
+  "sqlite_materialization": {
+    "status": "PASS",
+    "node_count": 852,
+    "edge_count": 4814,
+    "three_hop_traversal_paths": 2054,
+    "verified_bge_m3_vectors": 379,
+    "learned_sparse_count": 582,
+    "colbert_vector_count": 582,
+    "fact_vectors_sparse_doc_count": 354
+  }
+}

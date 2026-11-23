@@ -131,7 +131,12 @@
         "skill_capital_regulatory_capital",
         "skill_capital_reserving",
         "skill_insurance_solvency_regimes",
-        "skill_hpc_valuation_capital_adequacy"
+        "skill_hpc_valuation_capital_adequacy",
+        "skill_greeks_gamma",
+        "skill_greeks_vega",
+        "skill_greeks_theta",
+        "skill_actuarial_actuarial_software",
+        "skill_quant_stochastic_modeling"
       ],
       "linked_source_fact_ids": [
         "exp_ey_001",
@@ -196,7 +201,8 @@
         "skill_risk_model_risk",
         "skill_risk_enterprise_risk_controls",
         "skill_hpc_valuation_capital_adequacy",
-        "skill_audit_grade_observability"
+        "skill_audit_grade_observability",
+        "skill_risk_market_risk"
       ],
       "linked_source_fact_ids": [
         "exp_ey_001",

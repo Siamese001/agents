@@ -144,6 +144,11 @@ def build_whole_resume_graph_allocation(
         u_plan = {k: v for k, v in section_plans["unify_bullets"].items() if k not in ("plan_id", "plan_digest")}
         section_plans["unify_bullets"] = finalize_canonical_section_plan({**u_plan, "unify_bullet_slot_bundle_map_resolved": dict(unify_alloc)})
         plan["section_plan_digests"]["unify_bullets"] = str(section_plans["unify_bullets"].get("plan_digest") or "")
+    ibm_alloc = {str(r["claim_unit_id"]).split(":", 1)[-1]: str(r["root_id"]) for r in plan.get("assignments") or [] if str(r.get("section_id") or "") == "ibm_bullets" and ":" in str(r.get("claim_unit_id") or "")}
+    if ibm_alloc and section_plans.get("ibm_bullets", {}).get("ibm_bullet_slot_bundle_map_resolved") != ibm_alloc:
+        i_plan = {k: v for k, v in section_plans["ibm_bullets"].items() if k not in ("plan_id", "plan_digest")}
+        section_plans["ibm_bullets"] = finalize_canonical_section_plan({**i_plan, "ibm_bullet_slot_bundle_map_resolved": dict(ibm_alloc)})
+        plan["section_plan_digests"]["ibm_bullets"] = str(section_plans["ibm_bullets"].get("plan_digest") or "")
     plan["targeting_provenance"] = {
         "target_role": str(target_role or "").strip(),
         "jd_sha256": hashlib.sha256(str(jd_text or "").encode("utf-8")).hexdigest() if jd_text else "",

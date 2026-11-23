@@ -115,15 +115,19 @@ def resolve_jd_fit_slot_bundle_map(
             raise ValueError(f"{section_id}: protected slot {slot!r} missing from default map")
         retained[slot] = default_map[slot]
     freed = [slot for slot in slot_ids if slot not in retained]
-    promoted = [bid for bid in top_ids if bid not in default_map.values()]
+    promoted = [bid for bid in top_ids if bid not in retained.values()]
     if len(freed) < len(promoted):
         release_candidates = [
             slot for slot in retained if slot not in protected and slot in slot_ids
         ]
         release_candidates.sort(key=lambda slot: (score_by_id.get(retained[slot], 0.0), slot))
         for slot in release_candidates[: len(promoted) - len(freed)]:
-            retained.pop(slot, None)
-            freed.append(slot)
+            next_promo_idx = len(freed)
+            if next_promo_idx < len(promoted) and score_by_id.get(
+                promoted[next_promo_idx], 0.0
+            ) > score_by_id.get(retained[slot], 0.0):
+                retained.pop(slot, None)
+                freed.append(slot)
     new_map = dict(retained)
     for slot, bid in zip(freed, promoted):
         new_map[slot] = bid
@@ -147,10 +151,12 @@ def select_jd_fit_slot_bundle_map(
         return resolve_unify_bullet_slot_bundle_map(role_family_key, repo_root=repo_root)
     if section_id == "ibm_bullets":
         from apps_rg.runtime.sections.ibm_role_episode_evidence import (
-            IBM_BULLET_SLOT_BUNDLE_MAP,
+            resolve_ibm_bullet_slot_bundle_map_with_fallback,
         )
 
-        return dict(IBM_BULLET_SLOT_BUNDLE_MAP)
+        return resolve_ibm_bullet_slot_bundle_map_with_fallback(
+            role_family_key, repo_root=repo_root
+        )
     raise ValueError(f"Unsupported section_id for JD-fit bundle selection: {section_id!r}")
 
 

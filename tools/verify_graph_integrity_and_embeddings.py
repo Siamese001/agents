@@ -502,6 +502,120 @@ def verify_hybrid_retrieval_stage2(db_path: Path | None = None) -> dict[str, str
     }
 
 
+def verify_graph_promotion_and_bundle_hygiene(repo_root: Path | None = None) -> dict[str, int | str]:
+    """Fail-closed verification of INV-GRAPH-PROMOTION-HYGIENE across facts, skills, and bundles."""
+    import json
+
+    root = repo_root or ROOT
+    rg_dir = root / "resume_graph_engine" if (root / "resume_graph_engine").is_dir() else root
+    fact_dir = rg_dir / "src" / "apps_rg" / "fact_inventory"
+
+    # 1. Verify candidate fact ledger has 0 unpromoted archive-verified HIGH/MEDIUM needs_review facts
+    candidate_ledger_candidates = [
+        rg_dir / "artifacts/apps_rg/fact_inventory/master_candidate_skills_fact_ledger_20260518T1100Z.json",
+    ]
+    if root.parent.name == ".worktrees":
+        candidate_ledger_candidates.append(
+            root.parent.parent / "resume_graph_engine/artifacts/apps_rg/fact_inventory/master_candidate_skills_fact_ledger_20260518T1100Z.json"
+        )
+    unpromoted_archive_facts: list[str] = []
+    for cl_path in candidate_ledger_candidates:
+        if cl_path.is_file():
+            cl_doc = json.loads(cl_path.read_text(encoding="utf-8"))
+            for row in cl_doc.get("candidate_facts") or []:
+                if not isinstance(row, dict):
+                    continue
+                fid = str(row.get("fact_id") or "")
+                use = str(row.get("allowed_resume_use") or "")
+                conf = str(row.get("confidence") or "")
+                prov = str(row.get("source_provenance") or "")
+                if (
+                    use == "needs_review"
+                    and conf in ("HIGH", "MEDIUM")
+                    and ("resume_archive" in prov or "archive" in prov.lower())
+                ):
+                    unpromoted_archive_facts.append(fid)
+            break
+    if unpromoted_archive_facts:
+        raise ValueError(
+            f"INV-GRAPH-PROMOTION-HYGIENE violation: {len(unpromoted_archive_facts)} archive-verified facts still in needs_review: {unpromoted_archive_facts}"
+        )
+
+    # 2. Verify master_skills_arsenal_ledger.json has 0 DIRECT_FROM_RESUME_ARCHIVE skills in DRAFT
+    ledger_path = fact_dir / "master_skills_arsenal_ledger.json"
+    ledger_doc = json.loads(ledger_path.read_text(encoding="utf-8"))
+    draft_archive_skills: list[str] = []
+    active_archive_skills: set[str] = set()
+    for srow in ledger_doc.get("skill_rows") or []:
+        if not isinstance(srow, dict):
+            continue
+        sid = str(srow.get("skill_id") or "")
+        prov = str(srow.get("support_level") or srow.get("source_provenance") or "")
+        status = str(srow.get("activation_status") or "")
+        if prov == "DIRECT_FROM_RESUME_ARCHIVE":
+            if status in ("DRAFT", "HOLD"):
+                draft_archive_skills.append(sid)
+            elif status in ("ACTIVE_CONFIRMED", "ACTIVE"):
+                active_archive_skills.add(sid)
+    if draft_archive_skills:
+        raise ValueError(
+            f"INV-GRAPH-PROMOTION-HYGIENE violation: {len(draft_archive_skills)} DIRECT_FROM_RESUME_ARCHIVE skills remain in DRAFT/HOLD: {draft_archive_skills}"
+        )
+
+    w12_criteria = ledger_doc.get("w12_partner_activation_criteria") or []
+    w12_direct_draft = [
+        str(r.get("skill_id") or "")
+        for r in w12_criteria
+        if isinstance(r, dict)
+        and str(r.get("evidence_tier") or "") == "DIRECT_EVIDENCE"
+        and str(r.get("activation_status") or "") == "DRAFT"
+    ]
+    if w12_direct_draft:
+        raise ValueError(
+            f"INV-GRAPH-PROMOTION-HYGIENE violation: w12_partner_activation_criteria has DIRECT_EVIDENCE skills in DRAFT: {w12_direct_draft}"
+        )
+
+    # 3. Verify 0 orphaned ACTIVE_CONFIRMED DIRECT_FROM_RESUME_ARCHIVE skills and 0 zero-metric ACTIVE_CONFIRMED role-episode bundles
+    bound_bundle_skills: set[str] = set()
+    zero_metric_bundles: list[str] = []
+    bundle_files = sorted(fact_dir.glob("*_bundles.json"))
+    for bfile in bundle_files:
+        bdoc = json.loads(bfile.read_text(encoding="utf-8"))
+        for b in (bdoc.get("bundles") or bdoc.get("role_episode_bundles") or bdoc.get("capability_bundles") or []):
+            if not isinstance(b, dict):
+                continue
+            for sid in b.get("graph_skill_node_ids") or []:
+                bound_bundle_skills.add(str(sid))
+            bid = str(b.get("role_episode_bundle_id") or "")
+            if (
+                bid
+                and str(b.get("activation_status") or "") == "ACTIVE_CONFIRMED"
+                and str(b.get("external_claim_policy") or "") != "internal_only_not_external_claim"
+            ):
+                metrics = [str(m) for m in (b.get("linked_metric_outcome_ids") or []) if str(m).strip()]
+                if not metrics:
+                    zero_metric_bundles.append(bid)
+
+    orphaned_archive_skills = sorted(active_archive_skills - bound_bundle_skills)
+    if orphaned_archive_skills:
+        raise ValueError(
+            f"INV-GRAPH-PROMOTION-HYGIENE violation: {len(orphaned_archive_skills)} ACTIVE_CONFIRMED DIRECT_FROM_RESUME_ARCHIVE skills are orphaned from all bundles: {orphaned_archive_skills}"
+        )
+    if zero_metric_bundles:
+        raise ValueError(
+            f"INV-GRAPH-PROMOTION-HYGIENE violation: {len(zero_metric_bundles)} ACTIVE_CONFIRMED role-episode bundles have 0 linked metric outcomes: {zero_metric_bundles}"
+        )
+
+    return {
+        "status": "PASS",
+        "unpromoted_archive_facts": len(unpromoted_archive_facts),
+        "draft_archive_skills": len(draft_archive_skills),
+        "active_archive_skills_bound": len(active_archive_skills),
+        "orphaned_archive_skills": len(orphaned_archive_skills),
+        "zero_metric_active_bundles": len(zero_metric_bundles),
+    }
+
+
 def _resolve_artifact_roots() -> list[Path]:
     roots = [ROOT]
     if ROOT.parent.name == ".worktrees":
@@ -545,6 +659,13 @@ def run_full_verification(*, read_only: bool = False) -> None:
     print("--> 3. Verifying Stage 2 Metric Authority Boost & Input Validation...")
     ret_res = verify_hybrid_retrieval_stage2(db_path)
     print(f"    Hybrid Retrieval: boost={ret_res['boost_applied']}, top={ret_res['top_assertion']}, live_fused={ret_res.get('live_fused_skill_count', 0)}")
+
+    print("--> 4. Verifying Graph Promotion Completeness & Bundle Hygiene (INV-GRAPH-PROMOTION-HYGIENE)...")
+    prom_res = verify_graph_promotion_and_bundle_hygiene(ROOT)
+    print(
+        f"    Promotion Hygiene: active_archive_skills={prom_res['active_archive_skills_bound']}, "
+        f"orphaned={prom_res['orphaned_archive_skills']}, zero_metric_bundles={prom_res['zero_metric_active_bundles']}"
+    )
 
     print("\n=======================================================")
     print("GRAPHDB_TRAVERSAL_AND_EMBEDDINGS_PASS")
