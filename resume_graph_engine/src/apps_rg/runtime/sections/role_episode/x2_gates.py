@@ -21,9 +21,11 @@ from apps_rg.runtime.sections.section_product_shape_ssot import (
 from apps_rg.runtime.validators.bullet_line_discipline_x2 import check_bullet_single_thought
 from apps_rg.runtime.validators.bullet_quality_floor_x2 import check_experience_bullet_evidence_density
 from apps_rg.runtime.validators.narrative_mechanical_x2 import check_narrative_exactly_one_sentence
+from apps_rg.runtime.quality.overlap_engine import (
+    evaluate_bullets_section_overlap,
+    evaluate_narrative_section_overlap,
+)
 from apps_rg.runtime.validators.narrative_quality_x2 import (
-    check_narrative_bullet_cosine_similarity,
-    check_within_section_bullet_cosine_similarity,
     repair_narrative_bullet_echo_from_graph,
 )
 from ._parent import parent_attr
@@ -279,8 +281,9 @@ def _x2_gates(
                 ),
             ]
         )
-        b_cos = check_within_section_bullet_cosine_similarity([str(b.get("bullet_text") or "") for b in bullets if isinstance(b, dict)], max_pairwise_cosine=0.35)
-        gates.append(_x2_gate(f"x2_{cfg.section_id}_within_section_bullet_cosine_similarity", b_cos.passed, b_cos.failure_reason or "", b_cos.observed_value))
+        b_ov = evaluate_bullets_section_overlap(bullets, section_id=cfg.section_id)
+        gates.append(_x2_gate("x2_overlap_engine", b_ov.passed, b_ov.diagnostic_summary(section_id=cfg.section_id) if not b_ov.passed else "", b_ov.to_dict()))
+        gates.append(_x2_gate(f"x2_{cfg.section_id}_within_section_bullet_cosine_similarity", b_ov.passed, b_ov.diagnostic_summary(section_id=cfg.section_id) if not b_ov.passed else "", {"max_pairwise_content_cosine": b_ov.max_within_section_idf_cosine}))
     else:
         sent = str(l2.get("narrative_sentence") or "").strip()
         sent_ok, sent_count, _sent_reason = check_narrative_exactly_one_sentence(sent)
@@ -324,12 +327,10 @@ def _x2_gates(
             ]
         )
         companion_text_for_x2 = str(l2.get("companion_bullet_texts") or "").strip()
+        n_ov = evaluate_narrative_section_overlap(sent, companion_text_for_x2, section_id=cfg.section_id)
+        gates.append(_x2_gate("x2_overlap_engine", n_ov.passed, n_ov.diagnostic_summary(section_id=cfg.section_id) if not n_ov.passed else "", n_ov.to_dict()))
         if companion_text_for_x2:
-            cos_res = check_narrative_bullet_cosine_similarity(
-                sent, companion_text_for_x2, max_pairwise_cosine=0.35,
-                max_pool_cosine=0.38, forbid_shared_opener=True, forbid_repeated_metrics=True,
-            )
-            gates.append(_x2_gate(f"x2_{cfg.section_id}_narrative_bullet_cosine_similarity", cos_res.passed, cos_res.failure_reason or "", cos_res.observed_value))
+            gates.append(_x2_gate(f"x2_{cfg.section_id}_narrative_bullet_cosine_similarity", n_ov.passed, n_ov.diagnostic_summary(section_id=cfg.section_id) if not n_ov.passed else "", {"max_pairwise_content_cosine": n_ov.max_narrative_to_bullet_idf_cosine}))
     return gates
 
 

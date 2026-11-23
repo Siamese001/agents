@@ -11,6 +11,7 @@ from apps_rg.runtime.c0.allocation.contracts_and_validation import (
     normalize_metric_signature,
 )
 from apps_rg.runtime.c0.c0_fact_anchor import build_fact_anchor
+from apps_rg.runtime.quality.rare_term_lexicon import RareTermLexicon
 
 
 def _candidate_score(
@@ -105,6 +106,12 @@ def _normalize_candidate(
         row.get("normalized_metric_signature")
         or normalize_metric_signature(row["metric_text"])
     )
+    lexicon = RareTermLexicon.from_default_fact_inventory()
+    raw_fps = row.get("metric_fingerprint_tokens")
+    if isinstance(raw_fps, (list, tuple, set, frozenset)):
+        row["metric_fingerprint_tokens"] = sorted(str(x) for x in raw_fps if str(x).strip())
+    else:
+        row["metric_fingerprint_tokens"] = sorted(lexicon.extract_metric_fingerprint(row["metric_text"]))
     row["employer_lane"] = str(row.get("employer_lane") or "").strip()
     row["source_family"] = str(
         row.get("source_family") or row["employer_lane"] or row["fact_id"]
@@ -165,7 +172,7 @@ def _assignment_view(row: Mapping[str, Any], *, slot: _Slot) -> dict[str, Any]:
     fields = (
         "candidate_id", "section_id", "claim_unit_id", "skill_id", "skill_label", "fact_id",
         "metric_outcome_id", "metric_text", "metric_value", "metric_unit",
-        "normalized_metric_signature", "root_id", "employer_lane", "source_family",
+        "normalized_metric_signature", "metric_fingerprint_tokens", "root_id", "employer_lane", "source_family",
         "proof_strength_raw", "target_alignment_score", "claim_entailment_score",
         "metric_binding_score", "path_confidence_raw", "source_independence_score",
         "selection_margin", "selection_margin_available", "selection_margin_basis",

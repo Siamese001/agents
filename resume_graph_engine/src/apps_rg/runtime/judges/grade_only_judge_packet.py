@@ -157,6 +157,35 @@ def build_grade_only_judge_packet(
             candidate_output=candidate_output,
             claim_ledger=claim_ledger,
         )
+    packet_gate_summary = ensure_panel_gate_summary(
+        deterministic_gate_summary, section_id=sid
+    )
+    from apps_rg.runtime.quality.overlap_engine import (
+        evaluate_bullets_section_overlap,
+        evaluate_competencies_section_overlap,
+        evaluate_exec_summary_section_overlap,
+        evaluate_headline_section_overlap,
+        evaluate_narrative_section_overlap,
+    )
+
+    if isinstance(candidate_output.get("bullets"), list):
+        ov_rep = evaluate_bullets_section_overlap(candidate_output["bullets"], section_id=sid)
+    elif candidate_output.get("narrative_sentence"):
+        ov_rep = evaluate_narrative_section_overlap(
+            str(candidate_output.get("narrative_sentence") or ""),
+            str(candidate_output.get("companion_bullets_context") or candidate_output.get("companion_bullet_texts") or ""),
+            section_id=sid,
+        )
+    elif isinstance(candidate_output.get("competencies") or candidate_output.get("categories"), list):
+        ov_rep = evaluate_competencies_section_overlap(
+            candidate_output.get("competencies") or candidate_output.get("categories") or []
+        )
+    elif candidate_output.get("headline_line"):
+        ov_rep = evaluate_headline_section_overlap(str(candidate_output.get("headline_line") or ""))
+    else:
+        ov_rep = evaluate_exec_summary_section_overlap(str(candidate_output.get("resume_display_text") or ""))
+    packet_gate_summary["x2_overlap_engine"] = ov_rep.to_dict()
+
     packet = {
         "judge_packet_version": JUDGE_PACKET_VERSION,
         "section": sid,
@@ -179,9 +208,8 @@ def build_grade_only_judge_packet(
             "metadata_only_graph_context_is_insufficient": True,
         },
         "graph_binding_materiality_summary": materiality,
-        "deterministic_gate_summary": ensure_panel_gate_summary(
-            deterministic_gate_summary, section_id=sid
-        ),
+        "deterministic_gate_summary": packet_gate_summary,
+        "overlap_engine_report": ov_rep.to_dict(),
         "section_specific_rubric": section_rubric.strip(),
         "grading_only_instructions": GRADE_ONLY_INSTRUCTION,
         "required_judge_output_schema": REQUIRED_JUDGE_OUTPUT_SCHEMA,

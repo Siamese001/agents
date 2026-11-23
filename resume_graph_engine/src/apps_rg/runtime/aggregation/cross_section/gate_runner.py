@@ -78,7 +78,7 @@ def run_cross_section_x2_gates(
     gates.append(
         CrossSectionGateResult(
             gate_id="x2_cross_section_near_duplicate",
-            verdict=VERDICT_WARN if near else VERDICT_PASS,
+            verdict=VERDICT_FAIL if near else VERDICT_PASS,
             decisive_reason=None if not near else f"{len(near)} near-duplicate pairs",
             observed=len(near),
             threshold="jaccard>=0.85",
@@ -160,62 +160,78 @@ def run_cross_section_x2_gates(
         ),
     )
 
-    # Section intent conflict: narrative substring or high pairwise cosine similarity vs bullets
-    from apps_rg.runtime.validators.bullet_quality_floor_x2 import count_participial_gerunds
-    from apps_rg.runtime.validators.narrative_quality_x2 import (
-        check_exec_summary_bullet_cosine_similarity, check_narrative_bullet_cosine_similarity,
-        check_within_section_bullet_cosine_similarity,
+    # Section intent conflict and unified Overlap Engine across all assembled sections
+    from apps_rg.runtime.quality.overlap_engine import (
+        ResumeUnit,
+        _SENT_SPLIT_RE,
+        _clean_bullet_strings,
+        evaluate_resume_overlap,
     )
+    from apps_rg.runtime.validators.bullet_quality_floor_x2 import count_participial_gerunds
 
     conflicts: list[str] = []
     by_id = {str(s.get("section_id")): s for s in sections}
-    for narr_sid, bullet_sid in (
-        ("slalom_narrative", "slalom_bullets"), ("unify_narrative", "unify_bullets"),
-        ("ibm_narrative", "ibm_bullets"), ("insurtech_narrative", "insurtech_bullets"), ("ey_narrative", "ey_bullets"),
-    ):
-        narr, bullets = by_id.get(narr_sid), by_id.get(bullet_sid)
-        if not narr or not bullets:
-            continue
-        raw_ntext, raw_btext = _section_plaintext(narr), _section_plaintext(bullets)
-        ntext, btext = normalize_claim_text(raw_ntext), normalize_claim_text(raw_btext)
-        if len(ntext) < 40:
-            continue
-        if ntext in btext or btext in ntext:
-            conflicts.append(f"{narr_sid}_vs_{bullet_sid}_substring")
-        cos_res = check_narrative_bullet_cosine_similarity(
-            raw_ntext, raw_btext, max_pairwise_cosine=0.35, max_pool_cosine=0.38,
-            forbid_shared_opener=True, forbid_repeated_metrics=True,
-        )
-        if not cos_res.passed:
-            conflicts.append(f"{narr_sid}_vs_{bullet_sid}_cosine({';'.join(cos_res.signals)})")
+    cross_units: list[ResumeUnit] = []
+
+    hl_sec = by_id.get("headline")
+    if hl_sec:
+        for idx, seg in enumerate([p.strip() for p in _section_plaintext(hl_sec).split("|") if p.strip()], start=1):
+            cross_units.append(ResumeUnit(unit_id=f"headline:seg_{idx}", section_id="headline", text=seg, unit_kind="headline_segment"))
 
     exec_sec = by_id.get("executive_summary")
     raw_exec_text = _section_plaintext(exec_sec) if exec_sec else ""
     etext = normalize_claim_text(raw_exec_text)
-    for bullet_sid in ("slalom_bullets", "unify_bullets", "ibm_bullets", "insurtech_bullets", "ey_bullets"):
-        bullets = by_id.get(bullet_sid)
-        if not bullets:
-            continue
-        raw_btext = _section_plaintext(bullets)
-        b_within = check_within_section_bullet_cosine_similarity(raw_btext, max_pairwise_cosine=0.35)
-        if not b_within.passed:
-            conflicts.append(f"{bullet_sid}_within_cosine({';'.join(b_within.signals)})")
-        for b_line in [ln.strip() for ln in raw_btext.splitlines() if ln.strip()]:
-            if len(count_participial_gerunds(b_line)) > 2:
-                conflicts.append(f"{bullet_sid}_gerund_rhythm_excess")
-                break
-        if raw_exec_text:
-            e_cos = check_exec_summary_bullet_cosine_similarity(raw_exec_text, raw_btext, max_pairwise_cosine=0.35, max_internal_cosine=0.35)
-            if not e_cos.passed:
-                conflicts.append(f"executive_summary_vs_{bullet_sid}_cosine({';'.join(e_cos.signals)})")
-            for stem in (" ".join(tokenize(etext)[:6]),):
-                if len(stem) >= 20 and stem in normalize_claim_text(raw_btext):
-                    conflicts.append(f"executive_summary_vs_{bullet_sid}_stem")
+    if raw_exec_text:
+        for idx, sent in enumerate([s.strip() for s in _SENT_SPLIT_RE.split(raw_exec_text.strip()) if s.strip()], start=1):
+            cross_units.append(ResumeUnit(unit_id=f"executive_summary:S{idx}", section_id="executive_summary", text=sent, unit_kind="summary_sentence"))
+
+    for narr_sid, bullet_sid in (
+        ("slalom_narrative", "slalom_bullets"), ("unify_narrative", "unify_bullets"),
+        ("ibm_narrative", "ibm_bullets"), ("insurtech_narrative", "insurtech_bullets"), ("ey_narrative", "ey_bullets"),
+    ):
+        emp = narr_sid.split("_", 1)[0]
+        narr, bullets = by_id.get(narr_sid), by_id.get(bullet_sid)
+        if narr:
+            raw_ntext = _section_plaintext(narr).strip()
+            if raw_ntext:
+                cross_units.append(ResumeUnit(unit_id=f"{narr_sid}:N1", section_id=narr_sid, text=raw_ntext, employer=emp, unit_kind="narrative"))
+        if bullets:
+            raw_btext = _section_plaintext(bullets)
+            for idx, b_line in enumerate(_clean_bullet_strings(raw_btext), start=1):
+                cross_units.append(ResumeUnit(unit_id=f"{bullet_sid}:B{idx}", section_id=bullet_sid, text=b_line, employer=emp, unit_kind="bullet"))
+            for b_line in [ln.strip() for ln in raw_btext.splitlines() if ln.strip()]:
+                if len(count_participial_gerunds(b_line)) > 2:
+                    conflicts.append(f"{bullet_sid}_gerund_rhythm_excess")
+                    break
+            if raw_exec_text:
+                for stem in (" ".join(tokenize(etext)[:6]),):
+                    if len(stem) >= 20 and stem in normalize_claim_text(raw_btext):
+                        conflicts.append(f"executive_summary_vs_{bullet_sid}_stem")
+        if narr and bullets:
+            raw_ntext, raw_btext = _section_plaintext(narr), _section_plaintext(bullets)
+            ntext, btext = normalize_claim_text(raw_ntext), normalize_claim_text(raw_btext)
+            if len(ntext) >= 40 and (ntext in btext or btext in ntext):
+                conflicts.append(f"{narr_sid}_vs_{bullet_sid}_substring")
+
+    cross_ov = evaluate_resume_overlap(cross_units)
+    for f in cross_ov.findings:
+        conflicts.append(f"{f.finding_type}({f.left_unit_id}<->{f.right_unit_id}={f.observed_value})")
+
+    ov_verdict = VERDICT_PASS if cross_ov.verdict == "PASS" else (VERDICT_UNKNOWN if cross_ov.verdict == "UNKNOWN" else VERDICT_FAIL)
+    gates.append(
+        CrossSectionGateResult(
+            gate_id="x2_overlap_engine",
+            verdict=ov_verdict,
+            decisive_reason=None if cross_ov.passed else cross_ov.diagnostic_summary(),
+            observed=cross_ov.to_dict(),
+            threshold="max_signature_repeats=1; max_number_repeats=1; pairwise_idf_cosine<=0.35",
+        ),
+    )
 
     gates.append(
         CrossSectionGateResult(
             gate_id="x2_cross_section_section_intent_conflict",
-            verdict=VERDICT_WARN if conflicts else VERDICT_PASS,
+            verdict=VERDICT_FAIL if conflicts else VERDICT_PASS,
             decisive_reason=None if not conflicts else f"conflicts: {conflicts}",
             observed=conflicts,
         ),

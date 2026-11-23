@@ -48,8 +48,27 @@ def run_unify_narrative_v2_healing_loop(
     if sync_artifacts_fn is None:
         sync_artifacts_fn = lambda cp, _cr: cp
     if run_x2_fn is None:
-        from apps_rg.runtime.validators.narrative_quality_x2 import check_narrative_bullet_cosine_similarity, check_narrative_no_consulting_language, check_narrative_seniority_floor, check_narrative_technical_specificity
-        run_x2_fn = lambda cp, _cpx2: [{"gate_id": r.gate_id, "pass": r.passed} for r in (check_narrative_seniority_floor(str(cp.get("narrative_sentence") or "").strip()), check_narrative_no_consulting_language(str(cp.get("narrative_sentence") or "").strip()), check_narrative_technical_specificity(str(cp.get("narrative_sentence") or "").strip()), check_narrative_bullet_cosine_similarity(str(cp.get("narrative_sentence") or "").strip(), companion_bullets_as_list(companion_text), max_pairwise_cosine=0.35))]
+        from apps_rg.runtime.quality.overlap_engine import evaluate_narrative_section_overlap
+        from apps_rg.runtime.validators.narrative_quality_x2 import check_narrative_no_consulting_language, check_narrative_seniority_floor, check_narrative_technical_specificity
+        run_x2_fn = lambda cp, _cpx2: [
+            *[
+                {"gate_id": r.gate_id, "pass": r.passed}
+                for r in (
+                    check_narrative_seniority_floor(str(cp.get("narrative_sentence") or "").strip()),
+                    check_narrative_no_consulting_language(str(cp.get("narrative_sentence") or "").strip()),
+                    check_narrative_technical_specificity(str(cp.get("narrative_sentence") or "").strip()),
+                )
+            ],
+            {
+                "gate_id": "x2_overlap_engine",
+                "pass": evaluate_narrative_section_overlap(
+                    str(cp.get("narrative_sentence") or "").strip(),
+                    companion_bullets_as_list(companion_text),
+                    section_id="unify_narrative",
+                    employer="unify",
+                ).passed,
+            },
+        ]
     if not isinstance(parsed, dict) or runtime_generation_status != "REAL_LLM":
         return raw_output, parsed, [j.to_dict() for j in run_unify_narrative_judges(narrative_sentence=str((parsed or {}).get("narrative_sentence") or "").strip(), claim_ledger=list((parsed or {}).get("claim_ledger") or []), judge_keys=judge_keys, companion_bullets_context=companion_text, mode=judge_mode, artifact_base=artifact_dir, allowed_fact_packet=allowed_fact_packet, targeting_context=targeting_context)], False
     cur_raw, cur_parsed, any_accepted = raw_output, parsed, False

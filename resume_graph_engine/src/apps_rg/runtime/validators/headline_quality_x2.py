@@ -167,11 +167,7 @@ class HeadlineQualityResult:
 # Helper: tokenize headline to lowercase words
 # ---------------------------------------------------------------------------
 
-_TOKEN_RE = re.compile(r"[a-z0-9]+")
-
-
-def _tokenize(text: str) -> list[str]:
-    return _TOKEN_RE.findall(text.lower())
+from apps_rg.runtime.quality.text_units import tokenize_text as _tokenize
 
 
 _ALLOWED_HEADLINE_PREFIXES: tuple[str, ...] = (

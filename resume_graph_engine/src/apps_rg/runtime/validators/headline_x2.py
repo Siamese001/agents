@@ -1725,6 +1725,20 @@ def run_headline_x2_gates(
         ):
             add(hp.gate_id, hp.passed, hp.observed_value, hp.threshold, hp.failure_reason)
 
+    from apps_rg.runtime.quality.overlap_engine import evaluate_headline_section_overlap
+
+    hl_ov = evaluate_headline_section_overlap(
+        h,
+        reference_texts={"base_headline": base_hl_texts} if base_hl_texts else None,
+    )
+    add(
+        "x2_overlap_engine",
+        hl_ov.passed,
+        hl_ov.to_dict(),
+        "zero duplicate signature terms across headline segments; <=25% 4-gram overlap with base headline",
+        None if hl_ov.passed else hl_ov.diagnostic_summary(section_id="headline"),
+    )
+
     return gates
 
 

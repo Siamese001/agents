@@ -1,0 +1,53 @@
+{
+  "fixture_id": "anthropic_e1d1e7775bb0_ibm",
+  "run_id": "full_resume_e1d1e7775bb0",
+  "target_role": "Manager, Applied AI Architecture & Partnerships (Anthropic)",
+  "headline": "SVP AI Partnerships | Partner Cloud Platforms | AI Licensing Systems | Regulated GTM Controls",
+  "executive_summary_sentences": [
+    "Applied AI architecture and partnerships executive who turns cloud alliances and AI platforms into repeatable enterprise adoption.",
+    "Directed Anthropic Claude and Google Cloud (GCP) co-innovation, delivering a $2.4M Claude enablement workstream and 45-day Claude Code pods while scaling Gemini Enterprise from 750 to 5,750+ seats.",
+    "Led AWS alliance co-sell and SI/ISV solution architecture for regulated financial services to drive 20% joint alliance revenue growth and $10M in new ARR via AI-driven Salesforce account-scoring.",
+    "Built AI partner co-sell channel motions, joint solution blueprints, and field enablement assets packaged around reusable AI platform services."
+  ],
+  "ibm_narrative": "Operationalized AWS modernization at IBM through reusable reference architectures, streaming analytics, and containerized microservices, establishing executive-to-delivery solution discipline that converted complex regulated workloads into repeatable adoption paths for banking and insurance clients.",
+  "ibm_bullets": [
+    "Directed AWS Partner offering and accelerator management by packaging streaming analytics ecosystems and partner data-provider playbooks into BCBS 239-aligned solution blueprints and reusable migration accelerators that held 99.9% production uptime across banking and insurer portfolios.",
+    "Led global pre-sales solution engineering, executive workshops, and commercial validation pilots to convert buyer requirements into C-suite AWS architecture and ROI alignments driving $10M in net-new revenue.",
+    "Owned quota-aligned technical sales execution across priority accounts using BI forecasting and CRM pipeline governance that generated $10M in new annual recurring revenue (ARR) via Salesforce deal-prioritization analytics and multi-account P&L governance.",
+    "Architected enterprise cloud-native modernization waves shifting legacy on-prem financial institution workloads into containerized microservices and AWS landing zones via BCBS 239-aligned reference architectures sustaining 99.9% production uptime.",
+    "Drove IBM-AWS alliance co-sell motions, SI and ISV joint go-to-market programs, and partner territory planning across cross-functional field teams to deliver 20% joint revenue growth across the IBM-AWS regulated financial-services alliance portfolio."
+  ],
+  "expected_flaws": {
+    "repeated_signature_terms": [
+      "bcbs 239",
+      "salesforce"
+    ],
+    "repeated_numbers": [
+      "99.9%",
+      "$10m",
+      "20%"
+    ],
+    "echo_pairs": [
+      {
+        "left": "executive_summary:S3",
+        "right": "ibm_bullets:B5",
+        "reason": "Executive summary S3 restates IBM B5 20% joint alliance revenue growth and AWS alliance co-sell for regulated financial services"
+      },
+      {
+        "left": "executive_summary:S3",
+        "right": "ibm_bullets:B3",
+        "reason": "Executive summary S3 restates IBM B3 $10M in new ARR via Salesforce account-scoring/analytics"
+      },
+      {
+        "left": "ibm_bullets:B1",
+        "right": "ibm_bullets:B4",
+        "reason": "Both IBM B1 and B4 claim BCBS 239-aligned blueprints/reference architectures and 99.9% production uptime"
+      },
+      {
+        "left": "ibm_bullets:B2",
+        "right": "ibm_bullets:B3",
+        "reason": "Both IBM B2 and B3 claim $10M revenue/ARR in the same role section"
+      }
+    ]
+  }
+}

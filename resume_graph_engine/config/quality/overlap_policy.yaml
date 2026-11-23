@@ -1,0 +1,23 @@
+schema: apps_rg.overlap_policy.v1
+version: "1.0.0"
+
+# Maximum allowed occurrences across the entire resume (summary, competencies, narratives, bullets)
+max_signature_term_occurrences_per_resume: 1
+max_number_unit_occurrences_per_resume: 1
+max_number_unit_occurrences_per_section: 1
+
+# Corpus rarity thresholds for learning signature terms from the fact inventory
+# Terms with document frequency ratio <= max_signature_df_ratio and capitalization consistency >= min_capitalization_ratio
+# qualify as learned signature terms (plus structural regulatory/standard code patterns with df_ratio <= max_signature_df_ratio).
+max_signature_df_ratio: 0.016
+min_capitalization_ratio: 0.85
+idf_signature_percentile: 0.90
+
+# Pairwise similarity ceilings (fail-closed: exceeding any ceiling produces verdict=FAIL)
+max_within_section_idf_cosine: 0.34
+max_narrative_to_bullet_idf_cosine: 0.34
+max_cross_section_idf_cosine: 0.35
+max_within_section_dense_cosine: 0.82
+max_cross_section_dense_cosine: 0.84
+max_content_trigram_jaccard: 0.18
+max_base_reference_4gram_jaccard: 0.25

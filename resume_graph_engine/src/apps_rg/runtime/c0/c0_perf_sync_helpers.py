@@ -534,8 +534,13 @@ def diversify_slot_candidates(rows: list[dict[str, Any]], *, required_root_id: s
             mf_set.add((mid, fid))
             kept_indices.append(idx)
     kept_set = set(kept_indices)
-    # Pass 1b: preserve any remaining distinct (metric_outcome_id, fact_id) combinations on distinct skills per root
-    # so executive_summary + headline claiming one metric and one skill/fact never starves *_bullets.
+    # Pass 1b: preserve up to 2 distinct skills for each distinct metric_outcome_id on a root
+    # so executive_summary/headline claiming one skill or fingerprint never starves the root's alternative metric.
+    seen_skills_by_root_metric: dict[tuple[str, str], set[str]] = {}
+    for idx in kept_indices:
+        r0 = rows[idx]
+        rm_key = (str(r0.get("root_id") or ""), str(r0.get("metric_outcome_id") or ""))
+        seen_skills_by_root_metric.setdefault(rm_key, set()).add(str(r0.get("skill_id") or ""))
     for idx, r in enumerate(rows):
         if idx in kept_set:
             continue
@@ -549,9 +554,11 @@ def diversify_slot_candidates(rows: list[dict[str, Any]], *, required_root_id: s
         m_set = seen_metrics_by_root.setdefault(rid, set())
         f_set = seen_facts_by_root.setdefault(rid, set())
         mf_set = seen_metric_facts_by_root.setdefault(rid, set())
-        if len(s_set) < cap and sid not in s_set and (mid, fid) not in mf_set:
+        rm_skills = seen_skills_by_root_metric.setdefault((rid, mid), set())
+        if len(rm_skills) < cap and sid not in rm_skills:
             s_set.add(sid)
             m_set.add(mid)
+            rm_skills.add(sid)
             if fid:
                 f_set.add(fid)
             mf_set.add((mid, fid))
@@ -566,6 +573,27 @@ def diversify_slot_candidates(rows: list[dict[str, Any]], *, required_root_id: s
         s_set = seen_skills_by_root.setdefault(rid, set())
         if len(s_set) < cap and sid not in s_set:
             s_set.add(sid)
+            kept_indices.append(idx)
+            kept_set.add(idx)
+    # Pass 3: preserve 1 metric-free (mid == "") fallback candidate per root when not already present
+    # so a root whose numeric metric fingerprints are already claimed can still be allocated qualitatively.
+    no_metric_skills_by_root: dict[str, set[str]] = {}
+    for idx in kept_indices:
+        r0 = rows[idx]
+        if not str(r0.get("metric_outcome_id") or ""):
+            no_metric_skills_by_root.setdefault(str(r0.get("root_id") or ""), set()).add(
+                str(r0.get("skill_id") or "")
+            )
+    for idx, r in enumerate(rows):
+        if idx in kept_set:
+            continue
+        if str(r.get("metric_outcome_id") or ""):
+            continue
+        rid = str(r.get("root_id") or "")
+        sid = str(r.get("skill_id") or "")
+        nm_set = no_metric_skills_by_root.setdefault(rid, set())
+        if len(nm_set) < 2 and sid not in nm_set:
+            nm_set.add(sid)
             kept_indices.append(idx)
             kept_set.add(idx)
     kept_indices.sort()

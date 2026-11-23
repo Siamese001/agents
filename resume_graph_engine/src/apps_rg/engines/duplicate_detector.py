@@ -1,29 +1,11 @@
-"""Pairwise bullet duplicate detector (embedding-free cosine heuristic)."""
+"""Pairwise bullet duplicate detector delegating to apps_rg.runtime.quality."""
 
 from __future__ import annotations
 
-import math
-import re
-from collections import Counter
 from typing import Any
 
-_TOKEN_RE = re.compile(r"[a-z0-9]+")
-
-
-def _tokens(text: str) -> list[str]:
-    return _TOKEN_RE.findall(text.lower())
-
-
-def _cosine_similarity(left: Counter, right: Counter) -> float:
-    if not left or not right:
-        return 0.0
-    common = left.keys() & right.keys()
-    dot = sum(left[w] * right[w] for w in common)
-    n1 = math.sqrt(sum(v * v for v in left.values()))
-    n2 = math.sqrt(sum(v * v for v in right.values()))
-    if n1 <= 0.0 or n2 <= 0.0:
-        return 0.0
-    return dot / (n1 * n2)
+from apps_rg.runtime.quality.overlap_engine import compute_idf_cosine_similarity
+from apps_rg.runtime.quality.rare_term_lexicon import RareTermLexicon
 
 
 class DuplicateDetector:
@@ -40,14 +22,13 @@ class DuplicateDetector:
         self, bullets: list[dict[str, Any]], threshold: float | None = None
     ) -> list[tuple[int, int, float]]:
         thr = self.default_threshold if threshold is None else threshold
+        lex = RareTermLexicon.from_default_fact_inventory()
+        texts = [self._bullet_text(rec) for rec in bullets]
         out: list[tuple[int, int, float]] = []
-        reps: list[Counter[str]] = []
-        for rec in bullets:
-            reps.append(Counter(_tokens(self._bullet_text(rec))))
-        n = len(reps)
+        n = len(texts)
         for i in range(n):
             for j in range(i + 1, n):
-                sim = _cosine_similarity(reps[i], reps[j])
+                sim, _ = compute_idf_cosine_similarity(texts[i], texts[j], lex)
                 if sim >= thr:
                     out.append((i, j, sim))
         return out
@@ -64,34 +45,24 @@ class DuplicateDetector:
                 "sections_analyzed": [],
             }
 
+        lex = RareTermLexicon.from_default_fact_inventory()
         section_names = list(sections.keys())
         pairwise_checks: list[dict[str, Any]] = []
         duplicates_found: list[dict[str, Any]] = []
         max_similarity = 0.0
-        bullets_meta: list[tuple[str, int, Counter[str]]] = []
+        bullets_meta: list[tuple[str, int, str]] = []
 
-        # Flatten bullets with (section_name, bullet_index_within_flat, vocab)
         for sec in section_names:
             raw_items = sections.get(sec, []) or []
             for idx, raw in enumerate(raw_items):
-                if raw is None:
-                    continue
-                if isinstance(raw, str):
-                    text = raw.strip()
-                else:
-                    text = ""
-                if not text:
-                    continue
-                c = Counter(_tokens(text))
-                if not sum(c.values()):
-                    continue
-                bullets_meta.append((sec, idx, c))
+                if isinstance(raw, str) and raw.strip():
+                    bullets_meta.append((sec, idx, raw.strip()))
 
         for i in range(len(bullets_meta)):
             for j in range(i + 1, len(bullets_meta)):
-                si, _, ci = bullets_meta[i]
-                sj, _, cj = bullets_meta[j]
-                sim = _cosine_similarity(ci, cj)
+                si, _, ti = bullets_meta[i]
+                sj, _, tj = bullets_meta[j]
+                sim, _ = compute_idf_cosine_similarity(ti, tj, lex)
                 max_similarity = max(max_similarity, sim)
                 cross_section = si != sj
                 pairwise_checks.append(

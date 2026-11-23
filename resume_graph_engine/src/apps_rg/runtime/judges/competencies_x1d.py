@@ -30,6 +30,7 @@ from apps_rg.runtime.judges.grade_only_judge_packet import (
     write_judge_packet,
 )
 from apps_rg.runtime.judges.section_judge_profile import resolve_section_proof_judge_model
+from apps_rg.runtime.quality.overlap_engine import SHARED_OVERLAP_DECISIVE_FAILURE_CLAUSE
 
 JUDGE_RUBRIC_VERSION = "competencies_x1d_v4"
 
@@ -82,7 +83,7 @@ Rubric dimensions:
 6. anti_overfit: no JD-only or briefing-only skills framed as proof; company-specific targeting may influence label choice, not evidence; do not collapse multiple categories onto one metric family; no AI-authenticity dead giveaways such as template phrasing or buzzword soup.
 7. category_clarity: labels are crisp; terms are compact keyword phrases (not sentence-style competency claims) and each category should be semantically distinct, graph-backed, and tied to a different skill family.
 8. svp_agentic_specificity: no generic or mundane competency terms; phrases should sound like believable work by an SVP-level engineering leader and deep agentic AI practitioner, with concrete mechanisms plus operating/commercial context. Penalize table-stakes phrases such as "hyperscaler co-sell", "platform commercialization", "stakeholder alignment", "cloud architecture", or "runtime policy controls" when they appear without richer mechanism/context.
-9. partner_architecture_specificity: for partnership roles (e.g. Anthropic/applied-AI partnerships), competencies must include a partner-applied AI architecture category prioritized first with reference architecture or joint solution patterns. For enterprise, insurance, or general engineering executive roles, partner or hyperscaler terms should clearly reflect joint solutions, accelerators, or enterprise cloud integration without requiring partner category prioritization first. Generic ecosystem/GTM wording alone is insufficient.
+9. partner_architecture_specificity: for partnership roles (e.g. applied-AI and cloud partnerships), competencies must include a partner-applied AI architecture category prioritized first with reference architecture or joint solution patterns. For enterprise, insurance, or general engineering executive roles, partner or hyperscaler terms should clearly reflect joint solutions, accelerators, or enterprise cloud integration without requiring partner category prioritization first. Generic ecosystem/GTM wording alone is insufficient.
 10. root_chronology_discipline: partner architecture wording must bind only to valid Unify/IBM/Slalom roots. Do not credit partner-scaling language sourced from InsurTech or EY; do not launder later partner expectations into 2014-2017 InsurTech cloud modernization.
 
 Adversarial review lens:
@@ -116,7 +117,7 @@ Decisive failure triggers (advisory only):
 - generic category labels with no graph-backed differentiation
 - mundane visible competency phrases that lack agentic mechanism, executive operating context, or believable SVP scope
 - company-specific targeting used as proof rather than label choice
-""".strip()
+""".strip() + "\n" + SHARED_OVERLAP_DECISIVE_FAILURE_CLAUSE
 
 
 def _build_prompt(

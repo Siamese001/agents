@@ -2248,7 +2248,55 @@ def build_c03_graph_health_receipt(
         "graph_data_readiness": graph_data_readiness,
         "overall_status": overall_status,
         "unknown_dimensions": unknown_dimensions,
+        "same_employer_metric_fingerprint_collisions": detect_same_employer_metric_fingerprint_collisions(
+            canonical_path.parent if canonical_path.is_file() else None
+        ),
     }
+
+
+def detect_same_employer_metric_fingerprint_collisions(
+    fact_dir: Path | None = None,
+) -> list[dict[str, Any]]:
+    """Report same-employer approved metric outcome pairs that share rare signature terms or number+unit figures."""
+    from apps_rg.runtime.quality.rare_term_lexicon import RareTermLexicon
+
+    fdir = fact_dir or Path(__file__).resolve().parent
+    if not fdir.is_dir():
+        return []
+    lexicon = RareTermLexicon.from_default_fact_inventory(fdir)
+    collisions: list[dict[str, Any]] = []
+
+    for bundle_path in sorted(fdir.glob("*role_episode_bundles.json")):
+        obj, err = _load_json_object(bundle_path)
+        if not obj or err:
+            continue
+        employer = str(obj.get("employer") or bundle_path.stem.split("_", 1)[0])
+        mnodes = obj.get("metric_outcome_nodes")
+        if not isinstance(mnodes, dict):
+            continue
+        entries: list[tuple[str, frozenset[str], list[str]]] = []
+        for mid, mrow in sorted(mnodes.items()):
+            if not isinstance(mrow, dict) or mrow.get("approved") is False:
+                continue
+            mtxt = str(mrow.get("metric") or mrow.get("claim_text") or "").strip()
+            fp = lexicon.extract_metric_fingerprint(mtxt)
+            if fp:
+                entries.append((mid, fp, list(mrow.get("bundle_bindings") or [])))
+        for i in range(len(entries)):
+            m1, fp1, b1 = entries[i]
+            for j in range(i + 1, len(entries)):
+                m2, fp2, b2 = entries[j]
+                shared = sorted(fp1 & fp2)
+                if shared:
+                    collisions.append({
+                        "employer": employer,
+                        "left_metric_outcome_id": m1,
+                        "left_bundles": b1,
+                        "right_metric_outcome_id": m2,
+                        "right_bundles": b2,
+                        "shared_fingerprint_tokens": shared,
+                    })
+    return collisions
 
 
 def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
@@ -2302,4 +2350,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     return 0 if receipt["overall_status"] == "PASS" else 2
 
 
-__all__ = ["BUILDER_VERSION", "SCHEMA_VERSION", "build_c03_graph_health_receipt", "default_policy_path", "load_health_policy", "main"]
+__all__ = [
+    "BUILDER_VERSION",
+    "SCHEMA_VERSION",
+    "build_c03_graph_health_receipt",
+    "default_policy_path",
+    "detect_same_employer_metric_fingerprint_collisions",
+    "load_health_policy",
+    "main",
+]

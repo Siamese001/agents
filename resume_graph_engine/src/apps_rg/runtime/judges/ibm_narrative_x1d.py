@@ -7,6 +7,7 @@ from typing import Any
 
 from apps_rg.runtime.judges.executive_summary_x1d import JudgeOutput
 from apps_rg.runtime.judges.policy_backed_section_judges import run_policy_section_judges
+from apps_rg.runtime.quality.overlap_engine import SHARED_OVERLAP_DECISIVE_FAILURE_CLAUSE
 from apps_rg.runtime.sections.section_product_shape_ssot import NARRATIVE_MAX_CHARS, NARRATIVE_MAX_WORDS
 
 JUDGE_RUBRIC_VERSION = "ibm_narrative_x1d_v3"
@@ -40,6 +41,7 @@ Decisive failure triggers:
 - meta-disclaimer phrasing in narrative_sentence ("without claiming", "without asserting", etc.)
 - practice-leadership-only filler ("led this practice / oversaw advisory") that omits concrete delivered capabilities and their graph-backed business or operational outcome
 - career-bridge phrasing ("supported later", "subsequent roles") without explicit allowed career-bridge fact
+{SHARED_OVERLAP_DECISIVE_FAILURE_CLAUSE}
 """.strip()
 
 

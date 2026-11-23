@@ -7,6 +7,7 @@ from typing import Any
 
 from apps_rg.runtime.judges.executive_summary_x1d import JudgeOutput
 from apps_rg.runtime.judges.policy_backed_section_judges import run_policy_section_judges
+from apps_rg.runtime.quality.overlap_engine import SHARED_OVERLAP_DECISIVE_FAILURE_CLAUSE
 from apps_rg.runtime.sections.section_product_shape_ssot import NARRATIVE_MAX_CHARS, NARRATIVE_MAX_WORDS
 
 JUDGE_RUBRIC_VERSION = "unify_narrative_x1d_v3"
@@ -45,6 +46,7 @@ Decisive failure triggers:
 - omits commercialization / reusable platform / IP angle when base anchor facts support that arc
 - lacks role-level platform mandate (reads like a delivery task list)
 - multiple sentences or bullet-list formatting
+{SHARED_OVERLAP_DECISIVE_FAILURE_CLAUSE}
 """.strip()
 
 

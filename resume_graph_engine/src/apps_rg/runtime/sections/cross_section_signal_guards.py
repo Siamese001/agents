@@ -49,12 +49,9 @@ ARCHITECTURE_MECHANISM_VOCAB: frozenset[str] = MECHANISM_VOCAB | frozenset({
     "productization",
 })
 
-_TOKEN_RE = re.compile(r"[a-z0-9]+")
+from apps_rg.runtime.quality.text_units import tokenize_text as _tokenize
+
 _NGRAM_SIZE = 4
-
-
-def _tokenize(text: str) -> list[str]:
-    return _TOKEN_RE.findall(str(text or "").lower())
 
 
 def seniority_floor_score(text: str) -> int:

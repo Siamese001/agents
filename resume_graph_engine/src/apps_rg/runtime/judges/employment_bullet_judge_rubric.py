@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Final
 
+from apps_rg.runtime.quality.overlap_engine import SHARED_OVERLAP_DECISIVE_FAILURE_CLAUSE
+
 # Executive-summary judge dimensions that must never appear on bullet lanes.
 FORBIDDEN_EXEC_SUMMARY_DIMENSION_IDS: Final[frozenset[str]] = frozenset(
     {
@@ -63,7 +65,7 @@ SHARED_EMPLOYMENT_BULLET_DIMENSIONS: Final[tuple[BulletJudgeDimension, ...]] = (
     ),
     BulletJudgeDimension(
         "cross_bullet_outcome_diversity",
-        "each bullet answers a distinct outcome spine — not six restatements of the same mechanism stack.",
+        "each bullet answers a distinct outcome spine — not restatements of the same mechanism stack, and never repeats a named regulatory standard (e.g. BCBS 239, SOC 2) or numeric KPI figure (e.g. 99.9%, $10M, 20%) across two bullets in the section (repeating a standard or figure is a mandatory decisive failure, never minor).",
     ),
     BulletJudgeDimension(
         "employer_scope_purity",
@@ -192,8 +194,13 @@ def grade_only_rubric_text(section_id: str, *, bullet_count: int, bullet_id_rang
             f"- wrong bullet count (expected {bullet_count})\n"
             "- JD phrase copied as proof (>4 consecutive words)\n"
             "- Unify runtime vocabulary in bullet text\n"
-            "- a bullet with no specific action, delivery detail, and evidence-backed result"
+            "- a bullet with no specific action, delivery detail, and evidence-backed result\n"
+            f"{SHARED_OVERLAP_DECISIVE_FAILURE_CLAUSE}"
         )
+    else:
+        extra = f"\n\nDecisive failure triggers:\n{SHARED_OVERLAP_DECISIVE_FAILURE_CLAUSE}"
+    if lane == "unify_bullets":
+        extra = extra + f"\n{SHARED_OVERLAP_DECISIVE_FAILURE_CLAUSE}"
     return (
         f"You are evaluating exactly {bullet_count} employment bullets ({bullet_id_range}).\n"
         "This is a BULLET-LINE lane — not an executive summary paragraph.\n"
