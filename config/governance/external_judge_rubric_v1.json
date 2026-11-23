@@ -1,0 +1,66 @@
+{
+  "dimensions": {
+    "factual_faithfulness": {
+      "anchors": {
+        "1": "Contains fabricated claims, invented dates/metrics, or direct contradictions of source evidence.",
+        "2": "Inflates tentative statements or open commitments into completed outcomes or misattributes ownership.",
+        "3": "Mostly supported by source records, with minor overgeneralization that does not reverse meaning.",
+        "4": "Every material claim, date, metric, and owner is directly supported by source evidence without distortion.",
+        "5": "Completely faithful to source evidence while accurately preserving uncertainty, scope boundaries, and temporal order."
+      },
+      "title": "Factual Faithfulness and Source Entailment",
+      "weight": 0.35
+    },
+    "completeness_and_relevance": {
+      "anchors": {
+        "1": "Fails to address the core question or omits the primary subject and decision context.",
+        "2": "Addresses only a peripheral sub-point while missing key constraints, blockers, or requested scope.",
+        "3": "Covers the main topic adequately, though one secondary constraint or dependency is under-specified.",
+        "4": "Directly and thoroughly answers every part of the prompt without off-topic padding.",
+        "5": "Delivers a complete, tightly scoped answer covering all relevant facts, risks, and dependencies."
+      },
+      "title": "Question Completeness and Topical Relevance",
+      "weight": 0.25
+    },
+    "cold_reader_clarity": {
+      "anchors": {
+        "1": "Opaque insider shorthand, robotic boilerplate, or garbled structure that a cold target reader cannot follow.",
+        "2": "Requires substantial insider context to decode unexplained acronyms, nicknames, or abrupt transitions.",
+        "3": "Understandable overall, with occasional stiff phrasing or minor unexplained terminology.",
+        "4": "Clear, natural human prose that a cold reader in the target audience understands on first read.",
+        "5": "Effortless, self-contained executive or spoken clarity tailored to the audience with zero artificial filler."
+      },
+      "title": "Cold-Reader Comprehension and Natural Voice",
+      "weight": 0.20
+    },
+    "actionability_and_proportion": {
+      "anchors": {
+        "1": "Provides no usable takeaway, assigns vague unowned work, or severely violates channel length expectations.",
+        "2": "Next steps are generic or buried inside an unfocused wall of text unsuitable for the delivery medium.",
+        "3": "Includes reasonable next steps and acceptable length, though ownership or timing could be sharper.",
+        "4": "Concrete, well-proportioned takeaways with clear owners, timing, and restraint appropriate to the channel.",
+        "5": "Immediately actionable for the recipient with crisp ownership, clear sequence, and ideal channel density."
+      },
+      "title": "Decision Actionability and Channel Proportion",
+      "weight": 0.20
+    }
+  },
+  "pass_rule": "human_verdict == PASS requires factual_faithfulness >= 4 and all dimensions >= 3",
+  "rubric_id": "external_judge_rubric_v1",
+  "rubric_sha256": "d0888a34cf4d0154621eec3c347c29a6fbdc48f8e4f5d303b1e1dd4f4fd17607",
+  "scale_range": [
+    1,
+    5
+  ],
+  "schema_version": "1.0.0",
+  "standard_lineage": [
+    "Prometheus-2-Absolute-Grading",
+    "G-Eval-Chain-of-Thought-Rubric",
+    "RAGAS-Faithfulness-and-Relevancy",
+    "MT-Bench-Single-Answer-Grading"
+  ],
+  "verdict_values": [
+    "PASS",
+    "FAIL"
+  ]
+}

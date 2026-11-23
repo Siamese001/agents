@@ -1,0 +1,80 @@
+# Independent External Stakeholder Rubric — Outreach Engine (Target Executive & Recruiter Recipient Lens)
+# Decoupled from internal hop/lens checklists to detect both calibration drift and Goodhart construct drift.
+
+rubric_id: external_human_outreach_stakeholder_v1
+rubric_version: "1.0.0"
+engine: outreach_engine
+stakeholder_persona: "Target C-Suite Executive / Senior Technical Recruiter Recipient"
+evaluation_role: external_human_gold_and_drift_anchor
+scale:
+  min: 1
+  max: 5
+pass_threshold_mean: 4.0
+
+human_calibration:
+  status: PENDING_HUMAN_IN_CHAT_GRADING
+  last_calibrated_at: null
+  inter_rater_kappa: 0.0
+  intra_rater_repeat_kappa: 0.0
+  cadence: P30D
+  n_calibration_samples: 0
+
+dimensions:
+  - id: reply_willingness
+    name: "Recipient Reply Willingness"
+    definition: "As the busy executive or recruiter receiving this sequence, how likely are you to reply positively?"
+    scale: {min: 1, max: 5}
+    weight: 0.30
+    anchors:
+      5: "Would definitely reply; sharp relevance, credible peer proof, respectful of time."
+      4: "Likely to reply; clear signal with minimal friction."
+      3: "Neutral; might skim and archive without replying."
+      2: "Unlikely to reply; feels generic, templated, or mildly pushy."
+      1: "Would ignore immediately or mark as spam."
+
+  - id: peer_executive_tone
+    name: "Peer Executive Tone & Restraint"
+    definition: "Does the message sound like a credible executive peer rather than a subordinate job seeker or aggressive salesperson?"
+    scale: {min: 1, max: 5}
+    weight: 0.25
+    anchors:
+      5: "Confident, concise, restrained peer framing; zero sycophancy or sales hype."
+      4: "Strong executive tone with one minor stiff phrase."
+      3: "Polite and professional but somewhat generic or overly formal."
+      2: "Subordinate pleading, forced warmth, or cheesy sales cadence."
+      1: "Spammy hype, fake intimacy, or inappropriate urgency."
+
+  - id: grounded_relevance
+    name: "Grounded Personalization & Fact Honesty"
+    definition: "Are both candidate proof points and company/recipient references strictly factual and naturally connected?"
+    scale: {min: 1, max: 5}
+    weight: 0.25
+    hard_floor: 4
+    anchors:
+      5: "Every candidate metric and company hook is verified, honest, and directly tied to a real business problem."
+      4: "Grounded and relevant with slight generalization."
+      3: "Factually accurate but loose connection between candidate proof and recipient priorities."
+      2: "Over-claimed personalization, stretched metric, or awkward forced hook."
+      1: "Fabricated familiarity, laundered company metric, or unsupported candidate claim."
+
+  - id: low_friction_clarity
+    name: "Low-Friction Ask & Channel Fit"
+    definition: "Is the call to action effortless to answer and properly sized for the channel (Email vs LinkedIn InMail)?"
+    scale: {min: 1, max: 5}
+    weight: 0.20
+    anchors:
+      5: "Effortless single-question close, crisp length for channel, zero clutter across follow-ups."
+      4: "Clear low-friction ask with minor length or pacing polish needed."
+      3: "Acceptable ask but slightly wordy or repetitive across touches."
+      2: "High-friction ask, missing clear question, or bloated for channel."
+      1: "Demanding ask, broken channel formatting, or repetitive copy-paste follow-up."
+
+hard_fail_flags:
+  - id: fake_familiarity_or_warmth
+    definition: "Invented prior relationship, fake warmth, or forced personal compliments unsupported by evidence."
+  - id: unsupported_claim_or_metric
+    definition: "Laundered opportunity metric or candidate claim/metric not verified in candidate source facts."
+  - id: sales_hype_or_ai_tells
+    definition: "Urgency clichés, spam buzzwords, robotic AI openers, or awkward em-dash crutches."
+  - id: confidential_or_channel_breach
+    definition: "Leaked internal brief markers, billing/comp disclosure in cold touch, or severe channel-length/link breach."

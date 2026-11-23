@@ -337,7 +337,11 @@ def _validate_data_holdout_surface(repo_root: Path) -> tuple[int, dict[str, int]
                         if any(cell.strip() for cell in row)
                     ]
                     data_rows = max(0, len(csv_rows) - 1)
-                    if "outreach_engine/data/evals/holdout/" in rel.replace("\\", "/") and data_rows < 50:
+                    if (
+                        "outreach_engine/data/evals/holdout/" in rel.replace("\\", "/")
+                        and fp.name != "human_labels.outreach_quality.v1.csv"
+                        and data_rows < 50
+                    ):
                         violations.append(
                             f"{rel}: outreach holdout CSV has {data_rows} data rows (< 50 required)"
                         )
@@ -360,6 +364,19 @@ def _validate_data_holdout_surface(repo_root: Path) -> tuple[int, dict[str, int]
             violations.append(
                 "outreach_engine/data/evals/holdout/*.csv: missing holdout CSV files"
             )
+        hl_csv = lic_holdout_dir / "human_labels.outreach_quality.v1.csv"
+        if hl_csv.is_file():
+            from apps_eval.construct_validity import check_human_label_file_validity
+
+            for v in check_human_label_file_validity(hl_csv):
+                violations.append(f"outreach_engine/data/evals/holdout/{hl_csv.name}: {v['message']}")
+    cal_dir = repo_root / "data" / "judge_calibration"
+    if cal_dir.is_dir():
+        from apps_eval.construct_validity import check_human_label_file_validity
+
+        for ledger_fp in sorted(cal_dir.glob("*_human_gold.v1.jsonl")):
+            for v in check_human_label_file_validity(ledger_fp):
+                violations.append(f"data/judge_calibration/{ledger_fp.name}: {v['message']}")
     violations.extend(_check_git_ignored_holdout_files(repo_root))
     return file_count, counts_by_root, violations
 

@@ -16,6 +16,7 @@ export PYTHONDONTWRITEBYTECODE=1
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/lint_production_purity.py" --all --repo-root "${PRIMARY_REPO_ROOT}"
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/audit_eval_construct_validity.py" --verify-strict --include-e2e-pin
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/audit_multi_ssot_judge_gate_drift.py"
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/ops_scripts/run_ide_judge_drift.py" --check-receipt
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/run_eval_flywheel_cycle.py" --sandbox --emit-next-hitl-question
 "${PRIMARY_REPO_ROOT}/.venv/bin/pytest" "${PRIMARY_REPO_ROOT}/tests/unit/test_flywheel_hitl_dispatcher.py" "${PRIMARY_REPO_ROOT}/apps_eval/tests/test_apps_lic_dev_suite.py" -q -p no:cacheprovider --timeout=60
 ```

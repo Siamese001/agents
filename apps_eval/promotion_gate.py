@@ -74,6 +74,9 @@ def verify_promotion_evidence(
     require_holdout: bool = True,
     require_engine_probes: bool = True,
     max_score_drop: float = 0.05,
+    ide_judge_drift_receipt_path: str | Path | None = None,
+    require_ide_judge_drift: bool = False,
+    repo_root: str | Path | None = None,
 ) -> PromotionGateResult:
     """Verify sealed promotion evidence manifest fail-closed."""
     path = Path(manifest_path).resolve()
@@ -241,6 +244,29 @@ def verify_promotion_evidence(
         else:
             checks["release_gate"] = True
 
+    # IDE LLM-as-a-Judge human calibration & drift receipt gate (fast offline verification)
+    drift_metrics: dict[str, Any] = {}
+    drift_ref = ide_judge_drift_receipt_path or (
+        manifest.get("ide_judge_drift_receipt_path")
+        if isinstance(manifest.get("ide_judge_drift_receipt_path"), str)
+        else None
+    )
+    if require_ide_judge_drift or drift_ref is not None:
+        from apps_eval.graders.judge.drift_monitor import verify_ide_judge_drift_receipt
+
+        eff_root = Path(repo_root).resolve() if repo_root is not None else Path(__file__).resolve().parents[1]
+        resolved_drift = (
+            Path(drift_ref)
+            if drift_ref is not None
+            else (eff_root / "artifacts" / "eval_harness" / "ide_judge_drift_receipt.json")
+        )
+        drift_ok, drift_viols, drift_metrics = verify_ide_judge_drift_receipt(
+            resolved_drift, repo_root=eff_root
+        )
+        checks["ide_judge_drift"] = drift_ok
+        if not drift_ok:
+            blocking.extend(drift_viols)
+
     if regressions:
         status, exit_code = "REGRESSION", 2
     elif blocking:
@@ -258,6 +284,7 @@ def verify_promotion_evidence(
         metrics={
             "suite_scores": suite_scores,
             "g6": g6_metrics,
+            "ide_judge_drift": drift_metrics,
             "elapsed_s": manifest.get("elapsed_s", 0.0),
         },
     )
