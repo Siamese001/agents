@@ -8,7 +8,20 @@ import urllib.request
 
 from apps_eval.graders.judge.calibration_studio_server import create_calibration_studio_server
 from apps_eval.graders.judge.calibration_studio_template import STUDIO_HTML
-from ops_scripts.blind_human_grading_cli import main as cli_main, parse_compact_human_grades
+from ops_scripts.blind_human_grading_cli import (
+    format_one_by_one_blind_chat_card,
+    main as cli_main,
+    parse_compact_human_grades,
+)
+from ops_scripts.curate_ide_judge_gold_corpus import (
+    build_outreach_gold_candidates,
+    build_resume_gold_candidates,
+)
+from ops_scripts.run_ide_judge_drift import (
+    DEFAULT_RECEIPT_PATH,
+    LIVE_DRIFT_SCORE_SCHEMA,
+    score_candidate_cached,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
@@ -21,9 +34,15 @@ def test_pure_white_studio_template_invariants() -> None:
     assert "Abstain: Insufficient Evidence" in STUDIO_HTML
     assert "Flag: Defective Prompt" in STUDIO_HTML
     assert "Source Evidence Excerpts" in STUDIO_HTML
+    rg_items = build_resume_gold_candidates()
+    lic_items = build_outreach_gold_candidates()
+    assert len(rg_items) == 24
+    assert len(lic_items) == 24
+    assert LIVE_DRIFT_SCORE_SCHEMA["type"] == "object"
+    assert DEFAULT_RECEIPT_PATH.name == "ide_judge_drift_receipt.json"
 
 
-def test_compact_human_grades_parser() -> None:
+def test_compact_human_grades_parser_and_chat_card() -> None:
     parsed = parse_compact_human_grades("F=5, C=4, R=4, A=4, Verdict=PASS")
     assert parsed == {
         "factual_faithfulness": 5,
@@ -31,6 +50,29 @@ def test_compact_human_grades_parser() -> None:
         "cold_reader_clarity": 4,
         "actionability_and_proportion": 4,
     }
+    pool_doc = json.loads(
+        (REPO_ROOT / "artifacts" / "eval_harness" / "blind_packets" / "resume_blind_pool.v1.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    rubric_doc = json.loads((REPO_ROOT / "config" / "governance" / "external_judge_rubric_v1.json").read_text(encoding="utf-8"))
+    card = format_one_by_one_blind_chat_card(pool_doc["items"][0], rubric_doc)
+    assert "Blind Human Calibration Item" in card
+    assert "Source Evidence Excerpts" in card
+
+    rg_item = build_resume_gold_candidates()[0]
+    from apps_eval.graders.judge.gold_corpus import canonical_sha256
+
+    ck = canonical_sha256({"item_digest": rg_item.item_digest(), "rubric_sha256": "rsha", "model_slug": "neon"})
+    cache = {ck: {"item_id": rg_item.item_id, "judge_score_1_5": 4.8, "judge_pass": True}}
+    cached_res = score_candidate_cached(
+        rg_item,
+        model_slug="neon",
+        rubric_doc=rubric_doc,
+        rubric_sha256="rsha",
+        cache=cache,
+    )
+    assert cached_res["judge_pass"] is True
 
 
 def test_studio_server_get_state_post_grade_and_post_quarantine(tmp_path: Path) -> None:
