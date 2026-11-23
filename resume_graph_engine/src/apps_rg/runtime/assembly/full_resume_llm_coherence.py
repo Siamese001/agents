@@ -346,6 +346,28 @@ def build_full_resume_evidence_packet(final_resume: dict[str, Any]) -> dict[str,
                         "graph_claim_bindings": locked_bindings,
                     }
                 )
+    from apps_rg.runtime.quality.overlap_engine import ResumeUnit, evaluate_resume_overlap
+
+    ov_units: list[ResumeUnit] = []
+    for sec in section_evidence:
+        sid = str(sec.get("section_id") or "")
+        for idx, cl in enumerate(sec.get("visible_claims") or [], start=1):
+            ctxt = str(cl.get("claim_text") or "").strip()
+            if ctxt:
+                kind = (
+                    "summary_sentence"
+                    if sid == "executive_summary"
+                    else "narrative"
+                    if sid.endswith("_narrative")
+                    else "competency_term"
+                    if sid == "competencies"
+                    else "headline_segment"
+                    if sid == "headline"
+                    else "bullet"
+                )
+                ov_units.append(ResumeUnit(unit_id=f"{sid}:U{idx}", section_id=sid, text=ctxt, unit_kind=kind))
+    ov_report = evaluate_resume_overlap(ov_units)
+
     return {
         "schema": "apps_rg.full_resume_candidate_evidence_packet.v1",
         "authority_semantics": [
@@ -354,6 +376,7 @@ def build_full_resume_evidence_packet(final_resume: dict[str, Any]) -> dict[str,
             "Whole-resume allocation may place a fact or metric in exactly one rendered section; surface-text repetition is not required for support.",
         ],
         "sections": section_evidence,
+        "overlap_engine_report": ov_report.to_dict(),
     }
 
 

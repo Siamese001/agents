@@ -509,13 +509,27 @@ def run_unify_bullets_x2_gates(
             granularity.failure_reason if granularity else "delegated graph granularity gate missing",
         )
 
-    from apps_rg.runtime.validators.narrative_quality_x2 import check_within_section_bullet_cosine_similarity
+    from apps_rg.runtime.quality.overlap_engine import evaluate_bullets_section_overlap
 
-    ub_cos = check_within_section_bullet_cosine_similarity(
-        [str(b.get("bullet_text") or "") for b in (bullets or []) if isinstance(b, dict)],
-        max_pairwise_cosine=0.35,
+    ub_ov = evaluate_bullets_section_overlap(
+        bullets or [],
+        section_id="unify_bullets",
+        employer="unify",
     )
-    add(ub_cos.gate_id, ub_cos.passed, ub_cos.observed_value, ub_cos.threshold, ub_cos.failure_reason)
+    add(
+        "x2_overlap_engine",
+        ub_ov.passed,
+        ub_ov.to_dict(),
+        "zero repeated signature terms/figures; pairwise IDF/dense/3-gram similarity within bounds",
+        None if ub_ov.passed else ub_ov.diagnostic_summary(section_id="unify_bullets"),
+    )
+    add(
+        "x2_within_section_bullet_cosine_similarity",
+        ub_ov.passed,
+        {"max_pairwise_content_cosine": ub_ov.max_within_section_idf_cosine, "verdict": ub_ov.verdict},
+        {"max_pairwise_cosine": 0.34},
+        None if ub_ov.passed else ub_ov.diagnostic_summary(section_id="unify_bullets"),
+    )
     return gates
 
 

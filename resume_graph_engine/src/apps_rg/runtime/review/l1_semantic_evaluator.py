@@ -24,20 +24,7 @@ from apps_rg.runtime.review.l1_deterministic_checker import (
     l1_post_l2_deterministic_check,
 )
 
-STOPWORDS: Final[frozenset[str]] = frozenset(
-    {
-        "a", "an", "the", "and", "or", "but", "if", "then", "else", "when",
-        "at", "by", "for", "with", "about", "against", "between", "into",
-        "through", "during", "before", "after", "above", "below", "to", "from",
-        "up", "down", "in", "out", "on", "off", "over", "under", "again",
-        "further", "then", "once", "here", "there", "all", "any", "both",
-        "each", "few", "more", "most", "other", "some", "such", "no", "nor",
-        "not", "only", "own", "same", "so", "than", "too", "very", "can",
-        "will", "just", "should", "now", "is", "are", "was", "were", "be",
-        "been", "being", "have", "has", "had", "having", "do", "does", "did",
-        "doing", "section", "draft", "write", "generate", "create", "ensure",
-    }
-)
+from apps_rg.runtime.quality.text_units import ENGLISH_GRAMMAR_STOPWORDS as STOPWORDS
 
 
 def _extract_keywords(text: str) -> set[str]:

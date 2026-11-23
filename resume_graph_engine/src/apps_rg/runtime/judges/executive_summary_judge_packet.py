@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from apps_rg.runtime.quality.overlap_engine import SHARED_OVERLAP_DECISIVE_FAILURE_CLAUSE
 from apps_rg.runtime.sections.executive_summary_generation_grade_contract import (
     dimension_gate_map,
     generation_law_digest_text,
@@ -78,6 +79,7 @@ Decisive failure triggers:
 - obvious AI-generated cadence, stacked transition crutches, abstract noun soup, or recruiter fluff
 - target mandate divergence or off-domain clutter on non-financial JDs
 - internal codebase micro-plumbing laundry lists or robotic S1 opener
+{SHARED_OVERLAP_DECISIVE_FAILURE_CLAUSE}
 """.strip()
 
 # Judge hallucination guard: legacy rubric phrases (retained for non-exec-summary compat).
@@ -112,6 +114,7 @@ Decisive failure triggers:
 - obvious AI-generated cadence, stacked transition crutches, abstract noun soup, or recruiter fluff
 - target mandate divergence or off-domain clutter on non-financial JDs
 - internal codebase micro-plumbing laundry lists or robotic S1 opener
+{SHARED_OVERLAP_DECISIVE_FAILURE_CLAUSE}
 """.strip()
 
 def _required_judge_output_schema_text() -> str:

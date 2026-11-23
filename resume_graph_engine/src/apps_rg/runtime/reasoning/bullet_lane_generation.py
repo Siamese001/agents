@@ -324,6 +324,7 @@ def _generate_employment_bullet_lane(
     regen_round = 0
     stop_reason = ""
     expansion_events: list[dict[str, Any]] = []
+    last_overlap_diagnostic = ""
 
     while True:
         if regen_round == 0:
@@ -381,12 +382,13 @@ def _generate_employment_bullet_lane(
             )
 
         regen_note = ""
-        if regen_round > 0 and not gate.ok:
+        if regen_round > 0 and (not gate.ok or last_overlap_diagnostic):
             failed = list(gate.slots_below_threshold) + list(gate.slots_missing)
             regen_note = (
-                "REGEN ROUND: prior selection did not meet minimum score or slot coverage. "
-                f"Re-score pool including new paths. Slots needing stronger winners: {', '.join(failed)}. "
-                f"Only select variants with score >= {min_score:.2f} and passes=true."
+                "REGEN ROUND: prior selection did not meet minimum score, slot coverage, or overlap bounds. "
+                f"Re-score pool including new paths. Slots needing stronger winners: {', '.join(failed) or 'overlap_conflict'}. "
+                f"Overlap diagnostic: {last_overlap_diagnostic or 'none'}. "
+                f"Only select variants with score >= {min_score:.2f} and passes=true and zero repeated signature terms or numbers."
             )
 
         pool = run_claude_bullet_pool_selection(
@@ -407,6 +409,13 @@ def _generate_employment_bullet_lane(
             merged_parsed=pool.merged_parsed,
             min_score=min_score,
         )
+        from apps_rg.runtime.quality.overlap_engine import evaluate_bullets_section_overlap
+
+        ov_rep = evaluate_bullets_section_overlap(
+            (pool.merged_parsed or {}).get("bullets") or [],
+            section_id=section_lane,
+        )
+        last_overlap_diagnostic = "" if ov_rep.passed else ov_rep.diagnostic_summary(section_id=section_lane)
 
         if artifact_dir is not None:
             _write_employment_regen_artifact(
@@ -425,7 +434,7 @@ def _generate_employment_bullet_lane(
                 },
             )
 
-        if gate.ok:
+        if gate.ok and (ov_rep.passed or judge_mode == "mocked"):
             stop_reason = "selection_gate_passed"
             break
         if regen_round == 0 and gate.slots_missing and judge_mode != "mocked":
@@ -612,6 +621,13 @@ def _generate_competencies_graph_pool_lane(
             merged_parsed=pool.merged_parsed,
             min_score=min_score,
         )
+        from apps_rg.runtime.quality.overlap_engine import evaluate_competencies_section_overlap
+
+        ov_rep = evaluate_competencies_section_overlap(
+            (pool.merged_parsed or {}).get("competencies")
+            or (pool.merged_parsed or {}).get("categories")
+            or [],
+        )
 
         if artifact_dir is not None:
             write_competencies_regen_artifact(
@@ -627,7 +643,7 @@ def _generate_competencies_graph_pool_lane(
                 },
             )
 
-        if gate.ok:
+        if gate.ok and (ov_rep.passed or judge_mode == "mocked"):
             stop_reason = "selection_gate_passed"
             break
         if regen_round >= max_regen:

@@ -15,9 +15,21 @@ from apps_rg.runtime.aggregation.cross_section_x2 import (
 POLICY_SCHEMA = "apps_rg.aggregation_warn_policy.v1"
 
 
+OVERLAP_FAIL_CLOSED_GATE_IDS: frozenset[str] = frozenset({
+    "x2_overlap_engine",
+    "x2_cross_section_near_duplicate",
+    "x2_cross_section_section_intent_conflict",
+    "x2_cross_section_repeated_metric",
+    "x2_cross_section_exact_duplicate",
+})
+
+
 def evaluate_warn_policy(*, cross_gates: list[CrossSectionGateResult]) -> dict[str, Any]:
-    warn_gates = [g for g in cross_gates if g.verdict == VERDICT_WARN]
-    fail_gates = [g for g in cross_gates if g.verdict == VERDICT_FAIL]
+    warn_gates = [g for g in cross_gates if g.verdict == VERDICT_WARN and g.gate_id not in OVERLAP_FAIL_CLOSED_GATE_IDS]
+    fail_gates = [
+        g for g in cross_gates
+        if g.verdict == VERDICT_FAIL or (g.verdict == VERDICT_WARN and g.gate_id in OVERLAP_FAIL_CLOSED_GATE_IDS)
+    ]
     unknown_gates = [g for g in cross_gates if g.verdict == VERDICT_UNKNOWN]
 
     structural_cross_section_pass = not fail_gates and not unknown_gates
@@ -42,16 +54,20 @@ def evaluate_warn_policy(*, cross_gates: list[CrossSectionGateResult]) -> dict[s
 
 
 def cross_section_structural_pass(cross_gates: list[CrossSectionGateResult]) -> bool:
-    """Structural assembly: FAIL/UNKNOWN block; WARN does not block."""
+    """Structural assembly: FAIL/UNKNOWN block; overlap gates also fail-closed on WARN."""
     for g in cross_gates:
         if g.verdict in (VERDICT_FAIL, VERDICT_UNKNOWN):
+            return False
+        if g.verdict == VERDICT_WARN and g.gate_id in OVERLAP_FAIL_CLOSED_GATE_IDS:
             return False
     return True
 
 
 def cross_section_product_pass(cross_gates: list[CrossSectionGateResult]) -> bool:
-    """Product output requires no failed or unknown cross-section gate."""
+    """Product output requires no failed or unknown cross-section gate; overlap gates never pass on WARN."""
     for g in cross_gates:
         if g.verdict in (VERDICT_FAIL, VERDICT_UNKNOWN):
+            return False
+        if g.verdict == VERDICT_WARN and g.gate_id in OVERLAP_FAIL_CLOSED_GATE_IDS:
             return False
     return True

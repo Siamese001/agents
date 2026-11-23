@@ -643,12 +643,29 @@ def run_unify_narrative_x2_gates(
     companion_bullets_list = [line.strip() for line in (companion_bullet_texts or "").split("\n") if line.strip()]
     recap_r = check_narrative_not_bullet_recap(narrative_sentence, companion_bullets_list, warn_only=True)
     add(recap_r.gate_id, recap_r.passed, recap_r.observed_value, recap_r.threshold, recap_r.failure_reason)
+    from apps_rg.runtime.quality.overlap_engine import evaluate_narrative_section_overlap
+
+    unify_n_ov = evaluate_narrative_section_overlap(
+        narrative_sentence,
+        companion_bullets_list,
+        section_id="unify_narrative",
+        employer="unify",
+    )
+    add(
+        "x2_overlap_engine",
+        unify_n_ov.passed,
+        unify_n_ov.to_dict(),
+        "zero repeated signature terms/figures; pairwise IDF/dense/3-gram similarity within bounds",
+        None if unify_n_ov.passed else unify_n_ov.diagnostic_summary(section_id="unify_narrative"),
+    )
     if companion_bullets_list:
-        cos_r = check_narrative_bullet_cosine_similarity(
-            narrative_sentence, companion_bullets_list, max_pairwise_cosine=0.35, max_pool_cosine=0.38,
-            forbid_shared_opener=True, forbid_repeated_metrics=True,
+        add(
+            "x2_narrative_bullet_cosine_similarity",
+            unify_n_ov.passed,
+            {"max_pairwise_content_cosine": unify_n_ov.max_narrative_to_bullet_idf_cosine, "verdict": unify_n_ov.verdict},
+            {"max_pairwise_cosine": 0.34},
+            None if unify_n_ov.passed else unify_n_ov.diagnostic_summary(section_id="unify_narrative"),
         )
-        add(cos_r.gate_id, cos_r.passed, cos_r.observed_value, cos_r.threshold, cos_r.failure_reason)
 
     # Gate: upstream graph proof required (WARN mode — Unify bullet graph_skill_node_ids currently fails on live runs)
     upstream_x2 = [

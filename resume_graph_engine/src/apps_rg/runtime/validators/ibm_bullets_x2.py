@@ -499,13 +499,27 @@ def run_ibm_bullets_x2_gates(
             fail_ib,
         )
 
-    from apps_rg.runtime.validators.narrative_quality_x2 import check_within_section_bullet_cosine_similarity
+    from apps_rg.runtime.quality.overlap_engine import evaluate_bullets_section_overlap
 
-    ibm_b_cos = check_within_section_bullet_cosine_similarity(
-        [str(b.get("bullet_text") or "") for b in (bullets or []) if isinstance(b, dict)],
-        max_pairwise_cosine=0.35,
+    ibm_ov = evaluate_bullets_section_overlap(
+        bullets or [],
+        section_id="ibm_bullets",
+        employer="ibm",
     )
-    add(ibm_b_cos.gate_id, ibm_b_cos.passed, ibm_b_cos.observed_value, ibm_b_cos.threshold, ibm_b_cos.failure_reason)
+    add(
+        "x2_overlap_engine",
+        ibm_ov.passed,
+        ibm_ov.to_dict(),
+        "zero repeated signature terms/figures; pairwise IDF/dense/3-gram similarity within bounds",
+        None if ibm_ov.passed else ibm_ov.diagnostic_summary(section_id="ibm_bullets"),
+    )
+    add(
+        "x2_within_section_bullet_cosine_similarity",
+        ibm_ov.passed,
+        {"max_pairwise_content_cosine": ibm_ov.max_within_section_idf_cosine, "verdict": ibm_ov.verdict},
+        {"max_pairwise_cosine": 0.34},
+        None if ibm_ov.passed else ibm_ov.diagnostic_summary(section_id="ibm_bullets"),
+    )
 
     append_section_input_usage_x2_gates(
         gates,

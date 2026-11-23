@@ -23,8 +23,20 @@ from apps_rg.runtime.contracts.prompt_validator_vocab_ssot import (
     NARRATIVE_STRONG_VERBS,
     NARRATIVE_WEAK_VERBS,
 )
+from apps_rg.runtime.quality.overlap_engine import (
+    compute_idf_cosine_similarity,
+    evaluate_bullets_section_overlap,
+    evaluate_exec_summary_section_overlap,
+    evaluate_narrative_section_overlap,
+)
+from apps_rg.runtime.quality.rare_term_lexicon import RareTermLexicon
+from apps_rg.runtime.quality.text_units import (
+    ENGLISH_GRAMMAR_STOPWORDS as _COSINE_STOPWORDS,
+    compute_reference_ngram_recall,
+    content_stem as _content_stem,
+    tokenize_text as _tokenize,
+)
 from apps_rg.runtime.validators.bullet_ngram_overlap_x2 import (
-    compute_max_ngram_overlap,
     compute_max_ngram_overlap_multi_reference,
 )
 
@@ -58,13 +70,6 @@ class NarrativeQualityResult:
     threshold: Any
     failure_reason: str | None
     signals: list[str]
-
-
-_TOKEN_RE = re.compile(r"[a-z0-9]+")
-
-
-def _tokenize(text: str) -> list[str]:
-    return _TOKEN_RE.findall(text.lower())
 
 
 def _first_word(text: str) -> str:
@@ -226,34 +231,12 @@ def check_narrative_e0_ngram_overlap(
     )
 
 
-_COSINE_STOPWORDS: frozenset[str] = frozenset(
-    {"a", "an", "and", "as", "at", "by", "for", "from", "in", "into", "of", "on", "or", "that", "the", "their", "to", "with", "across", "while", "over"}
-)
-_EXEMPT_STANDARD_NUMBERS: frozenset[str] = frozenset({"2", "239", "500"})
-
-
-def _content_stem(token: str) -> str:
-    for suffix in ("ing", "ed", "es", "s", "tion", "ment", "ly"):
-        if len(token) > len(suffix) + 3 and token.endswith(suffix):
-            return token[: -len(suffix)]
-    return token
-
-
 def compute_text_cosine_similarity(left: str, right: str, *, content_only: bool = True) -> float:
-    """Compute token-counter cosine similarity between two strings."""
-    left_raw, right_raw = _tokenize(str(left or "")), _tokenize(str(right or ""))
-    if content_only:
-        left_tokens = [_content_stem(t) for t in left_raw if t not in _COSINE_STOPWORDS and len(t) > 2]
-        right_tokens = [_content_stem(t) for t in right_raw if t not in _COSINE_STOPWORDS and len(t) > 2]
-    else:
-        left_tokens, right_tokens = left_raw, right_raw
-    if not left_tokens or not right_tokens:
-        return 0.0
-    left_counts, right_counts = Counter(left_tokens), Counter(right_tokens)
-    shared = set(left_counts) & set(right_counts)
-    num = sum(left_counts[k] * right_counts[k] for k in shared)
-    den = math.sqrt(sum(v * v for v in left_counts.values())) * math.sqrt(sum(v * v for v in right_counts.values()))
-    return round(num / den, 4) if den else 0.0
+    """Delegate cosine similarity to the shared Overlap Engine IDF cosine."""
+    _ = content_only
+    lex = RareTermLexicon.from_default_fact_inventory()
+    cos, _ = compute_idf_cosine_similarity(str(left or ""), str(right or ""), lex)
+    return cos
 
 
 def _extract_bullet_lines(bullet_texts: list[str] | str) -> list[str]:
@@ -265,106 +248,86 @@ def check_narrative_bullet_cosine_similarity(
     narrative_text: str,
     bullet_texts: list[str] | str,
     *,
-    max_pairwise_cosine: float = 0.42,
+    max_pairwise_cosine: float = 0.34,
     max_pool_cosine: float = 0.52,
     forbid_shared_opener: bool = False,
     forbid_repeated_metrics: bool = False,
     warn_only: bool = False,
 ) -> NarrativeQualityResult:
-    """Evaluate pairwise cosine similarity for each (narrative, bullet_i) combination."""
+    """Delegate narrative-to-bullet similarity and echo check to the shared Overlap Engine."""
+    _ = (max_pool_cosine, forbid_shared_opener, forbid_repeated_metrics)
     bullets = _extract_bullet_lines(bullet_texts)
     if not narrative_text or not bullets:
         return NarrativeQualityResult(
             gate_id="x2_narrative_bullet_cosine_similarity", passed=True,
             observed_value={"status": "no_companion_bullets", "pairs": []},
-            threshold=f"pairwise_cosine<={max_pairwise_cosine}, pool_cosine<={max_pool_cosine}",
+            threshold=f"pairwise_cosine<={max_pairwise_cosine}",
             failure_reason=None, signals=[],
         )
-    narr_opener = _first_word(narrative_text)
-    narr_numbers = {num for num in re.findall(r"\b\d+\b", narrative_text) if num not in _EXEMPT_STANDARD_NUMBERS}
-    pairs, opener_collisions, metric_collisions = [], [], []
-    max_content_cos, max_raw_cos = 0.0, 0.0
-    for idx, bullet in enumerate(bullets, start=1):
-        content_cos = compute_text_cosine_similarity(narrative_text, bullet, content_only=True)
-        raw_cos = compute_text_cosine_similarity(narrative_text, bullet, content_only=False)
-        same_opener = bool(narr_opener and narr_opener == _first_word(bullet))
-        bullet_numbers = {num for num in re.findall(r"\b\d+\b", bullet) if num not in _EXEMPT_STANDARD_NUMBERS}
-        shared_nums = sorted(narr_numbers & bullet_numbers)
-        if same_opener:
-            opener_collisions.append(f"bullet_{idx}:{narr_opener}")
-        if shared_nums:
-            metric_collisions.extend(f"bullet_{idx}:{n}" for n in shared_nums)
-        max_content_cos, max_raw_cos = max(max_content_cos, content_cos), max(max_raw_cos, raw_cos)
-        pairs.append({"bullet_index": idx, "content_cosine": content_cos, "raw_cosine": raw_cos, "same_opener_verb": same_opener, "shared_metric_numbers": shared_nums})
-    pool_content_cos = compute_text_cosine_similarity(narrative_text, " ".join(bullets), content_only=True)
-    pool_raw_cos = compute_text_cosine_similarity(narrative_text, " ".join(bullets), content_only=False)
-    issues: list[str] = []
-    if max_content_cos > max_pairwise_cosine:
-        issues.append(f"max_pairwise_cosine={max_content_cos:.4f}>{max_pairwise_cosine:.4f}")
-    if pool_content_cos > max_pool_cosine:
-        issues.append(f"pool_content_cosine={pool_content_cos:.4f}>{max_pool_cosine:.4f}")
-    if forbid_shared_opener and opener_collisions:
-        issues.append(f"shared_opener_verb={opener_collisions}")
-    if forbid_repeated_metrics and metric_collisions:
-        issues.append(f"repeated_bullet_metrics={metric_collisions}")
-    passed_gate = len(issues) == 0
+    rep = evaluate_narrative_section_overlap(narrative_text, bullets, section_id="role_narrative")
+    signals = [f.message for f in rep.findings]
+    passed_gate = rep.passed and rep.max_narrative_to_bullet_idf_cosine <= max_pairwise_cosine
     return NarrativeQualityResult(
-        gate_id="x2_narrative_bullet_cosine_similarity", passed=(passed_gate or warn_only),
-        observed_value={"max_pairwise_content_cosine": max_content_cos, "max_pairwise_raw_cosine": max_raw_cos, "pool_content_cosine": pool_content_cos, "pool_raw_cosine": pool_raw_cos, "opener_collisions": opener_collisions, "metric_collisions": metric_collisions, "pairs": pairs},
-        threshold={"max_pairwise_cosine": max_pairwise_cosine, "max_pool_cosine": max_pool_cosine, "forbid_shared_opener": forbid_shared_opener, "forbid_repeated_metrics": forbid_repeated_metrics},
-        failure_reason=None if passed_gate else f"Narrative-to-bullet cosine similarity or echo check failed ({'; '.join(issues)}).",
-        signals=issues if not passed_gate else [],
+        gate_id="x2_narrative_bullet_cosine_similarity",
+        passed=(passed_gate or warn_only),
+        observed_value={
+            "max_pairwise_content_cosine": rep.max_narrative_to_bullet_idf_cosine,
+            "repeated_signature_terms": dict(rep.repeated_signature_terms),
+            "repeated_numbers": dict(rep.repeated_numbers),
+            "verdict": rep.verdict,
+        },
+        threshold={"max_pairwise_cosine": max_pairwise_cosine},
+        failure_reason=None if passed_gate else rep.diagnostic_summary(),
+        signals=signals if not passed_gate else [],
     )
 
 
 def check_within_section_bullet_cosine_similarity(
-    bullet_texts: list[str] | str, *, max_pairwise_cosine: float = 0.35, warn_only: bool = False,
+    bullet_texts: list[str] | str, *, max_pairwise_cosine: float = 0.34, warn_only: bool = False,
 ) -> NarrativeQualityResult:
-    """Fail if any two bullets within the same section exceed max_pairwise_cosine."""
+    """Delegate within-section bullet similarity and repeat check to the shared Overlap Engine."""
     bullets = _extract_bullet_lines(bullet_texts)
-    pairs, issues, max_cos = [], [], 0.0
-    for i in range(len(bullets)):
-        for j in range(i + 1, len(bullets)):
-            cos = compute_text_cosine_similarity(bullets[i], bullets[j], content_only=True)
-            max_cos = max(max_cos, cos)
-            pairs.append({"bullet_a": i + 1, "bullet_b": j + 1, "content_cosine": cos})
-            if cos > max_pairwise_cosine:
-                issues.append(f"bullet_{i+1}_vs_bullet_{j+1}={cos:.4f}>{max_pairwise_cosine:.4f}")
-    passed_gate = len(issues) == 0
+    rep = evaluate_bullets_section_overlap(bullets, section_id="section_bullets")
+    signals = [f.message for f in rep.findings]
+    passed_gate = rep.passed and rep.max_within_section_idf_cosine <= max_pairwise_cosine
     return NarrativeQualityResult(
-        gate_id="x2_within_section_bullet_cosine_similarity", passed=(passed_gate or warn_only),
-        observed_value={"max_pairwise_content_cosine": max_cos, "pairs": pairs},
+        gate_id="x2_within_section_bullet_cosine_similarity",
+        passed=(passed_gate or warn_only),
+        observed_value={
+            "max_pairwise_content_cosine": rep.max_within_section_idf_cosine,
+            "repeated_signature_terms": dict(rep.repeated_signature_terms),
+            "repeated_numbers": dict(rep.repeated_numbers),
+            "verdict": rep.verdict,
+        },
         threshold={"max_pairwise_cosine": max_pairwise_cosine},
-        failure_reason=None if passed_gate else f"Within-section bullet cosine similarity failed ({'; '.join(issues)}).",
-        signals=issues if not passed_gate else [],
+        failure_reason=None if passed_gate else rep.diagnostic_summary(),
+        signals=signals if not passed_gate else [],
     )
 
 
 def check_exec_summary_bullet_cosine_similarity(
-    exec_text: str, bullet_texts: list[str] | str, *, max_pairwise_cosine: float = 0.35, max_internal_cosine: float = 0.35, warn_only: bool = False,
+    exec_text: str, bullet_texts: list[str] | str, *, max_pairwise_cosine: float = 0.35, max_internal_cosine: float = 0.34, warn_only: bool = False,
 ) -> NarrativeQualityResult:
-    """Check sentence-by-sentence cosine similarity within Executive Summary and against bullets."""
-    sents = [s.strip() for s in re.split(r"(?<=[.!?])\s+(?=[A-Z0-9])", str(exec_text or "").strip()) if s.strip()]
+    """Delegate Executive Summary internal and bullet similarity check to the shared Overlap Engine."""
     bullets = _extract_bullet_lines(bullet_texts)
-    issues, max_int_cos, max_bul_cos = [], 0.0, 0.0
-    for i in range(len(sents)):
-        for j in range(i + 1, len(sents)):
-            cos = compute_text_cosine_similarity(sents[i], sents[j], content_only=True)
-            max_int_cos = max(max_int_cos, cos)
-            if cos > max_internal_cosine:
-                issues.append(f"S{i+1}_vs_S{j+1}={cos:.4f}>{max_internal_cosine:.4f}")
-        for b_idx, bul in enumerate(bullets, start=1):
-            cos = compute_text_cosine_similarity(sents[i], bul, content_only=True)
-            max_bul_cos = max(max_bul_cos, cos)
-            if cos > max_pairwise_cosine:
-                issues.append(f"S{i+1}_vs_B{b_idx}={cos:.4f}>{max_pairwise_cosine:.4f}")
-    passed_gate = len(issues) == 0
+    rep = evaluate_exec_summary_section_overlap(exec_text, bullets)
+    signals = [f.message for f in rep.findings]
+    passed_gate = (
+        rep.passed
+        and rep.max_within_section_idf_cosine <= max_internal_cosine
+        and rep.max_cross_section_idf_cosine <= max_pairwise_cosine
+    )
     return NarrativeQualityResult(
-        gate_id="x2_exec_summary_bullet_cosine_similarity", passed=(passed_gate or warn_only),
-        observed_value={"max_internal_cosine": max_int_cos, "max_bullet_cosine": max_bul_cos, "issues": issues},
+        gate_id="x2_exec_summary_bullet_cosine_similarity",
+        passed=(passed_gate or warn_only),
+        observed_value={
+            "max_internal_cosine": rep.max_within_section_idf_cosine,
+            "max_bullet_cosine": rep.max_cross_section_idf_cosine,
+            "issues": signals,
+        },
         threshold={"max_pairwise_cosine": max_pairwise_cosine, "max_internal_cosine": max_internal_cosine},
-        failure_reason=None if passed_gate else f"Executive Summary cosine similarity failed ({'; '.join(issues)}).",
-        signals=issues if not passed_gate else [],
+        failure_reason=None if passed_gate else rep.diagnostic_summary(),
+        signals=signals if not passed_gate else [],
     )
 
 

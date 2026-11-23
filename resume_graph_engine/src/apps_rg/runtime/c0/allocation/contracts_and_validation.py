@@ -195,16 +195,29 @@ def _validate_assignment_uniqueness(assignments: Sequence[Mapping[str, Any]]) ->
         for row in visible
         if str(row.get("normalized_metric_signature") or "")
     )
+    fingerprint_counts = Counter(
+        str(tok)
+        for row in visible
+        for tok in (row.get("metric_fingerprint_tokens") or ())
+        if str(tok).strip()
+    )
     repeated_skills = sorted(key for key, count in skill_counts.items() if key and count > 1)
     repeated_metrics = sorted(key for key, count in metric_counts.items() if count > 1)
     repeated_signatures = sorted(key for key, count in signature_counts.items() if count > 1)
+    repeated_fingerprints = sorted(key for key, count in fingerprint_counts.items() if count > 1)
     return {
         "schema_version": "resume_graph_uniqueness_receipt_v1",
         "visible_assignment_count": len(visible),
         "repeated_skill_ids": repeated_skills,
         "repeated_metric_outcome_ids": repeated_metrics,
         "repeated_normalized_metric_signatures": repeated_signatures,
-        "pass": not repeated_skills and not repeated_metrics and not repeated_signatures,
+        "repeated_metric_fingerprint_tokens": repeated_fingerprints,
+        "pass": (
+            not repeated_skills
+            and not repeated_metrics
+            and not repeated_signatures
+            and not repeated_fingerprints
+        ),
     }
 
 

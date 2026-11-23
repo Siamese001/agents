@@ -38,6 +38,7 @@ from tools.lint_architecture_boundaries import check_layer_boundaries, run_archi
 from tools.lint_model_pins import audit_model_pins
 from tools.check_config_ssot_drift import analyze_drift
 from tools.lint_prompt_validator_vocab_symmetry import audit_prompt_validator_vocab_symmetry
+from tools.lint_apps_rg_domain_literals import audit_apps_rg_domain_literals
 from tools.lint_no_jd_overfitting import scan_files as scan_no_jd_overfitting
 from tools.change_lane_classifier import classify_paths as classify_change_paths
 from tools.audit_mock_reachability import _MockReachabilityVisitor, _PRODUCTION_ROOTS
@@ -371,6 +372,7 @@ def _run_ssot_drift_checks(
             errs.append(f"[Data SSOT Drift] data/{item}: UNALLOWLISTED")
 
     errs.extend(audit_prompt_validator_vocab_symmetry(repo_root))
+    errs.extend(audit_apps_rg_domain_literals(repo_root))
     return errs
 
 

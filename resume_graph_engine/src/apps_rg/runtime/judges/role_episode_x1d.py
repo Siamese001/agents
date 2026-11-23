@@ -7,6 +7,7 @@ from typing import Any
 
 from apps_rg.runtime.judges.executive_summary_x1d import JudgeOutput
 from apps_rg.runtime.judges.policy_backed_section_judges import run_policy_section_judges
+from apps_rg.runtime.quality.overlap_engine import SHARED_OVERLAP_DECISIVE_FAILURE_CLAUSE
 from apps_rg.runtime.sections.section_product_shape_ssot import NARRATIVE_MAX_CHARS, NARRATIVE_MAX_WORDS
 
 JUDGE_RUBRIC_VERSION = "role_episode_x1d_v2"
@@ -44,6 +45,7 @@ Decisive failure triggers:
 - practice-leadership-only narrative ("led this practice / oversaw advisory") or capability-only bullet that omits what was concretely built/delivered and its graph-backed business, commercial, or operational outcome
 - internal repo/codebase micro-plumbing specs ("119-package", "32 readiness gates", "six MCP servers", "SQLite WAL", "FTS5", "1024-d BGE-M3", "Dirichlet-Laplace", "Merkle-cached", "Universal Write Gateway", "Dual-Track Live Executive Copilot", "PCM audio spooler", "MLX Whisper", "8-surface System Learning") or stuttered duplicate stems ("regulated enterprise regulatory findings")
 - wrong output shape: unexpected bullet count or multiple sentences for narrative lanes
+{SHARED_OVERLAP_DECISIVE_FAILURE_CLAUSE}
 """.strip()
 
 

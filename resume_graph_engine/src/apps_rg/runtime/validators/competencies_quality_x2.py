@@ -183,11 +183,10 @@ class CompQualityResult:
 # Helpers
 # ---------------------------------------------------------------------------
 
-_TOKEN_RE = re.compile(r"[a-z0-9-]+")
-
-
-def _tokenize(text: str) -> list[str]:
-    return _TOKEN_RE.findall(text.lower())
+from apps_rg.runtime.quality.text_units import (
+    ENGLISH_GRAMMAR_STOPWORDS as _STOPWORDS_FOR_ALIGNMENT,
+    tokenize_text as _tokenize,
+)
 
 
 def _term_tokens(term_obj: Any) -> set[str]:
@@ -931,31 +930,6 @@ def _fact_reuse_penalty(
         return 0.0
     overage = max(0.0, dominant_share - SOURCE_FACT_CONCENTRATION_MAX_CATEGORY_SHARE)
     return round(min(0.2, overage), 4)
-
-
-_STOPWORDS_FOR_ALIGNMENT = frozenset({
-    "about",
-    "above",
-    "across",
-    "after",
-    "again",
-    "against",
-    "being",
-    "build",
-    "could",
-    "every",
-    "first",
-    "their",
-    "there",
-    "these",
-    "those",
-    "through",
-    "using",
-    "where",
-    "which",
-    "while",
-    "would",
-})
 
 
 def _rendered_competency_skill_ids(parsed_output: dict[str, Any] | None) -> list[str]:

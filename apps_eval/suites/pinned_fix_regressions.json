@@ -20,7 +20,9 @@
         "x2_v2_unverified_vendor_rejected",
         "blind_judge_omits_deterministic_gate_summary_and_bans_inanimate_openers",
         "ibm_narrative_never_injects_unsupported_aws_and_cli_trace_preserves_artifact_dir",
-        "evaluate_product_run_surfaces_specific_failure_reasons_and_real_x3"
+        "evaluate_product_run_surfaces_specific_failure_reasons_and_real_x3",
+        "overlap_engine_rejects_repeated_learned_signature_terms_and_numbers",
+        "c0_solver_blocks_intersecting_metric_fingerprints"
       ]
     },
     {

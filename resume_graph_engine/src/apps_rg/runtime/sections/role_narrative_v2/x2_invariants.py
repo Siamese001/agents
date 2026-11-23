@@ -6,12 +6,10 @@ import re
 from pathlib import Path
 from typing import Any
 
+from apps_rg.runtime.quality.overlap_engine import evaluate_narrative_section_overlap
 from apps_rg.runtime.section_repair_ledger import infer_product_quality_with_repair_ledger
 from apps_rg.runtime.sections.role_episode.x2_gates import run_role_episode_x2_gates
 from apps_rg.runtime.validators.ibm_narrative_x2 import run_ibm_narrative_x2_gates
-from apps_rg.runtime.validators.narrative_quality_x2 import (
-    _COSINE_STOPWORDS, _content_stem, _tokenize, check_narrative_bullet_cosine_similarity,
-)
 from apps_rg.runtime.validators.unify_narrative_x2 import run_unify_narrative_x2_gates
 from .evidence_firewall import sha16
 
@@ -36,25 +34,12 @@ def enrich_unify_narrative_parsed_for_x2(
 
 
 def cosine_echo_diagnostic_summary(narrative_text: str, companion_bullets_list: list[str] | str) -> str:
-    """Compute offending bullet index and shared content tokens for LLM-only cosine rewrite."""
+    """Compute offending bullet index and shared content tokens via the shared Overlap Engine."""
     bullets = companion_bullets_as_list(companion_bullets_list) if isinstance(companion_bullets_list, str) else list(companion_bullets_list or [])
     if not narrative_text or not bullets:
-        return "avoid echoing companion bullet vocabulary (target pairwise cosine <=0.3500)"
-    res = check_narrative_bullet_cosine_similarity(narrative_text, bullets, max_pairwise_cosine=0.35)
-    obs = res.observed_value if isinstance(res.observed_value, dict) else {}
-    pairs = list(obs.get("pairs") or [])
-    max_cos = float(obs.get("max_pairwise_content_cosine", obs.get("max_cosine", 0.0)) or 0.0)
-    best_pair = max(pairs, key=lambda p: float(p.get("content_cosine", 0.0) or 0.0), default={})
-    b_idx = int(best_pair.get("bullet_index", 1) or 1) - 1
-    if b_idx < 0 or b_idx >= len(bullets):
-        return f"max_cosine={max_cos:.4f} (threshold<=0.3500); replace shared bullet nouns/verbs with higher-order mandate synthesis"
-    offending_b = bullets[b_idx]
-    n_stems = {_content_stem(t) for t in _tokenize(narrative_text) if t not in _COSINE_STOPWORDS and len(t) > 2}
-    shared_words: list[str] = []
-    for tok in (t for t in _tokenize(offending_b) if t not in _COSINE_STOPWORDS and len(t) > 2):
-        if _content_stem(tok) in n_stems and tok not in shared_words:
-            shared_words.append(tok)
-    return f"max_cosine={max_cos:.4f} (threshold<=0.3500) against bullet_{b_idx + 1} (companion bullet #{b_idx + 1}: {offending_b[:110]!r}); shared_words={shared_words[:10]}"
+        return "avoid echoing companion bullet vocabulary (target pairwise cosine <=0.3400)"
+    report = evaluate_narrative_section_overlap(narrative_text, bullets, section_id="role_narrative")
+    return f"max_cosine={report.max_narrative_to_bullet_idf_cosine:.4f}; {report.diagnostic_summary()}"
 
 
 def infer_narrative_product_quality(

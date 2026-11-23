@@ -118,6 +118,7 @@ def allocate_candidate_sets(
     used_skills: set[str] = set()
     used_metrics: set[str] = set()
     used_signatures: set[str] = set()
+    used_fingerprint_tokens: Counter[str] = Counter()
     used_section_roots: dict[str, set[str]] = defaultdict(set)
     fact_counts: Counter[str] = Counter()
     family_counts: Counter[str] = Counter()
@@ -132,12 +133,34 @@ def allocate_candidate_sets(
         if slot.section_id.endswith("_bullets") and slot.employer_lane
     )
     quantified_roots_by_lane: dict[str, set[str]] = defaultdict(set)
+    root_fp_options_by_lane: dict[str, dict[str, list[frozenset[str]]]] = defaultdict(lambda: defaultdict(list))
     for slot in slots:
         if not slot.section_id.endswith("_bullets") or not slot.employer_lane:
             continue
         for row in eligible_by_slot[slot.slot_id]:
-            if row.get("metric_outcome_id") and is_quantified_metric_outcome_text(str(row.get("metric_text") or "")):
-                quantified_roots_by_lane[slot.employer_lane].add(str(row.get("root_id") or ""))
+            rid = str(row.get("root_id") or "")
+            mid = str(row.get("metric_outcome_id") or "")
+            if mid and is_quantified_metric_outcome_text(str(row.get("metric_text") or "")):
+                quantified_roots_by_lane[slot.employer_lane].add(rid)
+            if mid and rid:
+                fp_set = frozenset(row.get("metric_fingerprint_tokens") or ())
+                if fp_set:
+                    opts = root_fp_options_by_lane[slot.employer_lane][rid]
+                    if fp_set not in opts:
+                        opts.append(fp_set)
+    sole_fingerprints_by_lane: dict[str, set[str]] = defaultdict(set)
+    sole_fps_by_lane_root: dict[str, dict[str, frozenset[str]]] = defaultdict(dict)
+    multi_option_roots_by_lane: dict[str, set[str]] = defaultdict(set)
+    for lane, root_map in root_fp_options_by_lane.items():
+        for rid, fp_list in root_map.items():
+            if not fp_list:
+                continue
+            if len(fp_list) > 1:
+                multi_option_roots_by_lane[lane].add(rid)
+            common_tokens = frozenset(set(fp_list[0]).intersection(*fp_list[1:])) if fp_list else frozenset()
+            if common_tokens:
+                sole_fps_by_lane_root[lane][rid] = common_tokens
+                sole_fingerprints_by_lane[lane].update(common_tokens)
 
     _AWS_MIGRATION_EXEC_SUMMARY_ROOTS = frozenset({
         "reb_insurtech_aws_migration_execution", "reb_ibm_aws_modernization_architecture",
@@ -155,8 +178,11 @@ def allocate_candidate_sets(
         for row in eligible_by_slot[slot.slot_id]:
             visible = slot.counts_toward_global_uniqueness
             skill_id, metric_id, signature = str(row["skill_id"]), str(row.get("metric_outcome_id") or ""), str(row.get("normalized_metric_signature") or "")
+            fp_tokens = tuple(row.get("metric_fingerprint_tokens") or ())
             fact_key, family, root_id = _fact_reuse_key(row), str(row["source_family"]), str(row["root_id"])
             if (visible and skill_id in used_skills) or (visible and metric_id and metric_id in used_metrics) or (visible and signature and signature in used_signatures):
+                continue
+            if visible and fp_tokens and any(used_fingerprint_tokens[tok] > 0 for tok in fp_tokens):
                 continue
             if slot.section_id in distinct_root_sections and root_id and root_id in used_section_roots[slot.section_id]:
                 continue
@@ -182,6 +208,28 @@ def allocate_candidate_sets(
             (float(r.get("target_alignment_score") or 0.0) for r in rows if str(r.get("root_id") or "") not in exec_roots),
             default=0.0,
         )
+        lane_sole_fps = sole_fingerprints_by_lane.get(slot.employer_lane, set())
+        lane_root_sole_fps = sole_fps_by_lane_root.get(slot.employer_lane, {})
+        lane_multi_roots = multi_option_roots_by_lane.get(slot.employer_lane, set())
+
+        def _collides_with_other_root_sole_fp(r: Mapping[str, Any]) -> bool:
+            rid = str(r.get("root_id") or "")
+            r_fps = set(r.get("metric_fingerprint_tokens") or ())
+            if not r_fps:
+                return False
+            if slot.section_id == "executive_summary":
+                return bool(r_fps & lane_sole_fps)
+            if rid not in lane_multi_roots:
+                return False
+            own_req = set(lane_root_sole_fps.get(rid) or ())
+            extra_fps = r_fps - own_req
+            if not extra_fps:
+                return False
+            return any(
+                other_rid != rid and bool(extra_fps & other_fps)
+                for other_rid, other_fps in lane_root_sole_fps.items()
+            )
+
         rows.sort(
             key=lambda row: (
                 1 if (slot.section_id == "headline" and str(row.get("skill_id") or "") in {"skill_risk_three_lines_of_defense", "skill_p2_tech_adoption_derisking"}) else 0,
@@ -191,8 +239,14 @@ def allocate_candidate_sets(
                     and str(row.get("root_id") or "") in exec_roots
                     and not (
                         slot.section_id == "ibm_bullets"
-                        and float(row.get("target_alignment_score") or 0.0) >= max_non_exec_align + 0.9
+                        and str(row.get("root_id") or "") == "reb_ibm_aws_alliance_partner_cosell_gtm"
                     )
+                )
+                else 0,
+                1
+                if (
+                    (not slot.metric_required or str(row.get("root_id") or "") in lane_multi_roots)
+                    and _collides_with_other_root_sole_fp(row)
                 )
                 else 0,
                 0 if (
@@ -204,7 +258,19 @@ def allocate_candidate_sets(
                             or slot.section_id == "ibm_bullets"
                         )
                     )
-                    or (bool(row.get("metric_outcome_id")) and is_quantified_metric_outcome_text(str(row.get("metric_text") or "")))
+                    or (
+                        bool(row.get("metric_outcome_id"))
+                        and (
+                            is_quantified_metric_outcome_text(str(row.get("metric_text") or ""))
+                            or (slot.section_id == "ibm_bullets" and not slot.metric_required)
+                            or (slot.section_id == "executive_summary" and not slot.metric_required and bool(lane_sole_fps))
+                        )
+                    )
+                    or (
+                        slot.section_id == "executive_summary"
+                        and not slot.metric_required
+                        and bool(lane_sole_fps)
+                    )
                 ) else 1,
                 0 if is_bullet_section else fact_counts[_fact_reuse_key(row)],
                 *_candidate_sort_key(row),
@@ -232,6 +298,7 @@ def allocate_candidate_sets(
             skill_id = str(row["skill_id"])
             metric_id = str(row.get("metric_outcome_id") or "")
             signature = str(row.get("normalized_metric_signature") or "")
+            fp_tokens = tuple(row.get("metric_fingerprint_tokens") or ())
             fact_key = _fact_reuse_key(row)
             family = str(row["source_family"])
             root_id = str(row["root_id"])
@@ -244,6 +311,8 @@ def allocate_candidate_sets(
                     used_metrics.add(metric_id)
                 if signature:
                     used_signatures.add(signature)
+                for fp_tok in fp_tokens:
+                    used_fingerprint_tokens[fp_tok] += 1
                 fact_counts[fact_key] += 1
                 family_counts[family] += 1
             remaining_feasible = all(
@@ -261,6 +330,10 @@ def allocate_candidate_sets(
                     used_metrics.remove(metric_id)
                 if signature:
                     used_signatures.remove(signature)
+                for fp_tok in fp_tokens:
+                    used_fingerprint_tokens[fp_tok] -= 1
+                    if used_fingerprint_tokens[fp_tok] <= 0:
+                        del used_fingerprint_tokens[fp_tok]
                 fact_counts[fact_key] -= 1
                 family_counts[family] -= 1
             del chosen[slot.slot_id]

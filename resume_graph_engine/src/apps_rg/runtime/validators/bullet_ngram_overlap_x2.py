@@ -14,6 +14,10 @@ from pathlib import Path
 from typing import Any, Sequence
 
 from apps_rg.repository_layout import repository_root, resolve_apps_rg_path
+from apps_rg.runtime.quality.text_units import (
+    compute_reference_ngram_recall as compute_max_ngram_overlap,
+    tokenize_text as _tokenize,
+)
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -27,47 +31,12 @@ NGRAM_SIZE = 4  # Default n-gram window size (4-gram avoids false positives on s
 GATE_ID_BASE_RESUME = "x2_base_resume_ngram_overlap"
 GATE_ID_E0_EXAMPLE = "x2_e0_example_ngram_overlap"
 
-_TOKEN_RE = re.compile(r"[a-z0-9$'%]+")
-
-
-def _tokenize(text: str) -> list[str]:
-    """Lowercase word/token list from text."""
-    return _TOKEN_RE.findall(str(text or "").lower())
-
 
 def extract_ngrams(tokens: Sequence[str], n: int) -> set[tuple[str, ...]]:
     """All contiguous n-grams from a token sequence."""
     if len(tokens) < n:
         return set()
     return {tuple(tokens[i: i + n]) for i in range(len(tokens) - n + 1)}
-
-
-def compute_max_ngram_overlap(
-    generated_text: str,
-    reference_text: str,
-    n: int = NGRAM_SIZE,
-) -> float:
-    """Fraction of n-grams in generated_text that appear in reference_text.
-
-    Returns a value in [0.0, 1.0]. 0.0 means no overlap; 1.0 means all
-    n-grams from generated_text exist in reference_text.
-
-    Args:
-        generated_text: The bullet text output from the model.
-        reference_text: The reference corpus to test against (base resume bullets or E0 examples).
-        n: N-gram window size. Defaults to 4.
-
-    Returns:
-        Overlap fraction (generated n-grams found in reference / total generated n-grams).
-    """
-    gen_tokens = _tokenize(generated_text)
-    ref_tokens = _tokenize(reference_text)
-    gen_ngrams = extract_ngrams(gen_tokens, n)
-    if not gen_ngrams:
-        return 0.0
-    ref_ngrams = extract_ngrams(ref_tokens, n)
-    overlap = gen_ngrams & ref_ngrams
-    return len(overlap) / len(gen_ngrams)
 
 
 def compute_max_ngram_overlap_multi_reference(

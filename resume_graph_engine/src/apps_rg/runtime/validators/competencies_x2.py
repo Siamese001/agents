@@ -1313,6 +1313,19 @@ def run_competencies_x2_gates(
         )
         add(arch_r.gate_id, arch_r.passed, arch_r.observed_value, arch_r.threshold, arch_r.failure_reason)
 
+    from apps_rg.runtime.quality.overlap_engine import evaluate_competencies_section_overlap
+
+    comp_ov = evaluate_competencies_section_overlap(
+        competencies if isinstance(competencies, list) else [],
+    )
+    add(
+        "x2_overlap_engine",
+        comp_ov.passed,
+        comp_ov.to_dict(),
+        "zero duplicate signature terms or figures across competency items",
+        None if comp_ov.passed else comp_ov.diagnostic_summary(section_id="competencies"),
+    )
+
     from apps_rg.runtime.validators.allocation_jd_alignment_gate import append_allocation_jd_alignment_x2_gate
     append_allocation_jd_alignment_x2_gate(add, section_id="competencies", candidate_text=comp_text, jd_text=str(jd_text or ""), briefing_text=str(briefing_text or ""))
 
