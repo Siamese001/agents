@@ -1,4 +1,4 @@
-"""Stratified 48-item gold-corpus curator, zero-leakage blinding bundler, and offline review-sheet I/O."""
+"""Stratified 48-item gold-corpus curator, DIE Studio pool bundler, zero-leakage blinding bundler, and offline review-sheet I/O."""
 from __future__ import annotations
 
 import csv
@@ -10,6 +10,19 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 import yaml
+
+from apps_eval.graders.judge.blind_pool_deduplicator import (
+    VALID_NUANCE_PROFILES,
+    deduplicate_blind_candidates,
+    split_prompt_core_and_lineage,
+    validate_nuanced_answer_calibration_difficulty,
+    validate_query_input_quality,
+)
+from apps_eval.graders.judge.external_rubric_store import load_and_verify_external_rubric
+from apps_eval.graders.judge.frontier_rubric_contract import (
+    extract_sanitized_evidence_excerpts,
+    shuffle_pool_items_seeded,
+)
 
 RESUME_JUDGE_FAMILIES: tuple[str, ...] = (
     "headline",
@@ -47,6 +60,7 @@ FORBIDDEN_BLIND_KEYS: frozenset[str] = frozenset(
         "model_id",
         "is_repeat_anchor",
         "canonical_item_id",
+        "nuance_profile",
     }
 )
 
@@ -86,6 +100,8 @@ class GoldCandidateRecord:
     source_provenance: str = ""
     channel: str = "resume_section"
     recipient_class: str = "hiring_manager"
+    topic_family: str = ""
+    nuance_profile: str = "CALIBRATED_EXEMPLARY_WITH_REAL_CONSTRAINT_TENSION"
 
     def item_digest(self) -> str:
         return canonical_sha256(
@@ -98,6 +114,26 @@ class GoldCandidateRecord:
                 "allowed_facts": list(self.allowed_facts),
             }
         )
+
+    def source_evidence_excerpts(self) -> list[dict[str, str]]:
+        excerpts: list[dict[str, str]] = []
+        for idx, raw_fact in enumerate(self.allowed_facts, start=1):
+            fact_str = str(raw_fact).strip()
+            if ":" in fact_str:
+                src_prefix, body = fact_str.split(":", 1)
+                source_label = f"{self.engine}:{src_prefix.strip()}"
+                excerpt_body = body.strip()
+            else:
+                source_label = f"{self.engine}:fact_{idx:02d}"
+                excerpt_body = fact_str
+            excerpts.append(
+                {
+                    "evidence_id": f"EV-{idx:02d}",
+                    "source": source_label[:120],
+                    "excerpt": excerpt_body[:360],
+                }
+            )
+        return excerpts
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -113,6 +149,8 @@ class GoldCandidateRecord:
             "source_provenance": self.source_provenance,
             "channel": self.channel,
             "recipient_class": self.recipient_class,
+            "topic_family": self.topic_family or f"{self.engine}_{self.item_id}",
+            "nuance_profile": self.nuance_profile,
             "item_digest": self.item_digest(),
         }
 
@@ -131,6 +169,10 @@ class GoldCandidateRecord:
             source_provenance=str(data.get("source_provenance") or ""),
             channel=str(data.get("channel") or "resume_section"),
             recipient_class=str(data.get("recipient_class") or "hiring_manager"),
+            topic_family=str(data.get("topic_family") or ""),
+            nuance_profile=str(
+                data.get("nuance_profile") or "CALIBRATED_EXEMPLARY_WITH_REAL_CONSTRAINT_TENSION"
+            ),
         )
 
 
@@ -206,13 +248,14 @@ def write_gold_candidates_jsonl(records: Sequence[GoldCandidateRecord], path: Pa
 
 
 def validate_stratification(records: Sequence[GoldCandidateRecord], *, engine: str) -> list[str]:
-    """Validate 24-item balance (`8/8/8` tiers) and judge-family coverage for an engine gold set."""
+    """Validate 24-item balance (`8/8/8` tiers), query quality, nuanced differentiation, and 5-layer deduplication."""
     errors: list[str] = []
     if len(records) != 24:
         errors.append(f"{engine}: expected 24 gold candidates, found {len(records)}")
     tier_counts = {t: 0 for t in STRATA_TIERS}
     family_counts: dict[str, int] = {}
     seen_ids: set[str] = set()
+    dedup_inputs: list[dict[str, Any]] = []
     for r in records:
         if r.item_id in seen_ids:
             errors.append(f"{engine}: duplicate item_id {r.item_id!r}")
@@ -228,6 +271,33 @@ def validate_stratification(records: Sequence[GoldCandidateRecord], *, engine: s
             errors.append(f"{engine}: item {r.item_id} has empty candidate_text")
         if not r.allowed_facts:
             errors.append(f"{engine}: item {r.item_id} has empty allowed_facts")
+        if r.nuance_profile not in VALID_NUANCE_PROFILES:
+            errors.append(f"{engine}: item {r.item_id} has invalid nuance_profile {r.nuance_profile!r}")
+
+        excerpts = r.source_evidence_excerpts()
+        q_ok, q_reasons = validate_query_input_quality(r.target_context, excerpts)
+        if not q_ok:
+            errors.append(f"{engine}: item {r.item_id} failed query quality gate: {'; '.join(q_reasons)}")
+
+        a_ok, a_reasons = validate_nuanced_answer_calibration_difficulty(
+            r.candidate_text,
+            excerpts,
+            judge_surface=r.judge_family,
+            nuance_profile=r.nuance_profile,
+        )
+        if not a_ok:
+            errors.append(f"{engine}: item {r.item_id} failed nuanced answer gate: {'; '.join(a_reasons)}")
+
+        dedup_inputs.append(
+            {
+                "case_id": r.item_id,
+                "artifact_sha256": r.item_digest(),
+                "topic_family": r.topic_family or f"{r.engine}_{r.item_id}",
+                "prompt_text": r.target_context,
+                "core_answer_text": r.candidate_text,
+            }
+        )
+
     for tier, cnt in tier_counts.items():
         if cnt != 8:
             errors.append(f"{engine}: tier {tier!r} has {cnt} items (expected 8)")
@@ -239,11 +309,84 @@ def validate_stratification(records: Sequence[GoldCandidateRecord], *, engine: s
         for surf in OUTREACH_JUDGE_SURFACES:
             if family_counts.get(surf, 0) < 8:
                 errors.append(f"outreach_engine: judge surface {surf!r} has {family_counts.get(surf, 0)} items (expected >= 8)")
+
+    kept, stats = deduplicate_blind_candidates(
+        dedup_inputs,
+        max_prompt_jaccard=0.40,
+        max_body_jaccard=0.35,
+    )
+    if len(kept) != len(records):
+        errors.append(
+            f"{engine}: 5-layer deduplicator kept {len(kept)}/{len(records)} items (stats={stats})"
+        )
     return errors
 
 
 def _hmac_key(secret_seed: str, label: str) -> str:
     return hmac.new(secret_seed.encode("utf-8"), label.encode("utf-8"), hashlib.sha256).hexdigest()
+
+
+def build_studio_blind_pool_dict(
+    records: Sequence[GoldCandidateRecord],
+    *,
+    engine: str,
+    partition: str = "dev",
+    presentation_seed: int = 20260417,
+    repo_root: Path | str | None = None,
+) -> dict[str, Any]:
+    """Build DIE-compatible Studio pool JSON payload (`ide-judge-blind-sample-pool:1.2.0`) with zero leakage."""
+    root = Path(repo_root).resolve() if repo_root is not None else Path(__file__).resolve().parents[3]
+    rubric_path = root / "config" / "governance" / "external_judge_rubric_v1.json"
+    rubric_payload = load_and_verify_external_rubric(rubric_path)
+    rubric_sha = str(rubric_payload["rubric_sha256"])
+    raw_items: list[dict[str, Any]] = []
+    for r in records:
+        prompt_text, core_body, lineage_footer = split_prompt_core_and_lineage(
+            r.candidate_text,
+            explicit_prompt=r.target_context,
+        )
+        excerpts, ev_sha = extract_sanitized_evidence_excerpts(r.source_evidence_excerpts())
+        lineage_text = lineage_footer or (
+            f"### Evidence & Graph Lineage\n"
+            f"- Engine: `{r.engine}` | Surface: `{r.judge_family}` | Channel: `{r.channel}` | Recipient: `{r.recipient_class}`\n"
+            f"- Evidence Context Digest: `{ev_sha[:16]}` ({len(excerpts)} governed facts)"
+        )
+        raw_items.append(
+            {
+                "case_id": r.item_id,
+                "judge_surface": f"{r.engine}:{r.judge_family}",
+                "partition": partition,
+                "topic_family": r.topic_family or f"{r.engine}_{r.item_id}",
+                "prompt_text": prompt_text,
+                "core_answer_text": core_body,
+                "lineage_footer_text": lineage_text,
+                "source_evidence_excerpts": excerpts,
+                "evidence_context_sha256": ev_sha,
+                "artifact_sha256": r.item_digest(),
+                "blinded_text": core_body,
+            }
+        )
+    deduped, dedup_stats = deduplicate_blind_candidates(
+        raw_items,
+        max_prompt_jaccard=0.40,
+        max_body_jaccard=0.35,
+    )
+    shuffled = shuffle_pool_items_seeded(deduped, seed=presentation_seed)
+    for item in shuffled:
+        leaked = set(item.keys()) & FORBIDDEN_BLIND_KEYS
+        if leaked:
+            raise ValueError(f"Studio pool item {item.get('case_id')} leaked forbidden keys: {sorted(leaked)}")
+    return {
+        "schema_version": "ide-judge-blind-sample-pool:1.2.0",
+        "external_rubric_id": str(rubric_payload["rubric_id"]),
+        "external_rubric_sha256": rubric_sha,
+        "judge_surface": engine,
+        "partition": partition,
+        "presentation_seed": presentation_seed,
+        "deduplication_stats": dedup_stats,
+        "sample_count": len(shuffled),
+        "items": shuffled,
+    }
 
 
 def build_blind_grading_packet(
@@ -259,7 +402,6 @@ def build_blind_grading_packet(
     rubric_id = str(rubric_doc["rubric_id"])
 
     entries: list[tuple[str, GoldCandidateRecord, bool]] = []
-    # Pick `repeat_count` stratified repeat anchors (one per tier where possible)
     by_tier: dict[str, list[GoldCandidateRecord]] = {t: [] for t in STRATA_TIERS}
     for r in records:
         entries.append((f"orig::{r.item_id}", r, False))
@@ -453,6 +595,7 @@ __all__ = [
     "RESUME_JUDGE_FAMILIES",
     "STRATA_TIERS",
     "build_blind_grading_packet",
+    "build_studio_blind_pool_dict",
     "canonical_sha256",
     "export_blind_review_sheet_csv",
     "import_blind_review_sheet_csv",

@@ -11,7 +11,14 @@ from typing import Any, Mapping, Sequence
 import yaml
 
 from apps_eval.graders.judge.calibration import compute_brier_and_ece, compute_cohens_kappa
+from apps_eval.graders.judge.frontier_calibration_stats import (
+    classify_cohort_power,
+    compute_ppi_calibrated_pass_rate,
+    compute_rogan_gladen_prevalence,
+    compute_tpr_tnr_balanced_accuracy,
+)
 from apps_eval.graders.judge.gold_corpus import canonical_sha256, load_external_stakeholder_rubric
+from apps_eval.graders.judge.ide_judge_drift_evaluator import compute_quadratic_weighted_kappa
 
 IDE_JUDGE_DRIFT_RECEIPT_SCHEMA_VERSION = "apps_eval.ide_judge_drift_receipt.v1"
 
@@ -139,6 +146,14 @@ class ModelDriftEvaluation:
     passed: bool
     root_cause_codes: tuple[str, ...] = ()
     violations: tuple[str, ...] = ()
+    weighted_quadratic_kappa: float = 0.0
+    tpr: float = 0.0
+    tnr: float = 0.0
+    balanced_accuracy: float = 0.0
+    rogan_gladen_pass_rate: float = 0.0
+    rogan_gladen_ci_95: tuple[float, float] = (0.0, 0.0)
+    ppi_pass_rate: float = 0.0
+    cohort_power_tier: str = "UNDERPOWERED_PILOT"
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -147,9 +162,17 @@ class ModelDriftEvaluation:
             "model_base": self.model_base,
             "sample_size": self.sample_size,
             "cohens_kappa": round(self.cohens_kappa, 4),
+            "weighted_quadratic_kappa": round(self.weighted_quadratic_kappa, 4),
             "spearman_rho": round(self.spearman_rho, 4),
             "brier_score": round(self.brier_score, 4),
             "ece": round(self.ece, 4),
+            "tpr": round(self.tpr, 4),
+            "tnr": round(self.tnr, 4),
+            "balanced_accuracy": round(self.balanced_accuracy, 4),
+            "rogan_gladen_pass_rate": round(self.rogan_gladen_pass_rate, 4),
+            "rogan_gladen_ci_95": [round(self.rogan_gladen_ci_95[0], 4), round(self.rogan_gladen_ci_95[1], 4)],
+            "ppi_pass_rate": round(self.ppi_pass_rate, 4),
+            "cohort_power_tier": self.cohort_power_tier,
             "hard_fail_count": self.hard_fail_count,
             "hard_fail_false_passes": self.hard_fail_false_passes,
             "verdict_flip_rate": round(self.verdict_flip_rate, 4) if self.verdict_flip_rate is not None else None,
@@ -224,6 +247,17 @@ def evaluate_model_drift(
                 hard_fail_fp += 1
 
     kappa = round(compute_cohens_kappa(y_true, y_pred), 4)
+    h_bins = [max(1, min(5, int(round(s)))) for s in h_scores]
+    j_bins = [max(1, min(5, int(round(s)))) for s in j_scores]
+    w_kappa = compute_quadratic_weighted_kappa(h_bins, j_bins)
+    h_v_strs = ["PASS" if y == 1 else "FAIL" for y in y_true]
+    j_v_strs = ["PASS" if y == 1 else "FAIL" for y in y_pred]
+    cm = compute_tpr_tnr_balanced_accuracy(h_v_strs, j_v_strs)
+    q_obs = sum(y_pred) / float(len(y_pred))
+    rg = compute_rogan_gladen_prevalence(
+        q_obs, cm["tpr"], cm["tnr"], human_verdicts=h_v_strs, judge_verdicts=j_v_strs
+    )
+    ppi = compute_ppi_calibrated_pass_rate(h_v_strs, j_v_strs)
     rho = compute_spearman_rho(h_scores, j_scores)
     brier, ece = compute_brier_and_ece(y_true, j_probs)
 
@@ -289,6 +323,14 @@ def evaluate_model_drift(
         passed=len(violations) == 0,
         root_cause_codes=tuple(sorted(set(causes))),
         violations=tuple(violations),
+        weighted_quadratic_kappa=w_kappa,
+        tpr=cm["tpr"],
+        tnr=cm["tnr"],
+        balanced_accuracy=cm["balanced_accuracy"],
+        rogan_gladen_pass_rate=rg["corrected_pass_rate"],
+        rogan_gladen_ci_95=(rg["ci_95"][0], rg["ci_95"][1]),
+        ppi_pass_rate=ppi["ppi_pass_rate"],
+        cohort_power_tier=classify_cohort_power(len(common_ids)),
     )
 
 

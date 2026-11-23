@@ -249,6 +249,53 @@ def audit_multi_ssot_judge_gate_drift(repo_root: Path) -> dict[str, Any]:
     for e in v6_errs:
         violations.append({"vector": "V6_FLYWHEEL_HITL_REMEDIATION_PARITY", "message": e})
 
+    # Vector 7: External-Rubric Human Calibration, Nuanced Gold Corpus & Drift Receipt Parity (DIE Parity).
+    v7_errs: list[str] = []
+    try:
+        from apps_eval.graders.judge.external_rubric_store import (
+            DEFAULT_EXTERNAL_RUBRIC_REL_PATH,
+            DEFAULT_HUMAN_GOLD_STORE_REL_PATH,
+            ExternalRubricHumanStore,
+            load_and_verify_external_rubric,
+        )
+        from apps_eval.graders.judge.gold_corpus import load_gold_candidates_jsonl, validate_stratification
+        from apps_eval.graders.judge.ide_judge_drift_evaluator import verify_drift_receipt_digest
+
+        rubric_path = root / DEFAULT_EXTERNAL_RUBRIC_REL_PATH
+        rubric = load_and_verify_external_rubric(rubric_path)
+        rubric_sha = str(rubric["rubric_sha256"])
+
+        store_path = root / DEFAULT_HUMAN_GOLD_STORE_REL_PATH
+        if store_path.is_file():
+            ExternalRubricHumanStore(store_path=store_path, rubric_path=rubric_path).load_records()
+
+        rg_gold_path = root / "data" / "judge_calibration" / "resume_gold_candidates.v1.jsonl"
+        lic_gold_path = root / "data" / "judge_calibration" / "outreach_gold_candidates.v1.jsonl"
+        if not rg_gold_path.is_file() or not lic_gold_path.is_file():
+            v7_errs.append("missing_curated_48_item_gold_corpora")
+        else:
+            rg_errs = validate_stratification(load_gold_candidates_jsonl(rg_gold_path), engine="resume_engine")
+            lic_errs = validate_stratification(load_gold_candidates_jsonl(lic_gold_path), engine="outreach_engine")
+            v7_errs.extend(rg_errs)
+            v7_errs.extend(lic_errs)
+
+        rep_dir = root / "reports" / "ide_judge_calibration"
+        if rep_dir.is_dir():
+            for r_path in sorted(rep_dir.glob("*_drift_receipt.json")):
+                raw_obj = json.loads(r_path.read_text(encoding="utf-8"))
+                if not verify_drift_receipt_digest(raw_obj):
+                    v7_errs.append(f"tampered_drift_receipt_digest:{r_path.name}")
+                elif str(raw_obj.get("external_rubric_sha256") or "") != rubric_sha:
+                    v7_errs.append(f"drift_receipt_rubric_sha256_mismatch:{r_path.name}")
+                elif bool(raw_obj.get("drift_detected")) or not bool(raw_obj.get("passed", False)):
+                    v7_errs.append(f"unresolved_ide_judge_drift_receipt:{r_path.name}")
+    except Exception as exc:  # guardian: allow-broad-exception -- fail closed on V7 external rubric or gold corpus audit error
+        v7_errs.append(f"external_rubric_human_drift_audit_error:{exc}")
+
+    vectors["V7_EXTERNAL_RUBRIC_HUMAN_DRIFT"] = "PASS" if not v7_errs else "FAIL"
+    for e in v7_errs:
+        violations.append({"vector": "V7_EXTERNAL_RUBRIC_HUMAN_DRIFT", "message": e})
+
     return {
         "schema_version": "agents.multi_ssot_judge_gate_drift.v1",
         "status": "PASS" if not violations else "FAIL",

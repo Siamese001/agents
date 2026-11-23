@@ -196,3 +196,12 @@ def test_e2e_stale_receipt_and_unqualified_backup_pin_block_promotion_gate(tmp_p
     assert pg_res.passed is False
     assert pg_res.checks.get("ide_judge_drift") is False
     assert any("DRIFT_RECEIPT_STALE" in r for r in pg_res.blocking_reasons)
+
+
+def test_e2e_vector_7_multi_ssot_judge_gate_drift_audit_passes() -> None:
+    from tools.audit_multi_ssot_judge_gate_drift import audit_multi_ssot_judge_gate_drift
+
+    report = audit_multi_ssot_judge_gate_drift(REPO_ROOT)
+    assert report["status"] == "PASS", report["violations"]
+    assert report["vectors"].get("V7_EXTERNAL_RUBRIC_HUMAN_DRIFT") == "PASS"
+
