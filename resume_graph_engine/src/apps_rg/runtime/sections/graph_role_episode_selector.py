@@ -318,6 +318,8 @@ def _caps_for(*, section_id: str, weight: float) -> tuple[int, int, str]:
     band = _weight_band(weight)
     caps = _CAPS_BY_BAND.get(section_id) or _CAPS_BY_BAND["executive_summary"]
     skill_cap, metric_cap = caps[band]
+    if section_id == "ibm_bullets":
+        skill_cap = max(skill_cap, 7 if band == "primary" else 5)
     return skill_cap, metric_cap, band
 
 
@@ -942,6 +944,8 @@ def build_selected_graph_evidence_plan_for_section(
     )
     unify_slot_bundle_map: dict[str, str] = {}
     required_unify_root_ids: set[str] = set()
+    ibm_slot_bundle_map: dict[str, str] = {}
+    required_ibm_root_ids: set[str] = set()
     if section_id == "unify_bullets":
         from apps_rg.runtime.sections.unify_role_episode_evidence import (
             resolve_unify_bullet_slot_bundle_map_with_fallback,
@@ -954,6 +958,20 @@ def build_selected_graph_evidence_plan_for_section(
         required_unify_root_ids = {
             str(root_id).strip()
             for root_id in unify_slot_bundle_map.values()
+            if str(root_id).strip()
+        }
+    elif section_id == "ibm_bullets":
+        from apps_rg.runtime.sections.ibm_role_episode_evidence import (
+            resolve_ibm_bullet_slot_bundle_map_with_fallback,
+        )
+
+        ibm_slot_bundle_map = resolve_ibm_bullet_slot_bundle_map_with_fallback(
+            target_role_profile,
+            repo_root=repo_root,
+        )
+        required_ibm_root_ids = {
+            str(root_id).strip()
+            for root_id in ibm_slot_bundle_map.values()
             if str(root_id).strip()
         }
     target_blob = f"{target_role}\n{jd_text}\n{briefing_text}"
@@ -1607,6 +1625,7 @@ def build_selected_graph_evidence_plan_for_section(
         "target_role_profile": target_role_profile,
         "role_family_key": target_role_profile,
         "unify_bullet_slot_bundle_map_resolved": unify_slot_bundle_map,
+        "ibm_bullet_slot_bundle_map_resolved": ibm_slot_bundle_map,
         "graph_weight_profile": {
             "profile": target_role_profile,
             "employer_weights": employer_weights,

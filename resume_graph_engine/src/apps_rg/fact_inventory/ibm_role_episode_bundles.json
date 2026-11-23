@@ -602,6 +602,97 @@
       ],
       "quarantine_reason": "Unverified synthetic count/percentage ('14 blueprints', '60% release cycle acceleration') absent from base resume and verified fact ledger.",
       "provenance_source_refs": []
+    },
+    "metric_ibm_reusable_aws_partner_blueprints": {
+      "metric_outcome_id": "metric_ibm_reusable_aws_partner_blueprints",
+      "metric": "BCBS 239-aligned AWS partner solution blueprints and reusable migration accelerators sustaining 99.9% production uptime across regulated banking and insurance accounts",
+      "metric_type": "offering_reuse_metric",
+      "employer": "IBM",
+      "approved": true,
+      "approval_status": "APPROVED_GRAPH_SSOT",
+      "support_level": "verified_base_resume",
+      "bundle_bindings": [
+        "reb_ibm_offering_accelerator_management"
+      ],
+      "claim_text": "Packaged BCBS 239-aligned AWS partner solution blueprints and reusable migration accelerators sustaining 99.9% production uptime across regulated banking and insurance institutions.",
+      "surface_tokens": [
+        "99.9% production uptime",
+        "BCBS 239-aligned AWS partner solution blueprints",
+        "reusable migration accelerators"
+      ],
+      "section_eligibility": [
+        "ibm_bullets",
+        "ibm_narrative",
+        "competencies",
+        "headline",
+        "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_ibm_001",
+        "bul_ibm_001",
+        "fact_partnerships_gtm_002"
+      ]
+    },
+    "metric_ibm_aws_streaming_partner_pipelines": {
+      "metric_outcome_id": "metric_ibm_aws_streaming_partner_pipelines",
+      "metric": "near-real-time AWS streaming analytics and partner data-provider co-sell ecosystems across 3 regulated banking business units",
+      "metric_type": "partner_ecosystem_metric",
+      "employer": "IBM",
+      "approved": true,
+      "approval_status": "APPROVED_GRAPH_SSOT",
+      "support_level": "verified_operator_confirmed",
+      "bundle_bindings": [
+        "reb_ibm_offering_accelerator_management"
+      ],
+      "claim_text": "Launched near-real-time AWS streaming analytics and partner data-provider co-sell ecosystems across 3 regulated banking business units.",
+      "surface_tokens": [
+        "3 regulated banking business units",
+        "3 banking business units",
+        "near-real-time AWS streaming analytics",
+        "partner data-provider co-sell ecosystems"
+      ],
+      "section_eligibility": [
+        "ibm_bullets",
+        "ibm_narrative",
+        "competencies",
+        "headline",
+        "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_ibm_001",
+        "fact_data_analytics_001",
+        "fact_data_analytics_002",
+        "fact_partnerships_gtm_002"
+      ]
+    },
+    "metric_ibm_executive_workshop_adoption_cadence": {
+      "metric_outcome_id": "metric_ibm_executive_workshop_adoption_cadence",
+      "metric": "executive AWS partner architecture workshops and adoption-readiness governance across a 20-member distributed global team spanning EMEA, APAC, and North America",
+      "metric_type": "customer_success_metric",
+      "employer": "IBM",
+      "approved": true,
+      "approval_status": "APPROVED_GRAPH_SSOT",
+      "support_level": "verified_operator_confirmed",
+      "bundle_bindings": [
+        "reb_ibm_customer_success_value_realization"
+      ],
+      "claim_text": "Led executive AWS partner architecture workshops and post-sales adoption-readiness governance across a 20-member distributed global team spanning EMEA, APAC, and North America.",
+      "surface_tokens": [
+        "20-member distributed global team",
+        "executive AWS partner architecture workshops",
+        "adoption-readiness governance"
+      ],
+      "section_eligibility": [
+        "ibm_bullets",
+        "ibm_narrative",
+        "competencies",
+        "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_ibm_001",
+        "fact_sales_accounts_003",
+        "fact_data_analytics_001"
+      ]
     }
   },
   "approved_metric_outcome_ids": {
@@ -615,7 +706,10 @@
     "metric_ibm_modeling_delivery_cost_assumption_traceability": "traceable M&A technology-integration synergy and risk-model consolidation across a $1B regulated financial portfolio",
     "metric_ibm_20pct_joint_revenue_growth": "20% joint revenue growth across the IBM-AWS regulated financial-services alliance portfolio",
     "metric_ibm_ai_driven_sales_frameworks": "AI-driven Salesforce account-scoring and cloud GTM frameworks driving 20% joint alliance revenue growth and $10M in new ARR",
-    "metric_ibm_release_gate_security_scanning_coverage": "100% automated CI/CD security release-gate scanning across regulated banking pipelines (sustaining 99.9% production uptime)"
+    "metric_ibm_release_gate_security_scanning_coverage": "100% automated CI/CD security release-gate scanning across regulated banking pipelines (sustaining 99.9% production uptime)",
+    "metric_ibm_reusable_aws_partner_blueprints": "BCBS 239-aligned AWS partner solution blueprints and reusable migration accelerators sustaining 99.9% production uptime across regulated banking and insurance accounts",
+    "metric_ibm_aws_streaming_partner_pipelines": "near-real-time AWS streaming analytics and partner data-provider co-sell ecosystems across 3 regulated banking business units",
+    "metric_ibm_executive_workshop_adoption_cadence": "executive AWS partner architecture workshops and adoption-readiness governance across a 20-member distributed global team spanning EMEA, APAC, and North America"
   },
   "excluded_metrics_by_policy": [
     {
@@ -718,7 +812,8 @@
       "graph_skill_node_ids": [
         "skill_risk_greek_stress_testing",
         "skill_sr_cloud_data_platform_engineering",
-        "skill_sr_regulated_financial_institutions_fluency"
+        "skill_sr_regulated_financial_institutions_fluency",
+        "skill_algo_trading_sub_ms_inference"
       ],
       "linked_source_fact_ids": [
         "fact_quant_hpc_001",
@@ -756,27 +851,30 @@
       "title": "Lead Client Partner",
       "employer_node_id": "employment_exp_ibm_001",
       "root_capability_node_id": "presales_solution_engineering",
-      "bundle_theme": "Technical pre-sales solution engineering and buyer-specific architecture mapping",
-      "claim_text": "Led technical discovery and solution mapping for enterprise financial-services pursuits",
-      "claim_action": "Led technical discovery and solution mapping for enterprise financial-services pursuits",
-      "claim_scope": "IBM pre-sales solution engineering and technical discovery engagements across banking and insurance enterprise accounts.",
-      "claim_outcome": "Surface the slot's allocated verified graph metric_outcome_id (e.g., discovery-to-architecture handoffs across a 20-member global team or C-suite alignments driving $10M net-new revenue) paired with commercial-technical leadership.",
+      "bundle_theme": "AWS Partner pre-sales solution engineering, executive architecture workshops, and commercial pilot ROI validation",
+      "claim_text": "Led AWS Partner pre-sales solution engineering, executive architecture workshops, and commercial pilot validation across global financial-services pursuits",
+      "claim_action": "Led AWS Partner pre-sales solution engineering, executive architecture workshops, and commercial pilot validation across global financial-services pursuits",
+      "claim_scope": "IBM pre-sales solution engineering, AWS Partner executive workshops, and technical discovery engagements across global banking and insurance accounts.",
+      "claim_outcome": "Surface the slot's allocated verified graph metric_outcome_id (e.g., technical discovery-to-architecture handoffs across a 20-member distributed global team or C-suite architecture alignments driving $10M in net-new revenue).",
       "support_level": "verified_base_resume",
       "executive_scope_signals": [
-        "Led technical discovery and solution mapping for enterprise financial-services pursuits",
-        "Converted buyer pain points into architecture-backed solution narratives, demos, and delivery handoffs"
+        "Led AWS Partner pre-sales solution engineering, executive architecture workshops, and commercial pilot validation across global financial-services pursuits",
+        "Converted C-suite buyer requirements into architecture-backed AWS modernization roadmaps, proof-of-value pilots, and delivery handoffs"
       ],
       "architecture_scope_signals": [
-        "Discovery-to-solution mapping across cloud, data, and AI modernization opportunities",
-        "Executive buyer alignment using architecture tradeoffs and quantified implementation assumptions",
-        "Pre-sales handoff packages joining target architecture, delivery scope, and adoption path"
+        "Technical discovery-to-solution architecture mapping across AWS cloud, data platform, and predictive ML modernization pursuits",
+        "Executive architecture workshops and commercial validation pilots aligning C-suite buyers on ROI and regulatory tradeoffs",
+        "Pre-sales handoff packages joining target AWS reference architecture, delivery scope, and multi-region adoption path"
       ],
       "graph_skill_node_ids": [
         "skill_p2_gtm_discovery_qualification",
         "skill_p2_gtm_solution_mapping",
         "skill_p2_gtm_executive_buyer_alignment",
         "skill_partner_pre_sales",
-        "skill_sr_regulated_financial_institutions_fluency"
+        "skill_sr_regulated_financial_institutions_fluency",
+        "skill_partner_workshops",
+        "skill_p2_gtm_commercial_validation_pilots",
+        "skill_partner_solution_architecture"
       ],
       "linked_source_fact_ids": [
         "fact_revenue_ops_001",
@@ -812,27 +910,29 @@
       "title": "Lead Client Partner",
       "employer_node_id": "employment_exp_ibm_001",
       "root_capability_node_id": "offering_accelerator_management",
-      "bundle_theme": "Offering management and reusable accelerator packaging",
-      "claim_text": "Directed offering accelerator management, scaling repeatable cloud and AI solution blueprints across regulated financial and insurance institutions",
-      "claim_action": "Directed offering accelerator management, scaling repeatable cloud and AI solution blueprints across regulated financial and insurance institutions",
-      "claim_scope": "IBM offering accelerator portfolio anchored by repeatable cloud, data, and AI assets deployed across banking and insurance client engagements.",
-      "claim_outcome": "Frame as reusable cloud and AI solution accelerator packaging across regulated financial pursuits using verified facts only.",
+      "bundle_theme": "AWS Partner offering management, reusable migration accelerators, and streaming data co-sell blueprints",
+      "claim_text": "Directed AWS Partner offering and accelerator management, packaging reusable cloud migration blueprints and streaming analytics ecosystems across regulated banking and insurance institutions",
+      "claim_action": "Directed AWS Partner offering and accelerator management, packaging reusable cloud migration blueprints and streaming analytics ecosystems across regulated banking and insurance institutions",
+      "claim_scope": "IBM-AWS partner offering accelerator portfolio anchored by reusable BCBS 239-aligned cloud blueprints, AWS streaming microservices, and partner data-provider ecosystems across banking and insurance engagements.",
+      "claim_outcome": "Surface the slot's allocated verified graph metric_outcome_id (e.g., BCBS 239-aligned AWS partner solution blueprints sustaining 99.9% production uptime or near-real-time AWS streaming analytics across 3 banking business units).",
       "support_level": "verified_base_resume",
       "executive_scope_signals": [
-        "Directed offering accelerator management, scaling repeatable cloud and AI solution blueprints across regulated banking and insurance institutions",
-        "Packaged reusable reference architectures and migration assets into market-facing delivery accelerators"
+        "Directed AWS Partner offering and accelerator management, packaging reusable cloud migration blueprints and streaming analytics ecosystems across regulated banking and insurance institutions",
+        "Co-developed repeatable AWS reference architectures and partner data-provider solution packages for financial-services modernization"
       ],
       "architecture_scope_signals": [
-        "Reusable accelerator packaging for reference architectures, demos, and implementation playbooks",
-        "Offering artifact governance across architecture assumptions, scope boundaries, and adoption risks",
-        "Cloud portfolio anchor points for repeatable financial-services modernization offers"
+        "Reusable AWS Partner accelerator packaging for BCBS 239-aligned reference architectures and migration playbooks",
+        "Near-real-time AWS streaming microservices and partner data-provider ingestion blueprints across banking business units",
+        "Offering artifact governance across architecture assumptions, regulatory scope boundaries, and adoption risk controls"
       ],
       "graph_skill_node_ids": [
         "skill_p2_tech_demoable_accelerator",
         "skill_p2_tech_reusable_accelerators",
         "skill_p2_tech_ibm_cloud_portfolio_anchor",
         "skill_sr_w12_industry_reference_architecture",
-        "skill_sr_regulated_financial_institutions_fluency"
+        "skill_sr_regulated_financial_institutions_fluency",
+        "skill_partner_aws_ecosystem",
+        "skill_partner_cloud_partner_ecosystem"
       ],
       "linked_source_fact_ids": [
         "fact_partnerships_gtm_002",
@@ -842,7 +942,9 @@
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
         "metric_ibm_offering_accelerator_package_reuse",
-        "metric_ibm_client_facing_modernization_playbooks"
+        "metric_ibm_client_facing_modernization_playbooks",
+        "metric_ibm_reusable_aws_partner_blueprints",
+        "metric_ibm_aws_streaming_partner_pipelines"
       ],
       "held_metrics": [],
       "excluded_metrics": [],
@@ -891,7 +993,10 @@
         "skill_partner_pnl_oversight",
         "skill_partner_enterprise_negotiations",
         "skill_p2_gtm_enterprise_deal_support",
-        "skill_sr_regulated_financial_institutions_fluency"
+        "skill_sr_regulated_financial_institutions_fluency",
+        "skill_revops_sales_forecasting_frameworks",
+        "skill_revops_multi_channel_gtm_alignment",
+        "skill_saas_arr_ltv_cac_metrics"
       ],
       "linked_source_fact_ids": [
         "fact_revenue_ops_001",
@@ -948,7 +1053,9 @@
         "skill_sr_cloud_data_platform_engineering",
         "skill_sr_regulated_financial_institutions_fluency",
         "skill_p2_tech_reference_architecture",
-        "skill_sr_enterprise_portfolio_data_governance"
+        "skill_sr_enterprise_portfolio_data_governance",
+        "skill_watson_studio_fraud_aml",
+        "skill_ibm_watson_studio_analytics"
       ],
       "linked_source_fact_ids": [
         "fact_governance_003",
@@ -1004,7 +1111,8 @@
         "skill_sr_cloud_data_platform_engineering",
         "skill_sr_enterprise_portfolio_data_governance",
         "skill_p2_tech_reference_architecture",
-        "skill_sr_regulated_financial_institutions_fluency"
+        "skill_sr_regulated_financial_institutions_fluency",
+        "skill_ibm_metadata_audit_rbac"
       ],
       "linked_source_fact_ids": [
         "fact_revenue_ops_004",
@@ -1063,7 +1171,8 @@
         "skill_partner_product_feedback_loops",
         "skill_p2_tech_adoption_derisking",
         "skill_p2_gtm_presales_delivery_handoff",
-        "skill_sr_regulated_financial_institutions_fluency"
+        "skill_sr_regulated_financial_institutions_fluency",
+        "skill_partner_workshops"
       ],
       "linked_source_fact_ids": [
         "fact_revenue_ops_004",
@@ -1072,7 +1181,8 @@
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
         "metric_ibm_value_realization_account_reviews",
-        "metric_ibm_adoption_risk_to_expansion_readiness"
+        "metric_ibm_adoption_risk_to_expansion_readiness",
+        "metric_ibm_executive_workshop_adoption_cadence"
       ],
       "held_metrics": [],
       "excluded_metrics": [],
@@ -1099,20 +1209,20 @@
       "title": "Lead Client Partner",
       "employer_node_id": "employment_exp_ibm_001",
       "root_capability_node_id": "aws_alliance_partner_cosell_gtm",
-      "bundle_theme": "AWS partnership, alliance co-sell, and joint GTM execution",
-      "claim_text": "Led IBM-AWS alliance co-sell motions for financial-services modernization opportunities",
-      "claim_action": "Led IBM-AWS alliance co-sell motions for financial-services modernization opportunities",
-      "claim_scope": "IBM-AWS strategic alliance and joint co-sell GTM across regulated financial and insurance accounts.",
-      "claim_outcome": "Surface the slot's allocated verified graph metric_outcome_id (e.g., 20% joint IBM-AWS alliance revenue growth or $10M new ARR from AI-driven sales frameworks) paired with hyperscaler co-sell leadership.",
+      "bundle_theme": "IBM-AWS strategic alliance, partner solution architecture, SI/ISV co-selling, and joint GTM execution",
+      "claim_text": "Led IBM-AWS alliance co-sell motions, partner solution architecture, and SI/ISV joint GTM programs for regulated financial-services modernization pursuits",
+      "claim_action": "Led IBM-AWS alliance co-sell motions, partner solution architecture, and SI/ISV joint GTM programs for regulated financial-services modernization pursuits",
+      "claim_scope": "IBM-AWS strategic alliance, partner solution architecture, and joint co-sell GTM across regulated banking and insurance accounts (2017-2022).",
+      "claim_outcome": "Surface the slot's allocated verified graph metric_outcome_id (e.g., 20% joint IBM-AWS alliance revenue growth or $10M new ARR from AI-driven Salesforce GTM frameworks) paired with hyperscaler partner architecture leadership.",
       "support_level": "verified_base_resume",
       "executive_scope_signals": [
-        "Led IBM-AWS alliance co-sell motions for financial-services modernization opportunities",
-        "Aligned partner sales, solution architecture, and executive sponsors around joint cloud and AI modernization pursuits"
+        "Led IBM-AWS alliance co-sell motions, partner solution architecture, and SI/ISV joint GTM programs for regulated financial-services modernization pursuits",
+        "Aligned AWS partner sales, solution architects, and banking C-suite sponsors around joint cloud, streaming data, and predictive ML modernization roadmaps"
       ],
       "architecture_scope_signals": [
-        "Joint IBM-AWS account planning and co-sell motion design",
-        "Partner solution architecture mapped to regulated financial-services workloads",
-        "Alliance operating cadence across enablement, executive sponsorship, and opportunity progression"
+        "Joint IBM-AWS account planning, SI/ISV co-selling frameworks, and partner territory execution",
+        "AWS Partner solution architecture and regulated cloud reference blueprints mapped to banking and insurance workloads",
+        "Predictive ML and Salesforce deal-scoring GTM frameworks driving joint alliance pipeline conversion"
       ],
       "capability_facets": [
         "partner_applied_ai_architecture",
@@ -1127,7 +1237,11 @@
         "skill_partner_hyperscaler_cosell",
         "skill_partner_joint_solution_development",
         "skill_partner_alliance_gtm_execution",
-        "skill_sr_regulated_financial_institutions_fluency"
+        "skill_sr_regulated_financial_institutions_fluency",
+        "skill_partner_aws_ecosystem",
+        "skill_partner_cloud_partner_ecosystem",
+        "skill_partner_solution_architecture",
+        "skill_partner_co_selling"
       ],
       "linked_source_fact_ids": [
         "fact_partnerships_gtm_002",

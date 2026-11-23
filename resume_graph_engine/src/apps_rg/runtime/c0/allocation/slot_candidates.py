@@ -233,7 +233,10 @@ def _candidate_sets_from_section_plans(
                     metric_options.append({**metric, "metric_value": value, "metric_unit": unit})
                 if not metric_options:
                     continue
-            elif (slot.section_id.endswith("_bullets") or slot.section_id == "executive_summary") and metrics:
+            elif (
+                (slot.section_id.endswith("_bullets") and slot.section_id != "insurtech_bullets")
+                or slot.section_id == "executive_summary"
+            ) and metrics:
                 populated: list[dict[str, Any] | None] = []
                 for metric in metrics:
                     metric_raw_text = str(metric.get("metric") or "")

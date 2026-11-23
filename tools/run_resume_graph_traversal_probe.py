@@ -83,11 +83,32 @@ def run_resume_graph_traversal_probe(max_paths: int = 200) -> dict[str, Any]:
         hydrated_candidates=[{"node_id": seeds[0]}] if seeds else [],
     )
 
+    from apps_rg.runtime.sections.ibm_role_episode_evidence import (
+        resolve_ibm_bullet_slot_bundle_map_with_fallback,
+    )
+    from apps_rg.runtime.sections.unify_role_episode_evidence import (
+        resolve_unify_bullet_slot_bundle_map_with_fallback,
+    )
+
+    ibm_partner_slots = resolve_ibm_bullet_slot_bundle_map_with_fallback(
+        "PARTNER_APPLIED_AI_ARCHITECTURE",
+        repo_root=REPO_ROOT / "resume_graph_engine",
+    )
+    unify_partner_slots = resolve_unify_bullet_slot_bundle_map_with_fallback(
+        "PARTNER_APPLIED_AI_ARCHITECTURE",
+        repo_root=REPO_ROOT / "resume_graph_engine",
+    )
+    archetype_jd_fit_ok = (
+        "reb_ibm_aws_alliance_partner_cosell_gtm" in ibm_partner_slots.values()
+        and "reb_unify_partner_channel_cosell" in unify_partner_slots.values()
+    )
+
     passed = (
         integrity == "ok"
         and len(two_hop_paths) > 0
         and len(domain_paths) > 0
         and research_contract.get("max_hops") == 2
+        and archetype_jd_fit_ok
     )
     return {
         "status": "PASS" if passed else "FAIL",
@@ -99,6 +120,7 @@ def run_resume_graph_traversal_probe(max_paths: int = 200) -> dict[str, Any]:
         "domain_skill_evidence_path_count": len(domain_paths),
         "skill_fact_metric_epoch_path_count": len(epoch_paths),
         "research_max_hops": research_contract.get("max_hops"),
+        "archetype_jd_fit_alignment_pass": archetype_jd_fit_ok,
         "sample_two_hop_nodes": two_hop_paths[0].node_path if two_hop_paths else [],
     }
 

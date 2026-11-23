@@ -396,7 +396,7 @@ _ARCHETYPE_ROOT_BOOSTS: dict[str, tuple[tuple[str, ...], dict[str, float]]] = {
         {
             "reb_slalom_ecosystem_accelerators": 2.1, "reb_slalom_nextgen_ai_solutions": 1.8, "reb_slalom_agentic_client_delivery": 1.7, "reb_slalom_governed_runtime_scaling": 1.6,
             "reb_unify_partner_channel_cosell": 2.1, "reb_unify_hyperscaler_joint_solution_architecture": 2.0, "reb_unify_enterprise_adoption_revenue": 1.9, "reb_unify_platform_commercialization_leadership": 1.8,
-            "reb_unify_agentic_platform_architecture": 1.7, "reb_ibm_aws_alliance_partner_cosell_gtm": 1.9, "reb_ibm_offering_accelerator_management": 1.8, "reb_ibm_customer_success_value_realization": 1.7,
+            "reb_unify_agentic_platform_architecture": 1.7, "reb_ibm_aws_alliance_partner_cosell_gtm": 2.3, "reb_ibm_offering_accelerator_management": 2.1, "reb_ibm_presales_solution_engineering": 1.9, "reb_ibm_customer_success_value_realization": 1.75, "reb_ibm_revenue_sales_target_execution": 1.65,
         },
     ),
     "insurance_domain": (
@@ -508,25 +508,55 @@ def compute_candidate_alignment_and_independence(
 def diversify_slot_candidates(rows: list[dict[str, Any]], *, required_root_id: str, section_id: str) -> list[dict[str, Any]]:
     if required_root_id or len(rows) <= 32:
         return rows
-    cap = 2 if section_id == "competencies" else 3
+    cap = 2 if section_id == "competencies" else (6 if section_id == "ibm_bullets" else 3)
     kept_indices: list[int] = []
     seen_skills_by_root: dict[str, set[str]] = {}
     seen_metrics_by_root: dict[str, set[str]] = {}
-    # Pass 1: preserve distinct non-empty metric outcomes per root on distinct skills so
-    # executive_summary claiming one metric on a multi-metric root never starves *_bullets.
+    seen_facts_by_root: dict[str, set[str]] = {}
+    seen_metric_facts_by_root: dict[str, set[tuple[str, str]]] = {}
+    # Pass 1a: preserve distinct non-empty metric outcomes on distinct (skill, fact) pairs per root.
     for idx, r in enumerate(rows):
         rid = str(r.get("root_id") or "")
         sid = str(r.get("skill_id") or "")
         mid = str(r.get("metric_outcome_id") or "")
+        fid = str(r.get("fact_id") or "")
         if not mid:
             continue
         s_set = seen_skills_by_root.setdefault(rid, set())
         m_set = seen_metrics_by_root.setdefault(rid, set())
-        if len(s_set) < cap and sid not in s_set and mid not in m_set:
+        f_set = seen_facts_by_root.setdefault(rid, set())
+        mf_set = seen_metric_facts_by_root.setdefault(rid, set())
+        if len(s_set) < cap and sid not in s_set and mid not in m_set and (not fid or fid not in f_set):
             s_set.add(sid)
             m_set.add(mid)
+            if fid:
+                f_set.add(fid)
+            mf_set.add((mid, fid))
             kept_indices.append(idx)
     kept_set = set(kept_indices)
+    # Pass 1b: preserve any remaining distinct (metric_outcome_id, fact_id) combinations on distinct skills per root
+    # so executive_summary + headline claiming one metric and one skill/fact never starves *_bullets.
+    for idx, r in enumerate(rows):
+        if idx in kept_set:
+            continue
+        rid = str(r.get("root_id") or "")
+        sid = str(r.get("skill_id") or "")
+        mid = str(r.get("metric_outcome_id") or "")
+        fid = str(r.get("fact_id") or "")
+        if not mid:
+            continue
+        s_set = seen_skills_by_root.setdefault(rid, set())
+        m_set = seen_metrics_by_root.setdefault(rid, set())
+        f_set = seen_facts_by_root.setdefault(rid, set())
+        mf_set = seen_metric_facts_by_root.setdefault(rid, set())
+        if len(s_set) < cap and sid not in s_set and (mid, fid) not in mf_set:
+            s_set.add(sid)
+            m_set.add(mid)
+            if fid:
+                f_set.add(fid)
+            mf_set.add((mid, fid))
+            kept_indices.append(idx)
+            kept_set.add(idx)
     # Pass 2: fill remaining per-root skill slots up to cap in original sorted order.
     for idx, r in enumerate(rows):
         if idx in kept_set:

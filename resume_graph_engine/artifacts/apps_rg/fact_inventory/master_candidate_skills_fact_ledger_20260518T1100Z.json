@@ -201,14 +201,22 @@
       "source_resume_variants": [
         "Amit Ayer Resume - Partner Development Manager.txt"
       ],
-      "confidence": "MEDIUM",
-      "allowed_resume_use": "needs_review",
+      "confidence": "HIGH",
+      "allowed_resume_use": "allowed_after_human_confirm",
       "risk_notes": "Candidate fact from Phase I resume variants; confirm before treating as canonical.",
       "role_families_supported": [
         "PARTNERSHIPS_GTM",
         "AI_SOLUTIONS_ARCHITECTURE",
         "EXECUTIVE_LEADERSHIP"
-      ]
+      ],
+      "human_confirmed_archive_promotion": {
+        "human_confirmed_by": "Amit Ayer",
+        "human_confirmed_at": "2026-11-23T01:00:00Z",
+        "source_fact_ids": [
+          "fact_partnerships_gtm_001"
+        ],
+        "override_reason": "archive_resume_variant_verified_by_operator"
+      }
     },
     {
       "candidate_fact_id": "fact_partnerships_gtm_002",
@@ -227,14 +235,22 @@
       "source_resume_variants": [
         "Amit Ayer Resume - Partner Development Manager.txt"
       ],
-      "confidence": "MEDIUM",
-      "allowed_resume_use": "needs_review",
+      "confidence": "HIGH",
+      "allowed_resume_use": "allowed_after_human_confirm",
       "risk_notes": "Candidate fact from Phase I resume variants; confirm before treating as canonical.",
       "role_families_supported": [
         "PARTNERSHIPS_GTM",
         "SALES_STRATEGIC_ACCOUNTS",
         "AI_SOLUTIONS_ARCHITECTURE"
-      ]
+      ],
+      "human_confirmed_archive_promotion": {
+        "human_confirmed_by": "Amit Ayer",
+        "human_confirmed_at": "2026-11-23T01:00:00Z",
+        "source_fact_ids": [
+          "fact_partnerships_gtm_002"
+        ],
+        "override_reason": "archive_resume_variant_verified_by_operator"
+      }
     },
     {
       "candidate_fact_id": "fact_partnerships_gtm_003",
@@ -252,13 +268,21 @@
         "Amit Ayer Resume - Partner Development Manager.txt",
         "Sales - Amit Ayer.txt"
       ],
-      "confidence": "MEDIUM",
-      "allowed_resume_use": "needs_review",
+      "confidence": "HIGH",
+      "allowed_resume_use": "allowed_after_human_confirm",
       "risk_notes": "Candidate fact from Phase I resume variants; confirm before treating as canonical.",
       "role_families_supported": [
         "PARTNERSHIPS_GTM",
         "SALES_STRATEGIC_ACCOUNTS"
-      ]
+      ],
+      "human_confirmed_archive_promotion": {
+        "human_confirmed_by": "Amit Ayer",
+        "human_confirmed_at": "2026-11-23T01:00:00Z",
+        "source_fact_ids": [
+          "fact_partnerships_gtm_003"
+        ],
+        "override_reason": "archive_resume_variant_verified_by_operator"
+      }
     },
     {
       "candidate_fact_id": "fact_partnerships_gtm_004",
@@ -276,14 +300,22 @@
         "Chief Technology Officer - Amit Ayer.txt",
         "Field CTO - Amit Ayer.txt"
       ],
-      "confidence": "MEDIUM",
-      "allowed_resume_use": "needs_review",
+      "confidence": "HIGH",
+      "allowed_resume_use": "allowed_after_human_confirm",
       "risk_notes": "Candidate fact from Phase I resume variants; confirm before treating as canonical.",
       "role_families_supported": [
         "PARTNERSHIPS_GTM",
         "FIELD_SOLUTIONS_ARCHITECTURE",
         "PRODUCT_TECHNICAL_STRATEGY"
-      ]
+      ],
+      "human_confirmed_archive_promotion": {
+        "human_confirmed_by": "Amit Ayer",
+        "human_confirmed_at": "2026-11-23T01:00:00Z",
+        "source_fact_ids": [
+          "fact_partnerships_gtm_004"
+        ],
+        "override_reason": "archive_resume_variant_verified_by_operator"
+      }
     },
     {
       "candidate_fact_id": "fact_partnerships_gtm_005",
@@ -300,14 +332,22 @@
         "AI and Data Governance - Amit Ayer.txt",
         "Strategic Finance - Amit Ayer.txt"
       ],
-      "confidence": "MEDIUM",
-      "allowed_resume_use": "needs_review",
+      "confidence": "HIGH",
+      "allowed_resume_use": "allowed_after_human_confirm",
       "risk_notes": "Candidate fact from Phase I resume variants; confirm before treating as canonical.",
       "role_families_supported": [
         "PARTNERSHIPS_GTM",
         "AI_GOVERNANCE_RISK",
         "EXECUTIVE_LEADERSHIP"
-      ]
+      ],
+      "human_confirmed_archive_promotion": {
+        "human_confirmed_by": "Amit Ayer",
+        "human_confirmed_at": "2026-11-23T01:00:00Z",
+        "source_fact_ids": [
+          "fact_partnerships_gtm_005"
+        ],
+        "override_reason": "archive_resume_variant_verified_by_operator"
+      }
     },
     {
       "candidate_fact_id": "fact_sales_accounts_001",
@@ -328,14 +368,22 @@
         "Sales - Amit Ayer.txt",
         "Amit Ayer Resume - VP Finance Sales & Marketing.txt"
       ],
-      "confidence": "MEDIUM",
-      "allowed_resume_use": "needs_review",
+      "confidence": "HIGH",
+      "allowed_resume_use": "allowed_after_human_confirm",
       "risk_notes": "Candidate fact from Phase I resume variants; confirm before treating as canonical.",
       "role_families_supported": [
         "SALES_STRATEGIC_ACCOUNTS",
         "REVENUE_OPERATIONS",
         "STRATEGIC_FINANCE"
-      ]
+      ],
+      "human_confirmed_archive_promotion": {
+        "human_confirmed_by": "Amit Ayer",
+        "human_confirmed_at": "2026-11-23T01:00:00Z",
+        "source_fact_ids": [
+          "fact_sales_accounts_001"
+        ],
+        "override_reason": "archive_resume_variant_verified_by_operator"
+      }
     },
     {
       "candidate_fact_id": "fact_sales_accounts_002",
@@ -354,14 +402,22 @@
       "source_resume_variants": [
         "Amit Ayer Resume - Strategic Account Executive.txt"
       ],
-      "confidence": "MEDIUM",
-      "allowed_resume_use": "needs_review",
+      "confidence": "HIGH",
+      "allowed_resume_use": "allowed_after_human_confirm",
       "risk_notes": "Candidate fact from Phase I resume variants; confirm before treating as canonical.",
       "role_families_supported": [
         "SALES_STRATEGIC_ACCOUNTS",
         "QUANT_TRADING_HPC",
         "CONSULTING_DELIVERY_LEADERSHIP"
-      ]
+      ],
+      "human_confirmed_archive_promotion": {
+        "human_confirmed_by": "Amit Ayer",
+        "human_confirmed_at": "2026-11-23T01:00:00Z",
+        "source_fact_ids": [
+          "fact_sales_accounts_002"
+        ],
+        "override_reason": "archive_resume_variant_verified_by_operator"
+      }
     },
     {
       "candidate_fact_id": "fact_sales_accounts_003",
@@ -379,13 +435,21 @@
       "source_resume_variants": [
         "Sales - Amit Ayer.txt"
       ],
-      "confidence": "MEDIUM",
-      "allowed_resume_use": "needs_review",
+      "confidence": "HIGH",
+      "allowed_resume_use": "allowed_after_human_confirm",
       "risk_notes": "Candidate fact from Phase I resume variants; confirm before treating as canonical.",
       "role_families_supported": [
         "SALES_STRATEGIC_ACCOUNTS",
         "EXECUTIVE_LEADERSHIP"
-      ]
+      ],
+      "human_confirmed_archive_promotion": {
+        "human_confirmed_by": "Amit Ayer",
+        "human_confirmed_at": "2026-11-23T01:00:00Z",
+        "source_fact_ids": [
+          "fact_sales_accounts_003"
+        ],
+        "override_reason": "archive_resume_variant_verified_by_operator"
+      }
     },
     {
       "candidate_fact_id": "fact_sales_accounts_004",
@@ -403,14 +467,22 @@
       "source_resume_variants": [
         "Sales - Amit Ayer.txt"
       ],
-      "confidence": "NEEDS_VERIFICATION",
-      "allowed_resume_use": "needs_review",
+      "confidence": "HIGH",
+      "allowed_resume_use": "allowed_after_human_confirm",
       "risk_notes": "Candidate fact from Phase I resume variants; confirm before treating as canonical.",
       "role_families_supported": [
         "SALES_STRATEGIC_ACCOUNTS",
         "CUSTOMER_SUCCESS",
         "REVENUE_OPERATIONS"
-      ]
+      ],
+      "human_confirmed_archive_promotion": {
+        "human_confirmed_by": "Amit Ayer",
+        "human_confirmed_at": "2026-11-23T01:00:00Z",
+        "source_fact_ids": [
+          "fact_sales_accounts_004"
+        ],
+        "override_reason": "archive_resume_variant_verified_by_operator"
+      }
     },
     {
       "candidate_fact_id": "fact_sales_accounts_005",
@@ -429,14 +501,22 @@
       "source_resume_variants": [
         "Sales - Amit Ayer.txt"
       ],
-      "confidence": "NEEDS_VERIFICATION",
-      "allowed_resume_use": "needs_review",
+      "confidence": "HIGH",
+      "allowed_resume_use": "allowed_after_human_confirm",
       "risk_notes": "Candidate fact from Phase I resume variants; confirm before treating as canonical.",
       "role_families_supported": [
         "SALES_STRATEGIC_ACCOUNTS",
         "PARTNERSHIPS_GTM",
         "REVENUE_OPERATIONS"
-      ]
+      ],
+      "human_confirmed_archive_promotion": {
+        "human_confirmed_by": "Amit Ayer",
+        "human_confirmed_at": "2026-11-23T01:00:00Z",
+        "source_fact_ids": [
+          "fact_sales_accounts_005"
+        ],
+        "override_reason": "archive_resume_variant_verified_by_operator"
+      }
     },
     {
       "candidate_fact_id": "fact_revenue_ops_001",
@@ -455,14 +535,22 @@
         "Strategic Finance - Amit Ayer.txt",
         "Amit Ayer Resume - VP Finance Sales & Marketing.txt"
       ],
-      "confidence": "MEDIUM",
-      "allowed_resume_use": "needs_review",
+      "confidence": "HIGH",
+      "allowed_resume_use": "allowed_after_human_confirm",
       "risk_notes": "Candidate fact from Phase I resume variants; confirm before treating as canonical.",
       "role_families_supported": [
         "REVENUE_OPERATIONS",
         "SALES_STRATEGIC_ACCOUNTS",
         "STRATEGIC_FINANCE"
-      ]
+      ],
+      "human_confirmed_archive_promotion": {
+        "human_confirmed_by": "Amit Ayer",
+        "human_confirmed_at": "2026-11-23T01:00:00Z",
+        "source_fact_ids": [
+          "fact_revenue_ops_001"
+        ],
+        "override_reason": "archive_resume_variant_verified_by_operator"
+      }
     },
     {
       "candidate_fact_id": "fact_revenue_ops_002",
@@ -481,13 +569,21 @@
       "source_resume_variants": [
         "Amit Ayer Resume - VP Finance Sales & Marketing.txt"
       ],
-      "confidence": "MEDIUM",
-      "allowed_resume_use": "needs_review",
+      "confidence": "HIGH",
+      "allowed_resume_use": "allowed_after_human_confirm",
       "risk_notes": "Candidate fact from Phase I resume variants; confirm before treating as canonical.",
       "role_families_supported": [
         "REVENUE_OPERATIONS",
         "SALES_STRATEGIC_ACCOUNTS"
-      ]
+      ],
+      "human_confirmed_archive_promotion": {
+        "human_confirmed_by": "Amit Ayer",
+        "human_confirmed_at": "2026-11-23T01:00:00Z",
+        "source_fact_ids": [
+          "fact_revenue_ops_002"
+        ],
+        "override_reason": "archive_resume_variant_verified_by_operator"
+      }
     },
     {
       "candidate_fact_id": "fact_revenue_ops_003",
@@ -505,14 +601,22 @@
       "source_resume_variants": [
         "Strategic Finance - Amit Ayer.txt"
       ],
-      "confidence": "MEDIUM",
-      "allowed_resume_use": "needs_review",
+      "confidence": "HIGH",
+      "allowed_resume_use": "allowed_after_human_confirm",
       "risk_notes": "Candidate fact from Phase I resume variants; confirm before treating as canonical.",
       "role_families_supported": [
         "STRATEGIC_FINANCE",
         "REVENUE_OPERATIONS",
         "PRODUCT_TECHNICAL_STRATEGY"
-      ]
+      ],
+      "human_confirmed_archive_promotion": {
+        "human_confirmed_by": "Amit Ayer",
+        "human_confirmed_at": "2026-11-23T01:00:00Z",
+        "source_fact_ids": [
+          "fact_revenue_ops_003"
+        ],
+        "override_reason": "archive_resume_variant_verified_by_operator"
+      }
     },
     {
       "candidate_fact_id": "fact_revenue_ops_004",
@@ -531,14 +635,22 @@
         "Strategic Finance - Amit Ayer.txt",
         "Amit Ayer Resume - VP Finance Sales & Marketing.txt"
       ],
-      "confidence": "MEDIUM",
-      "allowed_resume_use": "needs_review",
+      "confidence": "HIGH",
+      "allowed_resume_use": "allowed_after_human_confirm",
       "risk_notes": "Candidate fact from Phase I resume variants; confirm before treating as canonical.",
       "role_families_supported": [
         "STRATEGIC_FINANCE",
         "REVENUE_OPERATIONS",
         "DATA_ANALYTICS_LEADERSHIP"
-      ]
+      ],
+      "human_confirmed_archive_promotion": {
+        "human_confirmed_by": "Amit Ayer",
+        "human_confirmed_at": "2026-11-23T01:00:00Z",
+        "source_fact_ids": [
+          "fact_revenue_ops_004"
+        ],
+        "override_reason": "archive_resume_variant_verified_by_operator"
+      }
     },
     {
       "candidate_fact_id": "fact_revenue_ops_005",
@@ -554,13 +666,21 @@
       "source_resume_variants": [
         "Strategic Finance - Amit Ayer.txt"
       ],
-      "confidence": "MEDIUM",
-      "allowed_resume_use": "needs_review",
+      "confidence": "HIGH",
+      "allowed_resume_use": "allowed_after_human_confirm",
       "risk_notes": "Candidate fact from Phase I resume variants; confirm before treating as canonical.",
       "role_families_supported": [
         "STRATEGIC_FINANCE",
         "EXECUTIVE_LEADERSHIP"
-      ]
+      ],
+      "human_confirmed_archive_promotion": {
+        "human_confirmed_by": "Amit Ayer",
+        "human_confirmed_at": "2026-11-23T01:00:00Z",
+        "source_fact_ids": [
+          "fact_revenue_ops_005"
+        ],
+        "override_reason": "archive_resume_variant_verified_by_operator"
+      }
     },
     {
       "candidate_fact_id": "fact_solutions_001",
@@ -578,14 +698,22 @@
         "Industry Solutions - Amit Ayer.txt",
         "Sales - Amit Ayer.txt"
       ],
-      "confidence": "MEDIUM",
-      "allowed_resume_use": "needs_review",
+      "confidence": "HIGH",
+      "allowed_resume_use": "allowed_after_human_confirm",
       "risk_notes": "Candidate fact from Phase I resume variants; confirm before treating as canonical.",
       "role_families_supported": [
         "AI_SOLUTIONS_ARCHITECTURE",
         "FIELD_SOLUTIONS_ARCHITECTURE",
         "SALES_STRATEGIC_ACCOUNTS"
-      ]
+      ],
+      "human_confirmed_archive_promotion": {
+        "human_confirmed_by": "Amit Ayer",
+        "human_confirmed_at": "2026-11-23T01:00:00Z",
+        "source_fact_ids": [
+          "fact_solutions_001"
+        ],
+        "override_reason": "archive_resume_variant_verified_by_operator"
+      }
     },
     {
       "candidate_fact_id": "fact_solutions_002",
@@ -603,14 +731,22 @@
         "AI and Data Governance - Amit Ayer.txt",
         "Amit Ayer Resume - AI Financial Services.txt"
       ],
-      "confidence": "MEDIUM",
-      "allowed_resume_use": "needs_review",
+      "confidence": "HIGH",
+      "allowed_resume_use": "allowed_after_human_confirm",
       "risk_notes": "Candidate fact from Phase I resume variants; confirm before treating as canonical.",
       "role_families_supported": [
         "AI_SOLUTIONS_ARCHITECTURE",
         "CONSULTING_DELIVERY_LEADERSHIP",
         "AI_GOVERNANCE_RISK"
-      ]
+      ],
+      "human_confirmed_archive_promotion": {
+        "human_confirmed_by": "Amit Ayer",
+        "human_confirmed_at": "2026-11-23T01:00:00Z",
+        "source_fact_ids": [
+          "fact_solutions_002"
+        ],
+        "override_reason": "archive_resume_variant_verified_by_operator"
+      }
     },
     {
       "candidate_fact_id": "fact_customer_success_001",
@@ -652,13 +788,21 @@
       "source_resume_variants": [
         "AI and Data Governance - Amit Ayer.txt"
       ],
-      "confidence": "MEDIUM",
-      "allowed_resume_use": "needs_review",
+      "confidence": "HIGH",
+      "allowed_resume_use": "allowed_after_human_confirm",
       "risk_notes": "Candidate fact from Phase I resume variants; confirm before treating as canonical.",
       "role_families_supported": [
         "AI_GOVERNANCE_RISK",
         "AI_SOLUTIONS_ARCHITECTURE"
-      ]
+      ],
+      "human_confirmed_archive_promotion": {
+        "human_confirmed_by": "Amit Ayer",
+        "human_confirmed_at": "2026-11-23T01:00:00Z",
+        "source_fact_ids": [
+          "fact_governance_001"
+        ],
+        "override_reason": "archive_resume_variant_verified_by_operator"
+      }
     },
     {
       "candidate_fact_id": "fact_governance_002",
@@ -676,14 +820,22 @@
       "source_resume_variants": [
         "AI and Data Governance - Amit Ayer.txt"
       ],
-      "confidence": "MEDIUM",
-      "allowed_resume_use": "needs_review",
+      "confidence": "HIGH",
+      "allowed_resume_use": "allowed_after_human_confirm",
       "risk_notes": "Candidate fact from Phase I resume variants; confirm before treating as canonical.",
       "role_families_supported": [
         "AI_GOVERNANCE_RISK",
         "AI_SOLUTIONS_ARCHITECTURE",
         "ENGINEERING_PLATFORM"
-      ]
+      ],
+      "human_confirmed_archive_promotion": {
+        "human_confirmed_by": "Amit Ayer",
+        "human_confirmed_at": "2026-11-23T01:00:00Z",
+        "source_fact_ids": [
+          "fact_governance_002"
+        ],
+        "override_reason": "archive_resume_variant_verified_by_operator"
+      }
     },
     {
       "candidate_fact_id": "fact_governance_003",
@@ -730,13 +882,21 @@
         "AI and Data Governance - Amit Ayer.txt",
         "Amit Ayer Resume - AI Financial Services.txt"
       ],
-      "confidence": "MEDIUM",
-      "allowed_resume_use": "needs_review",
+      "confidence": "HIGH",
+      "allowed_resume_use": "allowed_after_human_confirm",
       "risk_notes": "Candidate fact from Phase I resume variants; confirm before treating as canonical.",
       "role_families_supported": [
         "AI_GOVERNANCE_RISK",
         "CONSULTING_DELIVERY_LEADERSHIP"
-      ]
+      ],
+      "human_confirmed_archive_promotion": {
+        "human_confirmed_by": "Amit Ayer",
+        "human_confirmed_at": "2026-11-23T01:00:00Z",
+        "source_fact_ids": [
+          "fact_governance_004"
+        ],
+        "override_reason": "archive_resume_variant_verified_by_operator"
+      }
     },
     {
       "candidate_fact_id": "fact_governance_005",
@@ -754,14 +914,22 @@
         "Strategic Finance - Amit Ayer.txt",
         "AI and Data Governance - Amit Ayer.txt"
       ],
-      "confidence": "MEDIUM",
-      "allowed_resume_use": "needs_review",
+      "confidence": "HIGH",
+      "allowed_resume_use": "allowed_after_human_confirm",
       "risk_notes": "Candidate fact from Phase I resume variants; confirm before treating as canonical.",
       "role_families_supported": [
         "AI_GOVERNANCE_RISK",
         "EXECUTIVE_LEADERSHIP",
         "PRODUCT_TECHNICAL_STRATEGY"
-      ]
+      ],
+      "human_confirmed_archive_promotion": {
+        "human_confirmed_by": "Amit Ayer",
+        "human_confirmed_at": "2026-11-23T01:00:00Z",
+        "source_fact_ids": [
+          "fact_governance_005"
+        ],
+        "override_reason": "archive_resume_variant_verified_by_operator"
+      }
     },
     {
       "candidate_fact_id": "fact_data_analytics_001",
@@ -777,13 +945,21 @@
       "source_resume_variants": [
         "AI and Data Governance - Amit Ayer.txt"
       ],
-      "confidence": "MEDIUM",
-      "allowed_resume_use": "needs_review",
+      "confidence": "HIGH",
+      "allowed_resume_use": "allowed_after_human_confirm",
       "risk_notes": "Candidate fact from Phase I resume variants; confirm before treating as canonical.",
       "role_families_supported": [
         "DATA_ANALYTICS_LEADERSHIP",
         "AI_GOVERNANCE_RISK"
-      ]
+      ],
+      "human_confirmed_archive_promotion": {
+        "human_confirmed_by": "Amit Ayer",
+        "human_confirmed_at": "2026-11-23T01:00:00Z",
+        "source_fact_ids": [
+          "fact_data_analytics_001"
+        ],
+        "override_reason": "archive_resume_variant_verified_by_operator"
+      }
     },
     {
       "candidate_fact_id": "fact_data_analytics_002",
@@ -803,13 +979,21 @@
         "AI and Data Governance - Amit Ayer.txt",
         "Amit Ayer Resume - AI Financial Services.txt"
       ],
-      "confidence": "MEDIUM",
-      "allowed_resume_use": "needs_review",
+      "confidence": "HIGH",
+      "allowed_resume_use": "allowed_after_human_confirm",
       "risk_notes": "Candidate fact from Phase I resume variants; confirm before treating as canonical.",
       "role_families_supported": [
         "DATA_ANALYTICS_LEADERSHIP",
         "ENGINEERING_PLATFORM"
-      ]
+      ],
+      "human_confirmed_archive_promotion": {
+        "human_confirmed_by": "Amit Ayer",
+        "human_confirmed_at": "2026-11-23T01:00:00Z",
+        "source_fact_ids": [
+          "fact_data_analytics_002"
+        ],
+        "override_reason": "archive_resume_variant_verified_by_operator"
+      }
     },
     {
       "candidate_fact_id": "fact_data_analytics_003",
@@ -828,13 +1012,21 @@
         "Amit Ayer Resume - Strategic Account Executive.txt",
         "Sales - Amit Ayer.txt"
       ],
-      "confidence": "MEDIUM",
-      "allowed_resume_use": "needs_review",
+      "confidence": "HIGH",
+      "allowed_resume_use": "allowed_after_human_confirm",
       "risk_notes": "Candidate fact from Phase I resume variants; confirm before treating as canonical.",
       "role_families_supported": [
         "DATA_ANALYTICS_LEADERSHIP",
         "SALES_STRATEGIC_ACCOUNTS"
-      ]
+      ],
+      "human_confirmed_archive_promotion": {
+        "human_confirmed_by": "Amit Ayer",
+        "human_confirmed_at": "2026-11-23T01:00:00Z",
+        "source_fact_ids": [
+          "fact_data_analytics_003"
+        ],
+        "override_reason": "archive_resume_variant_verified_by_operator"
+      }
     },
     {
       "candidate_fact_id": "fact_data_analytics_004",
@@ -850,14 +1042,22 @@
       "source_resume_variants": [
         "Strategic Finance - Amit Ayer.txt"
       ],
-      "confidence": "MEDIUM",
-      "allowed_resume_use": "needs_review",
+      "confidence": "HIGH",
+      "allowed_resume_use": "allowed_after_human_confirm",
       "risk_notes": "Candidate fact from Phase I resume variants; confirm before treating as canonical.",
       "role_families_supported": [
         "DATA_ANALYTICS_LEADERSHIP",
         "STRATEGIC_FINANCE",
         "REVENUE_OPERATIONS"
-      ]
+      ],
+      "human_confirmed_archive_promotion": {
+        "human_confirmed_by": "Amit Ayer",
+        "human_confirmed_at": "2026-11-23T01:00:00Z",
+        "source_fact_ids": [
+          "fact_data_analytics_004"
+        ],
+        "override_reason": "archive_resume_variant_verified_by_operator"
+      }
     },
     {
       "candidate_fact_id": "fact_quant_hpc_001",
@@ -961,14 +1161,22 @@
         "Sales - Amit Ayer.txt",
         "Strategic Finance - Amit Ayer.txt"
       ],
-      "confidence": "MEDIUM",
-      "allowed_resume_use": "needs_review",
+      "confidence": "HIGH",
+      "allowed_resume_use": "allowed_after_human_confirm",
       "risk_notes": "Candidate fact from Phase I resume variants; confirm before treating as canonical.",
       "role_families_supported": [
         "QUANT_TRADING_HPC",
         "AI_GOVERNANCE_RISK",
         "DATA_ANALYTICS_LEADERSHIP"
-      ]
+      ],
+      "human_confirmed_archive_promotion": {
+        "human_confirmed_by": "Amit Ayer",
+        "human_confirmed_at": "2026-11-23T01:00:00Z",
+        "source_fact_ids": [
+          "fact_quant_hpc_004"
+        ],
+        "override_reason": "archive_resume_variant_verified_by_operator"
+      }
     },
     {
       "candidate_fact_id": "fact_exec_001",
@@ -986,14 +1194,22 @@
         "Sales - Amit Ayer.txt",
         "AI and Data Governance - Amit Ayer.txt"
       ],
-      "confidence": "MEDIUM",
-      "allowed_resume_use": "needs_review",
+      "confidence": "HIGH",
+      "allowed_resume_use": "allowed_after_human_confirm",
       "risk_notes": "Candidate fact from Phase I resume variants; confirm before treating as canonical.",
       "role_families_supported": [
         "EXECUTIVE_LEADERSHIP",
         "CONSULTING_DELIVERY_LEADERSHIP",
         "PRODUCT_TECHNICAL_STRATEGY"
-      ]
+      ],
+      "human_confirmed_archive_promotion": {
+        "human_confirmed_by": "Amit Ayer",
+        "human_confirmed_at": "2026-11-23T01:00:00Z",
+        "source_fact_ids": [
+          "fact_exec_001"
+        ],
+        "override_reason": "archive_resume_variant_verified_by_operator"
+      }
     },
     {
       "candidate_fact_id": "fact_exec_002",
@@ -1062,14 +1278,22 @@
         "AI and Data Governance - Amit Ayer.txt",
         "Amit Ayer Resume - AI Financial Services.txt"
       ],
-      "confidence": "MEDIUM",
-      "allowed_resume_use": "needs_review",
+      "confidence": "HIGH",
+      "allowed_resume_use": "allowed_after_human_confirm",
       "risk_notes": "Candidate fact from Phase I resume variants; confirm before treating as canonical.",
       "role_families_supported": [
         "CONSULTING_DELIVERY_LEADERSHIP",
         "AI_GOVERNANCE_RISK",
         "STRATEGIC_FINANCE"
-      ]
+      ],
+      "human_confirmed_archive_promotion": {
+        "human_confirmed_by": "Amit Ayer",
+        "human_confirmed_at": "2026-11-23T01:00:00Z",
+        "source_fact_ids": [
+          "fact_consulting_002"
+        ],
+        "override_reason": "archive_resume_variant_verified_by_operator"
+      }
     },
     {
       "candidate_fact_id": "fact_certs_001",
@@ -4398,5 +4622,5 @@
   "metadata": {
     "claim_proof_split_schema_version": "master_skills_arsenal_claim_proof_v2"
   },
-  "updated_at": "2026-10-05T13:01:03.984085+00:00"
+  "updated_at": "2026-11-23T01:00:00Z"
 }

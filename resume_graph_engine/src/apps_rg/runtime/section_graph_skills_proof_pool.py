@@ -425,6 +425,13 @@ def _graph_ranked_unify_bullets_plan(
     unify_rows = _ledger_rows_matching_company_hints(ledger, ("unify",))
     if not unify_rows:
         return None
+    eng_rows = [
+        r
+        for r in unify_rows
+        if str(r.get("candidate_fact_id") or "").strip().startswith("fact_engineering_platform_")
+    ]
+    if len(eng_rows) >= limit:
+        unify_rows = eng_rows
     by_id = {str(r.get("candidate_fact_id") or "").strip(): r for r in unify_rows}
     by_id = {k: v for k, v in by_id.items() if k}
 

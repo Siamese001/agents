@@ -46,6 +46,71 @@ IBM_BULLET_SLOT_BUNDLE_MAP: dict[str, str] = {
     "bul_ibm_004": "reb_ibm_data_modeling_bi_decision_support",
     "bul_ibm_005": "reb_ibm_aws_alliance_partner_cosell_gtm",
 }
+IBM_METRIC_PROTECTED_BULLET_SLOT_IDS: set[str] = {"bul_ibm_001"}
+
+
+def resolve_ibm_bullet_slot_bundle_map(
+    role_family_key: str = "",
+    *,
+    repo_root: Path | None = None,
+) -> dict[str, str]:
+    """JD-fit slot->bundle map for ibm_bullets (fail closed; no static default fallback)."""
+    from apps_rg.runtime.sections.jd_fit_bundle_selection import resolve_jd_fit_slot_bundle_map
+
+    if not role_family_key:
+        raise ValueError("ibm_bullets: graph packet is mandatory; missing role_family_key")
+    graph = load_augmented_skills_graph(repo_root=repo_root or _repo_root())
+    return resolve_jd_fit_slot_bundle_map(
+        role_family_key=role_family_key,
+        default_map=IBM_BULLET_SLOT_BUNDLE_MAP,
+        slot_ids=IBM_BULLET_SLOT_IDS,
+        bundles_for_section=lambda sec: get_bundles_for_section(sec),
+        section_id="ibm_bullets",
+        skill_index=_skill_rows_by_id(repo_root),
+        graph=graph,
+        protected_slots=IBM_METRIC_PROTECTED_BULLET_SLOT_IDS,
+    )
+
+
+def resolve_ibm_bullet_slot_bundle_map_with_fallback(
+    role_family_key: str = "",
+    *,
+    repo_root: Path | None = None,
+) -> dict[str, str]:
+    """Return the runtime slot contract used by IBM planning and prompt assembly."""
+    resolved: dict[str, str]
+    if role_family_key:
+        try:
+            resolved = resolve_ibm_bullet_slot_bundle_map(
+                role_family_key,
+                repo_root=repo_root,
+            )
+        except ValueError:
+            resolved = dict(IBM_BULLET_SLOT_BUNDLE_MAP)
+    else:
+        resolved = dict(IBM_BULLET_SLOT_BUNDLE_MAP)
+
+    for slot_id, default_bundle_id in IBM_BULLET_SLOT_BUNDLE_MAP.items():
+        bundle_id = str(resolved.get(slot_id) or "").strip()
+        bundle = get_bundle_by_id(bundle_id) if bundle_id else None
+        external_policy = str((bundle or {}).get("external_claim_policy") or "")
+        activation_status = str((bundle or {}).get("activation_status") or "")
+        if (
+            not bundle
+            or external_policy == "internal_only_not_external_claim"
+            or activation_status == "ACTIVE_INTERNAL_ONLY"
+        ):
+            resolved[slot_id] = default_bundle_id
+
+    expected_slots = set(IBM_BULLET_SLOT_BUNDLE_MAP)
+    resolved_values = [str(resolved.get(slot_id) or "").strip() for slot_id in expected_slots]
+    if (
+        set(resolved) != expected_slots
+        or any(not bundle_id for bundle_id in resolved_values)
+        or len(set(resolved_values)) != len(resolved_values)
+    ):
+        return dict(IBM_BULLET_SLOT_BUNDLE_MAP)
+    return {slot_id: str(resolved[slot_id]) for slot_id in IBM_BULLET_SLOT_IDS}
 
 def _ibm_metric_outcome_nodes() -> dict[str, dict[str, Any]]:
     return metric_outcome_nodes_from_path(IBM_BUNDLES_PATH)
@@ -302,6 +367,16 @@ def attach_role_episode_bundles_to_proof_pool_metadata(
     out["ibm_role_episode_section_packet"] = packet
     out["graph_expansion_consumes_role_episode_bundles"] = True
     out["flat_skill_only_graph_context_forbidden"] = True
+    if section_id == "ibm_bullets":
+        plan = out.get("selected_graph_evidence_plan") if isinstance(out.get("selected_graph_evidence_plan"), dict) else {}
+        frozen_slot_map = plan.get("ibm_bullet_slot_bundle_map_resolved") or out.get("ibm_bullet_slot_bundle_map_resolved")
+        role_key = str(plan.get("role_family_key") or plan.get("target_role_profile") or out.get("role_family_key") or "")
+        slot_bundle_map = (
+            dict(frozen_slot_map)
+            if isinstance(frozen_slot_map, dict) and frozen_slot_map
+            else resolve_ibm_bullet_slot_bundle_map_with_fallback(role_key, repo_root=repo_root)
+        )
+        out["ibm_bullet_slot_bundle_map_resolved"] = slot_bundle_map
     return out
 
 
@@ -431,11 +506,28 @@ def format_ibm_role_episode_evidence_pack(
 
     # ibm_bullets: one block per bul_ibm_* slot bound to primary bundle.
     skill_index = _skill_rows_by_id()
+    meta = runtime_payload.get("proof_pool_metadata") if isinstance(runtime_payload.get("proof_pool_metadata"), dict) else {}
+    resolved_slot_map = (
+        plan.get("ibm_bullet_slot_bundle_map_resolved")
+        or meta.get("ibm_bullet_slot_bundle_map_resolved")
+        or runtime_payload.get("ibm_bullet_slot_bundle_map_resolved")
+    )
+    if not isinstance(resolved_slot_map, dict) or not resolved_slot_map:
+        role_key = str(
+            plan.get("role_family_key")
+            or plan.get("target_role_profile")
+            or meta.get("role_family_key")
+            or ""
+        )
+        resolved_slot_map = resolve_ibm_bullet_slot_bundle_map_with_fallback(role_key)
+    runtime_payload["ibm_bullet_slot_bundle_map_resolved"] = dict(resolved_slot_map)
+    if isinstance(meta, dict):
+        meta["ibm_bullet_slot_bundle_map_resolved"] = dict(resolved_slot_map)
     active_slots = [s for s in IBM_BULLET_SLOT_IDS if s in _plan_fact_by_slot] if _plan_fact_by_slot else list(IBM_BULLET_SLOT_IDS)
     slot_blocks: list[str] = []
     for slot_id in active_slots:
         _slot_fact = _plan_fact_by_slot.get(slot_id) or {}
-        bundle_id = str(_slot_fact.get("role_episode_bundle_id") or "").strip() or IBM_BULLET_SLOT_BUNDLE_MAP.get(slot_id, "")
+        bundle_id = str(_slot_fact.get("role_episode_bundle_id") or "").strip() or str(resolved_slot_map.get(slot_id) or IBM_BULLET_SLOT_BUNDLE_MAP.get(slot_id, ""))
         bundle = get_bundle_by_id(bundle_id) if bundle_id else None
         if not bundle:
             slot_blocks.append(f"{slot_id} | ERROR: missing bundle {bundle_id}")
@@ -580,6 +672,7 @@ __all__ = [
     "GRAPH_BULLET_EVIDENCE_PACK_MARKER",
     "IBM_BULLET_SLOT_BUNDLE_MAP",
     "IBM_BULLET_SLOT_IDS",
+    "IBM_METRIC_PROTECTED_BULLET_SLOT_IDS",
     "IBM_ROLE_EPISODE_EVIDENCE_MARKER",
     "PROMOTABLE_METRIC_OUTCOME_IDS",
     "FORBIDDEN_METRIC_SUBSTRINGS",
@@ -590,5 +683,7 @@ __all__ = [
     "format_ibm_graph_bullet_evidence_pack",
     "format_ibm_role_episode_evidence_pack",
     "is_flat_skill_only_graph_packet",
+    "resolve_ibm_bullet_slot_bundle_map",
+    "resolve_ibm_bullet_slot_bundle_map_with_fallback",
     "scan_forbidden_metrics_in_text",
 ]

@@ -1,0 +1,36 @@
+{
+  "wave": "Wave 4",
+  "title": "Agents Graph Hygiene Promotion-Completeness Gate & 6-JD Multi-Domain Scale Benchmark",
+  "status": "PASS",
+  "completed_at": "2026-11-23T02:28:30Z",
+  "deliverables": {
+    "graph_promotion_hygiene_gate": {
+      "file": "tools/verify_graph_integrity_and_embeddings.py",
+      "function": "verify_graph_promotion_and_bundle_hygiene",
+      "invariant": "INV-GRAPH-PROMOTION-HYGIENE",
+      "unpromoted_archive_facts": 0,
+      "draft_archive_skills": 0,
+      "active_archive_skills_bound": 110,
+      "orphaned_archive_skills": 0,
+      "zero_metric_active_bundles": 0
+    },
+    "traversal_probe_archetype_alignment": {
+      "file": "tools/run_resume_graph_traversal_probe.py",
+      "archetype_jd_fit_alignment_pass": true,
+      "automation_prompt_updated": "automations/prompts/agents_domain_pipelines_retrieval_agent.md"
+    },
+    "six_jd_multi_domain_benchmark": {
+      "file": "tests/end_to_end/test_ibm_partner_and_graph_promotion_hygiene.py",
+      "corpus_jds": [
+        "Truist Financial Corporation (Head of Forward Deployed Engineering)",
+        "Citi (Managing Director, Firmwide AI Strategy & Cloud Architecture)",
+        "Anthropic (Manager, Applied AI Architecture & Partnerships)",
+        "Brown & Brown Insurance (Senior Vice President, IT Strategy & Innovation)",
+        "Neo4j (VP, GraphRAG & Knowledge Graph AI Partnerships)",
+        "Invesco (Head of AI & Quantitative Investment Platform Engineering)"
+      ],
+      "partnerships_gtm_ibm_partner_roots_min": 4,
+      "post_2022_genai_anachronisms_in_ibm": 0
+    }
+  }
+}

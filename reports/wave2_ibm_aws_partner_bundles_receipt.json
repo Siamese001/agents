@@ -1,0 +1,26 @@
+{
+  "wave": "Wave 2",
+  "title": "Non-GenAI 2017-2022 IBM-AWS Partner Bundle Expansion & Dynamic ibm_bullets JD-Fit Slot Contract",
+  "status": "PASS",
+  "ibm_partner_bundles_enriched": [
+    "reb_ibm_aws_alliance_partner_cosell_gtm",
+    "reb_ibm_offering_accelerator_management",
+    "reb_ibm_presales_solution_engineering",
+    "reb_ibm_customer_success_value_realization"
+  ],
+  "ai_partnerships_gtm_ibm_slot_map": {
+    "bul_ibm_001": "reb_ibm_aws_modernization_architecture",
+    "bul_ibm_002": "reb_ibm_customer_success_value_realization",
+    "bul_ibm_003": "reb_ibm_presales_solution_engineering",
+    "bul_ibm_004": "reb_ibm_offering_accelerator_management",
+    "bul_ibm_005": "reb_ibm_aws_alliance_partner_cosell_gtm"
+  },
+  "insurance_it_strategy_ibm_slot_map": {
+    "bul_ibm_001": "reb_ibm_aws_modernization_architecture",
+    "bul_ibm_002": "reb_ibm_cognitive_business_decision_support",
+    "bul_ibm_003": "reb_ibm_devsecops_release_resilience",
+    "bul_ibm_004": "reb_ibm_data_modeling_bi_decision_support",
+    "bul_ibm_005": "reb_ibm_aws_alliance_partner_cosell_gtm"
+  },
+  "unit_tests_passed": 149
+}

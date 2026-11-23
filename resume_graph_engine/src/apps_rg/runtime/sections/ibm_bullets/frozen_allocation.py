@@ -224,11 +224,11 @@ _IBM_FROZEN_ALLOCATION_DISPLAY_COMPOSITIONS: dict[tuple[str, str], str] = {
         "establishing compliance readiness across banking and insurance institutions."
     ),
     ("reb_ibm_offering_accelerator_management", "skill_p2_tech_reference_architecture"): (
-        "Directed offering accelerator management, packaging repeatable Confluent Kafka and AI solution blueprints "
+        "Directed AWS Partner offering and accelerator management, packaging repeatable cloud migration and streaming analytics blueprints "
         "into market-facing delivery assets deployed across financial and carrier client engagements."
     ),
     ("reb_ibm_offering_accelerator_management", "skill_sr_cloud_data_platform_engineering"): (
-        "Directed offering accelerator management, packaging repeatable Confluent Kafka and AI data platform blueprints "
+        "Directed AWS Partner offering and accelerator management, packaging repeatable cloud data platform and streaming analytics blueprints "
         "into market-facing delivery assets deployed across financial and carrier client engagements."
     ),
     ("reb_ibm_aws_modernization_architecture", "skill_sr_microservices_integration_platform"): (
@@ -268,8 +268,16 @@ _IBM_FROZEN_ALLOCATION_DISPLAY_COMPOSITIONS: dict[tuple[str, str], str] = {
         "shortening client proof-of-value cycles and standardizing repeatable delivery patterns."
     ),
     ("reb_ibm_offering_accelerator_management", "skill_p2_tech_reusable_accelerators"): (
-        "Scaled reusable cloud, analytics, and Confluent Kafka offering accelerators across enterprise accounts, "
+        "Scaled reusable AWS Partner cloud migration, streaming analytics, and ML offering accelerators across enterprise accounts, "
         "reducing repeated engineering setup and accelerating client modernization launches."
+    ),
+    ("reb_ibm_offering_accelerator_management", "skill_partner_aws_ecosystem"): (
+        "Directed AWS Partner offering and accelerator management, packaging reusable cloud migration blueprints and streaming analytics ecosystems "
+        "across regulated banking and insurance accounts."
+    ),
+    ("reb_ibm_offering_accelerator_management", "skill_partner_cloud_partner_ecosystem"): (
+        "Architected IBM-AWS partner offering accelerators and streaming data co-sell blueprints across regulated banking and insurance institutions, "
+        "standardizing reusable reference architectures for multi-account modernization."
     ),
     ("reb_ibm_offering_accelerator_management", "skill_p2_tech_ibm_cloud_portfolio_anchor"): (
         "Anchored IBM cloud and AI offering portfolio packaging across enterprise financial-services accounts, "
@@ -330,6 +338,38 @@ _IBM_FROZEN_ALLOCATION_DISPLAY_COMPOSITIONS: dict[tuple[str, str], str] = {
     ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_sr_regulated_financial_institutions_fluency"): (
         "Led IBM-AWS alliance go-to-market execution for regulated financial institutions, "
         "positioning compliant cloud modernization architectures to unlock joint account growth."
+    ),
+    ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_partner_aws_ecosystem"): (
+        "Led IBM-AWS strategic alliance co-sell and AWS Partner ecosystem execution for regulated financial-services modernization pursuits, "
+        "aligning partner solution architectures and SI/ISV co-selling motions across enterprise accounts."
+    ),
+    ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_partner_cloud_partner_ecosystem"): (
+        "Directed IBM-AWS cloud partner ecosystem and co-sell GTM execution across regulated banking and insurance accounts, "
+        "pairing AWS Partner reference architectures with predictive Salesforce deal-scoring frameworks."
+    ),
+    ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_partner_solution_architecture"): (
+        "Architected joint IBM-AWS partner solution blueprints and co-sell GTM plays for regulated financial-services modernization pursuits, "
+        "aligning AWS Partner architects and C-suite sponsors to accelerate joint pipeline conversion."
+    ),
+    ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_partner_co_selling"): (
+        "Orchestrated IBM-AWS alliance and SI/ISV co-selling motions across regulated banking and insurance pursuits, "
+        "scaling joint cloud modernization architectures and account-scoring GTM frameworks."
+    ),
+    ("reb_ibm_presales_solution_engineering", "skill_partner_workshops"): (
+        "Led AWS Partner pre-sales solution engineering and executive architecture workshops across global financial-services pursuits, "
+        "converting C-suite buyer requirements into validated cloud modernization roadmaps and delivery handoffs."
+    ),
+    ("reb_ibm_presales_solution_engineering", "skill_p2_gtm_commercial_validation_pilots"): (
+        "Directed AWS Partner pre-sales solution engineering and commercial validation pilots across enterprise banking and insurance pursuits, "
+        "aligning C-suite stakeholders on architecture tradeoffs and production adoption paths."
+    ),
+    ("reb_ibm_presales_solution_engineering", "skill_partner_solution_architecture"): (
+        "Led AWS Partner pre-sales solution architecture and technical discovery across global financial-services pursuits, "
+        "mapping regulated cloud and data platform blueprints to C-suite ROI criteria."
+    ),
+    ("reb_ibm_customer_success_value_realization", "skill_partner_workshops"): (
+        "Led executive AWS Partner architecture workshops and post-sale value-realization governance across regulated banking accounts, "
+        "removing adoption bottlenecks to sustain multi-region platform expansion."
     ),
     ("reb_ibm_devsecops_release_resilience", "skill_sr_regulated_financial_institutions_fluency"): (
         "Engineered DevSecOps release resilience and automated security guardrails for regulated financial institutions, "

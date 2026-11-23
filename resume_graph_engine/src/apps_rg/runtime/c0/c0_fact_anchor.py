@@ -38,7 +38,7 @@ PARTNER_THEME_PATTERNS: Mapping[str, tuple[str, ...]] = {
     "aws": ("aws", "amazon web services", "bedrock", "sagemaker", "eks"),
     "azure": ("azure", "microsoft", "copilot"),
     "databricks": ("databricks", "lakehouse"),
-    "kafka": ("kafka", "event-driven", "microservices"),
+    "streaming_microservices": ("event-driven", "microservices", "streaming"),
     "guidewire": ("guidewire", "policycenter", "claimcenter", "billingcenter"),
     "snowflake": ("snowflake",),
 }
