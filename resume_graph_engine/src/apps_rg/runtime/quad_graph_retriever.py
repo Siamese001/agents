@@ -380,7 +380,7 @@ class QuadGraphHybridRetriever:
                     "record_id": rid,
                     "assertion_id": rid,
                     "rrf_score": round(rrf_val, 6),
-                    "final_score": round(rrf_val + 0.15 * c_score + 0.05 * g_score, 6),
+                    "final_score": round(rrf_val + 0.005 * c_score + 0.002 * g_score, 6),
                     "dense_similarity": dense_map.get(rid, 0.0),
                     "learned_sparse_score": sparse_map.get(rid, 0.0),
                     "bm25_score": bm25_map.get(rid, 0.0),

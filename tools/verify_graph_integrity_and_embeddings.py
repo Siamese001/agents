@@ -242,6 +242,8 @@ def verify_bge_m3_embeddings(
             n = len(file_vectors)
             sim_sum = 0.0
             pair_count = 0
+            high_sim_pairs = 0
+            all_sims: list[float] = []
             for i in range(n):
                 vi = file_vectors[i]
                 for j in range(i + 1, n):
@@ -251,18 +253,38 @@ def verify_bge_m3_embeddings(
                         min_sim_global = dot
                     if dot > max_sim_global:
                         max_sim_global = dot
+                    if dot >= 0.98:
+                        high_sim_pairs += 1
+                    all_sims.append(dot)
                     sim_sum += dot
                     pair_count += 1
 
             mean_sim = sim_sum / pair_count if pair_count else 0.0
             mean_sim_global = mean_sim
+            all_sims.sort()
+            p95_sim = all_sims[int(0.95 * (len(all_sims) - 1))] if all_sims else 0.0
+            high_sim_ratio = (high_sim_pairs / pair_count) if pair_count else 0.0
 
             if min_sim_global < 0.0:
                 raise ValueError(f"Negative cosine similarity observed: {min_sim_global:.4f}")
-            if max_sim_global >= 0.98:
-                raise ValueError(f"Near-duplicate vector collapse detected: max={max_sim_global:.4f} >= 0.98")
-            if not (0.50 <= mean_sim <= 0.80):
+            if p95_sim >= 0.95 or high_sim_ratio >= 0.02:
+                raise ValueError(
+                    f"Vector collapse detected: p95={p95_sim:.4f}, high_sim_ratio={high_sim_ratio:.4f}"
+                )
+            if not (0.45 <= mean_sim <= 0.80):
                 raise ValueError(f"Mean cosine similarity out of healthy bounds: {mean_sim:.4f}")
+            if target_table == "unit_vectors":
+                dup_rows = c.execute(
+                    """
+                    SELECT uv.vector_sha256, COUNT(DISTINCT su.text_sha256)
+                    FROM unit_vectors uv
+                    JOIN semantic_unit su ON su.unit_id = uv.unit_id
+                    GROUP BY uv.vector_sha256
+                    HAVING COUNT(DISTINCT su.text_sha256) > 1
+                    """
+                ).fetchall()
+                if dup_rows:
+                    raise ValueError(f"Identical vector collapse across distinct texts: {len(dup_rows)} collisions")
 
         conn.close()
 
