@@ -34,6 +34,7 @@ POSITIONING_FAMILIES: dict[str, frozenset[str]] = {
         "distributed ai", "distributed ai infrastructure", "distributed infrastructure",
         "ai infrastructure", "distributed systems", "distributed data",
         "distributed platform", "cloud data modernization", "cloud data platforms",
+        "cloud platform", "cloud platforms", "cloud platform delivery", "reusable cloud platforms",
         "insurance platform modernization", "insurance core modernization",
         "insurance cloud architecture",
     }),

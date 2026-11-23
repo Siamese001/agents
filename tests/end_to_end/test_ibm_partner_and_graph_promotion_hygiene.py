@@ -135,6 +135,19 @@ def test_graph_promotion_hygiene_and_traversal_probe() -> None:
     assert probe["status"] == "PASS"
     assert probe["archetype_jd_fit_alignment_pass"] is True
 
+    from apps_rg.runtime.validators.headline_positioning_x2 import (
+        governance_signal_families_matched,
+        platform_or_runtime_signal_families_matched,
+        positioning_families_matched,
+    )
+
+    sample_partner_headline = (
+        "SVP AI Partnerships | Regulated AI Systems | Cloud Platform Delivery | Joint Partner Ecosystems"
+    )
+    assert platform_or_runtime_signal_families_matched(sample_partner_headline)
+    assert governance_signal_families_matched(sample_partner_headline)
+    assert len(positioning_families_matched(sample_partner_headline)) >= 2
+
 
 def test_six_jd_multi_domain_ibm_partner_and_allocation_benchmark() -> None:
     partner_gtm_roots = {
