@@ -247,3 +247,39 @@ def scan_extended_construct_validity(
                     )
 
     return violations
+
+
+def check_human_label_file_validity(file_path: Path) -> list[dict[str, Any]]:
+    """Fail-closed construct-validity check rejecting batch-stamped synthetic human label files."""
+    from apps_eval.graders.judge.human_provenance import (
+        detect_synthetic_human_label_csv,
+        verify_human_label_ledger,
+    )
+
+    fp = Path(file_path)
+    out: list[dict[str, Any]] = []
+    if not fp.is_file():
+        return out
+    if fp.suffix.lower() == ".csv":
+        for msg in detect_synthetic_human_label_csv(fp):
+            out.append(
+                {
+                    "code": "SYNTHETIC_BATCH_HUMAN_LABELS",
+                    "file": str(fp),
+                    "line": 1,
+                    "message": msg,
+                }
+            )
+    elif fp.suffix.lower() == ".jsonl":
+        ok, viols, _ = verify_human_label_ledger(fp)
+        if not ok:
+            for msg in viols:
+                out.append(
+                    {
+                        "code": "SYNTHETIC_BATCH_HUMAN_LABELS",
+                        "file": str(fp),
+                        "line": 1,
+                        "message": msg,
+                    }
+                )
+    return out

@@ -1,0 +1,92 @@
+# Independent External Stakeholder Rubric — Resume Engine (Hiring Manager & Executive Coach Lens)
+# Decoupled from internal section prompt checklists to detect both calibration drift and Goodhart construct drift.
+
+rubric_id: external_human_resume_stakeholder_v1
+rubric_version: "1.0.0"
+engine: resume_engine
+stakeholder_persona: "SVP/Executive Hiring Manager & Independent Executive Resume Coach"
+evaluation_role: external_human_gold_and_drift_anchor
+scale:
+  min: 1
+  max: 5
+pass_threshold_mean: 4.0
+
+human_calibration:
+  status: PENDING_HUMAN_IN_CHAT_GRADING
+  last_calibrated_at: null
+  inter_rater_kappa: 0.0
+  intra_rater_repeat_kappa: 0.0
+  cadence: P30D
+  n_calibration_samples: 0
+
+dimensions:
+  - id: role_mandate_fit
+    name: "Target Role & Mandate Fit"
+    definition: "Does the excerpt directly address the executive mandate and decision scope a hiring manager evaluates for this role?"
+    scale: {min: 1, max: 5}
+    weight: 0.20
+    anchors:
+      5: "Directly maps candidate leadership scope to the target mandate with sharp commercial and architectural relevance."
+      4: "Clearly relevant to the target mandate with minor missed emphasis."
+      3: "Generally senior technology experience but generic relative to the target mandate."
+      2: "Misaligned level, domain focus, or reads like a generic boilerplate resume."
+      1: "Off-target role framing or completely disconnected from the target mandate."
+
+  - id: claim_credibility_and_grounding
+    name: "Claim Credibility & Source Grounding"
+    definition: "Are every metric, employer attribution, and leadership scope claim faithful to the provided source facts without stretching?"
+    scale: {min: 1, max: 5}
+    weight: 0.25
+    hard_floor: 4
+    anchors:
+      5: "Every figure, scope, and employer claim is strictly supported by source facts with zero inflation."
+      4: "Factually faithful with benign editorial compression that preserves exact meaning and numbers."
+      3: "Ambiguous scope wording that could overstate direct ownership relative to source facts."
+      2: "Noticeable metric stretching, blended employer attribution, or unsupported scope upgrade."
+      1: "Fabricated metric, invented employer/credential, or direct contradiction of source facts."
+
+  - id: executive_signal_density
+    name: "Executive Signal Density & Concision"
+    definition: "Does every sentence carry concrete action, mechanism, and business outcome without fluff or noun-stacking?"
+    scale: {min: 1, max: 5}
+    weight: 0.20
+    anchors:
+      5: "High-density SVP prose; crisp mechanism-to-outcome chain with zero filler."
+      4: "Strong executive density with one minor wordy clause."
+      3: "Readable but diluted by vague qualifiers or repetitive framing."
+      2: "Dense jargon, buzzword stacking, or weak outcome specificity."
+      1: "Empty corporate filler or broken structure."
+
+  - id: authentic_human_voice
+    name: "Authentic Human Executive Voice"
+    definition: "Does the prose read like an accomplished executive speaking naturally, free of AI tells and JD keyword parroting?"
+    scale: {min: 1, max: 5}
+    weight: 0.15
+    anchors:
+      5: "Natural, authoritative human executive prose with zero robotic cadence or JD mimicry."
+      4: "Mostly natural voice with one slightly formulaic transition."
+      3: "Acceptable polish but visibly templated or mildly parroting JD phrasing."
+      2: "Obvious AI rhythm, stiff stacked clauses, or blatant JD copy-paste."
+      1: "Unmistakable AI slop or awkward mechanical assembly."
+
+  - id: decision_usefulness
+    name: "Hiring-Manager Interview Decision Usefulness"
+    definition: "Would this section strengthen a hiring manager's conviction to advance this candidate to an executive interview?"
+    scale: {min: 1, max: 5}
+    weight: 0.20
+    anchors:
+      5: "Immediately differentiates the candidate as a top-decile shortlist contender."
+      4: "Clearly supports moving forward to interview."
+      3: "Neutral; neither advances nor disqualifies."
+      2: "Raises skepticism about substance, honesty, or seniority calibration."
+      1: "Would trigger immediate screen rejection."
+
+hard_fail_flags:
+  - id: fabricated_or_stretched_metric
+    definition: "Any invented figure, inflated percentage/dollar metric, or unverified scope exaggeration."
+  - id: jd_parrot_mimicry
+    definition: "Verbatim or near-verbatim parroting of job-description buzzwords disguised as candidate history."
+  - id: ai_slop_or_filler
+    definition: "Obvious synthetic phrasing, hollow executive cliches, or first-person/formatting defects."
+  - id: scope_or_employer_distortion
+    definition: "Misattributing an achievement to the wrong employer, tenure period, or leadership authority."

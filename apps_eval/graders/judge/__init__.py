@@ -25,6 +25,32 @@ from apps_eval.graders.judge.calibration import (
     compute_cohens_kappa,
     evaluate_cross_family_judge_agreement,
 )
+from apps_eval.graders.judge.drift_monitor import (
+    IDE_JUDGE_DRIFT_RECEIPT_SCHEMA_VERSION,
+    ModelDriftEvaluation,
+    evaluate_full_drift_suite,
+    evaluate_model_drift,
+    extract_active_ide_judge_bases,
+    extract_active_ide_judge_pins,
+    verify_ide_judge_drift_receipt,
+)
+from apps_eval.graders.judge.gold_corpus import (
+    BlindGradingPacket,
+    BlindReviewPrompt,
+    GoldCandidateRecord,
+    build_blind_grading_packet,
+    export_blind_review_sheet_csv,
+    import_blind_review_sheet_csv,
+    load_external_stakeholder_rubric,
+    load_gold_candidates_jsonl,
+)
+from apps_eval.graders.judge.human_provenance import (
+    HumanGradeEntry,
+    append_human_grade_entry,
+    detect_synthetic_human_label_csv,
+    unseal_and_adjudicate_human_gold,
+    verify_human_label_ledger,
+)
 from apps_eval.graders.judge.panel import (
     LensSpec,
     LensVerdict,

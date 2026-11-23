@@ -616,10 +616,33 @@ def load_approved_provider_models(repo_root: Path | str | None = None) -> set[st
                                 "snapshot_id",
                             ) and isinstance(v, str):
                                 approved.add(v.strip())
-                            elif k in ("model_by_section", "anthropic_limit_backup_model_by_section") and isinstance(v, dict):
-                                for _, m in v.items():
+                            elif k in (
+                                "model_by_section",
+                                "anthropic_limit_backup_model_by_section",
+                                "second_judge_by_writer_maker",
+                                "model_map",
+                            ) and isinstance(v, dict):
+                                for mk, m in v.items():
+                                    if isinstance(mk, str) and any(p in mk.lower() for p in ("gpt-", "claude-", "gemini-")):
+                                        approved.add(mk.strip())
                                     if isinstance(m, str):
                                         approved.add(m.strip())
+                            elif k in (
+                                "ide_models",
+                                "quota_backup_models",
+                            ) and isinstance(v, list):
+                                for m in v:
+                                    if isinstance(m, str):
+                                        approved.add(m.strip())
+                            elif k in (
+                                "quota_backup_second_judge_by_writer_maker",
+                                "quota_backup_first_judge_by_tier",
+                            ) and isinstance(v, dict):
+                                for bucket in v.values():
+                                    if isinstance(bucket, list):
+                                        for m in bucket:
+                                            if isinstance(m, str):
+                                                approved.add(m.strip())
                             elif k == "models" and isinstance(v, dict):
                                 for model_id, model_def in v.items():
                                     if isinstance(model_id, str):
@@ -634,7 +657,7 @@ def load_approved_provider_models(repo_root: Path | str | None = None) -> set[st
 
                 _extract_models(data)
                 continue
-        except (OSError, ValueError, TypeError, KeyError, AttributeError):  # guardian: allow-silent-swallow -- fallback to regex parser on unparseable YAML/JSON
+        except (ImportError, OSError, ValueError, TypeError, KeyError, AttributeError):  # guardian: allow-silent-swallow -- fallback to regex parser on missing yaml or unparseable YAML/JSON
             pass
 
         for line in text.splitlines():

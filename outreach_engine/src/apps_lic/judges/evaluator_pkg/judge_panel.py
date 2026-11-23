@@ -314,6 +314,42 @@ class ExecutiveOutreachJudgePanel(RubricConfigAndTournamentBase):
     def evaluate(self, draft: OutreachMessageDraft, candidate: CandidateProfile, opportunity: TargetOpportunity) -> EvaluationReport:
         return self.report_from_verdict(self.evaluate_authoritative(draft, candidate, opportunity))
 
+    def evaluate_ide_cli(
+        self,
+        draft: OutreachMessageDraft,
+        candidate: CandidateProfile,
+        opportunity: TargetOpportunity,
+        *,
+        agy_bin: str | None = None,
+    ) -> dict[str, object]:
+        """Run deterministic pre-gates plus live keyless IDE CLI 6-lens rubric judgment (fail-closed)."""
+        from apps_lic.judges.ide_cli_judge import call_outreach_panel_ide_cli_judge
+
+        det_verdict = self.evaluate_authoritative(draft, candidate, opportunity)
+        fact_summaries = [
+            f"{f.fact_id}: {getattr(f, 'claim_text', getattr(f, 'text', ''))}"
+            for f in candidate.verified_facts
+        ]
+        cli_res = call_outreach_panel_ide_cli_judge(
+            subject=draft.subject,
+            body=draft.body,
+            channel=str(getattr(draft.channel, "value", draft.channel)),
+            recipient_class=str(getattr(opportunity.recipient_class, "value", opportunity.recipient_class)),
+            verified_facts=fact_summaries,
+            company_name=opportunity.company_name,
+            rubric=self._active_rubric,
+            pass_threshold=self.get_min_composite_score(0.75),
+            agy_bin=agy_bin,
+        )
+        combined_passed = bool(det_verdict.hard_gate_passed and cli_res.passed and not cli_res.provider_blocked)
+        return {
+            "passed": combined_passed,
+            "status": "PASSED" if combined_passed else "BLOCKED",
+            "hard_gate_passed": det_verdict.hard_gate_passed,
+            "deterministic_violations": list(det_verdict.violations),
+            "ide_cli_judge": cli_res.to_dict(),
+        }
+
 
 RubricJudgeEvaluator = ExecutiveOutreachJudgePanel
 

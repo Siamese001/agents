@@ -336,7 +336,11 @@ def test_holdout_corpus_80_rows_csvs_and_g5_g6_harnesses() -> None:
     for csv_path in sorted(HOLDOUT_DIR.glob("*.csv")):
         with csv_path.open("r", encoding="utf-8", newline="") as fh:
             rows = list(csv.DictReader(fh))
-        assert len(rows) >= 80, f"{csv_path.name} has only {len(rows)} rows (expected >= 80)"
+        if csv_path.name == "human_labels.outreach_quality.v1.csv":
+            # Authentic human labels must never contain batch-stamped synthetic seed rows.
+            assert all(r.get("label_batch_id") != "lic_wave5_batch_a" for r in rows)
+        else:
+            assert len(rows) >= 80, f"{csv_path.name} has only {len(rows)} rows (expected >= 80)"
 
     g5_report = evaluate_g5_repeatability(corpus, k_runs=3, seed=42)
     assert g5_report.passed is True, g5_report.violations

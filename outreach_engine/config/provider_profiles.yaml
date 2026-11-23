@@ -33,6 +33,34 @@ ide_argon4_routing_policy:
     - ExecutiveOutreachJudgePanel
     - sanitize_briefing_content
 
+# Keyless headless Antigravity IDE CLI transport for Outreach proof and rubric judges.
+# Env override: APPS_LIC_JUDGE_TRANSPORT=ide_cli|deterministic|external_api.
+# Every live IDE judge call runs deny-all-tools and fails closed to BLOCKED with zero synthetic fallback.
+ide_cli_judging:
+  transport: ide_cli
+  cli_env_var: AGY_CLI_BIN
+  primary_judge_model: gemini-4-argon-medium
+  second_judge_by_writer_maker:
+    anthropic: gemini-3.8-flash-medium
+    openai: gemini-4-neon-medium
+    google: gemini-3.8-flash-medium
+  quota_backup_primary_judge:
+    - gemini-4-neon-medium
+    - gemini-3.8-flash-high
+  quota_backup_second_judge_by_writer_maker:
+    anthropic:
+      - gpt-oss-120b-medium
+      - gemini-4-neon-medium
+    openai:
+      - gpt-oss-120b-medium
+      - gemini-3.8-flash-medium
+    google:
+      - gpt-oss-120b-medium
+  rubric_panel_judge_model: gemini-4-argon-medium
+  rubric_panel_quota_backups:
+    - gemini-4-neon-medium
+    - gemini-3.8-flash-medium
+
 profiles:
   executive_outreach_generator:
     profile_id: outreach_engine::provider::executive_outreach_generator::v2

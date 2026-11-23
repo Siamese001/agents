@@ -197,12 +197,37 @@ class X1DJudgeVote:
     dimension_scores: dict[str, float] = field(default_factory=dict)
     rationale: str = ""
     violations: tuple[str, ...] = ()
+    transport: str = "deterministic"
+    evaluator_mode: str = "DETERMINISTIC_PRE_JUDGE"
+    llm_judge_executed: bool = False
+    conversation_id: str | None = None
+    usage: dict[str, Any] = field(default_factory=dict)
     judge_model_id = property(lambda self: self.model_id)
     judge_family = property(lambda self: self.provider_family)
     composite_score = property(lambda self: self.score)
 
     def to_dict(self) -> dict[str, Any]:
-        return {"judge_role": self.judge_role, "model_id": self.model_id, "provider": self.provider, "provider_family": self.provider_family, "reasoning_effort": self.reasoning_effort, "proof_eligible": self.proof_eligible, "advisory_only": self.advisory_only, "orthogonal_to_drafter": self.orthogonal_to_drafter, "self_grading_blocked": self.self_grading_blocked, "score": round(float(self.score), 4), "passed": self.passed, "dimension_scores": {k: round(float(v), 4) for k, v in self.dimension_scores.items()}, "rationale": self.rationale, "violations": list(self.violations)}
+        return {
+            "judge_role": self.judge_role,
+            "model_id": self.model_id,
+            "provider": self.provider,
+            "provider_family": self.provider_family,
+            "reasoning_effort": self.reasoning_effort,
+            "proof_eligible": self.proof_eligible,
+            "advisory_only": self.advisory_only,
+            "orthogonal_to_drafter": self.orthogonal_to_drafter,
+            "self_grading_blocked": self.self_grading_blocked,
+            "score": round(float(self.score), 4),
+            "passed": self.passed,
+            "dimension_scores": {k: round(float(v), 4) for k, v in self.dimension_scores.items()},
+            "rationale": self.rationale,
+            "violations": list(self.violations),
+            "transport": self.transport,
+            "evaluator_mode": self.evaluator_mode,
+            "llm_judge_executed": self.llm_judge_executed,
+            "conversation_id": self.conversation_id,
+            "usage": dict(self.usage),
+        }
 
 
 @dataclass(frozen=True)
@@ -288,8 +313,45 @@ def _score_packet_for_judge(packet: GradeOnlyJudgePacket, pin: OutreachModelPin,
     return max(0.0, min(1.0, round(weighted_total / (weight_sum if weight_sum > 0 else 1.0), 4))), dim_scores, viols
 
 
-def _make_vote(pin: OutreachModelPin, orthogonal: bool, blocked: bool, score: float, passed: bool, dims: dict[str, float], rationale: str, viols: Sequence[str]) -> X1DJudgeVote:
-    return X1DJudgeVote(pin.role, pin.model, pin.provider, pin.provider_family, pin.reasoning_effort, pin.proof_eligible, pin.advisory_only, orthogonal, blocked, score, passed, dims, rationale, tuple(viols))
+def _make_vote(
+    pin: OutreachModelPin,
+    orthogonal: bool,
+    blocked: bool,
+    score: float,
+    passed: bool,
+    dims: dict[str, float],
+    rationale: str,
+    viols: Sequence[str],
+    *,
+    transport: str = "deterministic",
+    evaluator_mode: str = "DETERMINISTIC_PRE_JUDGE",
+    llm_judge_executed: bool = False,
+    conversation_id: str | None = None,
+    usage: Mapping[str, Any] | None = None,
+    model_override: str | None = None,
+    family_override: str | None = None,
+) -> X1DJudgeVote:
+    return X1DJudgeVote(
+        pin.role,
+        model_override or pin.model,
+        pin.provider,
+        family_override or pin.provider_family,
+        pin.reasoning_effort,
+        pin.proof_eligible,
+        pin.advisory_only,
+        orthogonal,
+        blocked,
+        score,
+        passed,
+        dims,
+        rationale,
+        tuple(viols),
+        transport=transport,
+        evaluator_mode=evaluator_mode,
+        llm_judge_executed=llm_judge_executed,
+        conversation_id=conversation_id,
+        usage=dict(usage or {}),
+    )
 
 
 def evaluate_x1d_judge_quorum(
@@ -298,8 +360,12 @@ def evaluate_x1d_judge_quorum(
     x2_passed: bool | None = None, drafter_model_id: str | None = None, drafter_family: str | None = None, used_fallback: bool | None = None,
     primary_score: float | None = None, secondary_score: float | None = None, judge_scores: Mapping[str, float] | Sequence[float] | None = None,
     pass_threshold: float | None = None, max_judge_spread: float | None = None, seed: int | None = None, rubric_path: Path | str | None = None,
+    transport: str | None = None, agy_bin: str | os.PathLike[str] | None = None,
 ) -> WholeSequenceJudgeQuorumReport:
     """Evaluate dual cross-family X1D proof-judge quorum strictly post-X2 on a `GradeOnlyJudgePacket`."""
+    from apps_lic.judges.ide_cli_judge import call_outreach_x1d_ide_cli_judge, resolve_lic_judge_transport
+
+    eff_transport = resolve_lic_judge_transport(transport)
     rubric = load_x1d_exit_rubric(rubric_path)
     rubric_id = str(rubric.get("rubric_id", DEFAULT_X1D_RUBRIC_ID))
     eff_threshold = float(pass_threshold if pass_threshold is not None else rubric.get("pass_threshold", X1D_PASS_THRESHOLD))
@@ -335,8 +401,8 @@ def evaluate_x1d_judge_quorum(
         violations.append("X1D judge quorum blocked: sequence failed pre-requisite X2 validation (x2_passed=False).")
         if self_grading_blocked:
             reasons.append("CROSS_FAMILY_SELF_GRADING_BLOCKED")
-        v1 = _make_vote(primary_pin, primary_orthogonal, not primary_orthogonal, 0.0, False, {}, "Skipped pre-X2.", violations)
-        v2 = _make_vote(secondary_pin, secondary_orthogonal, self_grading_blocked, 0.0, False, {}, "Skipped pre-X2.", violations)
+        v1 = _make_vote(primary_pin, primary_orthogonal, not primary_orthogonal, 0.0, False, {}, "Skipped pre-X2.", violations, transport=eff_transport)
+        v2 = _make_vote(secondary_pin, secondary_orthogonal, self_grading_blocked, 0.0, False, {}, "Skipped pre-X2.", violations, transport=eff_transport)
         return _finish_report(False, 0.0, 0.0, 0.0, 0.0, "X3B_ESCALATE_HITL" if self_grading_blocked else "X3E_SAFE_ABSTAIN", v1, v2)
 
     if self_grading_blocked:
@@ -344,9 +410,51 @@ def evaluate_x1d_judge_quorum(
         block_msg = f"Cross-family anti-self-grading block: drafter '{resolved_packet.drafter_model_id}' (family='{norm_drafter_family}', used_fallback={resolved_packet.used_fallback}) overlaps judge '{secondary_pin.model}'."
         violations.append(block_msg)
         p_val, p_dims, p_viols = _score_packet_for_judge(resolved_packet, primary_pin, rubric, explicit_score=primary_score, seed=seed)
-        v1 = _make_vote(primary_pin, primary_orthogonal, not primary_orthogonal, p_val if primary_orthogonal else 0.0, bool(primary_orthogonal and p_val >= eff_threshold and not p_viols), p_dims if primary_orthogonal else {}, "Primary judge pass.", p_viols)
-        v2 = _make_vote(secondary_pin, False, True, 0.0, False, {}, block_msg, (block_msg,))
+        v1 = _make_vote(primary_pin, primary_orthogonal, not primary_orthogonal, p_val if primary_orthogonal else 0.0, bool(primary_orthogonal and p_val >= eff_threshold and not p_viols), p_dims if primary_orthogonal else {}, "Primary judge pass.", p_viols, transport=eff_transport)
+        v2 = _make_vote(secondary_pin, False, True, 0.0, False, {}, block_msg, (block_msg,), transport=eff_transport)
         return _finish_report(False, v1.score, 0.0, round(v1.score / 2.0, 4), round(v1.score, 4), "X3B_ESCALATE_HITL", v1, v2)
+
+    if eff_transport == "ide_cli" and primary_score is None and secondary_score is None:
+        pkt_dict = resolved_packet.to_dict()
+        r1 = call_outreach_x1d_ide_cli_judge(
+            packet_dict=pkt_dict, rubric=rubric, slot="primary",
+            drafter_family=norm_drafter_family, pass_threshold=eff_threshold, agy_bin=agy_bin,
+        )
+        r2 = call_outreach_x1d_ide_cli_judge(
+            packet_dict=pkt_dict, rubric=rubric, slot="secondary",
+            drafter_family=norm_drafter_family, pass_threshold=eff_threshold, agy_bin=agy_bin,
+        )
+        v1 = _make_vote(
+            primary_pin, True, r1.provider_blocked, r1.score, r1.passed, r1.dimension_scores, r1.rationale, r1.violations,
+            transport="ide_cli", evaluator_mode=r1.evaluator_mode, llm_judge_executed=r1.llm_judge_executed,
+            conversation_id=r1.conversation_id, usage=r1.usage, model_override=r1.model_reported or r1.model_requested,
+            family_override=r1.provider_family,
+        )
+        v2 = _make_vote(
+            secondary_pin, True, r2.provider_blocked, r2.score, r2.passed, r2.dimension_scores, r2.rationale, r2.violations,
+            transport="ide_cli", evaluator_mode=r2.evaluator_mode, llm_judge_executed=r2.llm_judge_executed,
+            conversation_id=r2.conversation_id, usage=r2.usage, model_override=r2.model_reported or r2.model_requested,
+            family_override=r2.provider_family,
+        )
+        violations.extend(r1.violations)
+        violations.extend(sv for sv in r2.violations if sv not in violations)
+        mean_score, spread = round((r1.score + r2.score) / 2.0, 4), round(abs(r1.score - r2.score), 4)
+        if r1.provider_blocked or r2.provider_blocked:
+            reasons.append("X1D_IDE_CLI_PROVIDER_BLOCKED")
+            return _finish_report(False, r1.score, r2.score, mean_score, spread, "X3E_SAFE_ABSTAIN", v1, v2)
+        score_ok, spread_ok = mean_score >= eff_threshold, spread <= eff_max_spread
+        quorum_passed = bool(r1.passed and r2.passed and score_ok and spread_ok and target_free_ok and not violations)
+        if quorum_passed:
+            disposition = "X3D_ALLOW_FINISH"
+            reasons.append("X1D_IDE_CLI_DUAL_QUORUM_PASSED")
+        elif not spread_ok:
+            disposition = "X3B_ESCALATE_HITL"
+            reasons.append("X1D_JUDGE_SPREAD_EXCEEDED")
+            violations.append(f"X1D judge spread {spread:.4f} exceeds max_judge_spread {eff_max_spread:.4f}.")
+        else:
+            disposition = "X3E_SAFE_ABSTAIN"
+            reasons.append("X1D_MEAN_SCORE_BELOW_THRESHOLD")
+        return _finish_report(quorum_passed, r1.score, r2.score, mean_score, spread, disposition, v1, v2)
 
     p_score, p_dims, p_viols = _score_packet_for_judge(resolved_packet, primary_pin, rubric, explicit_score=primary_score, seed=seed)
     s_score, s_dims, s_viols = _score_packet_for_judge(resolved_packet, secondary_pin, rubric, explicit_score=secondary_score, seed=seed)
@@ -368,8 +476,8 @@ def evaluate_x1d_judge_quorum(
         reasons.append("X1D_MEAN_SCORE_BELOW_THRESHOLD")
         if not score_ok:
             violations.append(f"X1D quorum mean_score {mean_score:.4f} is below pass_threshold {eff_threshold:.4f}.")
-    v1 = _make_vote(primary_pin, True, False, p_score, bool(p_score >= eff_threshold and not p_viols), p_dims, "Primary judge pass.", p_viols)
-    v2 = _make_vote(secondary_pin, True, False, s_score, bool(s_score >= eff_threshold and not s_viols), s_dims, "Secondary judge pass.", s_viols)
+    v1 = _make_vote(primary_pin, True, False, p_score, bool(p_score >= eff_threshold and not p_viols), p_dims, "Primary judge pass.", p_viols, transport=eff_transport)
+    v2 = _make_vote(secondary_pin, True, False, s_score, bool(s_score >= eff_threshold and not s_viols), s_dims, "Secondary judge pass.", s_viols, transport=eff_transport)
     return _finish_report(quorum_passed, p_score, s_score, mean_score, spread, disposition, v1, v2)
 
 
