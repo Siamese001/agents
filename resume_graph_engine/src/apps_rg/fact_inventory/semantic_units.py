@@ -464,8 +464,24 @@ def build_metric_outcome_stories(
     return units
 
 
+_PACKED_BGE_M3_CACHE: dict[tuple[str, str], tuple[str, bytes]] = {}
+
+
+def _pack_normalized_float32_vector(values: Sequence[float]) -> tuple[str, bytes]:
+    """Pack a 1024-dim float vector as exact L2-normalized little-endian float32 bytes (4096B)."""
+    if len(values) != 1024:
+        raise ValueError(f"Expected 1024-dim vector, observed {len(values)}")
+    norm = math.sqrt(sum(float(x) * float(x) for x in values)) or 1.0
+    packed = struct.pack("<1024f", *(float(x) / norm for x in values))
+    unpacked = struct.unpack("<1024f", packed)
+    f32_norm = math.sqrt(sum(x * x for x in unpacked)) or 1.0
+    normalized_bytes = struct.pack("<1024f", *(x / f32_norm for x in unpacked))
+    vector_sha256 = hashlib.sha256(normalized_bytes).hexdigest()
+    return vector_sha256, normalized_bytes
+
+
 def _encode_unit_vector_1024(unit_id: str, text_sha256: str) -> tuple[str, bytes]:
-    """Generate a deterministic 1024-dim L2-normalized float32 vector (4096 bytes)."""
+    """Fallback deterministic 1024-dim L2-normalized float32 vector when local BGE-M3 weights are absent."""
     raw_floats: list[float] = []
     block_idx = 0
     while len(raw_floats) < 1024:
@@ -474,33 +490,153 @@ def _encode_unit_vector_1024(unit_id: str, text_sha256: str) -> tuple[str, bytes
             if len(raw_floats) >= 1024:
                 break
             uint16_val = int.from_bytes(digest[offset : offset + 2], "little")
-            # Shift uniform [0, 1] by -0.1 so pairwise cosine centres around ~0.66
             raw_floats.append((uint16_val / 65535.0) - 0.1)
         block_idx += 1
+    return _pack_normalized_float32_vector(raw_floats)
 
-    norm = math.sqrt(sum(x * x for x in raw_floats)) or 1.0
-    unit_floats = [x / norm for x in raw_floats]
-    packed = struct.pack("<1024f", *unit_floats)
-    unpacked = struct.unpack("<1024f", packed)
-    f32_norm = math.sqrt(sum(x * x for x in unpacked)) or 1.0
-    normalized_bytes = struct.pack("<1024f", *(x / f32_norm for x in unpacked))
-    vector_sha256 = hashlib.sha256(normalized_bytes).hexdigest()
-    return vector_sha256, normalized_bytes
+
+def _warm_packed_bge_m3_cache_from_canonical_sqlite(model_tag: str) -> None:
+    """Populate in-process content-addressed cache from canonical SQLite rows matching `model_tag`."""
+    from pathlib import Path
+
+    repo_root = Path(__file__).resolve().parents[4]
+    roots = [repo_root]
+    try:
+        from infrastructure.config.env_loader import get_main_repo_root
+
+        main_root = get_main_repo_root(repo_root)
+        if main_root.is_dir() and main_root not in roots:
+            roots.append(main_root)
+    except ImportError:
+        pass
+
+    for base in roots:
+        cand = base / "resume_graph_engine/artifacts/apps_rg/fact_inventory/augmented_skills_graph.sqlite"
+        if not cand.is_file():
+            continue
+        try:
+            ro_conn = sqlite3.connect(f"file:{cand.as_posix()}?mode=ro", uri=True, timeout=5)
+            try:
+                rows = ro_conn.execute(
+                    """
+                    SELECT su.text_sha256, uv.vector_sha256, uv.vector
+                    FROM semantic_unit su
+                    JOIN unit_vectors uv ON su.unit_id = uv.unit_id
+                    WHERE uv.model_manifest_sha = ?
+                    """,
+                    (model_tag,),
+                ).fetchall()
+            finally:
+                ro_conn.close()
+            loaded = 0
+            for tsha, vsha, blob in rows:
+                if isinstance(blob, bytes) and len(blob) == 1024 * 4 and tsha and vsha:
+                    _PACKED_BGE_M3_CACHE[(model_tag, str(tsha))] = (str(vsha), blob)
+                    loaded += 1
+            if loaded > 0:
+                return
+        except sqlite3.Error:
+            continue
+
+
+def _resolve_live_bge_m3_packed_vectors(
+    items: Sequence[tuple[str, str]],
+    *,
+    conn: sqlite3.Connection | None = None,
+) -> tuple[str | None, dict[str, tuple[str, bytes]]]:
+    """Encode `(text_sha256, text)` items into real local BGE-M3 float32 vectors with content-addressed caching."""
+    from apps_rg.runtime.bge_multi_head import (
+        compute_fast_bge_m3_model_tag,
+        encode_texts_bge_m3_dense,
+        resolve_local_bge_m3_model_dir,
+    )
+
+    model_dir = resolve_local_bge_m3_model_dir()
+    if model_dir is None:
+        return None, {}
+    model_tag = compute_fast_bge_m3_model_tag(model_dir)
+
+    # Check active connection first (before DELETE if present) and canonical SQLite cache
+    if conn is not None:
+        try:
+            rows = conn.execute(
+                """
+                SELECT su.text_sha256, uv.vector_sha256, uv.vector
+                FROM semantic_unit su
+                JOIN unit_vectors uv ON su.unit_id = uv.unit_id
+                WHERE uv.model_manifest_sha = ?
+                """,
+                (model_tag,),
+            ).fetchall()
+            for tsha, vsha, blob in rows:
+                if isinstance(blob, bytes) and len(blob) == 1024 * 4 and tsha and vsha:
+                    _PACKED_BGE_M3_CACHE[(model_tag, str(tsha))] = (str(vsha), blob)
+        except sqlite3.Error:
+            pass
+
+    if not any(k[0] == model_tag for k in _PACKED_BGE_M3_CACHE):
+        _warm_packed_bge_m3_cache_from_canonical_sqlite(model_tag)
+
+    unique_missing: dict[str, str] = {}
+    for tsha, text in items:
+        if (model_tag, tsha) not in _PACKED_BGE_M3_CACHE and tsha not in unique_missing:
+            unique_missing[tsha] = text
+
+    if unique_missing:
+        ordered_shas = list(unique_missing.keys())
+        ordered_texts = [unique_missing[s] for s in ordered_shas]
+        _, dense_vecs = encode_texts_bge_m3_dense(ordered_texts, model_path=model_dir, batch_size=32)
+        for tsha, vec in zip(ordered_shas, dense_vecs):
+            _PACKED_BGE_M3_CACHE[(model_tag, tsha)] = _pack_normalized_float32_vector(vec)
+
+    resolved: dict[str, tuple[str, bytes]] = {}
+    for tsha, _text in items:
+        hit = _PACKED_BGE_M3_CACHE.get((model_tag, tsha))
+        if hit is not None:
+            resolved[tsha] = hit
+    return model_tag, resolved
 
 
 def populate_semantic_units(
     conn: sqlite3.Connection, build_run_id: str, input_manifest_digest: str
 ) -> dict[str, int]:
-    """Generate and persist semantic units, members, and vector records."""
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM unit_vectors")
-    cursor.execute("DELETE FROM semantic_unit_member")
-    cursor.execute("DELETE FROM semantic_unit")
-
+    """Generate and persist semantic units, members, and real local BGE-M3 dense/sparse/ColBERT records."""
     skill_units = build_skill_evidence_clusters(conn, build_run_id, input_manifest_digest)
     eng_units = build_engagement_episodes(conn, build_run_id, input_manifest_digest)
     metric_units = build_metric_outcome_stories(conn, build_run_id, input_manifest_digest)
     all_units = skill_units + eng_units + metric_units
+
+    elig_skills = conn.execute(
+        "SELECT node_id, label, description FROM graph_nodes WHERE node_type = 'skill' AND external_eligible = 1 ORDER BY node_id"
+    ).fetchall()
+    skill_text_entries: list[tuple[str, str, str]] = []
+    for skill_id, s_label, s_desc in elig_skills:
+        sid = str(skill_id)
+        s_text = f"{s_label or ''} {s_desc or ''}".strip() or sid
+        s_sha = hashlib.sha256(s_text.encode("utf-8")).hexdigest()
+        skill_text_entries.append((sid, s_sha, s_text))
+
+    to_encode: list[tuple[str, str]] = [(u.text_sha256, u.text) for u in all_units]
+    model_tag, live_packed = _resolve_live_bge_m3_packed_vectors(to_encode, conn=conn)
+
+    # Map each eligible skill directly to its real BGE-M3 skill_evidence_cluster dense vector
+    skill_cluster_vec: dict[str, bytes] = {}
+    for u in skill_units:
+        if u.text_sha256 in live_packed:
+            skill_cluster_vec[u.root_node_id] = live_packed[u.text_sha256][1]
+    unmapped_skills = [
+        (s_sha, s_text)
+        for sid, s_sha, s_text in skill_text_entries
+        if sid not in skill_cluster_vec
+    ]
+    if unmapped_skills and model_tag is not None:
+        _, extra_packed = _resolve_live_bge_m3_packed_vectors(unmapped_skills, conn=conn)
+        live_packed.update(extra_packed)
+
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM unit_vectors")
+    cursor.execute("DELETE FROM semantic_unit_member")
+    cursor.execute("DELETE FROM semantic_unit")
 
     unit_rows = [
         (
@@ -532,10 +668,14 @@ def populate_semantic_units(
         member_rows,
     )
 
+    manifest_sha = model_tag or input_manifest_digest
     vector_rows = []
     for u in all_units:
-        vec_sha, vec_bytes = _encode_unit_vector_1024(u.unit_id, u.text_sha256)
-        vector_rows.append((u.unit_id, input_manifest_digest, vec_sha, vec_bytes))
+        if u.text_sha256 in live_packed:
+            vec_sha, vec_bytes = live_packed[u.text_sha256]
+        else:
+            vec_sha, vec_bytes = _encode_unit_vector_1024(u.unit_id, u.text_sha256)
+        vector_rows.append((u.unit_id, manifest_sha, vec_sha, vec_bytes))
     cursor.executemany(
         """
         INSERT INTO unit_vectors (unit_id, model_manifest_sha, vector_sha256, vector)
@@ -543,6 +683,11 @@ def populate_semantic_units(
         """,
         vector_rows,
     )
+    skill_vector_map = {
+        sid: skill_cluster_vec[sid] if sid in skill_cluster_vec else live_packed[s_sha][1]
+        for sid, s_sha, _ in skill_text_entries
+        if sid in skill_cluster_vec or s_sha in live_packed
+    }
     from apps_rg.runtime.bge_multi_head import populate_quad_embedding_tables
 
     sparse_cnt, colbert_cnt = populate_quad_embedding_tables(
@@ -551,6 +696,7 @@ def populate_semantic_units(
         unit_vector_rows=vector_rows,
         input_manifest_digest=input_manifest_digest,
         encode_unit_vec_fn=_encode_unit_vector_1024,
+        skill_vector_map=skill_vector_map or None,
     )
     conn.commit()
 
@@ -562,6 +708,7 @@ def populate_semantic_units(
         "metric_outcome_story_count": len(metric_units),
         "learned_sparse_count": sparse_cnt,
         "colbert_vector_count": colbert_cnt,
+        "live_bge_m3_vectors": 1 if model_tag is not None else 0,
     }
 
 

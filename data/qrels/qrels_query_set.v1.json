@@ -1,6 +1,6 @@
 {
   "schema_version": "2.0.0",
-  "corpus_digest": "1a4f799aaff3b5e222460d7fc6d849e97df846539b12784ef910fdbe7961d438",
+  "corpus_digest": "f38e553551176f7768e6773ae803b4fb0cd41461a082e05318a257ffe5b742f2",
   "total_queries": 50,
   "answerable_count": 45,
   "unanswerable_count": 5,
@@ -13,7 +13,7 @@
     "mean_paraphrase_cosine": null,
     "orthogonal_pairs_checked": 1225,
     "mean_cross_topic_cosine": 0.4073,
-    "max_cross_topic_cosine": 0.7943
+    "max_cross_topic_cosine": 0.7944
   },
   "queries": [
     {

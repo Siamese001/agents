@@ -11,10 +11,10 @@ from typing import Any
 _TOKEN_RE = re.compile(r"[a-z0-9]+")
 
 CALIBRATED_HYBRID_RRF_WEIGHTS: dict[str, float] = {
-    "dense": 0.20,
-    "sparse": 0.15,
-    "bm25": 0.40,
-    "colbert": 0.25,
+    "dense": 0.25,
+    "sparse": 0.20,
+    "bm25": 0.45,
+    "colbert": 0.10,
 }
 DEFAULT_GRAPH_SIGNAL_WEIGHT = 0.15
 

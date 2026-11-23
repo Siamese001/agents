@@ -9,10 +9,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Sequence
 
+from apps_rg.runtime.core_model_catalog import BGE_M3_MODEL_ID
 from apps_rg.runtime.embedding_settings import BGE_M3_DIMENSION
 
 BGE_DENSE_DIM = BGE_M3_DIMENSION
 VALID_BGE_HEADS = ("dense", "sparse", "colbert")
+LIVE_BGE_M3_MANIFEST_PREFIX = "bge_m3_v2:"
 _MULTI_HEAD_TOKEN_RE = re.compile(r"[a-z0-9_]{2,}")
 _MULTI_HEAD_STOPWORDS = frozenset(
     {
@@ -37,6 +39,8 @@ _MULTI_HEAD_STOPWORDS = frozenset(
 )
 _TOKEN_VEC_CACHE: dict[tuple[str, int], list[float]] = {}
 _LINEAR_HEAD_CACHE: dict[str, dict[str, Any]] = {}
+_LIVE_BGE_DENSE_CACHE: dict[tuple[str, str], list[float]] = {}
+_MODEL_TAG_CACHE: dict[str, str] = {}
 
 
 @dataclass(frozen=True, slots=True)
@@ -100,28 +104,124 @@ def _deterministic_token_vector(token: str, *, dim: int = BGE_M3_DIMENSION) -> l
     return out
 
 
-def load_bge_m3_linear_heads(model_path: Path | str | None = None) -> dict[str, Any]:
-    """Load `sparse_linear.pt` and `colbert_linear.pt` from local BAAI/bge-m3 weights if present."""
+def resolve_local_bge_m3_model_dir(model_path: Path | str | None = None) -> Path | None:
+    """Resolve the local pinned BGE-M3 directory without hardcoding model strings."""
     candidates: list[Path] = []
     if model_path:
         candidates.append(Path(model_path))
-    repo_root = Path(__file__).resolve().parents[4]
-    roots = [repo_root]
     try:
-        from infrastructure.config.env_loader import get_main_repo_root
+        from infrastructure.config.env_loader import get_env_str, get_main_repo_root
 
+        env_model = get_env_str("APPS_RG_EMBEDDING_MODEL_PATH", "").strip()
+        if env_model:
+            candidates.append(Path(env_model))
+        repo_root = Path(__file__).resolve().parents[4]
+        roots = [repo_root]
         main_root = get_main_repo_root(repo_root)
         if main_root.is_dir() and main_root not in roots:
             roots.append(main_root)
     except ImportError:
-        pass
+        roots = [Path(__file__).resolve().parents[4]]
+
+    rel_model = Path("artifacts/models") / BGE_M3_MODEL_ID
     for r in roots:
         candidates.extend(
             [
-                r / "artifacts" / "models" / "BAAI" / "bge-m3",
-                r / "resume_graph_engine" / "artifacts" / "models" / "BAAI" / "bge-m3",
+                r / rel_model,
+                r / "resume_graph_engine" / rel_model,
             ]
         )
+    for base in candidates:
+        try:
+            resolved = base.resolve()
+        except OSError:
+            continue
+        if resolved.is_dir() and (resolved / "config.json").is_file() and (
+            (resolved / "pytorch_model.bin").is_file() or (resolved / "model.safetensors").is_file()
+        ):
+            return resolved
+    return None
+
+
+def compute_fast_bge_m3_model_tag(model_dir: Path) -> str:
+    """Compute a fast (<5ms) deterministic manifest tag for local BGE-M3 weights."""
+    key = str(model_dir.resolve())
+    cached = _MODEL_TAG_CACHE.get(key)
+    if cached is not None:
+        return cached
+    h = hashlib.sha256()
+    h.update(f"{BGE_M3_MODEL_ID}:{BGE_M3_DIMENSION}:l2:".encode("utf-8"))
+    for fname in ("config.json", "sentencepiece.bpe.model", "tokenizer_config.json"):
+        fp = model_dir / fname
+        if fp.is_file():
+            h.update(fname.encode("utf-8"))
+            h.update(fp.read_bytes())
+    for wname in ("pytorch_model.bin", "model.safetensors", "sparse_linear.pt", "colbert_linear.pt"):
+        fp = model_dir / wname
+        if fp.is_file():
+            h.update(f"{wname}:{fp.stat().st_size}".encode("utf-8"))
+    tag = f"{LIVE_BGE_M3_MANIFEST_PREFIX}{h.hexdigest()[:48]}"
+    _MODEL_TAG_CACHE[key] = tag
+    return tag
+
+
+def encode_texts_bge_m3_dense(
+    texts: Sequence[str],
+    *,
+    model_path: Path | str | None = None,
+    batch_size: int = 32,
+) -> tuple[str, list[list[float]]]:
+    """Encode texts into 1024-d L2-normalized dense vectors via resident local BGE-M3 (MPS-first)."""
+    if not texts:
+        return "", []
+    model_dir = resolve_local_bge_m3_model_dir(model_path)
+    if model_dir is None:
+        raise FileNotFoundError(f"Local embedding model directory unavailable for {BGE_M3_MODEL_ID}.")
+    model_tag = compute_fast_bge_m3_model_tag(model_dir)
+
+    missing_indices: list[int] = []
+    missing_texts: list[str] = []
+    text_hashes: list[str] = []
+    results: list[list[float] | None] = [None] * len(texts)
+    for idx, raw in enumerate(texts):
+        s = str(raw or "")
+        tsha = hashlib.sha256(s.encode("utf-8")).hexdigest()
+        text_hashes.append(tsha)
+        hit = _LIVE_BGE_DENSE_CACHE.get((model_tag, tsha))
+        if hit is not None:
+            results[idx] = list(hit)
+        else:
+            missing_indices.append(idx)
+            missing_texts.append(s)
+
+    if missing_texts:
+        import os
+        import torch
+
+        os.environ["HF_HUB_OFFLINE"] = "1"
+        os.environ["TRANSFORMERS_OFFLINE"] = "1"
+        device = "mps" if hasattr(torch.backends, "mps") and torch.backends.mps.is_available() else "cpu"
+        from apps_rg.runtime.bge_embedding import get_bge_runtime
+
+        resident = get_bge_runtime(model_path=model_dir, device=device)
+        encoded = resident.encode(missing_texts, batch_size=batch_size)
+        for idx, vec in zip(missing_indices, encoded):
+            norm = math.sqrt(sum(float(v) * float(v) for v in vec)) or 1.0
+            unit_vec = [float(v) / norm for v in vec]
+            _LIVE_BGE_DENSE_CACHE[(model_tag, text_hashes[idx])] = unit_vec
+            results[idx] = list(unit_vec)
+
+    return model_tag, [v for v in results if v is not None]
+
+
+def load_bge_m3_linear_heads(model_path: Path | str | None = None) -> dict[str, Any]:
+    """Load `sparse_linear.pt` and `colbert_linear.pt` from local pinned weights if present."""
+    candidates: list[Path] = []
+    if model_path:
+        candidates.append(Path(model_path))
+    resolved_dir = resolve_local_bge_m3_model_dir(model_path)
+    if resolved_dir is not None and resolved_dir not in candidates:
+        candidates.append(resolved_dir)
     try:
         import torch
 
@@ -355,6 +455,7 @@ def populate_quad_embedding_tables(
     unit_vector_rows: Sequence[tuple[str, str, str, bytes]],
     input_manifest_digest: str,
     encode_unit_vec_fn: Any,
+    skill_vector_map: dict[str, bytes] | None = None,
 ) -> tuple[int, int]:
     """Populate `assertion_learned_sparse` and `assertion_colbert_vectors` in SQLite."""
     import json
@@ -364,7 +465,7 @@ def populate_quad_embedding_tables(
     learned_sparse_rows: list[tuple[str, str, str, str, str]] = []
     colbert_rows: list[tuple[str, str, str, int, int, str, bytes, str]] = []
 
-    def _add_record(aid: str, kind: str, text: str, vec_bytes: bytes) -> None:
+    def _add_record(aid: str, kind: str, text: str, vec_bytes: bytes, manifest_sha: str) -> None:
         dense_floats = list(struct.unpack("<1024f", vec_bytes))
         mh = project_multi_head_from_dense_and_text(
             text,
@@ -374,26 +475,32 @@ def populate_quad_embedding_tables(
         )
         sparse_json = json.dumps(mh.sparse, sort_keys=True, separators=(",", ":"))
         sparse_sha = hashlib.sha256(sparse_json.encode("utf-8")).hexdigest()
-        learned_sparse_rows.append((aid, kind, input_manifest_digest, sparse_sha, sparse_json))
+        learned_sparse_rows.append((aid, kind, manifest_sha, sparse_sha, sparse_json))
         colbert_blob, colbert_scales = quantize_colbert_vectors_int8(mh.colbert)
         colbert_sha = hashlib.sha256(colbert_blob).hexdigest()
         scales_json = json.dumps(colbert_scales, separators=(",", ":"))
         colbert_rows.append(
-            (aid, kind, input_manifest_digest, len(colbert_scales), 1024, scales_json, colbert_blob, colbert_sha)
+            (aid, kind, manifest_sha, len(colbert_scales), 1024, scales_json, colbert_blob, colbert_sha)
         )
 
-    vec_by_uid = {uid: vb for uid, _m, _s, vb in unit_vector_rows}
+    vec_by_uid = {uid: (msha, vb) for uid, msha, _s, vb in unit_vector_rows}
     for u in units:
-        _add_record(u.unit_id, "semantic_unit", u.text, vec_by_uid[u.unit_id])
+        u_msha, u_vb = vec_by_uid[u.unit_id]
+        _add_record(u.unit_id, "semantic_unit", u.text, u_vb, u_msha or input_manifest_digest)
 
     cursor.execute(
         "SELECT node_id, label, description FROM graph_nodes WHERE node_type = 'skill' AND external_eligible = 1 ORDER BY node_id"
     )
+    skill_manifest = next((msha for _, msha, _, _ in unit_vector_rows if msha), input_manifest_digest)
     for skill_id, s_label, s_desc in cursor.fetchall():
-        s_text = f"{s_label or ''} {s_desc or ''}".strip() or str(skill_id)
-        s_text_sha = hashlib.sha256(s_text.encode("utf-8")).hexdigest()
-        _s_vec_sha, s_vec_bytes = encode_unit_vec_fn(str(skill_id), s_text_sha)
-        _add_record(str(skill_id), "skill", s_text, s_vec_bytes)
+        sid = str(skill_id)
+        s_text = f"{s_label or ''} {s_desc or ''}".strip() or sid
+        if skill_vector_map is not None and sid in skill_vector_map:
+            s_vec_bytes = skill_vector_map[sid]
+        else:
+            s_text_sha = hashlib.sha256(s_text.encode("utf-8")).hexdigest()
+            _s_vec_sha, s_vec_bytes = encode_unit_vec_fn(sid, s_text_sha)
+        _add_record(sid, "skill", s_text, s_vec_bytes, skill_manifest)
 
     cursor.execute("DELETE FROM assertion_learned_sparse")
     cursor.executemany(
@@ -435,16 +542,27 @@ def project_text_multi_head(
     heads: Sequence[str] = VALID_BGE_HEADS,
     model_path: Path | str | None = None,
     max_colbert_tokens: int = 16,
+    use_live_bge: bool = True,
 ) -> MultiHeadEmbedding:
-    """Project arbitrary text deterministically into 1024-d dense, learned sparse, and ColBERT heads."""
-    toks = _extract_meaningful_tokens(text, max_tokens=max(8, max_colbert_tokens))
-    acc = [0.0] * BGE_M3_DIMENSION
-    for tok in toks:
-        tvec = _deterministic_token_vector(tok, dim=BGE_M3_DIMENSION)
-        for i, v in enumerate(tvec):
-            acc[i] += v
-    norm = math.sqrt(sum(v * v for v in acc)) or 1.0
-    dense_vec = [v / norm for v in acc]
+    """Project text into 1024-d dense, learned sparse, and ColBERT heads via live local BGE-M3."""
+    dense_vec: list[float] | None = None
+    if use_live_bge:
+        try:
+            _tag, vecs = encode_texts_bge_m3_dense([text], model_path=model_path, batch_size=1)
+            if vecs:
+                dense_vec = vecs[0]
+        except (FileNotFoundError, ImportError, OSError, RuntimeError):
+            dense_vec = None
+
+    if dense_vec is None:
+        toks = _extract_meaningful_tokens(text, max_tokens=max(8, max_colbert_tokens))
+        acc = [0.0] * BGE_M3_DIMENSION
+        for tok in toks:
+            tvec = _deterministic_token_vector(tok, dim=BGE_M3_DIMENSION)
+            for i, v in enumerate(tvec):
+                acc[i] += v
+        norm = math.sqrt(sum(v * v for v in acc)) or 1.0
+        dense_vec = [v / norm for v in acc]
     return project_multi_head_from_dense_and_text(
         text,
         dense_vec,
@@ -456,14 +574,18 @@ def project_text_multi_head(
 
 __all__ = [
     "BGE_DENSE_DIM",
+    "LIVE_BGE_M3_MANIFEST_PREFIX",
     "MultiHeadEmbedding",
     "VALID_BGE_HEADS",
+    "compute_fast_bge_m3_model_tag",
     "decode_colbert_int8",
     "dequantize_colbert_vectors_int8",
     "embed_multi_head",
+    "encode_texts_bge_m3_dense",
     "load_bge_m3_linear_heads",
     "populate_quad_embedding_tables",
     "project_multi_head_from_dense_and_text",
     "project_text_multi_head",
     "quantize_colbert_vectors_int8",
+    "resolve_local_bge_m3_model_dir",
 ]

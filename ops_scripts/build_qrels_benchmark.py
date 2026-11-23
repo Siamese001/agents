@@ -199,25 +199,13 @@ def _extract_quad_channel_rankings(
     conn: sqlite3.Connection,
     query_text: str,
     dense_vec: list[float],
-    corpus_dense_vecs: dict[str, list[float]],
     allowed_ids: set[str],
     model_dir: Path,
 ) -> tuple[dict[str, list[dict[str, Any]]], list[dict[str, Any]]]:
-    import math
-
     q_head = project_multi_head_from_dense_and_text(query_text, dense_vec, model_path=model_dir)
     cap = len(allowed_ids)
-    # Authentic BAAI/bge-m3 1024-d dense cosine similarity across all 379 semantic_units
-    dense_scored = [
-        (
-            round(math.fsum(a * b for a, b in zip(dense_vec, corpus_dense_vecs[rid])), 6),
-            rid,
-        )
-        for rid in allowed_ids
-        if rid in corpus_dense_vecs
-    ]
-    dense_scored.sort(key=lambda item: (-item[0], item[1]))
-    dense_pairs = [(rid, sim) for sim, rid in dense_scored]
+    # Query persisted SQLite `unit_vectors` directly through QuadGraphHybridRetriever.vector_cache
+    dense_pairs = retriever.vector_cache.score_query(q_head.dense_vector, allowed_ids=allowed_ids, top_k=cap)
     sparse_pairs = retriever.sparse_cache.score_query(q_head.learned_sparse_weights, allowed_ids=allowed_ids, top_k=cap)
     bm25_pairs = _rank_bm25_corpus(conn, query_text, allowed_ids)
     colbert_pairs = retriever.colbert_cache.score_admitted(q_head.colbert_vectors, sorted(allowed_ids))
@@ -239,7 +227,7 @@ def _extract_quad_channel_rankings(
             + weights["bm25"] / (60 + bm25_ranks.get(rid, 1000))
             + weights["colbert"] / (60 + colbert_ranks.get(rid, 1000))
         )
-        # Grounded abstention confidence multiplies RRF by real BGE-M3 dense cosine + lexical presence
+        # Grounded abstention confidence multiplies RRF by persisted BGE-M3 dense cosine + lexical presence
         d_sim = max(0.0, float(dense_map.get(rid, 0.0)))
         bm_hit = 1.0 if float(bm25_map.get(rid, 0.0)) > 0.0 else 0.0
         sp_hit = 1.0 if float(sparse_map.get(rid, 0.0)) > 0.0 else 0.0
@@ -349,19 +337,13 @@ def build_and_materialize_qrels_benchmark(repo_root: Path = REPO_ROOT) -> dict[s
         import torch
 
         device = "mps" if hasattr(torch.backends, "mps") and torch.backends.mps.is_available() else "cpu"
-        ordered_unit_ids = sorted(catalog.keys())
-        corpus_texts = [catalog[uid]["retrieval_text"] for uid in ordered_unit_ids]
         query_texts = [q["query_text"] for q in all_specs]
-        _, combined_vecs = encode_bge_m3(
-            corpus_texts + query_texts,
+        _, all_dense_vecs = encode_bge_m3(
+            query_texts,
             model_path=model_dir,
             device=device,
             batch_size=32,
         )
-        corpus_dense_vecs = {
-            uid: list(vec) for uid, vec in zip(ordered_unit_ids, combined_vecs[: len(ordered_unit_ids)])
-        }
-        all_dense_vecs = combined_vecs[len(ordered_unit_ids) :]
         for q, dense_vec in zip(all_specs, all_dense_vecs):
             part = q["partition"]
             partitions["topic_assignments"][part].append(q["topic_id"])
@@ -370,7 +352,7 @@ def build_and_materialize_qrels_benchmark(repo_root: Path = REPO_ROOT) -> dict[s
             query_set.append(q)
 
             ch_ranks, fused = _extract_quad_channel_rankings(
-                retriever, conn, q["query_text"], list(dense_vec), corpus_dense_vecs, allowed_ids, model_dir
+                retriever, conn, q["query_text"], list(dense_vec), allowed_ids, model_dir
             )
             pooled = build_trec_depth_k_query_pool(
                 q,
