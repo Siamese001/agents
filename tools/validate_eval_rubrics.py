@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministic evaluator, judge rubric, schema, and holdout dataset validator across all 5 config roots and 315 data files."""
+"""Deterministic evaluator, judge rubric, schema, and holdout dataset validator across all 5 config roots and 323 data files."""
 from __future__ import annotations
 
 import argparse
@@ -476,6 +476,15 @@ def _validate_eval_harness_flywheel_health(repo_root: Path) -> list[str]:
                     )
         except (OSError, json.JSONDecodeError) as exc:
             violations.append(f"artifacts/learning/judge_calibration_history.json: invalid JSON: {exc}")
+
+    qrels_rubric_path = repo_root / "config" / "governance" / "external_qrels_rubric_v1.json"
+    if qrels_rubric_path.is_file():
+        try:
+            from apps_eval.qrels.qrels_rubric_contract import load_and_verify_qrels_rubric
+
+            load_and_verify_qrels_rubric(qrels_rubric_path)
+        except (ImportError, OSError, ValueError, json.JSONDecodeError) as exc:
+            violations.append(f"config/governance/external_qrels_rubric_v1.json: {exc}")
 
     return violations
 

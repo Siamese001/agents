@@ -192,8 +192,34 @@ def _probe_graph_and_embeddings(repo_root: Path, *, read_only: bool = True) -> d
                         gaps.append(f"fact_vectors.db has only {fts_count} indexed rows (<328)")
         if trav_res.get("status") != "PASS":
             gaps.append("run_resume_graph_traversal_probe did not return PASS")
+
+        qrels_dir = repo_root / "data" / "qrels"
+        qrels_coverage_passed = True
+        qrels_weight_verdict = "NOT_CONFIGURED"
+        if (qrels_dir / "qrels_partitions.v1.json").is_file():
+            from tools.audit_qrels_coverage import audit_qrels_coverage
+
+            qcov = audit_qrels_coverage(
+                qrels_dir / "qrels_partitions.v1.json",
+                qrels_dir / "qrels_independent_ground_truth.v1.json",
+                qrels_dir / "qrels_authentic_candidate_pool.v1.json",
+            )
+            qrels_coverage_passed = qcov.get("gate_status") == "PASS"
+            if not qrels_coverage_passed:
+                gaps.append(f"QRELS coverage gate failed: {qcov.get('failures')}")
+            wt_file = qrels_dir / "qrels_weight_calibration_results.v1.json"
+            if wt_file.is_file():
+                wt_data = json.loads(wt_file.read_text(encoding="utf-8"))
+                qrels_weight_verdict = str(wt_data.get("verdict") or "UNKNOWN")
+                if not wt_data.get("is_validated"):
+                    gaps.append(f"QRELS 4-simplex weight calibration not validated: {qrels_weight_verdict}")
+                ab_cal = wt_data.get("abstention_calibration") or {}
+                if int(ab_cal.get("false_abstains", 1)) != 0:
+                    gaps.append(f"QRELS abstention calibration has false_abstains={ab_cal.get('false_abstains')}")
     except Exception as exc:  # guardian: allow-broad-exception -- capture graph/embedding verification failure into pillar gaps
         gaps.append(f"Graph/embedding verification failed: {exc}")
+        qrels_coverage_passed = False
+        qrels_weight_verdict = "ERROR"
 
     return {
         "passed": len(gaps) == 0,
@@ -205,6 +231,8 @@ def _probe_graph_and_embeddings(repo_root: Path, *, read_only: bool = True) -> d
         "candidate_evidence_custody_passed": custody_passed,
         "quad_hybrid_chunk_count": quad_chunk_count,
         "lic_c0_allocation_digest": lic_alloc_digest,
+        "qrels_coverage_passed": qrels_coverage_passed,
+        "qrels_weight_verdict": qrels_weight_verdict,
     }
 
 
