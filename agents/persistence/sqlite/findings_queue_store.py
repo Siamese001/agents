@@ -12,29 +12,18 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+from apps_eval._core_governance_bridge import (
+    collect_stale_approved_findings,
+    compute_finding_fingerprint,
+    core_compute_impact_score,
+    resolve_lifecycle_transition,
+    stamp_resolution_watermark,
+)
 from apps_eval.contracts.digests import canonical_sha256
 from apps_eval.contracts.schemas import FindingRecord, utc_now_iso
 
 FINDINGS_QUEUE_CONTRACT_ID = "urn:agents:learning:eval-findings-queue:1.0.0"
-
-_PRIORITY_BASE = {"P0": 100.0, "P1": 60.0, "P2": 30.0}
 _PRIORITY_RANK = {"P0": 0, "P1": 1, "P2": 2}
-_HUMAN_PRESERVED_STATUSES = frozenset({"APPROVED", "IN_PROGRESS", "REJECTED", "VERIFIED"})
-
-
-def compute_finding_fingerprint(
-    source_surface: str,
-    failed_gate_signature: str,
-    root_cause_bucket: str,
-) -> str:
-    raw = "|".join(
-        [
-            source_surface.strip().lower(),
-            failed_gate_signature.strip().lower(),
-            root_cause_bucket.strip().lower(),
-        ]
-    )
-    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
 def compute_impact_score(
@@ -44,17 +33,8 @@ def compute_impact_score(
     *,
     now_utc: datetime | None = None,
 ) -> float:
-    """Compute priority * log-frequency * 14-day recency-decay score."""
-    base = _PRIORITY_BASE.get(priority.upper(), 30.0)
-    freq_boost = 1.0 + math.log2(max(1, int(occurrence_count))) * 0.25
-    now = now_utc or datetime.now(timezone.utc)
-    try:
-        seen_dt = datetime.fromisoformat(last_seen_utc.replace("Z", "+00:00"))
-        age_days = max(0.0, (now - seen_dt).total_seconds() / 86400.0)
-    except ValueError:
-        age_days = 0.0
-    recency = max(0.35, 1.0 / (1.0 + age_days / 14.0))
-    return round(base * freq_boost * recency, 2)
+    """Compute priority * log-frequency * 14-day recency-decay score via centralized SSOT."""
+    return core_compute_impact_score(priority, occurrence_count, last_seen_utc, now_utc=now_utc)
 
 
 class SqliteFindingsQueueStore:
@@ -323,18 +303,20 @@ class SqliteFindingsQueueStore:
                 else prev_prio
             )
 
-            # Preserve human workflow statuses; auto-archive pre-cutoff OPEN, reopen expired snooze or recurred ARCHIVED.
-            new_status = prev_status
             snoozed_until = existing["snoozed_until_utc"]
-            if prev_status in _HUMAN_PRESERVED_STATUSES:
-                new_status = prev_status
-            elif prev_status == "SNOOZED" and snoozed_until and str(snoozed_until) <= now_iso:
-                new_status = "OPEN"
+            new_status, tr_reason, tr_ev = resolve_lifecycle_transition(
+                {
+                    "status": prev_status,
+                    "metadata": prev_meta,
+                    "snoozed_until_utc": snoozed_until,
+                    "updated_at_utc": str(existing["updated_at_utc"]),
+                },
+                seen_iso,
+                cutoff_utc=cutoff_utc,
+                now_iso=now_iso,
+            )
+            if prev_status == "SNOOZED" and new_status == "OPEN":
                 snoozed_until = None
-            elif prev_status == "ARCHIVED" and cutoff_utc and last_seen >= cutoff_utc:
-                new_status = "OPEN"
-            elif prev_status == "OPEN" and cutoff_utc and last_seen < cutoff_utc:
-                new_status = "ARCHIVED"
 
             impact = compute_impact_score(merged_prio, merged_count, last_seen)
             rec = FindingRecord(
@@ -393,11 +375,11 @@ class SqliteFindingsQueueStore:
             if new_status != prev_status:
                 self._append_event(
                     finding_id=rec.finding_id,
-                    event_type="AUTO_STATUS_REFRESH",
+                    event_type=tr_ev or "AUTO_STATUS_REFRESH",
                     from_status=prev_status,
                     to_status=new_status,
                     actor="findings_consolidator",
-                    rationale="Lifecycle auto-refresh on re-ingestion.",
+                    rationale=tr_reason or "Lifecycle auto-refresh on re-ingestion.",
                 )
             return rec
 
@@ -410,6 +392,8 @@ class SqliteFindingsQueueStore:
         rationale: str,
         hitl_decision_id: str | None = None,
         snoozed_until_utc: str | None = None,
+        extra_metadata: Mapping[str, Any] | None = None,
+        now_utc: str | None = None,
     ) -> FindingRecord:
         with self._lock, self._conn:
             row = self._conn.execute(
@@ -419,15 +403,19 @@ class SqliteFindingsQueueStore:
             if row is None:
                 raise KeyError(f"Unknown finding_id: {finding_id}")
             prev_status = str(row["status"])
-            now_iso = utc_now_iso()
+            now_iso = now_utc or utc_now_iso()
+            meta = {**dict(json.loads(row["metadata_json"] or "{}")), **dict(extra_metadata or {})}
+            if to_status.upper() in {"APPROVED", "VERIFIED", "REJECTED"}:
+                wm = max(now_iso, str(row["last_seen_utc"] or now_iso))
+                meta = stamp_resolution_watermark(meta, status=to_status, watermark_utc=wm, actor=actor)
             self._conn.execute(
                 """
                 UPDATE eval_findings
-                SET status = ?, hitl_decision_id = COALESCE(?, hitl_decision_id),
+                SET status = ?, metadata_json = ?, hitl_decision_id = COALESCE(?, hitl_decision_id),
                     snoozed_until_utc = ?, updated_at_utc = ?
                 WHERE finding_id = ?
                 """,
-                (to_status, hitl_decision_id, snoozed_until_utc, now_iso, finding_id),
+                (to_status, json.dumps(meta, sort_keys=True), hitl_decision_id, snoozed_until_utc, now_iso, finding_id),
             )
             self._append_event(
                 finding_id=finding_id,
@@ -437,6 +425,7 @@ class SqliteFindingsQueueStore:
                 actor=actor,
                 rationale=rationale,
                 hitl_decision_id=hitl_decision_id,
+                payload=extra_metadata,
             )
             updated = self._conn.execute(
                 "SELECT * FROM eval_findings WHERE finding_id = ?",
@@ -487,26 +476,42 @@ class SqliteFindingsQueueStore:
             ).fetchall()
         return [dict(r) for r in rows]
 
-    def export_snapshot(self, snapshot_path: Path | str) -> dict[str, Any]:
+    def export_snapshot(self, snapshot_path: Path | str, *, now_utc: str | None = None) -> dict[str, Any]:
         target = Path(snapshot_path).resolve()
         target.parent.mkdir(parents=True, exist_ok=True)
+        now_iso = now_utc or utc_now_iso()
         findings = self.list_findings(limit=5000)
         by_status: dict[str, int] = {}
         by_track: dict[str, int] = {}
+        serialized = [f.to_dict() for f in findings]
         for f in findings:
             by_status[f.status] = by_status.get(f.status, 0) + 1
             by_track[f.track] = by_track.get(f.track, 0) + 1
+        stale = collect_stale_approved_findings(serialized, now_iso=now_iso)
         payload = {
             "contract_id": FINDINGS_QUEUE_CONTRACT_ID,
             "schema_version": "1.0.0",
-            "exported_at_utc": utc_now_iso(),
+            "exported_at_utc": now_iso,
             "total_findings": len(findings),
             "counts_by_status": by_status,
             "counts_by_track": by_track,
-            "findings": [f.to_dict() for f in findings],
+            "stale_approved_count": stale["stale_approved_count"],
+            "stale_approved_ids": stale["stale_approved_ids"],
+            "findings": serialized,
         }
         payload["snapshot_digest"] = canonical_sha256(payload)
         tmp = target.with_suffix(".json.tmp")
         tmp.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         os.replace(tmp, target)
+        alert_path = target.parent / "active_drift_alert.json"
+        alert_doc = {
+            "alert_active": by_status.get("OPEN", 0) > 0,
+            "open_count": by_status.get("OPEN", 0),
+            "stale_approved_count": stale["stale_approved_count"],
+            "stale_approved_ids": stale["stale_approved_ids"],
+            "updated_at_utc": now_iso,
+        }
+        alert_tmp = alert_path.with_suffix(".json.tmp")
+        alert_tmp.write_text(json.dumps(alert_doc, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        os.replace(alert_tmp, alert_path)
         return payload

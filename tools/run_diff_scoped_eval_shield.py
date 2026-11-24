@@ -39,34 +39,10 @@ ALL_SHIELD_TRIGGER_PREFIXES: tuple[str, ...] = (
 
 
 def _expand_reverse_importers(repo_root: Path, paths: Sequence[str], *, max_callers: int = 40) -> list[str]:
-    """Expand changed Python modules via git grep reverse importers (1-hop fast fallback)."""
-    expanded = list(paths)
-    seen = set(expanded)
-    for raw in paths:
-        norm = str(raw).replace("\\", "/")
-        if not norm.endswith(".py"):
-            continue
-        mod_stem = Path(norm).stem
-        if len(mod_stem) < 4 or mod_stem.startswith(("test_", "__")):
-            continue
-        try:
-            proc = subprocess.run(
-                ["git", "-C", str(repo_root), "grep", "-l", f"import {mod_stem}", "--", "*.py"],
-                capture_output=True,
-                text=True,
-                timeout=10,
-                check=False,
-            )
-        except (OSError, subprocess.SubprocessError):
-            continue
-        for line in proc.stdout.splitlines():
-            caller = line.strip().replace("\\", "/")
-            if caller and caller not in seen:
-                seen.add(caller)
-                expanded.append(caller)
-                if len(expanded) - len(paths) >= max_callers:
-                    return expanded
-    return expanded
+    """Expand changed Python modules via centralized core-governance reverse-importer scanner."""
+    from apps_eval._core_governance_bridge import expand_reverse_python_importers
+
+    return expand_reverse_python_importers(repo_root, paths, max_callers=max_callers, hops=1)
 
 
 def select_domains_for_paths(
