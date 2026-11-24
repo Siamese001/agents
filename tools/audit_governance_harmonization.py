@@ -282,6 +282,19 @@ def audit_governance_harmonization(repo_root: Path) -> dict[str, Any]:
     findings.extend(ref_findings)
     findings.extend(_check_hooks_parity(root))
 
+    core_mcp = Path.home() / ".gemini" / "config" / "plugins" / "core-governance" / "mcp"
+    if (core_mcp / "policy_ssot_parity_engine.py").is_file() and (root / "config" / "governance" / "policy_registry.yaml").is_file():
+        if str(core_mcp) not in sys.path:
+            sys.path.insert(0, str(core_mcp))
+        from policy_ssot_parity_engine import check_centralized_studio_and_judge_parity, check_four_way_policy_closure
+
+        policies = load_policy_registry(root)
+        for f in check_four_way_policy_closure(policies, root):
+            if not any(existing.get("message") == f.get("message") for existing in findings):
+                findings.append(f)
+        for f in check_centralized_studio_and_judge_parity(root):
+            findings.append(f)
+
     critical = [f for f in findings if f.get("severity") == "CRITICAL"]
     return {
         "schema_version": "agents.governance_harmonization.v1",

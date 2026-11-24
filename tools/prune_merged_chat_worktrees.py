@@ -385,6 +385,21 @@ def prune_merged_worktrees(
             else:
                 skipped.append({"branch": branch, "path": "", "reason": f"branch_delete_failed: {br_res.stderr.strip()}"})
 
+    if delete_merged:
+        core_mcp = Path.home() / ".gemini" / "config" / "plugins" / "core-governance" / "mcp"
+        if (core_mcp / "workspace_parity_engine.py").is_file():
+            if str(core_mcp) not in sys.path:
+                sys.path.insert(0, str(core_mcp))
+            with contextlib.suppress(Exception):
+                from workspace_parity_engine import (
+                    purge_orphan_archive_and_merged_remote_refs,
+                    sync_project_environments_for_repo,
+                )
+
+                purge_orphan_archive_and_merged_remote_refs(main_root)
+                if main_root.resolve() == _SCRIPT_ROOT.resolve():
+                    sync_project_environments_for_repo(main_root, apply=True)
+
     return {
         "status": "CLEANED" if delete_merged else "DRY_RUN",
         "target_ref": target_ref,
