@@ -1,4 +1,4 @@
-"""Dynamic bridge to the centralized `core-governance` Judge v3 Rigor Engine & Studio Session Contract."""
+"""Dynamic bridge to centralized `core-governance` Judge v3 Engine, IDE Router, Blind Protocol, Jury & Studio."""
 from __future__ import annotations
 
 import importlib.util
@@ -29,6 +29,21 @@ def get_judge_v3_rigor_engine() -> ModuleType:
     return _load_core_gov_module("judge_v3_rigor_engine", "judge_v3_rigor_engine.py")
 
 
+def get_judge_ide_router_v3() -> ModuleType:
+    return _load_core_gov_module("judge_ide_router_v3", "judge_ide_router_v3.py")
+
+
+def get_judge_blind_protocol_v3() -> ModuleType:
+    get_judge_v3_rigor_engine()
+    get_judge_ide_router_v3()
+    return _load_core_gov_module("judge_blind_protocol_v3", "judge_blind_protocol_v3.py")
+
+
+def get_judge_disjoint_jury_v3() -> ModuleType:
+    get_judge_blind_protocol_v3()
+    return _load_core_gov_module("judge_disjoint_jury_v3", "judge_disjoint_jury_v3.py")
+
+
 def get_studio_session_contract() -> ModuleType:
     get_judge_v3_rigor_engine()
     return _load_core_gov_module("session_contract", "session_contract.py")
@@ -37,6 +52,9 @@ def get_studio_session_contract() -> ModuleType:
 __all__ = [
     "CORE_GOVERNANCE_MCP_DIR",
     "CORE_GOVERNANCE_UI_HTML_PATH",
+    "get_judge_blind_protocol_v3",
+    "get_judge_disjoint_jury_v3",
+    "get_judge_ide_router_v3",
     "get_judge_v3_rigor_engine",
     "get_studio_session_contract",
 ]

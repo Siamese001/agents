@@ -58,7 +58,9 @@ def test_v3_registry_resolves_documented_aliases() -> None:
 
 def test_anti_bloat_validator_rejects_bloated_checks_employer_nouns_and_tampered_sha(tmp_path: Path) -> None:
     repo_root = Path(__file__).resolve().parents[3]
-    src_v3 = json.loads((repo_root / "config/governance/judge_rubrics_v3.json").read_text(encoding="utf-8"))
+    manifest_on_disk = json.loads((repo_root / "config/governance/judge_rubrics_v3.json").read_text(encoding="utf-8"))
+    assert manifest_on_disk.get("central_catalog_ref") == "core-governance:judge_archetypes_v3"
+    src_v3 = JudgeRubricRegistryV3.load().to_document_dict()
     ext_path = repo_root / "config/governance/external_judge_rubric_v2.json"
 
     ok, errs, _ = validate_judge_rubrics_v3(repo_root / "config/governance/judge_rubrics_v3.json", ext_path)
@@ -81,7 +83,7 @@ def test_anti_bloat_validator_rejects_bloated_checks_employer_nouns_and_tampered
     bloated_path.write_text(json.dumps(bloated), encoding="utf-8")
     ok_bloat, errs_bloat, _ = validate_judge_rubrics_v3(bloated_path, ext_path)
     assert ok_bloat is False
-    assert any("<=25-word" in e for e in errs_bloat)
+    assert any("25 words" in e or "<=25-word" in e for e in errs_bloat)
 
     # 3. Historical/employer noun contamination fails closed
     contaminated = copy.deepcopy(src_v3)
@@ -94,3 +96,16 @@ def test_anti_bloat_validator_rejects_bloated_checks_employer_nouns_and_tampered
     ok_contam, errs_contam, _ = validate_judge_rubrics_v3(contam_path, ext_path)
     assert ok_contam is False
     assert any("Slalom" in e or "BCBS 239" in e for e in errs_contam)
+
+
+def test_ide_blind_protocol_orthogonality_routes_argon_to_neon_zero_egress() -> None:
+    from apps_eval.graders.judge.blind_protocol import build_sealed_blind_judge_bundle
+
+    bundle = build_sealed_blind_judge_bundle(
+        artifact_id="art-ide-1",
+        raw_input={"text": "Grounded executive headline."},
+        author_model_family="argon",
+        rubric_id="resume_sections:headline",
+    )
+    assert bundle.author_model_family == "argon"
+    assert bundle.required_judge_family == "neon"

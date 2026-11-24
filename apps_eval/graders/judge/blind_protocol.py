@@ -19,6 +19,7 @@ import yaml
 
 from apps_eval.contracts.digests import canonical_sha256, sha256_file
 from apps_eval.contracts.schemas import utc_now_iso
+from apps_eval.graders.judge._core_governance_bridge import get_judge_ide_router_v3
 
 FORBIDDEN_DETERMINISTIC_PRIMING_KEYS: frozenset[str] = frozenset(
     {
@@ -64,13 +65,16 @@ def is_synthetic_model_id(model_id: str) -> bool:
 
 
 def infer_provider_family(model_id: str) -> str:
-    """Infer canonical provider family from a model identifier."""
+    """Infer canonical Antigravity IDE family (`neon`, `carbon`, `argon`) or provider family."""
     norm = str(model_id or "").strip().lower()
+    for ide_fam in ("neon", "carbon", "argon"):
+        if ide_fam in norm.replace("_", "-").split("-") or norm == ide_fam:
+            return ide_fam
     if any(tok in norm for tok in ("claude", "anthropic")):
         return "anthropic"
     if any(tok in norm for tok in ("gpt", "openai", "o1", "o3", "o4")):
         return "openai"
-    if any(tok in norm for tok in ("gemini", "google", "argon", "neon", "carbon")):
+    if any(tok in norm for tok in ("gemini", "google")):
         return "google"
     if any(tok in norm for tok in ("local", "open_weights")):
         return "local_open_weights"
@@ -110,14 +114,18 @@ def resolve_orthogonal_judge_family(
     repo_root: Path | None = None,
     available_families: Sequence[str] | None = None,
 ) -> str:
-    """Return an approved orthogonal provider family distinct from author_model_family."""
+    """Return an approved orthogonal IDE (`neon`/`carbon`/`argon`) or provider family distinct from author."""
     author_fam = infer_provider_family(author_model_family)
+    if author_fam in {"neon", "carbon", "argon"} and available_families is None:
+        rtr = get_judge_ide_router_v3()
+        return str(rtr.resolve_orthogonal_ide_judge_family(author_fam))
     if available_families is not None:
         candidates = [infer_provider_family(f) for f in available_families]
     elif repo_root is not None:
-        candidates = sorted(load_approved_judge_families(repo_root).keys())
+        loaded = sorted(load_approved_judge_families(repo_root).keys())
+        candidates = loaded or ["neon", "carbon", "argon"]
     else:
-        candidates = ["anthropic", "google", "openai"]
+        candidates = ["neon", "carbon", "argon"]
 
     for fam in candidates:
         if fam and fam != author_fam and fam != "unknown":
