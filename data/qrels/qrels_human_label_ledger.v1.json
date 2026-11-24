@@ -3,10 +3,10 @@
   "ledger_contract": "urn:agents:qrels:human-label-ledger:1.0.0",
   "frozen_blind_grader_module": "apps_eval/qrels/qrels_blind_grader.py",
   "frozen_blind_grader_sha256": "7d1e48195843e98e007f19d41da6284aa1336b35b062face827507d955014fea",
-  "total_human_queries": 10,
-  "total_human_passage_labels": 40,
+  "total_human_queries": 12,
+  "total_human_passage_labels": 48,
   "target_total_human_passage_labels": 200,
-  "remaining_passage_labels_to_collect": 160,
+  "remaining_passage_labels_to_collect": 152,
   "human_graded_queries": [
     {
       "qrel_id": "anchor-01",
@@ -311,7 +311,67 @@
         "skill_evidence_cluster:74ffc827b493dd18": "Missing Scope+Missing Proof",
         "engagement_episode:ff245ec8a98e1bbb": "Missing Proof+Missing Scope+Wrong Employer"
       }
+    },
+    {
+      "qrel_id": "anchor-11",
+      "query_id": "q_t1_02a",
+      "topic_id": "topic_t1_02_unify_ai_pdlc",
+      "partition": "dev",
+      "surface": "apps_research",
+      "split_role": "grader_calibration_70pct",
+      "query_text": "How did Unify shorten the path from experimental AI concepts to audited enterprise deployments?",
+      "target_record_id": "engagement_episode:108e080260a8f674",
+      "ground_truth_summary": "[Claim] Standardized the end-to-end AI systems delivery lifecycle and production-readiness gate framework from lab prototype to live deployment | [Outcomes] AI systems lifecycle compressed from six months to three weeks; production-readiness gates across the AI solution lifecycle | [Evidence] [Unify Consulting] Standardized AI lifecycle practices across intake, validation, execution, monitoring, and remediation, reducing lab-to-production cycle time from six months to three weeks while preserving auditability and runtime stability.",
+      "session_sha256": "1c57c990",
+      "updated_at_utc": "2026-11-24T21:24:02Z",
+      "record_grades": {
+        "metric_outcome_story:cbd28ae2596ed7db": 1,
+        "metric_outcome_story:24109e79009245f8": 1,
+        "skill_evidence_cluster:809527813e5c13bc": 1,
+        "engagement_episode:108e080260a8f674": 3
+      },
+      "passage_texts": {
+        "metric_outcome_story:cbd28ae2596ed7db": "[Claim] Steered enterprise AI rollout for regulated banking clients, establishing data usage controls and compliance checkpoints that lowered regulatory findings by 35%. | [Outcomes] 35% reduction in regulatory findings across banking AI rollouts | [Evidence] [Unify Consulting] Established executive AI governance councils and model-explainability/data-security standards to reinforce stakeholder trust and compliance in automated financial decisions.; [Unify Consulting] Deployed LLM-based document intelligence to automate compliance reviews and accelerate regulatory submissions by 40%.; [Unify Consulting] Steered enterprise AI rollout for a major banking client, establishing data usage controls and compliance checkpoints that lowered regulatory findings by 35% in the first year.",
+        "metric_outcome_story:24109e79009245f8": "[Claim] Scaled the platform engineering team from 8 to 28 while commercializing reusable AI platform capability. | [Outcomes] engineering team scaled from 8 to 28 | [Evidence] [Unify Consulting] Productized agentic AI primitives into reusable platform services, generating $22M in IP-led revenue, expanding gross margins by 20%, and scaling the ML engineering organization from 8 to 28 specialists.",
+        "skill_evidence_cluster:809527813e5c13bc": "[Claim] Productized core agentic AI primitives into reusable platform services, generating $22M in IP-led revenue | [Outcomes] client adoption compressed from months to weeks via Google Cloud Gemini Enterprise, Claude Code, and OpenAI Codex accelerators; joint AI partner co-sell and licensing expansion across Google Cloud (scaling Gemini Enterprise from 750 to 5,750+ seats toward 10,000+), Anthropic Claude ($2.4M enablement workstream and 45-day Claude Code pods), and OpenAI Codex (15 percentage point handoff reduction in 10 days); reusable multi-model agentic IP asset library spanning Google Cloud Vertex AI, Claude Managed Agents, and OpenAI Frontier driving high-margin delivery motions | [Evidence] [Slalom] Championed joint partner co-sell initiatives and alliance solutions with Google Cloud, AWS, and Databricks, curating reusable agentic IP accelerators that compressed client adoption timeframes from months to weeks.; [Unify Consulting] Productized agentic AI primitives into reusable platform services, generating $22M in IP-led revenue, expanding gross margins by 20%, and scaling the ML engineering organization from 8 to 28 specialists.",
+        "engagement_episode:108e080260a8f674": "[Claim] Standardized the end-to-end AI systems delivery lifecycle and production-readiness gate framework from lab prototype to live deployment | [Outcomes] AI systems lifecycle compressed from six months to three weeks; production-readiness gates across the AI solution lifecycle | [Evidence] [Unify Consulting] Standardized AI lifecycle practices across intake, validation, execution, monitoring, and remediation, reducing lab-to-production cycle time from six months to three weeks while preserving auditability and runtime stability."
+      },
+      "failure_tags": {
+        "metric_outcome_story:cbd28ae2596ed7db": "Wrong Employer",
+        "metric_outcome_story:24109e79009245f8": "Missing Scope",
+        "skill_evidence_cluster:809527813e5c13bc": "Wrong Employer+Missing Scope"
+      }
+    },
+    {
+      "qrel_id": "anchor-12",
+      "query_id": "q_t2_02",
+      "topic_id": "topic_t2_02_slalom_otel_eval",
+      "partition": "dev",
+      "surface": "apps_research",
+      "split_role": "grader_calibration_70pct",
+      "query_text": "How did Slalom combine OpenTelemetry traceability with fail-closed automated evaluation harnesses across regulated workflows?",
+      "target_record_id": "engagement_episode:237d01c028d33983",
+      "ground_truth_summary": "[Claim] Engineered outcome-based agentic evaluation harnesses, fail-closed validation meshes, and audit-grade OpenTelemetry lineage enforcing 100% deterministic gate conformance, 100% citation accuracy, 100% abstention precision, and 100% provenance coverage across regulated enterprise AI workloads | [Outcomes] full citation accuracy, provenance coverage, and abstention precision across governed enterprise agent traces and knowledge-graph outputs; 100% deterministic gate mesh conformance across safety-critical agentic workflows and fail-closed release-readiness gates; audit-grade execution lineage assurance with zero silent signal loss and zero orphan-node drift across regulated enterprise AI deployments | [Evidence] [Slalom] Designed and implemented outcome-based agentic evaluation harnesses, deterministic fail-closed validation meshes, and OpenTelemetry execution lineage achieving 100% deterministic gate conformance, 100% citation accuracy, 100% abstention precision, and 100% provenance coverage across regulated enterprise workflows.",
+      "session_sha256": "1c57c990",
+      "updated_at_utc": "2026-11-24T21:25:32Z",
+      "record_grades": {
+        "engagement_episode:e0d3b454ee7bf574": 1,
+        "metric_outcome_story:968be53ff74372ad": 1,
+        "metric_outcome_story:03042d306f49c268": 1,
+        "engagement_episode:237d01c028d33983": 3
+      },
+      "passage_texts": {
+        "engagement_episode:e0d3b454ee7bf574": "[Claim] Engineered runtime reliability governance, automated evaluation harnesses, OpenTelemetry observability, and deterministic rollback controls | [Outcomes] automated evaluation gates, telemetry, and rollback controls for runtime reliability; audit-grade runtime observability coverage for regulated AI workflows | [Evidence] [Unify Consulting] Strengthened retrieval quality, context assembly, evaluation gates, telemetry instrumentation, rollback controls, and AI CI/CD standards to make AI behavior more traceable, supportable, and repeatable.",
+        "metric_outcome_story:968be53ff74372ad": "[Claim] Graph evidence supports fail-closed write-custody gateway enforcing automated physical integrity verification and atomic dataset promotion with zero silent data corruption. | [Outcomes] fail-closed write-custody gateway enforcing automated physical integrity verification and atomic dataset promotion with zero silent data corruption | [Evidence] [Slalom] Architected a zero-raw-SQL fail-closed write-custody gateway enforcing 5-check physical disk integrity verification before atomic generational promotion with automated rollback, achieving zero silent data corruption and 0% orphan-node drift across regulated enterprise knowledge stores.; [Slalom] Designed a production bi-temporal enterprise knowledge graph (3,500+ governed entities, 576 workstreams) coupling hybrid dense-vector and lexical GraphRAG retrieval across 11 release qualification gates with cryptographic subgraph caching and prompt-prefix alignment, achieving 100% provenance coverage, 100% citation accuracy, and 100% currentness accuracy.",
+        "metric_outcome_story:03042d306f49c268": "[Claim] Graph evidence supports closed-loop system learning across production telemetry surfaces continuously improving retrieval precision, HITL calibration, and cost-latency routing. | [Outcomes] closed-loop system learning across production telemetry surfaces continuously improving retrieval precision, HITL calibration, and cost-latency routing | [Evidence] [Slalom] Engineered a 7-layer modular agentic software delivery platform governed by 38 fail-closed release-readiness gates, 26 autonomous governance sidecar agents, warm in-process Model Context Protocol (MCP) tool servers, closed-loop system learning across 8 production telemetry surfaces, and a 50-user executive intelligence portal compressing delivery turnaround with zero governance drift.",
+        "engagement_episode:237d01c028d33983": "[Claim] Engineered outcome-based agentic evaluation harnesses, fail-closed validation meshes, and audit-grade OpenTelemetry lineage enforcing 100% deterministic gate conformance, 100% citation accuracy, 100% abstention precision, and 100% provenance coverage across regulated enterprise AI workloads | [Outcomes] full citation accuracy, provenance coverage, and abstention precision across governed enterprise agent traces and knowledge-graph outputs; 100% deterministic gate mesh conformance across safety-critical agentic workflows and fail-closed release-readiness gates; audit-grade execution lineage assurance with zero silent signal loss and zero orphan-node drift across regulated enterprise AI deployments | [Evidence] [Slalom] Designed and implemented outcome-based agentic evaluation harnesses, deterministic fail-closed validation meshes, and OpenTelemetry execution lineage achieving 100% deterministic gate conformance, 100% citation accuracy, 100% abstention precision, and 100% provenance coverage across regulated enterprise workflows."
+      },
+      "failure_tags": {
+        "engagement_episode:e0d3b454ee7bf574": "Wrong Employer+Missing Proof",
+        "metric_outcome_story:968be53ff74372ad": "Missing Scope+Missing Proof",
+        "metric_outcome_story:03042d306f49c268": "Missing Proof+Missing Scope"
+      }
     }
   ],
-  "remaining_queries_to_collect": 40
+  "remaining_queries_to_collect": 38
 }

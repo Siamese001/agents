@@ -53,7 +53,7 @@ def test_corpus_has_one_assertion_per_eligible_skill_and_explicit_exclusions() -
     assert {row["assertion_id"] for row in corpus["assertions"]} == eligible
     assert {row["skill_id"] for row in corpus["exclusions"]} == excluded
     assert corpus["counts"] == {
-        "canonical_skill_count": 254,
+        "canonical_skill_count": 251,
         "eligible_assertion_count": len(eligible),
         "non_retrieval_eligible_count": len(excluded),
     }

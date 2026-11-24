@@ -44,7 +44,7 @@ def test_arsenal_ledger_loads_and_top_level_keys(ledger: dict) -> None:
     assert ledger["metadata"].get("w4a_hardened") is True
     assert len(ledger["pillars"]) == 29
     assert len(ledger["skill_rows"]) >= 162
-    assert len(ledger["actuarial_career_matrix"]) == 22
+    assert len(ledger["actuarial_career_matrix"]) == 21
     assert len(ledger["partner_gtm_matrix"]) == 16
     # 9 -> 18: dynamic functional-scoring model added a pillar-weight profile for every
     # classifier-emittable projection key (2026-06-11).
@@ -67,8 +67,8 @@ def _has_issue(issues: list[str], code: str) -> bool:
 def test_canonical_graph_issue_collector_accepts_reconciled_authority(ledger: dict) -> None:
     issues = collect_canonical_graph_issues(ledger)
     assert issues == []
-    assert ledger["graph_metadata"]["node_count"] == len(ledger["graph_nodes"]) == 376
-    assert ledger["graph_metadata"]["edge_count"] == len(ledger["graph_edges"]) >= 2533
+    assert ledger["graph_metadata"]["node_count"] == len(ledger["graph_nodes"]) == 373
+    assert ledger["graph_metadata"]["edge_count"] == len(ledger["graph_edges"]) >= 2508
 
 
 def test_canonical_graph_issue_collector_rejects_duplicate_ids_and_logical_triples(

@@ -56,13 +56,13 @@ def _resolve_career_phase_refs(label_or_section: str) -> tuple[list[str], list[s
     norm = str(label_or_section or "").lower()
     phases: list[str] = []
     nodes: list[str] = []
-    if "unify" in norm or "tradersense" in norm or "slalom" in norm:
+    if "unify" in norm or "slalom" in norm:
         for p in ["epoch_agentic_ai_runtime_architecture", "epoch_ai_platform_commercialization"]:
             if p not in phases:
                 phases.append(p)
         if "slalom" in norm and "employment_exp_slalom_001" not in nodes:
             nodes.append("employment_exp_slalom_001")
-        if ("unify" in norm or "tradersense" in norm) and "employment_exp_unify_001" not in nodes:
+        if "unify" in norm and "employment_exp_unify_001" not in nodes:
             nodes.append("employment_exp_unify_001")
     if "ibm" in norm:
         for p in ["epoch_cloud_data_platform_engineering", "epoch_partner_gtm_revenue_leadership"]:

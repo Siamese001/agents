@@ -123,6 +123,31 @@ def verify_graph_database(db_path: Path, *, read_only: bool = False) -> dict[str
     if not fts_ranked or float(fts_ranked[0]["bm25_score"]) <= 0.0:
         raise ValueError("sqlite_fts5_bm25_rank failed to rank skills on live graph_nodes_fts")
 
+    # 5. Enforce zero banned legacy employer (TraderSense) or retired pure-TraderSense fact leakage
+    banned_employer_hits: list[str] = []
+    for tbl, col_expr in (
+        ("graph_nodes", "COALESCE(node_id,'') || ' ' || COALESCE(label,'') || ' ' || COALESCE(description,'') || ' ' || COALESCE(employer,'')"),
+        ("semantic_unit", "COALESCE(unit_id,'') || ' ' || COALESCE(text,'')"),
+        ("assertion_learned_sparse", "COALESCE(assertion_id,'') || ' ' || COALESCE(weights_json,'')"),
+    ):
+        c.execute(
+            f"SELECT COUNT(*) FROM {tbl} WHERE LOWER({col_expr}) LIKE '%tradersense%' "
+            f"OR LOWER({col_expr}) LIKE '%trader_sense%' OR LOWER({col_expr}) LIKE '%trader-sense%' "
+            f"OR LOWER({col_expr}) LIKE '%trader sense%'"
+        )
+        hit_cnt = int(c.fetchone()[0] or 0)
+        if hit_cnt > 0:
+            banned_employer_hits.append(f"{tbl}:{hit_cnt}")
+    c.execute(
+        "SELECT node_id FROM graph_nodes WHERE node_id IN ('fact_quant_hpc_002', 'fact_partnerships_gtm_005')"
+    )
+    retired_nodes = [str(r[0]) for r in c.fetchall()]
+    if banned_employer_hits or retired_nodes:
+        raise ValueError(
+            f"INV-GRAPH-ZERO-TRADERSENSE violation in SQLite graph: "
+            f"employer_hits={banned_employer_hits}, retired_nodes={retired_nodes}"
+        )
+
     conn.close()
     return {
         "status": "PASS",
@@ -628,6 +653,29 @@ def verify_graph_promotion_and_bundle_hygiene(repo_root: Path | None = None) -> 
             f"INV-GRAPH-PROMOTION-HYGIENE violation: {len(zero_metric_bundles)} ACTIVE_CONFIRMED role-episode bundles have 0 linked metric outcomes: {zero_metric_bundles}"
         )
 
+    # 4. Enforce INV-GRAPH-ZERO-TRADERSENSE across candidate ledger, arsenal ledger, and bundles
+    banned_tokens = ("tradersense", "trader_sense", "trader-sense", "trader sense")
+    banned_fact_ids = ("fact_quant_hpc_002", "fact_partnerships_gtm_005")
+    json_violations: list[str] = []
+    check_paths: list[Path] = [ledger_path, *bundle_files]
+    for cl_path in candidate_ledger_candidates:
+        if cl_path.is_file():
+            check_paths.insert(0, cl_path)
+            break
+    for jp in check_paths:
+        raw_text = jp.read_text(encoding="utf-8")
+        lower_text = raw_text.lower()
+        for tok in banned_tokens:
+            if tok in lower_text:
+                json_violations.append(f"{jp.name}:token={tok}")
+        for bfid in banned_fact_ids:
+            if bfid in raw_text:
+                json_violations.append(f"{jp.name}:retired_fact={bfid}")
+    if json_violations:
+        raise ValueError(
+            f"INV-GRAPH-ZERO-TRADERSENSE violation in graph JSON sources: {json_violations}"
+        )
+
     return {
         "status": "PASS",
         "unpromoted_archive_facts": len(unpromoted_archive_facts),
@@ -635,6 +683,7 @@ def verify_graph_promotion_and_bundle_hygiene(repo_root: Path | None = None) -> 
         "active_archive_skills_bound": len(active_archive_skills),
         "orphaned_archive_skills": len(orphaned_archive_skills),
         "zero_metric_active_bundles": len(zero_metric_bundles),
+        "tradersense_violations": 0,
     }
 
 

@@ -29,7 +29,7 @@ def test_materialized_unit_vectors_persist_live_bge_m3_and_runtime_dense_recall(
     summary = materialize_augmented_skills_graph_sqlite(repo_root=RGE_ROOT, db_path=db_path)
     elapsed_s = time.perf_counter() - t0
     assert summary["live_bge_m3_vectors"] == 1
-    assert summary["semantic_unit_count"] == 379
+    assert summary["semantic_unit_count"] == 376
     assert elapsed_s < 15.0
 
     with sqlite3.connect(f"file:{db_path.as_posix()}?mode=ro", uri=True) as conn:
@@ -38,7 +38,7 @@ def test_materialized_unit_vectors_persist_live_bge_m3_and_runtime_dense_recall(
         ).fetchall()
         assert len(tags) == 1
         assert str(tags[0][0]).startswith(LIVE_BGE_M3_MANIFEST_PREFIX)
-        assert int(tags[0][1]) == 379
+        assert int(tags[0][1]) == 376
 
         # Live runtime QuadGraphHybridRetriever.retrieve() must find the exact semantic unit via dense channel
         retriever = QuadGraphHybridRetriever(conn, db_path=str(db_path))

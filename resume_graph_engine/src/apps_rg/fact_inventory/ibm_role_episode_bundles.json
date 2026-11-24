@@ -812,8 +812,7 @@
       "graph_skill_node_ids": [
         "skill_risk_greek_stress_testing",
         "skill_sr_cloud_data_platform_engineering",
-        "skill_sr_regulated_financial_institutions_fluency",
-        "skill_algo_trading_sub_ms_inference"
+        "skill_sr_regulated_financial_institutions_fluency"
       ],
       "linked_source_fact_ids": [
         "fact_quant_hpc_001",

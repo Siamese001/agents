@@ -1,6 +1,6 @@
 {
   "schema_version": "2.0.0",
-  "corpus_digest": "7500b586e5f929746e07148f9528716ff68c8770515403176003de5be78744ad",
+  "corpus_digest": "445ac5111621143cb7b8bc1a0e6700a0a4d986b2201d7a39081c236b5f0707af",
   "total_queries": 65,
   "answerable_count": 60,
   "unanswerable_count": 5,
@@ -588,7 +588,7 @@
       "tier": "tier3_adversarial_hard_negative",
       "phrasing_type": "executive",
       "answerable": true,
-      "target_record_id": "engagement_episode:033ffa51f6d9cae4",
+      "target_record_id": "engagement_episode:87be72b11cb02ad5",
       "ground_truth_summary": "[Claim] Translated analytics and ML-enabled decision support into executive decision workflows for regulated banking and insurance clients | [Outcomes] CCAR and derivative stress-test cycles compressed from weeks to hours across containerized HPC risk workflows; 100% audit-traceable CCAR and Basel III risk-scenario lineage unified across 3 banking business units | [Evidence] [IBM] Re-architected monolithic risk analytics with containerized microservices and HPC, trimming calculation or stress-testing cycles by 40% and enabling real-time stress testing.; [IBM] Unified data latency governance processes across three business units, enabling standardized risk metrics and more consistent CCAR compliance.",
       "query_text": "How were analytics and ML decision workflows turned into executive banking processes specifically at IBM rather than Slalom or Unify?"
     },
@@ -658,7 +658,7 @@
       "tier": "tier3_adversarial_hard_negative",
       "phrasing_type": "multi_hop",
       "answerable": true,
-      "target_record_id": "engagement_episode:3518e3bd52ad3292",
+      "target_record_id": "engagement_episode:dd8ce4c392081737",
       "ground_truth_summary": "[Claim] Co-architected joint hyperscaler reference solutions and cloud-native AI deployment blueprints with strategic platform partners | [Outcomes] joint cloud and AI vendor solution roadmaps and GSI partner enablement motions; executive pre-sales architecture advisory translating AI/data/cloud roadmaps into measurable ROI | [Evidence] [Multiple] Forged relationships with cloud and AI vendors, combining market influence with solution roadmaps and joint go-to-market strategies to accelerate enterprise adoption of advanced analytics and platform services.; [Multiple] Translated complex AI, data, and cloud architecture into executive value propositions and measurable ROI for senior stakeholders.; [Unify Consulting] Built a global AI channel program from inception, co-developing analytics frameworks with strategic partners, bundling consulting packages with LLM-driven compliance analysis, and using co-marketing campaigns to generate $3M in partner-derived revenue.",
       "query_text": "What joint cloud-native AI reference blueprints were co-architected with hyperscaler alliances at Unify?"
     },
@@ -827,7 +827,7 @@
       "phrasing_type": "multi_hop",
       "answerable": true,
       "target_record_id": "engagement_episode:9e961f5af21f742f",
-      "ground_truth_summary": "[Claim] Established regulated financial-services AI governance, model-risk controls, and automated compliance verification workflows | [Outcomes] 35% reduction in regulatory findings across banking AI rollouts; 40% faster regulatory compliance submissions via LLM document intelligence | [Evidence] [TraderSense / Unify Consulting] Established executive AI governance councils and model-explainability/data-security standards to reinforce stakeholder trust and compliance in automated financial decisions.; [Unify Consulting] Deployed LLM-based document intelligence to automate compliance reviews and accelerate regulatory submissions by 40%.; [Unify Consulting] Steered enterprise AI rollout for a major banking client, establishing data usage controls and compliance checkpoints that lowered regulatory findings by 35% in the first year.",
+      "ground_truth_summary": "[Claim] Established regulated financial-services AI governance, model-risk controls, and automated compliance verification workflows | [Outcomes] 35% reduction in regulatory findings across banking AI rollouts; 40% faster regulatory compliance submissions via LLM document intelligence | [Evidence] [Unify Consulting] Deployed LLM-based document intelligence to automate compliance reviews and accelerate regulatory submissions by 40%.; [Unify Consulting] Established executive AI governance councils and model-explainability/data-security standards to reinforce stakeholder trust and compliance in automated financial decisions.; [Unify Consulting] Steered enterprise AI rollout for a major banking client, establishing data usage controls and compliance checkpoints that lowered regulatory findings by 35% in the first year.",
       "query_text": "How did Unify establish regulated financial-services AI governance, model-risk controls, and automated compliance checks?"
     },
     {

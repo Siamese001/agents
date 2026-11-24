@@ -129,6 +129,7 @@ def test_graph_promotion_hygiene_and_traversal_probe() -> None:
     assert hygiene["draft_archive_skills"] == 0
     assert hygiene["orphaned_archive_skills"] == 0
     assert hygiene["zero_metric_active_bundles"] == 0
+    assert hygiene["tradersense_violations"] == 0
     assert int(hygiene["active_archive_skills_bound"]) >= 100
 
     probe = run_resume_graph_traversal_probe(max_paths=100)
