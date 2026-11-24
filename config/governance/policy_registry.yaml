@@ -94,7 +94,7 @@ policies:
   - id: "INV-SIDECAR-CATALOG-COUNT"
     title: "Consolidated On-Demand Assurance Agent Catalog Count"
     category: "ai_sdlc"
-    threshold: 4
+    threshold: 5
     unit: "agents"
     description: "Exact number of consolidated MECE on-demand assurance agents registered in automations/prompts/ and sidecars catalog (with zero active background schedules)."
     enforcer: "tools/validate_sidecar_separation.py"

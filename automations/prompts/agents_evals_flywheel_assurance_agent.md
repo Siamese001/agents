@@ -1,22 +1,25 @@
-# Agents Repository — Evals, Judge Validity & Continuous Learning Flywheel Agent (`4/4`)
-<!-- GOVERNED COMMON CONTRACT: urn:agents:on-demand-assurance-control-matrix:3.0.0 | Shared: automations/prompts/_shared_governance_contract.md | Order: 4/4 -->
+# Agents Repository — Evals, Judge Validity, E2E Pinning & Continuous Learning Flywheel Agent (`5/5`)
+<!-- GOVERNED COMMON CONTRACT: urn:agents:on-demand-assurance-control-matrix:3.0.0 | v3.1.0 | Shared: automations/prompts/_shared_governance_contract.md | Order: 5/5 -->
 <!-- INVARIANT: INV-REPO-SEPARATION-AGENTS-ONLY | PREFLIGHT_ZERO_DEFECT_FAST_EXIT | UNCONDITIONAL_WAVE_PLAN_MANDATE | INV-RUNTIME-PROOF-5POINT | INV-AUTOMATION-PERSISTENT-LEARNING-LOOP | INV-REMEDIATION-QUOTA-FLOOR | INV-FLYWHEEL-AUTO-REMEDIATE -->
 
-## 1. Objective, Playbook & MECE Write Scope (`C01`, `C13`)
-Execute a fail-closed **Evals, Judge Validity, Holdout Custody, Production Purity & Post-Runtime Continuous Learning Flywheel Cycle** exclusively within `/Users/amitayer/Git/agents` (`$0.00` marginal API spend for deterministic grading, consolidation, and self-audits).
-- **Canonical Skills & Rules**: Load `.agents/skills/receipt-auditor/SKILL.md` and `.agents/rules/flywheel-remediation-governance.md`.
-- **MECE Single-Writer Scope (`AGY_SIDECAR_AGENT_ID="agents-evals-flywheel-assurance"`)**: `agents/learning/`, `agents/eval_flywheel_cli.py`, `apps_eval/`, `resume_graph_engine/src/apps_rg/evals/`, `config/exit_eval_rubrics/`, `config/judges/`, `config/certification/`, `config/routing_calibration.yaml`, `config/prompt_governance/`, `resume_graph_engine/config/certification/`, `data/holdout/`, `data/eval/`, `data/certification/`, `data/judge_calibration/`, `outreach_engine/data/`, `resume_graph_engine/data/`, `tools/validate_eval_rubrics.py`, `tools/lint_production_purity.py`, `tools/audit_eval_construct_validity.py`, `tools/audit_multi_ssot_judge_gate_drift.py`, `tools/run_eval_flywheel_cycle.py`, `tools/run_diff_scoped_eval_shield.py`, `tests/unit/test_flywheel_hitl_dispatcher.py`, and `tests/end_to_end/test_flywheel_hitl_remediation_e2e.py`.
+## 1. Objective, Playbook & MECE Write Scope (`C01`, `C13`, `C14`)
+Execute a fail-closed **Evals, 7-Vector Judge & Gate Drift, 48-Item External Stakeholder Rubric Calibration, 323-File Holdout Custody, Production Purity, Unmocked Branch E2E Pinning, Testing-Gaps Assurance & Post-Runtime Continuous Learning Flywheel Cycle** exclusively within `/Users/amitayer/Git/agents` (`$0.00` marginal API spend for deterministic grading, consolidation, and self-audits).
+- **Canonical Skills & Rules**: Load `.agents/skills/receipt-auditor/SKILL.md`, `.agents/skills/testing-framework/SKILL.md`, `.agents/rules/flywheel-remediation-governance.md`, and `.agents/rules/e2e-and-edge-case-coverage.md`.
+- **MECE Single-Writer Scope (`AGY_SIDECAR_AGENT_ID="agents-evals-flywheel-assurance"`)**: `agents/learning/`, `agents/eval_flywheel_cli.py`, `apps_eval/adapters/`, `apps_eval/artifacts/`, `apps_eval/baselines/`, `apps_eval/contracts/`, `apps_eval/coverage/`, `apps_eval/diagnostics/`, `apps_eval/fixtures/`, `apps_eval/graders/`, `apps_eval/integrations/`, `apps_eval/outputs/`, `apps_eval/registries/`, `apps_eval/registry/`, `apps_eval/rubrics/`, `apps_eval/runner/`, `apps_eval/sandbox/`, `apps_eval/suites/`, `apps_eval/tests/`, `resume_graph_engine/src/apps_rg/evals/`, `config/exit_eval_rubrics/`, `config/judges/`, `config/certification/`, `config/routing_calibration.yaml`, `config/prompt_governance/`, `resume_graph_engine/config/certification/`, `resume_graph_engine/config/exit_eval_rubrics/`, `resume_graph_engine/config/judges/`, `data/holdout/`, `data/eval/`, `data/certification/`, `data/judge_calibration/`, `outreach_engine/data/`, `resume_graph_engine/data/`, `ops_scripts/blind_human_grading_cli.py`, `ops_scripts/ci/`, `ops_scripts/curate_ide_judge_gold_corpus.py`, `ops_scripts/judge_parity_probe.py`, `ops_scripts/mark_stub_judge_artifacts.py`, `ops_scripts/run_ide_judge_drift.py`, `tools/validate_eval_rubrics.py`, `tools/_eval_rubrics_helpers.py`, `tools/lint_production_purity.py`, `tools/audit_eval_construct_validity.py`, `tools/audit_multi_ssot_judge_gate_drift.py`, `tools/run_eval_flywheel_cycle.py`, `tools/run_diff_scoped_eval_shield.py`, `tools/eval_shield_core/`, `tools/verify_fix_eval_pinning.py`, `tests/adversarial/`, `tests/end_to_end/`, and `tests/test_evals_adversarial_redteam.py`.
 
 ## 2. Phase 1 & Phase 1.5: Read-Only Preflight & Sandbox Flywheel Cycle (`C02`, `C03`)
-Verify rubric bounds, 11 live graders, 315-file holdout custody, construct validity, judge drift, production purity, and sandbox flywheel status first:
+Verify rubric bounds, 11 live graders, 323-file holdout custody, construct validity, unmocked branch E2E pinning, diff-scoped eval shield, 7-vector judge/remediation drift, preflight-safe IDE judge human-alignment drift (`--check-preflight`), testing gaps, production purity, and sandbox flywheel status first:
 ```bash
 export PRIMARY_REPO_ROOT="/Users/amitayer/Git/agents"
 export PYTHONDONTWRITEBYTECODE=1
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/validate_eval_rubrics.py" --repo-root "${PRIMARY_REPO_ROOT}" --json
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/lint_production_purity.py" --all --repo-root "${PRIMARY_REPO_ROOT}"
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/audit_eval_construct_validity.py" --verify-strict --include-e2e-pin
-"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/audit_multi_ssot_judge_gate_drift.py"
-"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/ops_scripts/run_ide_judge_drift.py" --check-receipt
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/verify_fix_eval_pinning.py" --repo-root "${PRIMARY_REPO_ROOT}" --json
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/run_diff_scoped_eval_shield.py" --all
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/testing_gaps_auditor.py" --repo-root "${PRIMARY_REPO_ROOT}"
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/audit_multi_ssot_judge_gate_drift.py" --repo-root "${PRIMARY_REPO_ROOT}"
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/ops_scripts/run_ide_judge_drift.py" --check-preflight
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/run_eval_flywheel_cycle.py" --sandbox --emit-next-hitl-question
 "${PRIMARY_REPO_ROOT}/.venv/bin/pytest" "${PRIMARY_REPO_ROOT}/tests/unit/test_flywheel_hitl_dispatcher.py" "${PRIMARY_REPO_ROOT}/apps_eval/tests/test_apps_lic_dev_suite.py" -q -p no:cacheprovider --timeout=60
 ```

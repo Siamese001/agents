@@ -22,9 +22,11 @@ def test_agents_retrieval_and_outreach_sidecar_prompts_bind_live_graph_probe() -
     repo_root = Path(__file__).resolve().parents[1]
     prompts_dir = repo_root / "automations" / "prompts"
 
-    text = (prompts_dir / "agents_domain_pipelines_retrieval_agent.md").read_text(encoding="utf-8")
+    text = (prompts_dir / "agents_graph_retrieval_qrels_agent.md").read_text(encoding="utf-8")
     assert "run_resume_graph_traversal_probe.py" in text
     assert "direct_graph_traversal" in text
+    assert "audit_qrels_coverage.py" in text
+    assert "audit_resume_fact_provenance.py" in text
 
     sep = validate_sidecar_separation(repo_root=repo_root)
     assert sep["is_clean"] is True, sep["violations"]

@@ -401,6 +401,47 @@ def _probe_latency_and_live_caching(repo_root: Path) -> dict[str, Any]:
     }
 
 
+def _probe_fact_provenance_and_qrels_calibration(repo_root: Path) -> dict[str, Any]:
+    """Pillar 8: Verify candidate fact provenance (0 approved_by_graph_presence, 129 metric_outcome nodes) and QRELS Kappa calibration."""
+    gaps: list[str] = []
+    provenance_verified = True
+    qrels_verified = True
+    cohens_kappa = 0.0
+
+    inv_dir = repo_root / "resume_graph_engine" / "src" / "apps_rg" / "fact_inventory"
+    if inv_dir.is_dir() and any(inv_dir.glob("*_role_episode_bundles.json")):
+        from tools.audit_resume_fact_provenance import audit_fact_provenance
+
+        prov_rep = audit_fact_provenance(repo_root)
+        if prov_rep.get("status") != "PASS" or int(prov_rep.get("graph_presence_count", 0)) > 0:
+            provenance_verified = False
+            gaps.append(
+                f"audit_fact_provenance failed: status={prov_rep.get('status')}, "
+                f"graph_presence={prov_rep.get('graph_presence_count')}, violations={len(prov_rep.get('violations') or [])}"
+            )
+
+    qrels_dir = repo_root / "data" / "qrels"
+    part_p = qrels_dir / "qrels_partitions.v1.json"
+    gt_p = qrels_dir / "qrels_independent_ground_truth.v1.json"
+    pool_p = qrels_dir / "qrels_authentic_candidate_pool.v1.json"
+    if part_p.is_file() and gt_p.is_file() and pool_p.is_file():
+        from tools.audit_qrels_coverage import audit_qrels_coverage
+
+        q_rep = audit_qrels_coverage(part_p, gt_p, pool_p)
+        cohens_kappa = float((q_rep.get("kappa_calibration_audit") or {}).get("cohens_kappa") or 0.0)
+        if q_rep.get("gate_status") != "PASS":
+            qrels_verified = False
+            gaps.append(f"audit_qrels_coverage failed: {q_rep.get('failures')}")
+
+    return {
+        "passed": len(gaps) == 0,
+        "gaps": gaps,
+        "provenance_verified": provenance_verified,
+        "qrels_verified": qrels_verified,
+        "cohens_kappa": cohens_kappa,
+    }
+
+
 def run_retrieval_surface_audit(repo_root: Path | None = None, *, read_only: bool = True) -> dict[str, Any]:
     root = (repo_root or DEFAULT_REPO_ROOT).resolve()
     _ensure_paths(root)
@@ -417,6 +458,7 @@ def run_retrieval_surface_audit(repo_root: Path | None = None, *, read_only: boo
             "gaps": [f"Untyped public retrieval callable {u['callable']} at {u['file']}:{u['line']}" for u in untyped[:15]],
             "untyped_public_callable_count": len(untyped),
         },
+        "pillar_8_fact_provenance_and_qrels_calibration": _probe_fact_provenance_and_qrels_calibration(root),
     }
     all_gaps = [f"[{name}] {g}" for name, res in pillars.items() for g in res.get("gaps", [])]
     passing_count = sum(1 for res in pillars.values() if res["passed"])

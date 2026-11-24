@@ -257,7 +257,7 @@ def collect_lane_candidates(corpus_path: Path, lane: str) -> list[dict[str, Any]
 
     # Fallback scan for competencies (whose dir omits *_judge_packet.json so w0 corpus skipped it)
     if not grouped and lane == "competencies":
-        rt_root = Path("/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs")
+        rt_root = REPO_ROOT / "resume_graph_engine" / "artifacts" / "apps_rg" / "runtime_proofs"
         for jf in sorted(rt_root.glob("**/competencies/**/x1d_llm_judge_outputs.json")) + sorted(rt_root.glob("**/competencies/x1d_llm_judge_outputs.json")):
             run_name = jf.relative_to(rt_root).parts[0]
             if run_name == "truist_judge_verify_20261118":

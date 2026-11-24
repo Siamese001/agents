@@ -74,8 +74,10 @@ def run_unify_narrative_v2_healing_loop(
     cur_raw, cur_parsed, any_accepted = raw_output, parsed, False
     usage_path = artifact_dir / "section_input_usage_ledger.json"
     usage_snap = usage_path.read_bytes() if usage_path.is_file() else None
+    from apps_rg.runtime.env_bootstrap import get_env_bool
+
     pre_failed = pre_judge_failed_gate_ids(run_x2_fn(cur_parsed, sync_artifacts_fn(cur_parsed, cur_raw)))
-    healing_on = os.environ.get("APPS_RG_UNIFY_NARRATIVE_IN_LANE_HEALING", "1").strip().lower() not in ("0", "false", "no", "off")
+    healing_on = get_env_bool("APPS_RG_UNIFY_NARRATIVE_IN_LANE_HEALING", default=True)
     comp_list = companion_bullets_as_list(companion_text)
     pre_receipt: dict[str, Any] = {"attempted": False, "accepted": False, "initial_failed_gates": list(pre_failed)}
     if pre_failed and healing_on and judge_mode != "mocked":

@@ -271,16 +271,15 @@ def run_unified_eval_harness(
     effective_holdout = include_holdout and not fast_dev
     suites = _select_suites(app, effective_holdout)
 
-    prior_gate = os.environ.get("APPS_EVAL_RELEASE_GATE")
-    if effective_holdout:
-        os.environ["APPS_EVAL_RELEASE_GATE"] = "1"
+    from infrastructure.config.env_loader import temporary_env_override
 
     suite_receipts: dict[str, dict[str, Any]] = {}
     l6_shadow_receipts: dict[str, dict[str, Any]] = {}
     started_at = _utc_now()
     t_start = time.perf_counter()
 
-    try:
+    env_patch: dict[str, str | None] = {"APPS_EVAL_RELEASE_GATE": "1"} if effective_holdout else {}
+    with temporary_env_override(env_patch):
         for suite_id in suites:
             bpath = baseline_path(suite_id, resolved_baseline_dir)
             record = run_eval(
@@ -340,11 +339,6 @@ def run_unified_eval_harness(
                 "path": l6_path.as_posix() if l6_path and l6_path.is_file() else "",
                 "sha256": _sha256_file(l6_path) if l6_path and l6_path.is_file() else "",
             }
-    finally:
-        if prior_gate is None:
-            os.environ.pop("APPS_EVAL_RELEASE_GATE", None)
-        else:
-            os.environ["APPS_EVAL_RELEASE_GATE"] = prior_gate
 
     # Engine-level probes
     apps_rg_e2e_receipt: dict[str, Any] | None = None

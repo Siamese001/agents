@@ -39,7 +39,7 @@ REQUIRED_AI_SDLC_POLICY_IDS: tuple[str, ...] = (
     "INV-PROMPT-VALIDATOR-VOCAB-SYMMETRY",
 )
 
-SCRIPT_REF_RE = re.compile(r"`(tools/[a-zA-Z0-9_./-]+\.py)`")
+SCRIPT_REF_RE = re.compile(r"`((?:tools|ops_scripts|scripts)/[a-zA-Z0-9_./-]+\.py)`")
 HOOK_FLAG_RE = re.compile(r"--hook\s+([a-zA-Z0-9_-]+)")
 MAX_ALWAYS_ON_BYTES = 36000
 
@@ -165,6 +165,25 @@ def _check_policy_and_threshold_parity(repo_root: Path) -> list[dict[str, Any]]:
                 "message": f"INV-HITL-AMBIGUITY-MARGIN threshold drifted from 0.20: {hitl_pol.get('threshold')}",
             }
         )
+
+    sidecar_pol = policies.get("INV-SIDECAR-CATALOG-COUNT") or {}
+    if sidecar_pol and (repo_root / "tools" / "validate_sidecar_separation.py").is_file():
+        from tools.prompt_scope_isolation import PROMPT_STAGE_ALLOWED_WRITE_PATHS
+        from tools.validate_sidecar_separation import EXPECTED_AGENTS_SIDECARS
+
+        reg_count = int(sidecar_pol.get("threshold", 0))
+        if reg_count != len(EXPECTED_AGENTS_SIDECARS) or reg_count != len(PROMPT_STAGE_ALLOWED_WRITE_PATHS):
+            findings.append(
+                {
+                    "severity": "CRITICAL",
+                    "category": "threshold_drift",
+                    "message": (
+                        f"INV-SIDECAR-CATALOG-COUNT ({reg_count}) out of sync with EXPECTED_AGENTS_SIDECARS "
+                        f"({len(EXPECTED_AGENTS_SIDECARS)}) or PROMPT_STAGE_ALLOWED_WRITE_PATHS "
+                        f"({len(PROMPT_STAGE_ALLOWED_WRITE_PATHS)})."
+                    ),
+                }
+            )
     return findings
 
 
@@ -178,6 +197,9 @@ def _check_broken_script_refs(repo_root: Path) -> tuple[list[dict[str, Any]], li
     skills_dir = repo_root / ".agents" / "skills"
     if skills_dir.is_dir():
         targets.extend(sorted(skills_dir.glob("*/SKILL.md")))
+    prompts_dir = repo_root / "automations" / "prompts"
+    if prompts_dir.is_dir():
+        targets.extend(sorted(prompts_dir.glob("*.md")))
 
     for md_path in targets:
         text = md_path.read_text(encoding="utf-8", errors="ignore")
@@ -186,7 +208,7 @@ def _check_broken_script_refs(repo_root: Path) -> tuple[list[dict[str, Any]], li
             ref = match.group(1)
             if "*" in ref or "<" in ref:
                 continue
-            if not (repo_root / ref).is_file():
+            if not (repo_root / ref).is_file() and not (md_path.parent / ref).is_file():
                 entry = f"{rel_md} -> {ref}"
                 broken_refs.append(entry)
                 findings.append(

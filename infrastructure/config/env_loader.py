@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 import os
 import re
 import sqlite3
 import struct
 import subprocess
 from pathlib import Path
+from typing import Iterator, Mapping
 
 _LOCAL_BGE_M3_CORPUS_CACHE: list[tuple[frozenset[str], tuple[float, ...]]] | None = None
 
@@ -82,6 +84,25 @@ def get_env_optional_path(name: str) -> Path | None:
 def snapshot_process_env() -> dict[str, str]:
     """Return a mutable copy of the current process environment dictionary."""
     return dict(os.environ)
+
+
+@contextmanager
+def temporary_env_override(updates: Mapping[str, str | None]) -> Iterator[None]:
+    """Temporarily apply environment variable overrides and restore previous values on exit."""
+    saved: dict[str, str | None] = {k: os.environ.get(k) for k in updates}
+    try:
+        for k, v in updates.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+        yield
+    finally:
+        for k, v in saved.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
 
 
 def get_outreach_candidate_graph_db_path(repo_root: Path | None = None) -> Path:

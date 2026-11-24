@@ -340,6 +340,30 @@ def is_pytest_or_test_harness_env() -> bool:
     return bool(os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("APPS_RG_TEST_HARNESS") == "1")
 
 
+def get_env_str(name: str, default: str = "") -> str:
+    """Return environment variable value as string, or default when unset."""
+    val = os.environ.get(name)
+    return val if val is not None else default
+
+
+def get_env_bool(name: str, default: bool = False) -> bool:
+    """Return boolean environment variable value using canonical truthy tokens."""
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in ("1", "true", "yes", "on")
+
+
+def set_env_default(name: str, default: str) -> str:
+    """Set environment variable default when unset and return the active value."""
+    return os.environ.setdefault(name, default)
+
+
+def snapshot_process_env() -> dict[str, str]:
+    """Return a snapshot copy of the current process environment dictionary."""
+    return dict(os.environ)
+
+
 __all__ = [
     "APPS_RG_DOTENV_ENV_VAR",
     "AppsRgEnvBootstrapResult",
@@ -349,7 +373,11 @@ __all__ = [
     "bootstrap_process_env_if_needed",
     "canonical_home_dotenv",
     "ensure_career_thesis_plan_env",
+    "get_env_bool",
+    "get_env_str",
     "get_route_hmac_env",
     "is_pytest_or_test_harness_env",
+    "set_env_default",
+    "snapshot_process_env",
     "temporary_env_override",
 ]

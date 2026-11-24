@@ -55,12 +55,14 @@ def _generation_cfg() -> dict[str, Any]:
 
 
 def generation_transport(environ: Mapping[str, str] | None = None) -> str:
+    from apps_rg.runtime.env_bootstrap import get_env_str
+
     if environ is None:
-        override = str(os.environ.get(GENERATION_TRANSPORT_ENV) or "").strip().lower()
+        override = str(get_env_str(GENERATION_TRANSPORT_ENV) or "").strip().lower()
     elif GENERATION_TRANSPORT_ENV in environ:
         override = str(environ.get(GENERATION_TRANSPORT_ENV) or "").strip().lower()
     else:
-        override = str(os.environ.get(GENERATION_TRANSPORT_ENV) or "").strip().lower()
+        override = str(get_env_str(GENERATION_TRANSPORT_ENV) or "").strip().lower()
     value = override or str(_generation_cfg().get("transport") or "external_api").strip().lower()
     if value not in _TRANSPORTS:
         raise ProviderGatewayError(
@@ -108,6 +110,8 @@ def uses_ide_cli_generation(
 
 
 def _resolved_agy_bin(environ: Mapping[str, str] | None = None, agy_bin: str | None = None) -> str | None:
+    from apps_rg.runtime.env_bootstrap import get_env_str
+
     if agy_bin:
         return str(agy_bin)
     var = str(_generation_cfg().get("cli_env_var") or AGY_CLI_ENV_VAR)
@@ -115,7 +119,7 @@ def _resolved_agy_bin(environ: Mapping[str, str] | None = None, agy_bin: str | N
         val = str(environ.get(var) or "").strip()
         if val:
             return val
-    val = str(os.environ.get(var) or "").strip()
+    val = str(get_env_str(var) or "").strip()
     return val or None
 
 
@@ -198,8 +202,10 @@ def _resolved_timeout_s(
     request_timeout_s: float | None,
     environ: Mapping[str, str] | None = None,
 ) -> int:
-    env = os.environ if environ is None else environ
-    raw = str(env.get(GENERATION_TIMEOUT_ENV) or os.environ.get(GENERATION_TIMEOUT_ENV) or "").strip()
+    from apps_rg.runtime.env_bootstrap import get_env_str, snapshot_process_env
+
+    env = snapshot_process_env() if environ is None else environ
+    raw = str(env.get(GENERATION_TIMEOUT_ENV) or get_env_str(GENERATION_TIMEOUT_ENV) or "").strip()
     if raw.isdigit() and int(raw) > 0:
         return int(raw)
     if request_timeout_s is not None and request_timeout_s > 0:

@@ -1,0 +1,28 @@
+# Agents Repository — Evidence Graph, 4-Channel Hybrid Retrieval, Fact Provenance & QRELS Calibration Agent (`3/5`)
+<!-- GOVERNED COMMON CONTRACT: urn:agents:on-demand-assurance-control-matrix:3.0.0 | v3.1.0 | Shared: automations/prompts/_shared_governance_contract.md | Order: 3/5 -->
+<!-- INVARIANT: INV-REPO-SEPARATION-AGENTS-ONLY | PREFLIGHT_ZERO_DEFECT_FAST_EXIT | UNCONDITIONAL_WAVE_PLAN_MANDATE | INV-RUNTIME-PROOF-5POINT | INV-AUTOMATION-PERSISTENT-LEARNING-LOOP | INV-REMEDIATION-QUOTA-FLOOR | INV-FACT-GRAPH-NO-AGENT-SYNTHESIS -->
+
+## 1. Objective, Playbook & MECE Write Scope (`C01`, `C13`, `C14`)
+Execute a fail-closed **Evidence Graph Custody, 4-Channel Hybrid Retrieval (`QuadGraphHybridRetriever` / `QuadHybridCandidateRetriever`), Real Local 1024-d BGE-M3 `unit_vectors`, Candidate Fact Provenance (`INV-FACT-GRAPH-NO-AGENT-SYNTHESIS`, `129` `metric_outcome` nodes, Graph Promotion Hygiene) & DIE-Parity QRELS Statistical Calibration (`Kappa >= 0.80`, Zero Partition Leakage, 4-Simplex Weights) Audit & Remediation** exclusively within `/Users/amitayer/Git/agents`.
+- **Canonical Skills & Rules**: Load `.agents/skills/agents-domain-assurance/SKILL.md`, `.agents/rules/resume-graph-engine.md`, and `.agents/rules/production-derivation-and-anti-overfitting.md`.
+- **MECE Single-Writer Scope (`AGY_SIDECAR_AGENT_ID="agents-graph-retrieval-qrels-assurance"`)**: `apps_research/`, `apps_eval/qrels/`, `config/retrieval/`, `data/qrels/`, `infrastructure/candidate_evidence/`, `agents/context/precedent_bridge.py`, `agents/context/provenance.py`, `resume_graph_engine/C03_EMBEDDING_PRODUCTION_PROMOTION.md`, `resume_graph_engine/artifacts/`, `resume_graph_engine/config/retrieval/`, `resume_graph_engine/src/apps_rg/chunking/`, `resume_graph_engine/src/apps_rg/fact_inventory/`, `ops_scripts/build_qrels_benchmark.py`, `ops_scripts/qrels_calibration_cli.py`, `tools/retrieval_surface_auditor.py`, `tools/_retrieval_surface_helpers.py`, `tools/audit_qrels_coverage.py`, `tools/audit_resume_fact_provenance.py`, `tools/verify_graph_integrity_and_embeddings.py`, `tools/run_resume_graph_traversal_probe.py`, `tools/verify_pipeline_latency_caching.py`, `tools/apps_rg_standalone/`, `tools/mcp/`, `tests/test_sidecar_resume_graph_traversal.py`, `tests/test_governed_research_lineage.py`, `tests/test_research_boundary_policy.py`, and `tests/test_research_retrieval_engine.py`.
+
+## 2. Phase 1 & Phase 1.5: Read-Only Preflight Audit & Fast-Exit Gate (`C02`, `C03`)
+Audit all 8 retrieval, graph provenance, and QRELS calibration pillars (query decomposition, contextual chunking, 4-channel graph hybrid retrieval `direct_graph_traversal` with real 1024-d BGE-M3 `unit_vectors`, 5-check SQLite physical custody, `apps_research` citation hygiene, multi-tier caching latency, fail-closed return-type contracts, candidate fact provenance `approved_by_graph_presence == 0` with `129` `metric_outcome` nodes, and QRELS zero-leakage `Kappa >= 0.80` calibration) in read-only mode first:
+```bash
+export PRIMARY_REPO_ROOT="/Users/amitayer/Git/agents"
+export PYTHONDONTWRITEBYTECODE=1
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/retrieval_surface_auditor.py" --repo-root "${PRIMARY_REPO_ROOT}" --read-only --json
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/audit_qrels_coverage.py"
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/audit_resume_fact_provenance.py" --repo-root "${PRIMARY_REPO_ROOT}" --strict --json
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/verify_graph_integrity_and_embeddings.py" --read-only
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/run_resume_graph_traversal_probe.py" --max-paths 200
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/verify_pipeline_latency_caching.py" --repo-root "${PRIMARY_REPO_ROOT}"
+"${PRIMARY_REPO_ROOT}/.venv/bin/pytest" "${PRIMARY_REPO_ROOT}/tests/test_sidecar_resume_graph_traversal.py" "${PRIMARY_REPO_ROOT}/tests/test_research_retrieval_engine.py" "${PRIMARY_REPO_ROOT}/tests/test_governed_research_lineage.py" -q -p no:cacheprovider --timeout=60
+```
+If all preflight gates exit `0` (`is_clean == true`), fast-exit `COMPLETE` immediately (`PREFLIGHT_ZERO_DEFECT_FAST_EXIT`).
+
+## 3. Phase 0, Phase 2 & Phase 3: Conditional Worktree, Wave Plan & 5-Point Promotion (`C02–C12`)
+1. **Phase 0 (`Step 0.1`)**: On active findings (`is_clean == false`), export `AGY_SIDECAR_AGENT_ID="agents-graph-retrieval-qrels-assurance"` and `AGENT_SLUG="graph-retrieval-qrels"` (`RUN_DIR` appending `${RUN_TS}-${HEX6}`), invoke `prune_merged_chat_worktrees.py --consolidate-sidecar --write-manifest "${RUN_DIR}/manifest.json"`, and `cd "${WORKTREE_DIR}"` per `automations/prompts/_shared_governance_contract.md`.
+2. **Phase 2**: Author `${WORKTREE_DIR}/plans/graph-retrieval-qrels-${HEX6}.md` tracing holistic Stages 1–4 spine alignment (`INV-HOLISTIC-PIPELINE-PLANNING`), validate via `validate_implementation_plan.py`, render the **Dimension Findings Table**, query `HITLDecisionStore`, and surface one atomic `<= 115` char `ask_question` if $\Delta \le 0.20$.
+3. **Phase 3**: Execute sequential waves with 5-Point Counterfactual Runtime Proofs (`INV-RUNTIME-PROOF-5POINT`), record outcomes in `HITLDecisionStore`, pass `validate_sidecar_separation.py --json`, `validate_turn_gates.py --mode all`, and `verify_commit.py`, obtain `PR_MERGE_AUTHORIZATION`, and promote via `pr_governance.py -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --title "fix(retrieval): remediate graph provenance, hybrid retrieval, and qrels calibration"`.

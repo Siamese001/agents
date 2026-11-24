@@ -18,7 +18,7 @@ from tools.validate_sidecar_separation import (
 
 
 def test_live_sidecar_separation_passes_with_zero_collisions() -> None:
-    """Verify live global sidecars have zero Agents background schedules while all 4 prompts bind dedicated auditors."""
+    """Verify live global sidecars have zero Agents background schedules while all 5 prompts bind dedicated auditors."""
     result = validate_sidecar_separation(
         repo_root=REPO_ROOT,
         sidecars_root=DEFAULT_SIDECARS_ROOT,
@@ -26,9 +26,9 @@ def test_live_sidecar_separation_passes_with_zero_collisions() -> None:
     assert result["status"] == "PASS", f"Expected PASS, got violations: {result['violations']}"
     assert result["is_clean"] is True
     assert result["agents_scheduled_count"] == 0
-    assert result["agents_catalog_count"] == 4
-    assert result["agents_prompt_count"] == 4
-    assert result["agents_sidecar_count"] == 4
+    assert result["agents_catalog_count"] == 5
+    assert result["agents_prompt_count"] == 5
+    assert result["agents_sidecar_count"] == 5
     assert result["nee_sidecar_count"] >= 3
     assert result["collision_count"] == 0
     assert result["violations"] == []
@@ -39,7 +39,8 @@ def test_all_four_workflows_bind_distinct_executable_behavioral_auditors() -> No
     expected_entrypoints = {
         "agents-architecture-cost-governance": "tools/ssot_boundary_auditor.py",
         "agents-core-runtime-orchestration": "tools/agent_runtime_auditor.py",
-        "agents-domain-pipelines-retrieval": "tools/e2e_functionality_auditor.py",
+        "agents-graph-retrieval-qrels-assurance": "tools/retrieval_surface_auditor.py",
+        "agents-domain-synthesis-pipelines": "tools/e2e_functionality_auditor.py",
         "agents-evals-flywheel-assurance": "tools/validate_eval_rubrics.py",
     }
     assert {k: v["deterministic_entrypoint"] for k, v in EXPECTED_AGENTS_SIDECARS.items()} == expected_entrypoints
@@ -60,7 +61,7 @@ def test_validator_rejects_inline_heredoc_and_missing_auditor_invocation(tmp_pat
     prompts_dir.mkdir(parents=True)
     for md_file in (REPO_ROOT / "automations" / "prompts").glob("*.md"):
         content = md_file.read_text(encoding="utf-8")
-        if md_file.name == "agents_domain_pipelines_retrieval_agent.md":
+        if md_file.name == "agents_domain_synthesis_pipelines_agent.md":
             content = content.replace("e2e_functionality_auditor.py", "verify_commit.py") + "\npython - <<'PY'\nPY\n"
         (prompts_dir / md_file.name).write_text(content, encoding="utf-8")
 
@@ -135,7 +136,7 @@ def test_validator_rejects_prompt_missing_wave_plan_mandate_or_consolidate_marke
     prompts_dir.mkdir(parents=True)
     for md_file in (REPO_ROOT / "automations" / "prompts").glob("*.md"):
         content = md_file.read_text(encoding="utf-8")
-        if md_file.name == "agents_domain_pipelines_retrieval_agent.md":
+        if md_file.name == "agents_domain_synthesis_pipelines_agent.md":
             content = content.replace("UNCONDITIONAL_WAVE_PLAN_MANDATE", "REMOVED_MANDATE")
         if md_file.name == "agents_architecture_cost_agent.md":
             content = content.replace("--consolidate-sidecar", "--legacy-worktree-add")
@@ -484,8 +485,15 @@ def test_mcp_sdk_loader_and_triggers_wiring() -> None:
     skills_paths = resolve_antigravity_skills_paths(REPO_ROOT)
     assert len(skills_paths) == 1 and skills_paths[0].endswith(".agents/skills")
     triggers = build_antigravity_sdk_triggers(REPO_ROOT)
-    assert len(triggers) == 4
+    assert len(triggers) == 5
     assert all(t["skills_paths"] == skills_paths for t in triggers)
+
+
+def test_multi_repo_external_sidecar_passes_and_ide_judge_drift_preflight_succeeds(tmp_path: Path) -> None:
+    """Verify non-NEE external sidecars (e.g. Long-Goodbye) pass separation while --check-preflight succeeds."""
+    from ops_scripts.run_ide_judge_drift import main as run_ide_judge_drift_main
+
+    assert run_ide_judge_drift_main(["--check-preflight"]) == 0
 
 
 

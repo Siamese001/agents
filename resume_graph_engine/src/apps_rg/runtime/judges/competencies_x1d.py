@@ -416,8 +416,8 @@ def run_competencies_judges(
             if not api_key:
                 from apps_rg.runtime.judges.x1d_ide_cli import ide_cli_unavailable_reason, uses_ide_cli_judges
 
-                if uses_ide_cli_judges(os.environ):
-                    detail = f"IDE CLI judge session unavailable: {ide_cli_unavailable_reason(os.environ)}"
+                if uses_ide_cli_judges():
+                    detail = f"IDE CLI judge session unavailable: {ide_cli_unavailable_reason()}"
                 elif key == "gemini_pro":
                     detail = (
                         f"No non-empty API credential in {env_checked}; "

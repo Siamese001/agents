@@ -113,6 +113,11 @@ def score_candidate_cached(
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="IDE LLM-as-a-Judge live drift runner and fast receipt verifier.")
     parser.add_argument("--check-receipt", action="store_true", help="Fast offline verification of sealed drift receipt.")
+    parser.add_argument(
+        "--check-preflight",
+        action="store_true",
+        help="Preflight verification of 48-item gold pools, external rubrics, and drift receipt (when human gold is adjudicated).",
+    )
     parser.add_argument("--receipt", default=str(DEFAULT_RECEIPT_PATH))
     parser.add_argument("--cache", default=str(DEFAULT_CACHE_PATH))
     parser.add_argument("--baseline", default=str(DEFAULT_BASELINE_PATH))
@@ -120,6 +125,49 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--bypass-cache", action="store_true")
     parser.add_argument("--models", default="", help="Optional comma-separated subset of model slugs to refresh.")
     args = parser.parse_args(argv)
+
+    if args.check_preflight:
+        from apps_eval.graders.judge.gold_corpus import validate_stratification
+
+        preflight_violations: list[str] = []
+        total_gold_items = 0
+        both_adjudicated = True
+        for eng, prefix in (("resume_engine", "resume"), ("outreach_engine", "outreach")):
+            cand_path = REPO_ROOT / "data" / "judge_calibration" / f"{prefix}_gold_candidates.v1.jsonl"
+            adj_path = REPO_ROOT / "data" / "judge_calibration" / f"{prefix}_human_adjudicated.v1.json"
+            if not adj_path.is_file():
+                both_adjudicated = False
+            if not cand_path.is_file():
+                preflight_violations.append(f"MISSING_GOLD_CANDIDATES:{cand_path}")
+            else:
+                recs = load_gold_candidates_jsonl(cand_path)
+                total_gold_items += len(recs)
+                preflight_violations.extend(validate_stratification(recs, engine=eng))
+            try:
+                load_external_stakeholder_rubric(eng, repo_root=REPO_ROOT)
+            except Exception as exc:  # guardian: allow-broad-exception -- report external rubric load error in preflight
+                preflight_violations.append(f"EXTERNAL_RUBRIC_ERROR:{eng}:{exc}")
+
+        if preflight_violations:
+            print(json.dumps({"status": "FAIL", "violations": preflight_violations}, indent=2))
+            return 1
+        receipt_fp = Path(args.receipt)
+        if receipt_fp.is_file() or both_adjudicated:
+            ok, _viols, summary = verify_ide_judge_drift_receipt(receipt_fp, repo_root=REPO_ROOT)
+            print(json.dumps(summary, indent=2))
+            return 0 if ok else 1
+        print(
+            json.dumps(
+                {
+                    "status": "AWAITING_HUMAN_ADJUDICATION",
+                    "gold_candidates_verified": total_gold_items,
+                    "external_rubrics_verified": True,
+                    "advisory": "Complete blind human grading via ops_scripts/blind_human_grading_cli.py to seal live drift receipt.",
+                },
+                indent=2,
+            )
+        )
+        return 0
 
     if args.check_receipt:
         ok, viols, summary = verify_ide_judge_drift_receipt(Path(args.receipt), repo_root=REPO_ROOT)

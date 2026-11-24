@@ -136,7 +136,9 @@ def resolve_lic_judge_transport(
     if explicit_transport is not None and str(explicit_transport).strip():
         val = str(explicit_transport).strip().lower()
     else:
-        env = os.environ if environ is None else environ
+        from infrastructure.config.env_loader import snapshot_process_env
+
+        env = snapshot_process_env() if environ is None else environ
         env_val = str(env.get(LIC_JUDGE_TRANSPORT_ENV) or "").strip().lower()
         val = env_val or "deterministic"
     if val not in _VALID_TRANSPORTS:
@@ -175,7 +177,9 @@ def resolve_lic_ide_judge_slots(
 
 
 def _timeout_s(environ: Mapping[str, str] | None = None) -> int:
-    env = os.environ if environ is None else environ
+    from infrastructure.config.env_loader import snapshot_process_env
+
+    env = snapshot_process_env() if environ is None else environ
     raw = str(env.get(LIC_JUDGE_TIMEOUT_ENV) or "").strip()
     return int(raw) if raw.isdigit() and int(raw) > 0 else DEFAULT_LIC_JUDGE_TIMEOUT_S
 
@@ -244,7 +248,9 @@ def _run_with_failover(
     agy_bin: str | os.PathLike[str] | None = None,
     environ: Mapping[str, str] | None = None,
 ) -> LicIdeCliJudgeResult:
-    env = os.environ if environ is None else environ
+    from infrastructure.config.env_loader import snapshot_process_env
+
+    env = snapshot_process_env() if environ is None else environ
     bin_path = str(agy_bin or env.get(AGY_CLI_ENV_VAR) or "")
     ok, why = ide_cli_ready(bin_path or None)
     if not ok:
