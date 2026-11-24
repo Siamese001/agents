@@ -124,8 +124,6 @@ FACT_TO_EMPLOYMENT_MAP: dict[str, str] = {
     "fact_partnerships_gtm_001": "employment_exp_unify_001",
     "fact_partnerships_gtm_003": "employment_exp_unify_001",
     "fact_partnerships_gtm_004": "employment_exp_unify_001",
-    "fact_partnerships_gtm_005": "employment_exp_unify_001",
-    "fact_quant_hpc_002": "employment_exp_unify_001",
     "fact_quant_hpc_004": "employment_exp_unify_001",
     "fact_rag_insurance_001": "employment_exp_unify_001",
     "fact_revenue_ops_003": "employment_exp_unify_001",

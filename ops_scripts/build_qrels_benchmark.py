@@ -3,7 +3,7 @@
 
 Executes authentic 4-channel retrieval (`Dense` 1024-d `unit_vectors`, `Learned Sparse`
 `assertion_learned_sparse`, `ColBERT MaxSim` `assertion_colbert_vectors`, and `BM25`)
-via `QuadGraphHybridRetriever` across all 379 `semantic_unit` records in
+via `QuadGraphHybridRetriever` across all 376 `semantic_unit` records in
 `augmented_skills_graph.sqlite`, forms unweighted TREC Depth-10 union pools (`>= 1,000`
 candidates), seals `0-3` ground truth with SHA-256 Kappa receipts (`$0.00` egress), and
 runs holdout-isolated 1,771-point 4-simplex weight calibration.
@@ -122,12 +122,12 @@ _CORPUS_FIRST_SPECS: tuple[tuple[str, str, str, str, str, str, str, str], ...] =
     ("q_t2_25", "topic_t2_25_unify_reg_cloud", "final_holdout", "outreach_engine", "tier2_cross_domain_orthogonal", "executive", "skill_evidence_cluster:0000d65439dfae59", "What cloud-native platform engineering capabilities served regulated financial services clients at Unify?"),
 
     # --- TIER 3: Adversarial Hard-Negative Confounder Traps (15 unique topics testing employer/scope disambiguation) ---
-    ("q_t3_01", "topic_t3_01_ibm_exec_ml_trap", "dev", "resume_graph_engine", "tier3_adversarial_hard_negative", "executive", "engagement_episode:033ffa51f6d9cae4", "How were analytics and ML decision workflows turned into executive banking processes specifically at IBM rather than Slalom or Unify?"),
+    ("q_t3_01", "topic_t3_01_ibm_exec_ml_trap", "dev", "resume_graph_engine", "tier3_adversarial_hard_negative", "executive", "engagement_episode:87be72b11cb02ad5", "How were analytics and ML decision workflows turned into executive banking processes specifically at IBM rather than Slalom or Unify?"),
     ("q_t3_02", "topic_t3_02_ibm_aws_presales_trap", "dev", "outreach_engine", "tier3_adversarial_hard_negative", "executive", "engagement_episode:1d0e46de892444fd", "What commercial pilot validation and executive architecture workshops did IBM run with AWS partners?"),
     ("q_t3_03", "topic_t3_03_insurtech_pubcloud_trap", "dev", "outreach_engine", "tier3_adversarial_hard_negative", "multi_hop", "engagement_episode:2e7bf9e5e75251f2", "How was public AWS infrastructure positioned against private on-premise hosting for regulated insurance carriers?"),
     ("q_t3_04", "topic_t3_04_ibm_nlp_risk_trap", "dev", "apps_research", "tier3_adversarial_hard_negative", "engineering", "engagement_episode:30ecf9e00bcfdf93", "What natural language pipelines converted unstructured regulatory documents into compliance action queues at IBM?"),
     ("q_t3_05", "topic_t3_05_insurtech_shared_resp_trap", "dev", "outreach_engine", "tier3_adversarial_hard_negative", "engineering", "engagement_episode:3517d77d6023c899", "How were AWS shared-responsibility safety boundaries structured with insurer-owned controls?"),
-    ("q_t3_06", "topic_t3_06_unify_hyperscaler_trap", "dev", "apps_research", "tier3_adversarial_hard_negative", "multi_hop", "engagement_episode:3518e3bd52ad3292", "What joint cloud-native AI reference blueprints were co-architected with hyperscaler alliances at Unify?"),
+    ("q_t3_06", "topic_t3_06_unify_hyperscaler_trap", "dev", "apps_research", "tier3_adversarial_hard_negative", "multi_hop", "engagement_episode:dd8ce4c392081737", "What joint cloud-native AI reference blueprints were co-architected with hyperscaler alliances at Unify?"),
     ("q_t3_07", "topic_t3_07_slalom_a2a_trap", "dev", "outreach_engine", "tier3_adversarial_hard_negative", "engineering", "engagement_episode:4b1a128fae827393", "How did Slalom deliver production agent-to-agent multi-agent orchestration across client modernization engagements?"),
     ("q_t3_08", "topic_t3_08_unify_cosell_trap", "dev", "apps_research", "tier3_adversarial_hard_negative", "shorthand", "engagement_episode:521209f2517c7547", "Unify AI partner co-sell channel motions joint blueprints field enablement"),
     ("q_t3_09", "topic_t3_09_insurtech_uw_turnaround_trap", "dev", "outreach_engine", "tier3_adversarial_hard_negative", "engineering", "metric_outcome_story:08fb5523e8c3814e", "How did decoupled Guidewire workflows and real-time Multi-AZ AWS ingestion accelerate commercial underwriting turnaround at InsurTech?"),

@@ -228,7 +228,10 @@ def build_pillar_containment_edges(
     if "pillar_enterprise_risk_controls" not in merged_map:
         merged_map["pillar_enterprise_risk_controls"] = ["skill_risk_enterprise_risk_controls"]
     if "pillar_trading_hpc" not in merged_map:
-        merged_map["pillar_trading_hpc"] = ["skill_algo_trading_sub_ms_inference"]
+        merged_map["pillar_trading_hpc"] = [
+            "skill_risk_greek_stress_testing",
+            "skill_hpc_valuation_capital_adequacy",
+        ]
     edges: list[dict[str, Any]] = []
     for pillar_id, skills in sorted(merged_map.items()):
         for sid in skills[:4]:

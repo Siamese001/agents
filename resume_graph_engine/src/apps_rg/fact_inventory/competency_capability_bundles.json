@@ -410,7 +410,6 @@
         "skill_partner_cloud_partner_ecosystem",
         "skill_partner_indirect_revenue_models",
         "skill_partner_partner_enablement_training",
-        "skill_p2_gtm_stakeholder_alignment",
         "skill_meddpicc_sales_qualification",
         "skill_cpq_deal_velocity_automation",
         "skill_saas_arr_ltv_cac_metrics",
@@ -602,9 +601,7 @@
         "skill_greeks_theta",
         "skill_actuarial_actuarial_software",
         "skill_quant_stochastic_modeling",
-        "skill_risk_market_risk",
-        "skill_watson_studio_fraud_aml",
-        "skill_algo_trading_sub_ms_inference"
+        "skill_watson_studio_fraud_aml"
       ],
       "linked_source_fact_ids": [
         "fact_quant_hpc_003"

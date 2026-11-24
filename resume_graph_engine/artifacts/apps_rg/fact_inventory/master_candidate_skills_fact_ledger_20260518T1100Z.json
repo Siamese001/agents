@@ -318,38 +318,6 @@
       }
     },
     {
-      "candidate_fact_id": "fact_partnerships_gtm_005",
-      "domain_family": "PARTNERSHIPS_GTM",
-      "capability_tags": [
-        "partner_stakeholders",
-        "governance_council",
-        "solution_architecture"
-      ],
-      "claim_text": "Facilitated an executive governance council with partner stakeholders to align solution architecture, data security protocols, and regulatory mandates.",
-      "metric_values": [],
-      "company": "TraderSense",
-      "source_resume_variants": [
-        "AI and Data Governance - Amit Ayer.txt",
-        "Strategic Finance - Amit Ayer.txt"
-      ],
-      "confidence": "HIGH",
-      "allowed_resume_use": "allowed_after_human_confirm",
-      "risk_notes": "Candidate fact from Phase I resume variants; confirm before treating as canonical.",
-      "role_families_supported": [
-        "PARTNERSHIPS_GTM",
-        "AI_GOVERNANCE_RISK",
-        "EXECUTIVE_LEADERSHIP"
-      ],
-      "human_confirmed_archive_promotion": {
-        "human_confirmed_by": "Amit Ayer",
-        "human_confirmed_at": "2026-11-23T01:00:00Z",
-        "source_fact_ids": [
-          "fact_partnerships_gtm_005"
-        ],
-        "override_reason": "archive_resume_variant_verified_by_operator"
-      }
-    },
-    {
       "candidate_fact_id": "fact_sales_accounts_001",
       "domain_family": "SALES_STRATEGIC_ACCOUNTS",
       "capability_tags": [
@@ -908,7 +876,7 @@
       ],
       "claim_text": "Established executive AI governance councils and model-explainability/data-security standards to reinforce stakeholder trust and compliance in automated financial decisions.",
       "metric_values": [],
-      "company": "TraderSense / Unify Consulting",
+      "company": "Unify Consulting",
       "source_resume_variants": [
         "Amit Ayer Resume - AI Financial Services.txt",
         "Strategic Finance - Amit Ayer.txt",
@@ -1084,35 +1052,6 @@
         "QUANT_TRADING_HPC",
         "ENGINEERING_PLATFORM",
         "STRATEGIC_FINANCE"
-      ]
-    },
-    {
-      "candidate_fact_id": "fact_quant_hpc_002",
-      "domain_family": "QUANT_TRADING_HPC",
-      "capability_tags": [
-        "automated_trading",
-        "hpc",
-        "latency",
-        "ml_insights"
-      ],
-      "claim_text": "Engineered an AI-driven automated trading platform using parallel HPC workflows, reducing end-to-end latency by 50% while enabling real-time ML insights and dynamic risk monitoring.",
-      "metric_values": [
-        "50% latency reduction"
-      ],
-      "company": "TraderSense",
-      "source_resume_variants": [
-        "AI and Data Governance - Amit Ayer.txt",
-        "Amit Ayer Resume - AI Financial Services.txt",
-        "Sales - Amit Ayer.txt",
-        "Strategic Finance - Amit Ayer.txt"
-      ],
-      "confidence": "HIGH",
-      "allowed_resume_use": "allowed_after_human_confirm",
-      "risk_notes": "Candidate fact from Phase I resume variants; confirm before treating as canonical.",
-      "role_families_supported": [
-        "QUANT_TRADING_HPC",
-        "ENGINEERING_PLATFORM",
-        "AI_SOLUTIONS_ARCHITECTURE"
       ]
     },
     {
@@ -2362,25 +2301,6 @@
       "confidence": "HIGH"
     },
     {
-      "capability_id": "cap_automated_trading",
-      "capability_name": "Automated Trading",
-      "domain_families": [
-        "QUANT_TRADING_HPC"
-      ],
-      "supporting_candidate_fact_ids": [
-        "fact_quant_hpc_002"
-      ],
-      "strongest_metrics": [
-        "50% latency reduction"
-      ],
-      "role_families_supported": [
-        "AI_SOLUTIONS_ARCHITECTURE",
-        "ENGINEERING_PLATFORM",
-        "QUANT_TRADING_HPC"
-      ],
-      "confidence": "HIGH"
-    },
-    {
       "capability_id": "cap_aws",
       "capability_name": "Aws",
       "domain_families": [
@@ -3439,23 +3359,6 @@
       "confidence": "MEDIUM"
     },
     {
-      "capability_id": "cap_governance_council",
-      "capability_name": "Governance Council",
-      "domain_families": [
-        "PARTNERSHIPS_GTM"
-      ],
-      "supporting_candidate_fact_ids": [
-        "fact_partnerships_gtm_005"
-      ],
-      "strongest_metrics": [],
-      "role_families_supported": [
-        "AI_GOVERNANCE_RISK",
-        "EXECUTIVE_LEADERSHIP",
-        "PARTNERSHIPS_GTM"
-      ],
-      "confidence": "MEDIUM"
-    },
-    {
       "capability_id": "cap_graphrag",
       "capability_name": "Graphrag",
       "domain_families": [
@@ -3479,8 +3382,7 @@
         "QUANT_TRADING_HPC"
       ],
       "supporting_candidate_fact_ids": [
-        "fact_quant_hpc_001",
-        "fact_quant_hpc_002"
+        "fact_quant_hpc_001"
       ],
       "strongest_metrics": [
         "40% faster calculations / stress testing",
@@ -3618,25 +3520,6 @@
       "confidence": "MEDIUM"
     },
     {
-      "capability_id": "cap_latency",
-      "capability_name": "Latency",
-      "domain_families": [
-        "QUANT_TRADING_HPC"
-      ],
-      "supporting_candidate_fact_ids": [
-        "fact_quant_hpc_002"
-      ],
-      "strongest_metrics": [
-        "50% latency reduction"
-      ],
-      "role_families_supported": [
-        "AI_SOLUTIONS_ARCHITECTURE",
-        "ENGINEERING_PLATFORM",
-        "QUANT_TRADING_HPC"
-      ],
-      "confidence": "HIGH"
-    },
-    {
       "capability_id": "cap_latency_governance",
       "capability_name": "Latency Governance",
       "domain_families": [
@@ -3760,25 +3643,6 @@
       "confidence": "HIGH"
     },
     {
-      "capability_id": "cap_ml_insights",
-      "capability_name": "Ml Insights",
-      "domain_families": [
-        "QUANT_TRADING_HPC"
-      ],
-      "supporting_candidate_fact_ids": [
-        "fact_quant_hpc_002"
-      ],
-      "strongest_metrics": [
-        "50% latency reduction"
-      ],
-      "role_families_supported": [
-        "AI_SOLUTIONS_ARCHITECTURE",
-        "ENGINEERING_PLATFORM",
-        "QUANT_TRADING_HPC"
-      ],
-      "confidence": "HIGH"
-    },
-    {
       "capability_id": "cap_model_explainability",
       "capability_name": "Model Explainability",
       "domain_families": [
@@ -3848,23 +3712,6 @@
         "STRATEGIC_FINANCE"
       ],
       "confidence": "HIGH"
-    },
-    {
-      "capability_id": "cap_partner_stakeholders",
-      "capability_name": "Partner Stakeholders",
-      "domain_families": [
-        "PARTNERSHIPS_GTM"
-      ],
-      "supporting_candidate_fact_ids": [
-        "fact_partnerships_gtm_005"
-      ],
-      "strongest_metrics": [],
-      "role_families_supported": [
-        "AI_GOVERNANCE_RISK",
-        "EXECUTIVE_LEADERSHIP",
-        "PARTNERSHIPS_GTM"
-      ],
-      "confidence": "MEDIUM"
     },
     {
       "capability_id": "cap_partner_strategy",
@@ -4364,23 +4211,6 @@
       "role_families_supported": [
         "REVENUE_OPERATIONS",
         "SALES_STRATEGIC_ACCOUNTS"
-      ],
-      "confidence": "MEDIUM"
-    },
-    {
-      "capability_id": "cap_solution_architecture",
-      "capability_name": "Solution Architecture",
-      "domain_families": [
-        "PARTNERSHIPS_GTM"
-      ],
-      "supporting_candidate_fact_ids": [
-        "fact_partnerships_gtm_005"
-      ],
-      "strongest_metrics": [],
-      "role_families_supported": [
-        "AI_GOVERNANCE_RISK",
-        "EXECUTIVE_LEADERSHIP",
-        "PARTNERSHIPS_GTM"
       ],
       "confidence": "MEDIUM"
     },

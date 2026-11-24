@@ -201,8 +201,7 @@
         "skill_risk_model_risk",
         "skill_risk_enterprise_risk_controls",
         "skill_hpc_valuation_capital_adequacy",
-        "skill_audit_grade_observability",
-        "skill_risk_market_risk"
+        "skill_audit_grade_observability"
       ],
       "linked_source_fact_ids": [
         "exp_ey_001",
