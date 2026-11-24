@@ -211,8 +211,12 @@ class LongitudinalEvaluationTracker:
         baseline_window: int = 5,
         trailing_window: int = 5,
         max_drop_pct: float = 5.0,
+        verified_watermark_utc: str | None = None,
+        peak_erosion_pct: float = 2.0,
     ) -> dict[str, Any]:
-        """Compare trailing window mean vs baseline window mean under active_rubric_version."""
+        """Compare trailing window mean vs dual-anchor post-fix baseline and 2.0% peak floor."""
+        from apps_eval._core_governance_bridge import select_post_fix_baseline_scores
+
         series = [
             e
             for e in self._entries
@@ -224,21 +228,27 @@ class LongitudinalEvaluationTracker:
         if len(series) < needed:
             return {"status": "INSUFFICIENT_HISTORY", "samples": len(series), "needed": needed}
 
-        base_slice = series[:baseline_window]
-        trail_slice = series[-trailing_window:]
-        base_mean = sum(float(e.metrics[metric_name]) for e in base_slice) / float(baseline_window)
-        trail_mean = sum(float(e.metrics[metric_name]) for e in trail_slice) / float(trailing_window)
-        trail_gate_failures = sorted(
-            {k for e in trail_slice for k, v in e.gates.items() if not v}
+        base_scores, advanced = select_post_fix_baseline_scores(
+            series, base_n=baseline_window, verified_watermark_utc=verified_watermark_utc, metric_name=metric_name
         )
+        trail_slice = series[-trailing_window:]
+        base_mean = sum(base_scores) / float(max(1, len(base_scores)))
+        trail_mean = sum(float(e.metrics[metric_name]) for e in trail_slice) / float(trailing_window)
+        peak_score = max(float(e.metrics[metric_name]) for e in series)
+        trail_gate_failures = sorted({k for e in trail_slice for k, v in e.gates.items() if not v})
         pct_change = ((trail_mean - base_mean) / abs(base_mean)) * 100.0 if base_mean != 0.0 else 0.0
-        drift = (pct_change < -max_drop_pct) or bool(trail_gate_failures)
+        peak_drop_pct = max(0.0, ((peak_score - trail_mean) / abs(peak_score)) * 100.0) if peak_score != 0.0 else 0.0
+        peak_breached = peak_drop_pct > abs(float(peak_erosion_pct))
+        drift = (pct_change < -max_drop_pct) or peak_breached or bool(trail_gate_failures)
         return {
             "status": "DRIFT_ALERT" if drift else "STABLE",
             "benchmark_suite": benchmark_suite,
             "metric_name": metric_name,
             "baseline_mean": round(base_mean, 4),
             "trailing_mean": round(trail_mean, 4),
+            "historical_peak": round(peak_score, 4),
+            "peak_floor_breached": peak_breached,
+            "baseline_advanced_post_fix": advanced,
             "signed_change_pct": round(pct_change, 2),
             "trailing_failed_gates": trail_gate_failures,
         }

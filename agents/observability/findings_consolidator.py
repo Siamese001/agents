@@ -13,6 +13,10 @@ from pathlib import Path
 from typing import Any, Sequence
 
 from agents.persistence.sqlite.findings_queue_store import SqliteFindingsQueueStore
+from apps_eval._core_governance_bridge import (
+    collect_judge_and_aux_drift_findings,
+    extract_correction_source_id,
+)
 from apps_eval.contracts.digests import stable_id
 from apps_eval.contracts.schemas import FailureCluster, FindingRecord, PriorityLevel, TrackName
 from apps_eval.online_grader import load_online_eval_records
@@ -38,6 +42,11 @@ def _collect_online_eval_findings(
 ) -> int:
     ledger = online_ledger_path if online_ledger_path is not None else (source_root / "online_eval_ledger.jsonl")
     records = load_online_eval_records(ledger)
+    existing_wm = {
+        (f.app_id, f.failed_gate_signature): str(f.metadata.get("resolved_watermark_utc") or "")
+        for f in queue.list_findings(limit=500)
+        if f.source_surface == "online_eval"
+    }
     grouped: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     for rec in records:
         if rec.get("passed") is True:
@@ -45,6 +54,10 @@ def _collect_online_eval_findings(
         app_id = str(rec.get("app_id") or "agents_core")
         failed_gates = sorted(str(g) for g in (rec.get("failed_gates") or []) if g)
         gate_sig = ",".join(failed_gates) or "unknown_online_failure"
+        rec_ts = str(rec.get("trace_finished_at_utc") or rec.get("evaluated_at_utc") or "")
+        wm = existing_wm.get((app_id, gate_sig)) or ""
+        if wm and rec_ts and rec_ts <= wm:
+            continue
         grouped[(app_id, gate_sig)].append(rec)
 
     upserted = 0
@@ -408,6 +421,38 @@ def consolidate_all_findings(
             "feedback_store": _collect_feedback_store_findings(feedback_db_path, queue, cutoff_utc=cutoff_utc),
             "eval_harness": _collect_triage_packet_findings(triage_root, queue, cutoff_utc=cutoff_utc),
         }
+        jdg_file = src / "ide_judge_drift_latest.json"
+        if not jdg_file.is_file() and (src / "evals" / "ide_judge_drift_latest.json").is_file():
+            jdg_file = src / "evals" / "ide_judge_drift_latest.json"
+        rub_file = src / "external_judge_rubric_v2.json"
+
+        def _agents_judge_upsert(**kw: Any) -> dict[str, Any]:
+            rec = queue.upsert_finding(
+                source_surface=kw["source_surface"],
+                app_id="agents_core",
+                failed_gate_signature=kw["failed_gate_signature"],
+                root_cause_bucket=kw["root_cause_bucket"],
+                owner_subsystem="agents",
+                track=kw["track"],
+                priority=kw["priority"],
+                title=kw["title"],
+                summary=kw["summary"],
+                recommended_action=kw["recommended_action"],
+                occurrence_count=kw.get("occurrence_count", 1),
+                sample_trace_ids=kw.get("sample_ids", ()),
+                metadata=kw.get("metadata"),
+                seen_at_utc=kw.get("last_seen_utc"),
+                cutoff_utc=kw.get("cutoff_utc"),
+            )
+            return rec.to_dict()
+
+        jdg_sync = collect_judge_and_aux_drift_findings(
+            _agents_judge_upsert,
+            judge_drift_path=jdg_file if jdg_file.is_file() else None,
+            expected_rubric_path=rub_file if rub_file.is_file() else None,
+            cutoff_utc=cutoff_utc,
+        )
+        counts["ide_judge_drift"] = len(jdg_sync["upserted_finding_ids"])
         snapshot = queue.export_snapshot(snapshot_path)
         all_findings = queue.list_findings(limit=5000)
         clusters = build_failure_clusters(all_findings)

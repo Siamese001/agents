@@ -136,6 +136,8 @@ def run_eval_flywheel_cycle(
     hitl_db_path: Path | None = None,
     ledger_db_path: Path | None = None,
     manifest_payload: Mapping[str, Any] | Path | str | None = None,
+    harvest_borderline: bool = False,
+    daily_harvest_cap: int = 3,
 ) -> tuple[int, dict[str, Any]]:
     _guard_non_output_path(output_root)
     src = Path(source_root).resolve()
@@ -285,6 +287,24 @@ def run_eval_flywheel_cycle(
                 if roll.get("status") == "DRIFT_ALERT":
                     drift_alerts.append({"detector": "rolling_window", **roll})
 
+    harvest_summary: dict[str, Any] = {"harvested_count": 0}
+    if harvest_borderline:
+        from apps_eval._core_governance_bridge import harvest_borderline_candidates
+
+        cands = [
+            {
+                **r,
+                "case_id": r.get("trace_id") or r.get("run_id"),
+                "groundedness": (r.get("metrics") or {}).get("groundedness", r.get("groundedness")),
+                "prompt_text": r.get("prompt_text") or r.get("input_summary") or f"Trace {r.get('trace_id')}",
+                "output_text": r.get("output_text") or r.get("output_summary") or "",
+            }
+            for r in load_online_eval_records(online_ledger)
+        ]
+        harvest_summary = harvest_borderline_candidates(
+            cands, out / "judge_calibration_queue.jsonl", daily_cap=daily_harvest_cap
+        )
+
     exit_code = 2 if drift_alerts else 0
     receipt = {
         "schema_version": "agents.eval_flywheel_cycle_receipt.v1",
@@ -296,6 +316,7 @@ def run_eval_flywheel_cycle(
         "marginal_api_cost_usd": 0.0,
         "trace_count": len(traces),
         "online_backfill": backfill_res,
+        "borderline_harvest": harvest_summary,
         "findings_consolidation": {
             "total_findings": post_snapshot["total_findings"],
             "counts_by_status": post_snapshot["counts_by_status"],
@@ -340,6 +361,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         default=True,
         help="Auto-apply eligible Tier A updates and attach next single ask_question payload (default: enabled).",
     )
+    parser.add_argument("--harvest-borderline", action="store_true", help="Harvest <=3 topic-diverse borderline runs/day.")
+    parser.add_argument("--daily-harvest-cap", type=int, default=3)
     parser.add_argument("--json", action="store_true", help="Emit full JSON receipt.")
     args = parser.parse_args(argv)
 
@@ -357,6 +380,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                     cutoff_utc=args.cutoff_utc,
                     active_rubric_version=args.rubric_version,
                     emit_next_hitl_question=args.emit_next_hitl_question,
+                    harvest_borderline=args.harvest_borderline,
+                    daily_harvest_cap=args.daily_harvest_cap,
                 )
         else:
             out = Path(args.output_root).resolve() if args.output_root else src
@@ -368,6 +393,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 cutoff_utc=args.cutoff_utc,
                 active_rubric_version=args.rubric_version,
                 emit_next_hitl_question=args.emit_next_hitl_question,
+                harvest_borderline=args.harvest_borderline,
+                daily_harvest_cap=args.daily_harvest_cap,
             )
     except (ValueError, OSError, RuntimeError) as exc:
         print(json.dumps({"status": "HARD_FAIL", "error": str(exc)}, indent=2))
