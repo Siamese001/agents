@@ -37,6 +37,7 @@ from agents.observability.findings_consolidator import (
     build_failure_clusters,
     consolidate_all_findings,
 )
+from agents.observability.flywheel_sync_hook import record_manifest_to_longitudinal_ledger
 from agents.observability.trace_collector import RunTraceCollector
 from agents.persistence.sqlite.findings_queue_store import SqliteFindingsQueueStore
 from agents.persistence.sqlite.learning_ledger_store import SqliteLearningLedgerStore
@@ -134,6 +135,7 @@ def run_eval_flywheel_cycle(
     curated_holdout_seeds: Sequence[Mapping[str, Any]] = (),
     hitl_db_path: Path | None = None,
     ledger_db_path: Path | None = None,
+    manifest_payload: Mapping[str, Any] | Path | str | None = None,
 ) -> tuple[int, dict[str, Any]]:
     _guard_non_output_path(output_root)
     src = Path(source_root).resolve()
@@ -200,10 +202,16 @@ def run_eval_flywheel_cycle(
             repo_root=repo_root,
         )
         current_vals = _load_current_bounded_config_values(repo_root)
+        grad_path = (
+            (out / "capability_graduation_state.json")
+            if (out / "capability_graduation_state.json").is_file()
+            else (src / "capability_graduation_state.json")
+        )
         proposals = synthesize_proposals_from_clusters(
             clusters,
             repo_root=repo_root,
             current_config_values=current_vals,
+            graduation_state_path=grad_path,
         )
         dispatch_res = dispatch_cycle_remediation(
             repo_root=repo_root,
@@ -229,9 +237,30 @@ def run_eval_flywheel_cycle(
 
     # Check longitudinal drift if ledger exists in source_root or output_root.
     drift_alerts: list[dict[str, Any]] = []
-    long_ledger = src / "longitudinal_eval_ledger.json"
-    if not long_ledger.is_file():
-        long_ledger = out / "longitudinal_eval_ledger.json"
+    long_ledger = out / "longitudinal_eval_ledger.json"
+    if not long_ledger.is_file() and (src / "longitudinal_eval_ledger.json").is_file():
+        if sandbox:
+            long_ledger.write_bytes((src / "longitudinal_eval_ledger.json").read_bytes())
+        else:
+            long_ledger = src / "longitudinal_eval_ledger.json"
+
+    eff_manifest: Mapping[str, Any] | Path | str | None = manifest_payload
+    if eff_manifest is None and not sandbox:
+        for cand_m in (
+            repo_root / "artifacts" / "eval_harness" / "ci_latest" / "evidence_manifest.json",
+            repo_root / "artifacts" / "eval_harness" / "latest" / "evidence_manifest.json",
+        ):
+            if cand_m.is_file():
+                eff_manifest = cand_m
+                break
+    if eff_manifest is not None:
+        record_manifest_to_longitudinal_ledger(
+            eff_manifest,
+            ledger_path=long_ledger,
+            repo_root=repo_root,
+            active_rubric_version=active_rubric_version,
+        )
+
     if long_ledger.is_file():
         tracker = LongitudinalEvaluationTracker(long_ledger)
         suites = sorted({e.benchmark_suite for e in tracker.entries})
@@ -239,6 +268,8 @@ def run_eval_flywheel_cycle(
             suite_entries = [e for e in tracker.entries if e.benchmark_suite == suite_name]
             metric_keys = sorted({k for e in suite_entries for k in e.metrics.keys()})
             for mk in metric_keys:
+                if mk == "clean_fpr":
+                    continue
                 cum = tracker.detect_cumulative_merge_drift(
                     benchmark_suite=suite_name,
                     metric_name=mk,

@@ -266,6 +266,63 @@ def _handle_run(args: argparse.Namespace, prog: str = "python -m outreach_engine
             "stage_latencies_ms": stage_latencies_ms, "timestamp": time.time(),
         }
         (artifact_dir / "run_receipt.json").write_text(json.dumps(receipt_payload, indent=2) + "\n", encoding="utf-8")
+        try:
+            from infrastructure.config.env_loader import get_env_str
+            if ("pytest" not in sys.modules and not get_env_str("PYTEST_CURRENT_TEST")) or get_env_str("AGENTS_TRACE_IN_PYTEST") == "1":
+                from agents.observability.eval_flywheel import EvalFlywheelEngine
+                from agents.observability.flywheel_sync_hook import sync_flywheel_after_run
+                from agents.observability.trace_collector import compute_scenario_fingerprint, emit_post_run_trace_safe
+
+                is_smoke = bool(getattr(args, "offline_smoke", False) or getattr(args, "demo", False))
+                raw_in = {
+                    "company": str(opportunity.company_name or ""),
+                    "role": str(opportunity.role_title or ""),
+                    "channel": str(channel.value),
+                    "offline_smoke": is_smoke,
+                }
+                scen_fp = compute_scenario_fingerprint(
+                    app_id="apps_lic",
+                    raw_input=raw_in,
+                    is_smoke_or_demo=is_smoke,
+                )
+                eff_x3 = "X3D_ALLOW_FINISH" if overall_passed else ("X3E_SAFE_ABSTAIN" if is_smoke else "X3B_ESCALATE_HITL")
+                fail_reasons = [str(r) for r in (val.failure_reasons or val.violations or ()) if str(r).strip()]
+                EvalFlywheelEngine().ingest_product_run(
+                    app_id="apps_lic",
+                    run_id=run_id,
+                    x3_disposition=eff_x3,
+                    passed=overall_passed,
+                    failure_reasons=fail_reasons,
+                    score=1.0 if overall_passed else 0.0,
+                    scenario_fingerprint=scen_fp,
+                    is_smoke_or_demo=is_smoke,
+                )
+                emit_post_run_trace_safe(
+                    app_id="apps_lic",
+                    run_id=run_id,
+                    terminal_status="PASS" if overall_passed else "FAIL",
+                    raw_input=raw_in,
+                    output_summary={
+                        "artifact_dir": str(artifact_dir),
+                        "status": overall_status,
+                        "scenario_fingerprint": scen_fp,
+                    },
+                    gate_outcomes={
+                        "x3_disposition": eff_x3,
+                        "failure_reasons": fail_reasons,
+                        "x2_gates": {
+                            "validation_passed": bool(val.passed),
+                            "evaluation_passed": bool(evaluation.passed),
+                            "all_touches_passed": bool(all_touches_passed),
+                        },
+                    },
+                    telemetry={"latency_ms": float(lat_total_ms)},
+                    scenario_fingerprint=scen_fp,
+                    is_smoke_or_demo=is_smoke,
+                )
+                sync_flywheel_after_run()
+        except (ImportError, OSError, ValueError, RuntimeError):  # guardian: allow-silent-swallow -- observer-only trace hook must never fail outreach run
+            pass
     except Exception as exc:
         lat_total_ms = round((time.perf_counter() - t_total_start) * 1000, 2)
         if getattr(args, "json", False):

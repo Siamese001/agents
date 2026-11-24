@@ -482,10 +482,75 @@ def check_agents_eval_flywheel_domain(repo_root: Path, *, inject_fault: bool = F
         if pending_triage:
             failures.append(f"product_run_pass_did_not_resolve_triage_packets:{len(pending_triage)}")
 
+        # 7. Scoped resolution preserves untested scenario failures and blocks smoke resolution
+        from agents.observability.trace_collector import build_run_trace, compute_scenario_fingerprint
+        from apps_eval.golden_suite_runner import evaluate_golden_flywheel_suite
+
+        scen_a = compute_scenario_fingerprint(app_id="apps_rg", raw_input={"company": "Anthropic"})
+        scen_b = compute_scenario_fingerprint(app_id="apps_rg", raw_input={"company": "Truist"})
+        fw_eng.ingest_product_run(
+            app_id="apps_rg",
+            run_id="run-scen-a-fail",
+            x3_disposition="X3A_DENY_REROUTE",
+            passed=False,
+            failure_reasons=["section:headline:x2_block"],
+            score=0.0,
+            scenario_fingerprint=scen_a,
+        )
+        fw_eng.ingest_product_run(
+            app_id="apps_rg",
+            run_id="run-scen-b-pass",
+            x3_disposition="X3D_ALLOW_FINISH",
+            passed=True,
+            score=1.0,
+            scenario_fingerprint=scen_b,
+        )
+        if len(fw_eng.list_triage_candidates(app_filter="apps_rg", pending_only=True)) != 1:
+            failures.append("scoped_resolution_cleared_untested_scenario_failure")
+
+        # 8. Online trace populates real git_sha and non-zero latency
+        tr_probe = build_run_trace(
+            app_id="apps_rg",
+            run_id="run-trace-probe",
+            terminal_status="PASS",
+            raw_input={"company": "Anthropic"},
+        )
+        if tr_probe.git_sha == "0" * 40 or float(tr_probe.telemetry.get("latency_ms") or 0.0) <= 0.0:
+            failures.append(f"online_trace_hollow_provenance:sha={tr_probe.git_sha}")
+
+        # 9. Golden verified cases block promotion while open cases shadow-run
+        g_case = EvalCase(
+            case_id="golden-shield-1",
+            suite_id="apps_rg.golden.v1",
+            app_id="apps_rg",
+            split="holdout",
+            execution_mode="snapshot",
+            grounding_tier="LIVE_CORPUS_GROUNDED",
+            source_kind="online_eval_failure",
+            source_trace_id="trace-shield-1",
+            unlabeled_input={"payload": {"regression_injected": True}, "pii_redacted": True},
+            expected_contract={"reference_label": "PASS"},
+        )
+        g_file = td_path / "golden.json"
+        g_file.write_text(json.dumps({"dataset_digest": "f" * 64, "cases": [g_case.to_dict()]}), encoding="utf-8")
+        s_file = td_path / "snap.json"
+        s_file.write_text(
+            json.dumps({"findings": [{"finding_id": "f-1", "status": "OPEN", "sample_trace_ids": ["trace-shield-1"]}]}),
+            encoding="utf-8",
+        )
+        open_res = evaluate_golden_flywheel_suite(repo_root=repo_root, golden_dataset_path=g_file, queue_snapshot_path=s_file)
+        s_file.write_text(
+            json.dumps({"findings": [{"finding_id": "f-1", "status": "VERIFIED", "sample_trace_ids": ["trace-shield-1"]}]}),
+            encoding="utf-8",
+        )
+        ver_res = evaluate_golden_flywheel_suite(repo_root=repo_root, golden_dataset_path=g_file, queue_snapshot_path=s_file)
+        if not open_res["passed"] or ver_res["passed"]:
+            failures.append(f"golden_shadow_to_blocking_violation:open={open_res['passed']},ver={ver_res['passed']}")
+
     return {
         "domain": "agents_eval_flywheel",
         "status": "PASS" if not failures else "FAIL",
-        "checks_run": 6,
+        "checks_run": 9,
         "failures": failures,
     }
 

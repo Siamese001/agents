@@ -332,6 +332,7 @@ PROMPT_STAGE_ALLOWED_WRITE_PATHS: dict[str, tuple[str, ...]] = {
         "apps_eval/coverage/",
         "apps_eval/diagnostics/",
         "apps_eval/fixtures/",
+        "apps_eval/golden_suite_runner.py",
         "apps_eval/graders/",
         "apps_eval/harness_orchestrator.py",
         "apps_eval/holdout_replay.py",

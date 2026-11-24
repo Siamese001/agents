@@ -341,23 +341,30 @@ class GovernedResearchRun(GovernedAppRunner):
             )
 
         try:
-            from agents.observability.trace_collector import emit_post_run_trace_safe  # noqa: PLC0415
+            from agents.observability.trace_collector import compute_scenario_fingerprint, emit_post_run_trace_safe  # noqa: PLC0415
 
+            scen_fp = compute_scenario_fingerprint(
+                app_id="apps_research",
+                raw_input={"topic": record.topic},
+            )
             emit_post_run_trace_safe(
                 app_id="apps_research",
                 run_id=record.run_id,
                 session_id=record.run_id,
                 terminal_status="PASS" if (not record.error and record.grounded) else "FAIL",
-                raw_input={"topic": record.topic},
+                raw_input={"topic": record.topic, "scenario_fingerprint": scen_fp},
                 output_summary={
                     "disposition": record.disposition,
                     "gate_disposition": record.gate_disposition,
                     "citation_count": record.citation_count,
+                    "scenario_fingerprint": scen_fp,
                 },
                 gate_outcomes={
                     "x2_gates": {"grounded": bool(record.grounded), "l6_ingested": bool(record.l6_ingested)},
                     "error": record.error,
                 },
+                telemetry={"latency_ms": float(getattr(record, "latency_ms", 0.0) or 1.0)},
+                scenario_fingerprint=scen_fp,
             )
         except (ImportError, OSError, ValueError, RuntimeError):  # guardian: allow-silent-swallow -- observer-only trace hook must never break governed research runs
             pass

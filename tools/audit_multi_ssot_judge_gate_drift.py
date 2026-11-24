@@ -195,10 +195,18 @@ def audit_multi_ssot_judge_gate_drift(repo_root: Path) -> dict[str, Any]:
             build_atomic_remediation_question,
             record_remediation_decision,
         )
+        from agents.learning.worktree_promoter import apply_and_verify_with_worktree_isolation
         from apps_eval.contracts.schemas import FindingRecord, ImprovementProposal
         from tools.hitl_governance import validate_hitl_presentation
 
-        if not callable(build_atomic_remediation_question) or not callable(record_remediation_decision):
+        priors_path = root / "config" / "prompt_governance" / "priors.yaml"
+        if not priors_path.is_file():
+            v6_errs.append("missing_prompt_governance_priors_yaml")
+        if (
+            not callable(build_atomic_remediation_question)
+            or not callable(record_remediation_decision)
+            or not callable(apply_and_verify_with_worktree_isolation)
+        ):
             v6_errs.append("flywheel_dispatcher_missing_required_callables")
         else:
             probe_f = FindingRecord(

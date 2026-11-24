@@ -69,7 +69,10 @@
         "trajectory_oscillation_loop_rejected",
         "eval_case_unlabeled_view_strips_expected_contract",
         "product_run_flywheel_records_specific_failure_and_auto_resolves_on_pass",
-        "triage_packets_use_trigger_reason_and_auto_resolve_on_pass"
+        "triage_packets_use_trigger_reason_and_auto_resolve_on_pass",
+        "scoped_resolution_preserves_untested_scenario_failures",
+        "golden_verified_cases_block_promotion_while_open_shadow_runs",
+        "online_trace_populates_real_git_sha_and_latency"
       ]
     },
     {

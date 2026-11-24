@@ -112,11 +112,20 @@ def run_eval_flywheel(args: argparse.Namespace) -> int:
         )
         flywheel_res: dict[str, Any] = {"status": "SKIPPED"}
         if bool(args.ingest_flywheel):
+            from agents.observability.flywheel_sync_hook import sync_flywheel_after_run
+
             engine = EvalFlywheelEngine(
                 learning_db_path=args.learning_db,
                 triage_root=args.triage_root,
             )
             flywheel_res = engine.ingest_manifest(manifest)
+            sync_res = sync_flywheel_after_run(
+                repo_root=repo_root,
+                manifest_payload=manifest,
+                force_in_pytest=False,
+            )
+            if sync_res is not None:
+                flywheel_res["unified_sync"] = sync_res
 
         payload = {
             "status": gate_res.status,
