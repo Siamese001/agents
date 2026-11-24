@@ -1,5 +1,4 @@
-"""X1D judges for ibm_narrative — policy-backed GRADE_ONLY JudgePacket."""
-
+"""Clean-Slate Judge v3 Binding for `ibm_narrative` (`<= 55L`, domain-general narrative rubric)."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -7,42 +6,11 @@ from typing import Any
 
 from apps_rg.runtime.judges.executive_summary_x1d import JudgeOutput
 from apps_rg.runtime.judges.policy_backed_section_judges import run_policy_section_judges
-from apps_rg.runtime.quality.overlap_engine import SHARED_OVERLAP_DECISIVE_FAILURE_CLAUSE
-from apps_rg.runtime.sections.section_product_shape_ssot import NARRATIVE_MAX_CHARS, NARRATIVE_MAX_WORDS
+from apps_rg.runtime.judges.v3_section_judge import render_section_v3_rubric
 
-JUDGE_RUBRIC_VERSION = "ibm_narrative_x1d_v3"
-JUDGE_RUBRIC_REF = "apps_rg/runtime/judges/ibm_narrative_x1d.py#IBM_NARRATIVE_GRADE_ONLY_RUBRIC"
-
-NARRATIVE_RUBRIC = f"""
-You are evaluating one IBM employment narrative sentence: the executive thesis above five IBM bullets.
-Return JSON only with: score_scale, score, threshold, pass, decisive_failure, findings, cited_sentence_indexes, remediation_suggestions.
-
-Score contract:
-- score_scale must be "0_to_1" or "0_to_5". Do not omit score_scale. Required pass is 4.0/5.
-
-Rubric dimensions:
-1. factual_support: claims align with claim_ledger and bul_ibm_* source facts only.
-2. enterprise_platform_signal: IBM reads as supporting enterprise/platform credibility, not current agentic runtime ownership.
-3. complementarity_vs_bullets: states a role thesis the bullets prove; does not mechanically recap all five bullets.
-4. resume_voice: third person or implied subject; clean board-readable executive tone; no hype or comma-packed mechanism list.
-5. ats_alignment_without_stuffing: relevant without JD dumping.
-6. anti_overfit: no JD-as-proof, no briefing-as-proof, no cross-employer facts (Unify, InsurTech, EY).
-7. no_unify_inflation: no Unify-era agentic runtime vocabulary in the sentence.
-8. role_fit_targeting: JD/briefing shape emphasis only — never proof.
-9. why_role_mattered: sentence explains IBM foundation mandate (cloud, data, lineage, observability, regulated context) — companion bullets carry KPI proof.
-10. no_meta_disclaimer: display text must not contain "without claiming/asserting" or similar editorial boundary language.
-11. executive_brevity: exactly one sentence; product shape max {NARRATIVE_MAX_WORDS} words and {NARRATIVE_MAX_CHARS} characters; JD/briefing targeting only (never proof).
-
-Decisive failure triggers:
-- first person or wrong-company proof framing
-- unsupported metrics or bul_unify_* / non-IBM fact leakage
-- multiple sentences or obvious five-bullet recap
-- spins a different role story not entailed by the finalized bullets or claim_ledger
-- meta-disclaimer phrasing in narrative_sentence ("without claiming", "without asserting", etc.)
-- practice-leadership-only filler ("led this practice / oversaw advisory") that omits concrete delivered capabilities and their graph-backed business or operational outcome
-- career-bridge phrasing ("supported later", "subsequent roles") without explicit allowed career-bridge fact
-{SHARED_OVERLAP_DECISIVE_FAILURE_CLAUSE}
-""".strip()
+JUDGE_RUBRIC_VERSION = "role_narrative_judge_v3"
+JUDGE_RUBRIC_REF = "config/governance/judge_rubrics_v3.json#resume_sections:role_narrative"
+NARRATIVE_RUBRIC = render_section_v3_rubric("role_narrative")
 
 
 def run_ibm_narrative_judges(
@@ -84,4 +52,4 @@ def run_ibm_narrative_judges(
     return outputs
 
 
-__all__ = ["run_ibm_narrative_judges", "JUDGE_RUBRIC_VERSION", "NARRATIVE_RUBRIC"]
+__all__ = ["JUDGE_RUBRIC_VERSION", "NARRATIVE_RUBRIC", "run_ibm_narrative_judges"]

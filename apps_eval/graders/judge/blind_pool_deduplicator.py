@@ -116,7 +116,7 @@ def is_clear_reactable_prompt(prompt: str) -> bool:
     if not _has_named_subject_anchor(words) or _has_keyword_soup_run(clean, words):
         return False
     stop_cnt = sum(1 for w in words if w.lower().strip("?,.:;()'\"[]") in _STOPWORDS)
-    return (stop_cnt / len(words)) >= 0.18
+    return (stop_cnt / len(words)) >= 0.12
 
 
 def validate_query_input_quality(

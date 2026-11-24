@@ -79,7 +79,7 @@ def build_resume_gold_candidates() -> list[GoldCandidateRecord]:
             topic_family="rg_headline_hyperscaler_alliance_positioning",
             nuance_profile="CALIBRATED_EXEMPLARY_WITH_REAL_CONSTRAINT_TENSION",
             target_context=(
-                "Does this resume headline position the candidate's Anthropic Claude, Gemini Enterprise, and AWS alliance track record with accurate executive authority?"
+                "Evaluate this Resume Headline for Anthropic (Head of Builder Partnerships, requiring Claude, Gemini, and AWS alliance adoption) on factual grounding and executive positioning?"
             ),
             candidate_text=(
                 "SVP AI Partnerships & Cloud Alliances | Anthropic Claude, Gemini Enterprise & AWS Co-Sell Execution | Regulated Financial Systems"
@@ -96,7 +96,7 @@ def build_resume_gold_candidates() -> list[GoldCandidateRecord]:
             topic_family="rg_headline_banking_governance_control_planes",
             nuance_profile="CALIBRATED_EXEMPLARY_WITH_REAL_CONSTRAINT_TENSION",
             target_context=(
-                "How effectively does this headline anchor Unify Consulting's agentic platform governance and regulated banking compliance delivery for an SVP Engineering mandate?"
+                "Assess this Resume Headline for Citigroup (SVP Enterprise AI Platforms, requiring Unify runtime governance and banking compliance controls) on mandate relevance and credibility?"
             ),
             candidate_text=(
                 "SVP Engineering, Agentic AI Platforms | Regulated Banking Compliance & Explainability Controls | Reusable Enterprise Runtime Governance"
@@ -113,7 +113,7 @@ def build_resume_gold_candidates() -> list[GoldCandidateRecord]:
             topic_family="rg_headline_consulting_advisory_dilution",
             nuance_profile="MANDATE_CONSTRAINT_OMISSION",
             target_context=(
-                "Does this headline retain sufficient technical platform differentiation for a forward-deployed banking SVP role despite emphasizing broad consulting transformation?"
+                "Evaluate this Resume Headline for Truist (Head of Forward Deployed Engineering, requiring technical platform differentiation over broad utility consulting) on mandate fit and clarity?"
             ),
             candidate_text=(
                 "Senior Consulting & Technology Executive | Enterprise Banking & Utility Modernization | Cloud Partner Delivery & Governance Programs"
@@ -130,7 +130,7 @@ def build_resume_gold_candidates() -> list[GoldCandidateRecord]:
             topic_family="rg_headline_pnl_scope_conflation",
             nuance_profile="SUBTLE_SCOPE_OR_TEMPORAL_EXTRAPOLATION",
             target_context=(
-                "Verify whether this headline distorts scope grounding by conflating Unify Consulting's $22M IP-led revenue and $5M ACV with direct commercial bank balance-sheet P&L?"
+                "Assess this Resume Headline for Invesco (SVP Regulated Banking Platforms, requiring disciplined Unify $22M IP revenue and $5M ACV scope attribution) on factual truth and authority?"
             ),
             candidate_text=(
                 "SVP Regulated Banking AI Platforms | $27M Commercial Bank Balance-Sheet P&L Owner | Tier-1 Core Deposit & Credit Risk Engine Architect"
@@ -149,7 +149,7 @@ def build_resume_gold_candidates() -> list[GoldCandidateRecord]:
             topic_family="rg_summary_hyperscaler_cosell_conversion",
             nuance_profile="CALIBRATED_EXEMPLARY_WITH_REAL_CONSTRAINT_TENSION",
             target_context=(
-                "Evaluate whether this executive summary synthesizes the candidate's Slalom hyperscaler enablement and IBM AWS co-sell metrics with disciplined attribution?"
+                "Evaluate this Executive Summary for Neo4j (VP Global Cloud Alliances, requiring Slalom hyperscaler enablement and IBM AWS co-sell growth) on attribution and voice?"
             ),
             candidate_text=(
                 "Technology partnerships and platform executive who converts cloud and frontier model alliances into governed production adoption. "
@@ -169,7 +169,7 @@ def build_resume_gold_candidates() -> list[GoldCandidateRecord]:
             topic_family="rg_summary_unify_slalom_platform_economics",
             nuance_profile="CALIBRATED_EXEMPLARY_WITH_REAL_CONSTRAINT_TENSION",
             target_context=(
-                "How clearly does this summary connect Unify Consulting's reusable platform commercialization with Slalom's regulated utility execution without inflating scope?"
+                "Assess this Executive Summary for Brown & Brown (SVP Enterprise AI Strategy, requiring Unify reusable platform licensing and Slalom SCADA delivery) on scope grounding?"
             ),
             candidate_text=(
                 "Engineering leader specializing in policy-bound agentic AI platforms that clear enterprise model-risk review and drive recurring commercial value. "
@@ -189,7 +189,7 @@ def build_resume_gold_candidates() -> list[GoldCandidateRecord]:
             topic_family="rg_summary_passive_attribution_underweight",
             nuance_profile="MANDATE_CONSTRAINT_OMISSION",
             target_context=(
-                "Assess whether this summary remains factually grounded and passable despite under-indexing commercial ACV metrics and using collaborative committee phrasing?"
+                "Evaluate this Executive Summary for Truist (SVP AI Engineering, requiring Unify cycle-time compression and Slalom Claude enablement) on factual accuracy and executive cadence?"
             ),
             candidate_text=(
                 "Experienced engineering executive with a background supporting enterprise AI modernization across consulting and financial services organizations. "
@@ -209,7 +209,7 @@ def build_resume_gold_candidates() -> list[GoldCandidateRecord]:
             topic_family="rg_summary_additive_metric_synthesis_error",
             nuance_profile="SUBTLE_SCOPE_OR_TEMPORAL_EXTRAPOLATION",
             target_context=(
-                "Does this summary improperly combine distinct employer metrics into a single single-firm banking claim or alter verified Gemini Enterprise seat counts?"
+                "Assess this Executive Summary for Citigroup (Managing Director of Banking AI, requiring verified Unify revenue, Slalom utility, and Gemini Enterprise metrics) on employer attribution?"
             ),
             candidate_text=(
                 "Platform engineering executive who built a $30.5M annual recurring software subscription business inside a single regulated banking division by "
@@ -230,7 +230,7 @@ def build_resume_gold_candidates() -> list[GoldCandidateRecord]:
             topic_family="rg_competencies_governed_platform_pillars",
             nuance_profile="CALIBRATED_EXEMPLARY_WITH_REAL_CONSTRAINT_TENSION",
             target_context=(
-                "Do these four competency pillars translate Slalom and Unify Consulting governance, alliance, and Maximo evidence into clear executive capabilities?"
+                "Evaluate these Core Competencies for Brown & Brown (SVP Technology Innovation, requiring Unify agentic governance, AWS alliances, and Maximo telemetry) on clarity and proportion?"
             ),
             candidate_text=(
                 "- Agentic Platform Architecture: Policy-bound multi-agent orchestration, deterministic runtime auditability, and reusable platform service design ($22M IP-led delivery).\n"
@@ -250,7 +250,7 @@ def build_resume_gold_candidates() -> list[GoldCandidateRecord]:
             topic_family="rg_competencies_broad_functional_abstraction",
             nuance_profile="MANDATE_CONSTRAINT_OMISSION",
             target_context=(
-                "Evaluate whether this competency section remains grounded in the candidate's Unify and IBM history even though it omits quantitative metric anchors?"
+                "Assess these Core Competencies for Neo4j (VP Platform Alliances, requiring Unify consumption licensing, IBM DevSecOps lineage, and Claude enablement) on grounding and relevance?"
             ),
             candidate_text=(
                 "- Enterprise AI Delivery: Multi-agent workflow architecture, lab-to-production lifecycle standardization, and consumption-based platform licensing models.\n"
@@ -269,7 +269,7 @@ def build_resume_gold_candidates() -> list[GoldCandidateRecord]:
             topic_family="rg_competencies_internal_jargon_leakage",
             nuance_profile="DENSE_INSIDER_SHORTHAND_OR_CADENCE",
             target_context=(
-                "Does this competency matrix lose cold-reader clarity for a banking hiring committee by focusing on narrow Slalom and IBM Maximo operational tasks?"
+                "Evaluate these Core Competencies for Invesco (Chief AI Advisor, requiring C-suite clarity across Slalom, Maximo, and Unify programs) on cold-reader comprehension and executive proportion?"
             ),
             candidate_text=(
                 "- Pod & Charter Mechanics: 45-day Claude Code pod cadence management, SCADA feeder telemetry triage, and nameplate OCR auto-acceptance tuning for IBM Maximo.\n"
@@ -288,7 +288,7 @@ def build_resume_gold_candidates() -> list[GoldCandidateRecord]:
             topic_family="rg_competencies_adjacent_domain_fabrication",
             nuance_profile="SUBTLE_SCOPE_OR_TEMPORAL_EXTRAPOLATION",
             target_context=(
-                "Check whether this competency block embeds unsupported capital-markets and Basel III treasury modeling claims alongside verified Unify and IBM governance skills?"
+                "Assess these Core Competencies for Citigroup (SVP Enterprise AI Governance, requiring verified Unify explainability controls and IBM AWS alliance proof) on factual faithfulness?"
             ),
             candidate_text=(
                 "- Regulated Banking Risk Engines: Basel III intraday liquidity stress engines, Federal Reserve CCAR capital adequacy submissions, and SWIFT ISO 20022 wire settlement.\n"
@@ -309,7 +309,7 @@ def build_resume_gold_candidates() -> list[GoldCandidateRecord]:
             topic_family="rg_bullets_unify_consulting_verified_impact",
             nuance_profile="CALIBRATED_EXEMPLARY_WITH_REAL_CONSTRAINT_TENSION",
             target_context=(
-                "Do these Unify Consulting employment bullets pair each commercial and regulatory outcome with its specific architectural or governance mechanism?"
+                "Evaluate these Unify Consulting Bullets for Truist (Head of Forward Deployed Engineering, requiring reusable agentic platforms and banking compliance) on mechanism-to-outcome density?"
             ),
             candidate_text=(
                 "- Generated $22M in IP-led revenue across enterprise lines of business by converting bespoke consulting delivery into reusable agentic AI platform services.\n"
@@ -329,7 +329,7 @@ def build_resume_gold_candidates() -> list[GoldCandidateRecord]:
             topic_family="rg_bullets_slalom_mixed_specificity",
             nuance_profile="FRICTION_OR_PROPORTION_MISMATCH",
             target_context=(
-                "Do these Slalom bullets remain accurate on grounding while giving too much weight to Maximo OCR details over executive strategy?"
+                "Assess these Slalom Bullets for Brown & Brown (SVP IT Strategy, requiring balanced SCADA modernization, Maximo inspection, and Claude enablement proof) on grounding and proportion?"
             ),
             candidate_text=(
                 "- Directing a $3.5M utility modernization charter focused on SCADA grid-restoration intelligence, maintaining zero red escalations toward a 20% call-center deflection target.\n"
@@ -345,19 +345,22 @@ def build_resume_gold_candidates() -> list[GoldCandidateRecord]:
             judge_family="employment_bullets",
             expected_tier="subtle_defect",
             expected_pass=False,
-            topic_family="rg_bullets_cross_employer_attribution_leak",
+            topic_family="rg_bullets_anthropic_ibm_bcbs239_and_10m_duplicate",
             nuance_profile="SUBTLE_SCOPE_OR_TEMPORAL_EXTRAPOLATION",
             target_context=(
-                "Do these Slalom bullets misattribute Unify Consulting's 35% banking regulatory reduction and $5M ACV licensing to the candidate's Slalom tenure?"
+                "Evaluate these five IBM Partner Bullets for Anthropic (Head of Builder Partnerships, requiring distinct AWS co-sell and banking modernization metrics) on differentiation and clarity?"
             ),
             candidate_text=(
-                "- At Slalom (Jun 2026-Present), led a $3.5M utility and banking modernization charter that reduced banking regulatory findings by 35% through runtime model-explainability controls.\n"
-                "- Structured CFO-aligned consumption licensing at Slalom that unlocked $5M in annual contract value alongside a $2.4M Anthropic Claude enablement workstream.\n"
-                "- Deployed multimodal nameplate inspection into IBM Maximo with 92% OCR accuracy and 100% full-plate auto-acceptance."
+                "IBM | Partner (Apr 2017 to Oct 2022) | Target JD: Anthropic Head of Builder Partnerships\n"
+                "- Directed AWS Partner offering and accelerator management by packaging streaming analytics ecosystems into BCBS 239 solution blueprints that held 99.9% production uptime across banking portfolios.\n"
+                "- Led global pre-sales solution engineering, executive workshops, and commercial validation pilots to convert buyer requirements into C-suite AWS architecture alignments driving $10M in net-new revenue.\n"
+                "- Owned quota-aligned technical sales execution across priority accounts using BI forecasting and CRM pipeline governance that generated $10M in new annual recurring revenue via Salesforce deal analytics.\n"
+                "- Architected enterprise cloud-native modernization waves by shifting legacy on-prem financial workloads into containerized microservices via BCBS 239 reference architectures sustaining 99.9% production uptime.\n"
+                "- Drove IBM-AWS alliance co-sell motions, SI and ISV joint go-to-market programs, and partner territory planning across field teams to deliver 20% joint revenue growth."
             ),
-            allowed_facts=(f_slalom_util, f_slalom_part, f_slalom_maximo, f_unify_acv, f_unify_reg),
-            subtle_defect_type="cross_employer_metric_misattribution_unify_to_slalom",
-            source_provenance="curated_subtle_defect:slalom_bullet_borrows_unify_metrics",
+            allowed_facts=(f_ibm_aws, f_ibm_ml),
+            subtle_defect_type="intra_section_bcbs239_99_9pct_and_10m_duplicate_across_ibm_bullets",
+            source_provenance="full_resume_e1d1e7775bb0:ibm_bullets_bcbs239_10m_repeat",
         ),
         GoldCandidateRecord(
             item_id="rg_gold_016",
@@ -368,7 +371,7 @@ def build_resume_gold_candidates() -> list[GoldCandidateRecord]:
             topic_family="rg_bullets_target_converted_to_realized_outcome",
             nuance_profile="SUBTLE_SCOPE_OR_TEMPORAL_EXTRAPOLATION",
             target_context=(
-                "Check whether these Slalom bullets distort metric grounding by turning the 20% deflection target and 90% primary-field accuracy into stronger realized claims?"
+                "Assess these Slalom Bullets for Invesco (VP Enterprise Operations AI, requiring exact metric accuracy across SCADA deflection and Maximo OCR) on factual faithfulness?"
             ),
             candidate_text=(
                 "- Completed a $3.5M utility modernization charter at Slalom that achieved a verified 28% permanent reduction in utility call-center volume and zero red escalations across SCADA grid restoration.\n"
@@ -389,7 +392,7 @@ def build_resume_gold_candidates() -> list[GoldCandidateRecord]:
             topic_family="rg_narrative_unify_platform_commercialization",
             nuance_profile="CALIBRATED_EXEMPLARY_WITH_REAL_CONSTRAINT_TENSION",
             target_context=(
-                "Does this Unify Consulting role narrative clearly explain how runtime governance and CFO-aligned licensing turned bespoke advisory work into $22M of reusable platform revenue?"
+                "Evaluate this Unify Consulting Role Narrative for Neo4j (SVP Platform Engineering, requiring $22M IP commercialization and runtime governance) on mandate fit and concision?"
             ),
             candidate_text=(
                 "Recruited as SVP Engineering to transition Unify Consulting from one-off advisory delivery into a reusable agentic AI platform business ($22M IP-led revenue, "
@@ -408,7 +411,7 @@ def build_resume_gold_candidates() -> list[GoldCandidateRecord]:
             topic_family="rg_narrative_slalom_dual_mandate_compression",
             nuance_profile="MANDATE_CONSTRAINT_OMISSION",
             target_context=(
-                "Evaluate whether this Slalom role narrative remains coherent and accurate when bridging utility field operations and hyperscaler partner enablement in one paragraph?"
+                "Assess this Slalom Role Narrative for Brown & Brown (SVP Digital Transformation, bridging $3.5M utility SCADA delivery and $2.4M Claude enablement) on coherence and accuracy?"
             ),
             candidate_text=(
                 "Serves as Senior Director across two parallel Slalom practices: leading a $3.5M utility modernization charter for SCADA grid-restoration intelligence "
@@ -424,18 +427,19 @@ def build_resume_gold_candidates() -> list[GoldCandidateRecord]:
             judge_family="role_narrative",
             expected_tier="borderline",
             expected_pass=False,
-            topic_family="rg_narrative_ibm_subordinate_framing",
+            topic_family="rg_narrative_ibm_generic_devsecops_bi_omits_aws_partner",
             nuance_profile="FRICTION_OR_PROPORTION_MISMATCH",
             target_context=(
-                "Does this IBM Partner role narrative undersell partner-level commercial authority by framing the 20% AWS co-sell growth and banking ML pipelines as junior support work?"
+                "Evaluate this IBM Partner Role Narrative for Anthropic (Applied AI & Builder Partnerships, requiring hyperscaler AWS alliance co-sell leadership) on target mandate relevance?"
             ),
             candidate_text=(
-                "Assisted project managers during IBM's April 2017 to October 2022 financial-services engagements by helping document DevSecOps data lineage for banking and "
-                "insurance NLP models, while providing technical coordination support to sales teams participating in AWS alliance co-sell campaigns that contributed to 20% "
-                "joint revenue growth."
+                "IBM | Partner (Apr 2017 to Oct 2022) | Target JD: Anthropic Applied AI & Builder Partnerships\n"
+                "Managed internal engineering delivery for banking and insurance accounts by standardizing DevSecOps release pipelines, governed data lineage checkpoints, "
+                "and executive BI reporting views across multi-team modernization projects, while coordinating quarterly release schedules and risk documentation for "
+                "on-prem NLP decision-support models."
             ),
             allowed_facts=(f_ibm_aws, f_ibm_ml),
-            source_provenance="curated_borderline:ibm_narrative_subordinate_generic",
+            source_provenance="curated_borderline:ibm_generic_devsecops_bi_omits_aws_partner",
         ),
         GoldCandidateRecord(
             item_id="rg_gold_020",
@@ -446,7 +450,7 @@ def build_resume_gold_candidates() -> list[GoldCandidateRecord]:
             topic_family="rg_narrative_unify_headcount_and_ip_ownership_stretch",
             nuance_profile="SUBTLE_SCOPE_OR_TEMPORAL_EXTRAPOLATION",
             target_context=(
-                "Verify whether this Unify Consulting narrative introduces unverified 180-engineer org headcount and proprietary patent claims not supported by the source evidence?"
+                "Assess this Unify Consulting Role Narrative for Invesco (Chief AI Architect, requiring verified $22M IP platform scope and banking release velocity) on source evidence grounding?"
             ),
             candidate_text=(
                 "Led a 180-engineer commercial software division at Unify Consulting (Feb 2023-Jun 2026), filing four foundational patents on deterministic agentic replay "
@@ -467,7 +471,7 @@ def build_resume_gold_candidates() -> list[GoldCandidateRecord]:
             topic_family="rg_coherence_chronological_progression_verified",
             nuance_profile="CALIBRATED_EXEMPLARY_WITH_REAL_CONSTRAINT_TENSION",
             target_context=(
-                "Does this whole-resume progression maintain chronological consistency and non-overlapping metric attribution across IBM, Unify Consulting, and Slalom?"
+                "Evaluate this Whole-Resume Excerpt for Citigroup (SVP AI Platforms & Cloud Alliances, spanning Slalom, Unify, and IBM) on chronological consistency and distinct attribution?"
             ),
             candidate_text=(
                 "HEADLINE: SVP AI Platforms & Cloud Alliances | Regulated Banking Governance & Reusable Agentic Architecture\n"
@@ -490,7 +494,7 @@ def build_resume_gold_candidates() -> list[GoldCandidateRecord]:
             topic_family="rg_coherence_title_calibration_tension",
             nuance_profile="MANDATE_CONSTRAINT_OMISSION",
             target_context=(
-                "Assess whether this whole-resume summary preserves tenure coherence when bridging Unify Consulting SVP Engineering to Slalom Senior Director without falsifying dates?"
+                "Assess this Whole-Resume Excerpt for Neo4j (VP Enterprise AI Alliances, bridging IBM Partner, Unify SVP Engineering, and Slalom Senior Director) on tenure coherence?"
             ),
             candidate_text=(
                 "HEADLINE: Enterprise AI Platform & Alliances Executive | Banking Governance & Utility Modernization\n"
@@ -507,21 +511,22 @@ def build_resume_gold_candidates() -> list[GoldCandidateRecord]:
             judge_family="whole_resume_coherence",
             expected_tier="subtle_defect",
             expected_pass=False,
-            topic_family="rg_coherence_timeline_overlap_and_double_counting",
+            topic_family="rg_coherence_summary_s3_vs_ibm_b5_echo_and_double_counting",
             nuance_profile="SUBTLE_SCOPE_OR_TEMPORAL_EXTRAPOLATION",
             target_context=(
-                "Does this whole-resume arc violate chronological coherence and metric attribution by overlapping IBM and Unify Consulting dates while double-counting $22M revenue?"
+                "Evaluate this Whole-Resume Excerpt for Anthropic (Head of Strategic Cloud Partnerships, reviewing Summary S3 alongside Slalom, Unify, and IBM timelines) on cross-section differentiation?"
             ),
             candidate_text=(
-                "HEADLINE: SVP Engineering | Regulated Banking AI Platforms & Hyperscaler Alliances\n"
+                "TARGET JDS: Citi Head of AI Governance | Neo4j VP Global Strategic Alliances | Brown & Brown SVP IT Strategy | Invesco Chief AI Advisor\n"
+                "EXECUTIVE SUMMARY (S3): Earlier as an IBM Partner, drove AWS financial-services alliance co-sell motions and joint go-to-market programs to deliver 20% joint revenue growth across regulated banking accounts.\n"
                 "EXPERIENCE TIMELINE:\n"
                 "- Slalom (SVP Engineering, Jan 2024-Present): Credited with $22M in IP-led agentic platform revenue, $3.5M utility SCADA modernization, and 750 to 5,750+ Gemini Enterprise seat growth.\n"
                 "- Unify Consulting (SVP Engineering, Mar 2021-Dec 2024): Also credited with the same $22M IP-led platform revenue, $5M ACV consumption licensing, and 35% banking regulatory reduction.\n"
-                "- IBM (Partner, Apr 2017-Oct 2022): Overlaps 19 months with Unify Consulting tenure while claiming 20% AWS financial-services co-sell growth."
+                "- IBM (Partner, Apr 2017-Oct 2022) Bullet B5: Drove AWS financial-services alliance co-sell motions and joint go-to-market programs to deliver 20% joint revenue growth across regulated banking accounts."
             ),
             allowed_facts=all_facts,
-            subtle_defect_type="cross_section_date_overlap_and_22m_double_counting",
-            source_provenance="curated_subtle_defect:whole_resume_date_and_metric_collision",
+            subtle_defect_type="summary_s3_vs_ibm_b5_verbatim_echo_and_22m_double_counting",
+            source_provenance="full_resume_e1d1e7775bb0:whole_resume_s3_b5_echo_and_collision",
         ),
         GoldCandidateRecord(
             item_id="rg_gold_024",
@@ -532,7 +537,7 @@ def build_resume_gold_candidates() -> list[GoldCandidateRecord]:
             topic_family="rg_coherence_target_bank_mandate_assimilation",
             nuance_profile="SUBTLE_SCOPE_OR_TEMPORAL_EXTRAPOLATION",
             target_context=(
-                "Does this whole-resume summary violate factual grounding by retroactively claiming Unify Consulting and Slalom metrics were executed inside Truist's Care Center division?"
+                "Assess this Whole-Resume Excerpt for Truist (Head of Forward Deployed Engineering for Care Center AI, requiring Unify and Slalom proof) on employer attribution faithfulness?"
             ),
             candidate_text=(
                 "HEADLINE: Head of Forward Deployed Engineering | Banking Care Center AI & Explainable Models\n"

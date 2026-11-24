@@ -1,5 +1,4 @@
-"""X1D LLM judges for unify_bullets — policy-backed GRADE_ONLY JudgePacket."""
-
+"""Clean-Slate Judge v3 Binding for `unify_bullets` (`<= 60L`, domain-general bullet rubric)."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -12,24 +11,18 @@ from apps_rg.runtime.judges.employment_bullet_judge_rubric import (
 from apps_rg.runtime.judges.executive_summary_x1d import JudgeOutput
 from apps_rg.runtime.judges.policy_backed_section_judges import run_policy_section_judges
 
-JUDGE_RUBRIC_VERSION = "unify_bullets_x1d_v4"
-JUDGE_RUBRIC_REF = "apps_rg/runtime/judges/employment_bullet_judge_rubric.py#unify_bullets"
+JUDGE_RUBRIC_VERSION = "employment_bullets_judge_v3"
+JUDGE_RUBRIC_REF = "config/governance/judge_rubrics_v3.json#resume_sections:employment_bullets"
 
-UNIFY_RUBRIC = grade_only_rubric_text(
-    "unify_bullets",
-    bullet_count=6,
-    bullet_id_range="bul_unify_001..006",
-)
-assert_no_exec_summary_dimensions("unify_bullets")
+UNIFY_RUBRIC = grade_only_rubric_text("employment_bullets")
+assert_no_exec_summary_dimensions("employment_bullets")
 
 
 def _bullets_display_text(bullets: list[dict[str, Any]]) -> str:
-    lines = []
-    for idx, bullet in enumerate(bullets, start=1):
-        bid = bullet.get("bullet_id", f"bullet_{idx}")
-        text = bullet.get("bullet_text", "")
-        lines.append(f"[{idx}] {bid}: {text}")
-    return "\n".join(lines)
+    return "\n".join(
+        f"[{idx}] {b.get('bullet_id', f'bullet_{idx}')}: {b.get('bullet_text', '')}"
+        for idx, b in enumerate(bullets, start=1)
+    )
 
 
 def run_unify_bullets_judges(
@@ -67,4 +60,4 @@ def run_unify_bullets_judges(
     return outputs
 
 
-__all__ = ["run_unify_bullets_judges", "JUDGE_RUBRIC_VERSION", "UNIFY_RUBRIC"]
+__all__ = ["JUDGE_RUBRIC_VERSION", "UNIFY_RUBRIC", "run_unify_bullets_judges"]

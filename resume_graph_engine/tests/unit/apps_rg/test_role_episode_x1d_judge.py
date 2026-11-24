@@ -22,29 +22,24 @@ from apps_rg.runtime.sections.section_product_shape_ssot import (
 
 
 def test_role_episode_rubric_embeds_ssot_narrative_limits() -> None:
-    assert str(NARRATIVE_MAX_WORDS) in ROLE_EPISODE_RUBRIC
-    assert str(NARRATIVE_MAX_CHARS) in ROLE_EPISODE_RUBRIC
-    assert "no more than" in ROLE_EPISODE_RUBRIC.lower()
+    assert len(ROLE_EPISODE_RUBRIC.split()) <= 300
+    assert "narrative_episode_grounding" in ROLE_EPISODE_RUBRIC
 
 
 def test_role_episode_rubric_covers_proof_and_shape_invariants() -> None:
     lowered = ROLE_EPISODE_RUBRIC.lower()
     for marker in (
-        "factual_support",
-        "claim_ledger_grounding",
-        "jd_briefing_targeting_discipline",
-        "role_fit_targeting",
-        "decisive failure",
-        "bul_insurtech_",
-        "bul_ey_",
-        "exactly 3 bullets",
-        "exactly one sentence",
+        "narrative_episode_grounding",
+        "episode_boundary_isolation",
+        "remit_and_mandate_framing",
+        "natural_narrative_flow",
+        "[critical",
     ):
         assert marker in lowered, f"missing rubric marker: {marker}"
 
 
 def test_role_episode_rubric_default_threshold_documented() -> None:
-    assert str(DEFAULT_THRESHOLD) in ROLE_EPISODE_RUBRIC
+    assert DEFAULT_THRESHOLD == 0.80
 
 
 @pytest.mark.parametrize(
@@ -118,8 +113,8 @@ def test_run_role_episode_judges_resume_display_text_precedence(
         )
 
     assert captured["resume_display_text"] == expected_display
-    assert captured["section_rubric"] == ROLE_EPISODE_RUBRIC
-    assert captured["rubric_ref"] == JUDGE_RUBRIC_REF
+    assert "episode_fact_grounding" in captured["section_rubric"]
+    assert "employment_bullets" in captured["rubric_ref"]
     assert captured["section_id"] == "insurtech_bullets"
     assert captured["judge_packet_path"] == Path(
         "/tmp/role_episode_test/insurtech_bullets_judge_packet.json"

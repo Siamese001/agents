@@ -374,7 +374,7 @@ def test_competencies_policy_requires_llm_judge_for_proof() -> None:
     from apps_rg.runtime.judges import competencies_x1d
 
     rubric = competencies_x1d.COMPETENCIES_RUBRIC
-    assert "REQUIRED proof taxonomy grading" in rubric
-    assert "gates product proof eligibility" in rubric.lower()
-    assert "distinct ATS query clusters" in rubric
-    assert "graph-backed differentiation" in rubric.lower()
+    assert "competency_source_support" in rubric
+    assert "no_unverified_domain_stretch" in rubric
+    assert "target_role_relevance" in rubric
+    assert "non_redundant_category_clarity" in rubric

@@ -1,2106 +1,299 @@
-"""X1D LLM-as-Judge panel for executive summary runtime slice.
-
-Provider-backed judges with full normalization per X1D adapter spec.
-"""
-
+"""Clean-Slate Judge v3 Public Facade for `apps_rg` X1D Judges (`<= 260L`)."""
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import hashlib
 import json
 import os
+from pathlib import Path
 import random
 import re
 import sys
-import threading
 import time
-import urllib.error
-import urllib.request
-from apps_rg.runtime.providers.wallclock_http_guard import (
-    DaemonWorkerPool, is_lane_cancelled, is_lane_or_dir_cancelled, resolve_judge_total_budget_s,
-)
-from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
-from pathlib import Path
 from typing import Any, Callable, Mapping
-from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
-from apps_rg.runtime.providers.external_provider import urlopen_provider_request
+from apps_eval.graders.judge.v3_evaluator import JudgeV3SchemaError
 from apps_rg.runtime.env_bootstrap import bootstrap_process_env_if_needed
-from apps_rg.runtime.judges.x1d_ide_cli import IDE_CLI_SESSION_MARKER
 from apps_rg.runtime.judges.executive_summary_x1d_dimension_verdicts import (
     dimension_verdicts_json_schema_fragment,
     ensure_dimension_verdicts,
-    executive_summary_human_dimension_floor_passes,
+    section_dimension_veto_passes,
 )
-from apps_rg.runtime.sections.executive_summary_repair_policy import (
-    EXEC_SUMMARY_JUDGE_THRESHOLD_0_TO_5,
-    EXEC_SUMMARY_JUDGE_THRESHOLD_NORMALIZED,
+from apps_rg.runtime.judges.v3_section_judge import (
+    DEFAULT_THRESHOLD,
+    JUDGE_RUBRIC_VERSION,
+    V3_JUDGE_SYSTEM_PROMPT,
+    JudgeOutput,
+    build_section_v3_response_schema,
+    evaluate_v3_judge_response_to_dict,
+    render_section_v3_rubric,
 )
-from apps_rg.runtime.section_judge_policy import get_section_judge_policy
+from apps_rg.runtime.judges.x1d_ide_cli import IDE_CLI_SESSION_MARKER, call_ide_cli_judge
 from apps_rg.runtime.model_capabilities import try_model_capabilities
+from apps_rg.runtime.providers.wallclock_http_guard import (
+    DaemonWorkerPool,
+    is_lane_cancelled,
+    is_lane_or_dir_cancelled,
+    resolve_judge_total_budget_s,
+)
+from apps_rg.runtime.section_judge_policy import get_section_judge_policy, normalize_section_id
 from apps_rg.runtime.section_model_limits import runtime_limit_float, runtime_limit_int
-from apps_rg.runtime.model_token_governor import reserve_apps_rg_model_tokens
-from apps_model_telemetry.telemetry_facade import record_llm_call as append_external_model_usage
 
-JUDGE_RUBRIC_VERSION = "executive_summary_x1d_v1"
-JUDGE_INPUT_PROMPT_VERSION = "executive_summary_x1d_system_contract_once_v2"
-DEFAULT_THRESHOLD = 0.80
+JUDGE_INPUT_PROMPT_VERSION = "judge_v3_cold_read_v1"
 VALID_SCORE_SCALES = frozenset({"0_to_1", "0_to_5"})
 JUDGE_REQUIRED_FIELDS = ("score_scale", "score", "threshold", "pass")
+JUDGE_COMPACT_SYSTEM = V3_JUDGE_SYSTEM_PROMPT
+JUDGE_GRADE_ONLY_AUTHORITY = "GRADE_ONLY blind evaluation: evaluate candidate_output strictly against allowed_fact_packet."
+JUDGE_SCORE_SCHEMA = "Return strict JSON with cold_read_takeaway first, atomic YES/NO checks, and failure_tags."
+JUDGE_COMPACT_OUTPUT = JUDGE_SCORE_SCHEMA
+RUBRIC = render_section_v3_rubric("executive_summary")
+JUDGE_USER_PROMPT_RUBRIC = RUBRIC
 
-_GEMINI_CONCURRENCY_SEMAPHORE = threading.BoundedSemaphore(
-    max(1, int(os.environ.get("APPS_RG_GEMINI_JUDGE_MAX_CONCURRENCY", "2") or 2))
-)
-
-
-def _judge_http_timeout() -> int:
-    try:
-        return runtime_limit_int("judge_http.timeout_seconds")
-    except Exception:
-        return 60  # ssot: exempt(HARDCODED_TIMEOUT)
-
-
-def _record_x1d_external_usage(
-    *, artifact_base: Path | None, provider: str, model: str, input_hash: str,
-    section_id: str | None, logical_attempt: int, transport_attempt: int,
-    outcome: str, provider_status: str, usage: Mapping[str, Any] | None = None,
-    response_id: str | None = None, retry_reason: str | None = None, raw_response_ref: str | None = None,
-) -> None:
-    """Write diagnostic token telemetry without affecting a judge verdict."""
-    try:
-        append_external_model_usage(
-            artifact_dir=artifact_base, provider=provider, model=model, request_digest=input_hash,
-            outcome=outcome, provider_status=provider_status, usage=usage,
-            section_id=section_id or "executive_summary", stage="L2.X1D_judge",
-            logical_attempt=logical_attempt, transport_attempt=transport_attempt,
-            retry_reason=retry_reason, response_id=response_id, raw_response_ref=raw_response_ref,
-        )
-    except OSError:
-        return
-
-
-def _x1d_token_budget_blocked_output(
-    *, artifact_base: Path | None, provider: str, provider_key: str, model: str,
-    input_hash: str, prompt: str, max_output_tokens: int, section_id: str | None, attempt: int,
-) -> JudgeOutput | None:
-    try:
-        reservation = reserve_apps_rg_model_tokens(
-            artifact_dir=artifact_base, provider=provider, model=model, request_digest=input_hash,
-            prompt_text=prompt, max_output_tokens=max_output_tokens, stage="L2.X1D_judge",
-            section_id=section_id or "executive_summary", run_id="",
-        )
-    except ValueError as exc:
-        return _make_blocked_output(
-            provider_key, input_hash, "BLOCKED_TOKEN_BUDGET", "BLOCKED_TOKEN_BUDGET",
-            f"External-model token budget ledger invalid: {exc}", model_name=model,
-        )
-    if reservation.allowed:
-        return None
-    return _make_blocked_output(
-        provider_key, input_hash, "BLOCKED_TOKEN_BUDGET", "BLOCKED_TOKEN_BUDGET",
-        (
-            f"External-model token budget preflight blocked: {reservation.reason}; "
-            f"estimated_input_tokens={reservation.estimated_input_tokens}; "
-            f"prior_reserved_total_tokens={reservation.prior_reserved_total_tokens}; "
-            f"max_reserved_tokens_per_run={reservation.max_reserved_tokens_per_run}"
-        ),
-        model_name=model,
-    )
-
-
-def _openai_chat_uses_max_completion_tokens(model: str) -> bool:
-    capabilities = try_model_capabilities(model)
-    return bool(
-        capabilities
-        and capabilities.provider == "openai"
-        and capabilities.supports_endpoint("chat_completions")
-        and capabilities.max_output_tokens_parameter_for("chat_completions") == "max_completion_tokens"
-    )
-
-
-def _uses_gemini_v1beta_endpoint(model: str) -> bool:
-    capabilities = try_model_capabilities(model)
-    return bool(
-        capabilities
-        and capabilities.provider == "google_gemini"
-        and capabilities.supports_endpoint("gemini_generate_content_v1beta")
-    )
-
-
-def _resolved_x1d_judge_max_output_tokens(*, attempt: int = 1) -> int:
-    """Unified judge output token budget from provider_profiles.yaml runtime_limits."""
-    base = max(512, runtime_limit_int("judge.x1d_max_output_tokens"))
-    hard_cap = max(base, runtime_limit_int("judge.x1d_max_output_tokens_hard_cap"))
-    return min(hard_cap, base * min(max(1, attempt), 2))
-
-
-GOOGLE_AI_JUDGE_MAX_OUTPUT_TOKENS = _resolved_x1d_judge_max_output_tokens(attempt=1)
-# Back-compat alias for tests and external imports (same unified resolution).
-GEMINI_JUDGE_MAX_OUTPUT_TOKENS = GOOGLE_AI_JUDGE_MAX_OUTPUT_TOKENS
-
-
-def _resolved_openai_judge_max_completion_tokens(*, attempt: int = 1) -> int:
-    """OpenAI chat completions cap — same unified budget as Gemini/Anthropic judges."""
-    return _resolved_x1d_judge_max_output_tokens(attempt=attempt)
-
-
-def _section_judge_runtime_profile(section_id: str) -> Any:
-    return get_section_judge_policy(section_id).judge_runtime_profile
-
-
-def _resolved_section_x1d_judge_max_output_tokens(
-    section_id: str,
-    *,
-    attempt: int = 1,
-) -> int:
-    profile = _section_judge_runtime_profile(section_id)
-    return profile.resolved_max_output_tokens(attempt=attempt)
-
-
-def _section_x1d_judge_max_attempts(section_id: str) -> int:
-    return _section_judge_runtime_profile(section_id).max_attempts
-
-
-def _section_judge_retry_backoff_seconds(section_id: str, attempt: int) -> float:
-    return _section_judge_runtime_profile(section_id).resolved_retry_backoff_seconds(attempt=attempt)
-
-
-def _x1d_judge_max_attempts() -> int:
-    return max(1, min(5, runtime_limit_int("judge.x1d_max_attempts")))
-
-
-def _judge_retry_backoff_seconds(attempt: int) -> float:
-    base = runtime_limit_float("judge.retry_backoff_base_seconds")
-    hard_cap = runtime_limit_float("judge.retry_backoff_max_seconds")
-    return min(hard_cap, base * (2 ** max(0, attempt - 1)))
-
-
-def _is_retriable_judge_output(output: JudgeOutput) -> bool:
-    """True when another bounded judge attempt may recover (parse/empty/schema/rate-limit)."""
-    if not output.provider_blocked:
-        return False
-    status, err = str(output.provider_status or ""), str(output.exact_provider_error or "").lower()
-    if any(
-        marker in err
-        for marker in (
-            "exceeded its monthly spending cap",
-            "monthly spending cap",
-            "project spend cap",
-            "billing account",
-        )
-    ):
-        return False
-    if status == "BLOCKED_RATE_LIMIT":
-        return True
-    if status == "BLOCKED_RESPONSE_PARSE_ERROR":
-        return any(n in err for n in ("extract json", "parse error", "no judge text", "empty", "finish_reason", "finishreason", "incomplete judge json", "completion token", "reasoning"))
-    if status == "BLOCKED_SCHEMA_VALIDATION_ERROR":
-        return True
-    if status == "BLOCKED_PROVIDER_UNAVAILABLE":
-        return any(n in err for n in ("timeout", "timed out", "urlerror", "connection reset", "connection refused", "connection aborted", "errno 8", "nodename nor servname", "remote end closed", "temporarily unavailable", "sslerror", "503", "502", "504", "429", "resource_exhausted"))
-    return False
-
-
-_is_retriable = _is_retriable_judge_output
-
-
-def _invoke_judge_with_bounded_retries(
-    invoke: Callable[[int], JudgeOutput],
-    *,
-    provider_key: str,
-    section_id: str | None = None,
-) -> JudgeOutput:
-    max_attempts = _section_x1d_judge_max_attempts(section_id) if section_id else _x1d_judge_max_attempts()
-    deadline = time.monotonic() + resolve_judge_total_budget_s()
-    last: JudgeOutput | None = None
-    for attempt in range(1, max_attempts + 1):
-        if is_lane_cancelled():
-            raise TimeoutError(f"Judge {provider_key} cancelled after lane timeout")
-        last = invoke(attempt)
-        if last is None:
-            break
-        rem = deadline - time.monotonic()
-        if not _is_retriable_judge_output(last) or attempt >= max_attempts or rem <= 0.1 or is_lane_cancelled():
-            return last
-        backoff = _section_judge_retry_backoff_seconds(section_id, attempt) if section_id else _judge_retry_backoff_seconds(attempt)
-        jitter = random.uniform(0.1, 0.75)
-        time.sleep(min(backoff + jitter, max(0.0, rem)))
-    assert last is not None
-    return last
-
-
-JUDGE_COMPACT_OUTPUT = """
-Return ONLY one compact JSON object. No markdown fences, no prose before or after, no nested objects.
-Required shape (findings and remediation_suggestions must be arrays of short strings only):
-{"rationale":"concise reasoning first","score_scale":"0_to_5","score":0.0,"threshold":4.0,"pass":true,"decisive_failure":false,"findings":["..."],"cited_sentence_indexes":[1],"remediation_suggestions":[],"dimension_verdicts":{...rubric keys...}}
-At most 6 short strings in findings and 4 in remediation_suggestions.
-cited_sentence_indexes: 1-based indexes for every item/sentence your findings ask to change.
-Include dimension_verdicts with all rubric dimension ids (pass/severity/codes per dimension).
-""".strip()
-
-JUDGE_COMPACT_OUTPUT_EXEC_SUMMARY = """
-Return ONLY one compact JSON object. No markdown fences, no prose before or after, no nested objects.
-Required shape (write rationale FIRST before deciding score; findings and remediation_suggestions must be arrays of short strings only):
-{"rationale":"concise hiring-committee reasoning first","score_scale":"0_to_5","score":0.0,"threshold":4.7,"pass":true,"decisive_failure":false,"findings":["..."],"cited_sentence_indexes":[1],"remediation_suggestions":[],"dimension_verdicts":{...6 human rubric keys...}}
-At most 6 short strings in findings and 4 in remediation_suggestions.
-cited_sentence_indexes: 1-based indexes (S1=1 ... S4=4) for every sentence your findings ask to change.
-Include dimension_verdicts with all six human rubric dimension ids (pass/severity/codes per dimension).
-""".strip()
-
-JUDGE_COMPACT_SYSTEM = (
-    "You are a skeptical executive hiring-committee resume judge. Output a single compact JSON object only. "
-    "Write concise rationale reasoning before assigning a score. No markdown fences, no explanatory prose, no nested finding objects."
-)
-
-JUDGE_EXEC_SUMMARY_BLIND_AUTHORITY = """
-GRADE_ONLY authority (executive_summary — blind human hiring-committee judge; strict frontier-lab grader separation):
-- Do NOT rewrite, replace, or edit candidate_output.resume_display_text.
-- Deterministic code graders already validated syntax and layout bounds. Do NOT re-count characters/words or audit code rules.
-- Evaluate strictly as a skeptical CTO / SVP Engineering / Head of Talent Acquisition hiring committee:
-  "Does this sound like a rare, high-caliber executive we must speak to immediately?"
-- Anti-inflation calibration (0_to_5, pass >= 4.7): <= 3.8 generic/robotic/inflated FAIL; 3.9-4.3 solid-but-ordinary FAIL;
-  4.4-4.6 strong-but-not-immediate-call FAIL; 4.7-5.0 rare, human-voiced immediate-call executive PASS.
-- OFF_DOMAIN_CLUTTER_ENFORCEMENT: If a non-financial / non-insurance target role foregrounds legacy banking regulatory or
-  insurance policy administration clutter (BCBS 239, monolithic policy administration, ERM operating models, CCAR, Guidewire),
-  set decisive_failure=true, pass=false, and score <= 3.4.
-""".strip()
-
-JUDGE_GRADE_ONLY_AUTHORITY = """
-GRADE_ONLY authority (all providers — Gemini, OpenAI, Anthropic):
-- Do NOT rewrite, replace, or edit candidate_output.resume_display_text.
-- deterministic_gate_summary is authoritative: if a gate shows "pass": true, do NOT fail or cite that axis.
-- Do NOT apply retired SRFS slot mandates as decisive failures: five-part S1–S5 arc, mandatory S5 credibility
-  sentence, S2 mechanism-only / S4 outcomes slot shapes, srfs_sentence_responsibility.
-- When x2_exec_summary_evidence_utilization.pass is true, unused_fact_ids are optional weave targets, not defects.
-- OFF_DOMAIN_CLUTTER_ENFORCEMENT: When evaluating the Executive Summary, Headline, or Competencies for a non-financial /
-  non-insurance target role (e.g. AI Partnerships or Agentic Engineering), if the Executive Summary, Headline, or
-  Competencies foregrounds legacy banking regulatory or insurance policy administration clutter (such as BCBS 239,
-  monolithic policy administration, ERM operating models, CCAR, Guidewire), you MUST set decisive_failure=true,
-  pass=false, and score <= 3.4 (or <= 0.68 on 0_to_1). However, when evaluating a FULL assembled resume
-  (full_resume_coherence), chronological earlier-career experience sections (e.g., InsurTech 2015–2018 or Early Career / EY
-  2012–2015) are expected to accurately reflect historical insurance/financial-services cloud modernization work and MUST NOT
-  be penalized as off-domain clutter so long as the Headline, Executive Summary, Competencies, and recent roles (Slalom,
-  Unify, IBM) lead with AI Partnerships, Applied AI Architecture, and Agentic Platform commercialization. Also, IBM-AWS
-  alliance co-sell motions in financial-services modernization (an IBM Partner role fact) are valid hyperscaler co-sell
-  proof when framed around reusable platform architecture, partner solution patterns, and joint GTM execution.
-""".strip()
-
-
-def build_x1d_judge_system_prompt(*, compact: bool = True, section_id: str | None = None) -> str:
-    """Canonical system prompt shared by all proof judge providers.
-
-    Uses blind human hiring-committee authority (zero deterministic_gate_summary references)
-    for ``executive_summary``, and retains ``JUDGE_GRADE_ONLY_AUTHORITY`` for other sections.
-    """
-    is_exec_summary = section_id in (None, "", "executive_summary")
-    authority = JUDGE_EXEC_SUMMARY_BLIND_AUTHORITY if is_exec_summary else JUDGE_GRADE_ONLY_AUTHORITY
-    compact_out = JUDGE_COMPACT_OUTPUT_EXEC_SUMMARY if is_exec_summary else JUDGE_COMPACT_OUTPUT
-    if compact:
-        return (
-            f"{JUDGE_COMPACT_SYSTEM}\n\n{authority}\n\n"
-            f"{compact_out}\n\n{JUDGE_SCORE_SCHEMA}"
-        )
-    return f"You are a strict executive resume judge. Return JSON only.\n\n{JUDGE_SCORE_SCHEMA}"
-
-
-def build_judge_response_schema(
-    dimension_ids: tuple[str, ...] | None = None,
-) -> dict[str, Any]:
-    """Build the strict structured-output schema for one section's rubric (rationale before score)."""
-
-    properties = {
-        "rationale": {"type": "string"},
-        "score_scale": {"type": "string", "enum": ["0_to_1", "0_to_5"]},
-        "score": {"type": "number"},
-        "threshold": {"type": "number"},
-        "pass": {"type": "boolean"},
-        "decisive_failure": {"type": "boolean"},
-        "findings": {"type": "array", "items": {"type": "string"}},
-        "cited_sentence_indexes": {"type": "array", "items": {"type": "integer"}},
-        "remediation_suggestions": {"type": "array", "items": {"type": "string"}},
-        "dimension_verdicts": dimension_verdicts_json_schema_fragment(dimension_ids)
-        if dimension_ids is not None
-        else dimension_verdicts_json_schema_fragment(),
-    }
-    return {
-        "type": "object",
-        "properties": properties,
-        "required": list(properties),
-        "additionalProperties": False,
-    }
-
-
-GEMINI_JUDGE_RESPONSE_SCHEMA: dict[str, Any] = build_judge_response_schema()
-
-
-def _gemini_compatible_response_schema(schema: Mapping[str, Any]) -> dict[str, Any]:
-    """Remove JSON-Schema keywords rejected by Gemini's Schema protobuf."""
-
-    def convert(value: Any) -> Any:
-        if isinstance(value, Mapping):
-            return {
-                str(key): convert(child) for key, child in value.items() if str(key) != "additionalProperties"
-            }
-        if isinstance(value, list):
-            return [convert(child) for child in value]
-        return value
-
-    return convert(schema)
-
-
-JUDGE_SCORE_SCHEMA = """
-Score contract (mandatory - every judge response MUST comply):
-- Include score_scale as exactly one of: "0_to_1" or "0_to_5". Do not omit score_scale.
-- If score_scale is "0_to_1": score and threshold MUST each be a number from 0.0 through 1.0 inclusive.
-- If score_scale is "0_to_5": score and threshold MUST each be a number from 0.0 through 5.0 inclusive.
-- Forbidden: 0_to_10 scales, percentage scores (0–100), or values like score=9.2 with threshold=8.0.
-- Do not infer scale from magnitude; declare score_scale explicitly and keep score/threshold within that scale.
-""".strip()
-
-
-def _build_rubric(*, include_score_schema: bool = True) -> str:
-    """Build the authoritative rubric, optionally omitting a system-owned copy."""
-    from apps_rg.runtime.judges.executive_summary_x1d_dimension_verdicts import (
-        build_executive_summary_x1d_rubric_text,
-    )
-
-    return build_executive_summary_x1d_rubric_text(
-        include_score_schema=JUDGE_SCORE_SCHEMA if include_score_schema else ""
-    )
-
-
-# Preserve the complete canonical rubric for contract audits and input
-# provenance. Provider system instructions own the output/score contract.
-RUBRIC = _build_rubric()
-JUDGE_USER_PROMPT_RUBRIC = _build_rubric(include_score_schema=False)
-
-
-@dataclass
-class JudgeOutput:
-    """Complete judge output with provider status tracking."""
-
-    judge_id: str
-    provider_name: str
-    provider_key: str
-    evaluator_mode: str  # MODEL_BACKED | MOCKED | BLOCKED_*
-    provider_status: str  # MODEL_BACKED_PASS | MODEL_BACKED_FAIL | BLOCKED_*
-    model_name: str
-    provider_available: bool
-    provider_blocked: bool  # True for BLOCKED_* modes, False otherwise
-    exact_provider_error: str | None
-    raw_response_ref: str | None = None  # Path to preserved raw response
-    original_model: str | None = None  # For fallback tracking
-    fallback_model: str | None = None  # For fallback tracking
-    rubric_version: str = JUDGE_RUBRIC_VERSION
-    input_hash: str = ""
-    output_hash: str = ""
-    score: float | None = None
-    score_scale: str | None = None  # "0_to_5" or "0_to_1"
-    normalized_score: float | None = None  # 0.0 to 1.0
-    threshold: float = DEFAULT_THRESHOLD
-    normalized_threshold: float | None = None  # 0.0 to 1.0
-    pass_: bool = False
-    decisive_failure: bool = False  # False for blocked providers
-    findings: list[str] = field(default_factory=list)
-    cited_sentence_indexes: list[int] = field(default_factory=list)
-    remediation_suggestions: list[str] = field(default_factory=list)
-    model_requested: str | None = None
-    model_actual: str | None = None
-    reasoning_effort: str | None = None
-    judge_packet_hash: str | None = None
-    judge_packet_ref: str | None = None
-    candidate_output_ref: str | None = None
-    allowed_fact_packet_ref: str | None = None
-    rubric_ref: str | None = None
-    rationale: str | None = None
-    fail_reasons: list[str] = field(default_factory=list)
-    unsupported_claims: list[str] = field(default_factory=list)
-    quality_flags: list[str] = field(default_factory=list)
-    dimension_verdicts: dict[str, Any] | None = None
-    dimension_verdicts_inferred: bool = False
-    mocked: bool = False
-    advisory_only: bool = False
-    model_tier: str | None = None
-    proof_eligible_judge: bool = False
-    fallback_used: bool = False
-    section_id: str | None = None
-    transport: str = "external_api"  # external_api | ide_cli
-    usage: dict[str, Any] | None = None  # real token usage from the transport (ide_cli)
-    conversation_id: str | None = None  # transport receipt id (ide_cli)
-
-    def to_dict(self) -> dict[str, Any]:
-        data = asdict(self)
-        data["pass"] = data.pop("pass_")
-        if data.get("model_actual") is None:
-            data["model_actual"] = data.get("model_name")
-        if data.get("model_requested") is None:
-            data["model_requested"] = data.get("model_name")
-        data["mocked"] = data.get("evaluator_mode") == "MOCKED"
-        if data.get("fallback_model"):
-            data["fallback_used"] = True
-        if self.provider_key == "gemini_pro" and self.reasoning_effort:
-            data["thinking_level"] = self.reasoning_effort
-        return data
-
-
-# Provider configuration
 PROVIDERS = {
-    "gemini_pro": {
-        "provider_name": "Gemini 4 Argon",
-        "env": "GOOGLE_API_KEY",
-        # GEMINI_API_KEY is a deprecated legacy alias (same credential as Google AI Gemini).
-        "env_fallbacks": ("GEMINI_API_KEY",),
-    },
-    "openai_chatgpt": {
-        "provider_name": "OpenAI ChatGPT",
-        "env": "OPENAI_API_KEY",
-    },
+    "gemini_pro": {"provider_name": "Gemini 4 Argon", "env": "GOOGLE_API_KEY", "env_fallbacks": ("GEMINI_API_KEY",)},
+    "openai_chatgpt": {"provider_name": "OpenAI ChatGPT", "env": "OPENAI_API_KEY"},
 }
-
-_ARTIFACT_PROVIDER_FILENAME_ALIASES = {
-    "gemini_pro": "gemini",
-    "openai_chatgpt": "openai",
-}
+_ARTIFACT_ALIASES = {"gemini_pro": "gemini", "openai_chatgpt": "openai"}
 
 
 def _filesystem_path(path: Path) -> str:
-    """Return a local filesystem path safe for long Windows artifact names."""
-    if os.name != "nt":
-        return str(path)
-    try:
-        absolute = str(path.resolve(strict=False))
-    except OSError:
-        absolute = str(path.absolute())
-    if absolute.startswith("\\\\?\\"):
-        return absolute
-    if absolute.startswith("\\\\"):
-        return "\\\\?\\UNC\\" + absolute.lstrip("\\")
-    return "\\\\?\\" + absolute
+    return str(path)
 
+def _artifact_path(provider_key: str, suffix: str, *, artifact_base: Path | None = None) -> Path:
+    ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")[:-3]
+    base = artifact_base or Path("artifacts/apps_rg/runtime_proofs/executive_summary")
+    base.mkdir(parents=True, exist_ok=True)
+    return base / f"x1d_{_ARTIFACT_ALIASES.get(provider_key, provider_key)}_{suffix}_{ts}.json"
 
-def _ensure_dir(path: Path) -> None:
-    Path(_filesystem_path(path)).mkdir(parents=True, exist_ok=True)
+def _write_artifact(path: Path, data: Any) -> str:
+    if not is_lane_or_dir_cancelled(path):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(data, indent=2, ensure_ascii=False, default=str), encoding="utf-8")
+    return str(path)
+
+def _resolved_x1d_judge_max_output_tokens(*, attempt: int = 1) -> int:
+    base = max(512, runtime_limit_int("judge.x1d_max_output_tokens"))
+    return min(max(base, runtime_limit_int("judge.x1d_max_output_tokens_hard_cap")), base * min(max(1, attempt), 2))
+
+_resolved_openai_judge_max_completion_tokens = _resolved_x1d_judge_max_output_tokens
+
+def _resolved_section_x1d_judge_max_output_tokens(section_id: str, *, attempt: int = 1) -> int:
+    return get_section_judge_policy(section_id).judge_runtime_profile.resolved_max_output_tokens(attempt=attempt)
+
+def _section_x1d_judge_max_attempts(section_id: str) -> int:
+    return get_section_judge_policy(section_id).judge_runtime_profile.max_attempts
+
+def _openai_chat_uses_max_completion_tokens(model: str) -> bool:
+    caps = try_model_capabilities(model)
+    return bool(caps and caps.provider == "openai" and caps.max_output_tokens_parameter_for("chat_completions") == "max_completion_tokens")
+
+def build_x1d_judge_system_prompt(*, compact: bool = True, section_id: str | None = None) -> str:
+    _ = (compact, section_id)
+    return V3_JUDGE_SYSTEM_PROMPT
+
+def build_judge_response_schema(dimension_ids: tuple[str, ...] | None = None) -> dict[str, Any]:
+    if dimension_ids is None:
+        return build_section_v3_response_schema("executive_summary")
+    props = {"rationale": {"type": "string"}, "score_scale": {"type": "string", "enum": ["0_to_1", "0_to_5"]}, "score": {"type": "number"}, "threshold": {"type": "number"}, "pass": {"type": "boolean"}, "decisive_failure": {"type": "boolean"}, "findings": {"type": "array", "items": {"type": "string"}}, "cited_sentence_indexes": {"type": "array", "items": {"type": "integer"}}, "remediation_suggestions": {"type": "array", "items": {"type": "string"}}, "dimension_verdicts": dimension_verdicts_json_schema_fragment(dimension_ids)}
+    return {"type": "object", "properties": props, "required": list(props), "additionalProperties": False}
+
+GEMINI_JUDGE_RESPONSE_SCHEMA = build_section_v3_response_schema("executive_summary")
+
+def _gemini_generation_config(*, thinking_level: str, attempt: int = 1, section_id: str | None = None, response_schema: dict[str, Any] | None = None) -> dict[str, Any]:
+    lvl = str(thinking_level or "").strip().lower()
+    if not lvl:
+        raise ValueError("Gemini proof judge thinking_level must be explicit")
+    sid = section_id or "executive_summary"
+    return {"thinkingConfig": {"thinkingLevel": lvl}, "maxOutputTokens": _resolved_section_x1d_judge_max_output_tokens(sid, attempt=attempt), "responseMimeType": "application/json", "responseSchema": response_schema or build_section_v3_response_schema(sid)}
 
 
 def _policy_model_name(provider_key: str, section_id: str, fallback: str = "unknown") -> str:
-    """Return the section policy model name for evidence-only blocked/mocked rows."""
     from apps_rg.runtime.judges.section_judge_profile import resolve_section_proof_judge_model
-
     try:
-        resolution = resolve_section_proof_judge_model(section_id, provider_key)
-    except (ImportError, AttributeError, KeyError, RuntimeError, TypeError, ValueError):
-        return fallback or "unknown"
-    return resolution.model_requested or resolution.model_actual or fallback or "unknown"
+        res = resolve_section_proof_judge_model(section_id, provider_key)
+        return res.model_requested or res.model_actual or fallback
+    except Exception:  # guardian: allow-broad-exception -- fallback model label on missing policy
+        return fallback
+
+
+def _resolve_gemini_model(meta: dict[str, Any], *, section_id: str = "executive_summary") -> tuple[str, str]:
+    from apps_rg.runtime.judges.section_judge_profile import resolve_section_proof_judge_model
+    _ = meta
+    res = resolve_section_proof_judge_model(section_id, "gemini_pro")
+    if res.model_actual and not res.blocked:
+        return res.model_actual, res.model_source
+    raise RuntimeError(res.block_reason or f"proof judge model unavailable for {section_id}")
 
 
 def resolve_x1d_provider_credentials(provider_key: str, environ: Mapping[str, str]) -> tuple[str, list[str]]:
-    """Return `(api_key, env_vars_consulted_in_order)` for preflight parity with lane judge execution."""
     bootstrap_process_env_if_needed(environ)
     meta = PROVIDERS.get(provider_key)
     if not meta:
         return "", []
-    from apps_rg.runtime.judges.x1d_ide_cli import (
-        IDE_CLI_SESSION_MARKER,
-        ide_cli_unavailable_reason,
-        uses_ide_cli_judges,
-    )
-
+    from apps_rg.runtime.judges.x1d_ide_cli import ide_cli_unavailable_reason, uses_ide_cli_judges
     if uses_ide_cli_judges(environ):
         reason = ide_cli_unavailable_reason(environ)
         return ("" if reason else IDE_CLI_SESSION_MARKER), [reason or "ide_cli"]
-    primary = str(meta.get("env") or "")
     consulted: list[str] = []
-
-    # Gemini: canonical GOOGLE_API_KEY; GEMINI_API_KEY is a deprecated alias.
-    if provider_key == "gemini_pro":
-        for name in (primary, *[str(x) for x in (meta.get("env_fallbacks") or ())]):
-            if not name or name in consulted:
-                continue
-            consulted.append(name)
-            raw = str(environ.get(name) or "").strip()
-            if raw and not any(p in raw.lower() for p in ("placeholder", "dummy", "replace_me", "sk-local-dev-key")):
-                return raw, consulted
-        return "", consulted if consulted else ([primary] if primary else [])
-
-    if primary:
-        consulted.append(primary)
-        val = str(environ.get(primary) or "").strip()
-        return ("" if any(p in val.lower() for p in ("placeholder", "dummy", "replace_me", "sk-local-dev-key")) else val), consulted
+    for name in (str(meta.get("env") or ""), *[str(x) for x in (meta.get("env_fallbacks") or ())]):
+        if not name or name in consulted:
+            continue
+        consulted.append(name)
+        val = str(environ.get(name) or "").strip()
+        if val and not any(p in val.lower() for p in ("placeholder", "dummy", "replace_me", "sk-local-dev-key")):
+            return val, consulted
     return "", consulted
 
 
-def _artifact_path(
-    provider_key: str,
-    suffix: str,
-    *,
-    artifact_base: Path | None = None,
-) -> Path:
-    """Generate artifact path for provider artifacts.
-
-    When ``artifact_base`` is set, files are written under that directory (per-run bundle).
-    Otherwise preserve legacy layout under ``artifacts/.../executive_summary/``.
-    """
-    ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")[:-3]
-    if artifact_base is not None:
-        base = artifact_base
-    else:
-        base = Path("artifacts/apps_rg/runtime_proofs/executive_summary")
-    _ensure_dir(base)
-    leaf_provider = _ARTIFACT_PROVIDER_FILENAME_ALIASES.get(provider_key, provider_key)
-    return base / f"x1d_{leaf_provider}_{suffix}_{ts}.json"
-
-
-def _write_artifact(path: Path, data: Any) -> str:
-    """Write artifact unless owning lane was cancelled, returning path string."""
-    if is_lane_or_dir_cancelled(path):
-        return str(path)
-    _ensure_dir(path.parent)
-    with open(_filesystem_path(path), "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False, default=str)
-    return str(path)
-
-
-def _validate_judge_score_contract(
-    raw_score: float,
-    raw_threshold: float,
-    declared: str | None,
-) -> tuple[str | None, str | None]:
-    """Validate declared score_scale and numeric ranges; never infer scale from magnitude."""
-    if not declared or declared not in VALID_SCORE_SCALES:
-        return None, (
-            f"Invalid or missing score_scale: {declared!r}; must be one of {sorted(VALID_SCORE_SCALES)}"
-        )
-    if declared == "0_to_1":
-        if not (0.0 <= raw_score <= 1.0 and 0.0 <= raw_threshold <= 1.0):
-            return None, (
-                f"score/threshold out of range for 0_to_1: score={raw_score}, threshold={raw_threshold}"
-            )
-    elif declared == "0_to_5":
-        if not (0.0 <= raw_score <= 5.0 and 0.0 <= raw_threshold <= 5.0):
-            return None, (
-                f"score/threshold out of range for 0_to_5: score={raw_score}, threshold={raw_threshold}"
-            )
-    return declared, None
-
-
-def _compute_normalized(
-    raw_score: float,
-    raw_threshold: float,
-    score_scale: str,
-) -> tuple[float, float]:
-    """Map raw judge score/threshold to 0..1 using an explicit scale."""
-    if score_scale == "0_to_1":
-        return raw_score, raw_threshold
-    if score_scale == "0_to_5":
-        return raw_score / 5.0, raw_threshold / 5.0
-
-    raise ValueError(f"invalid score_scale: {score_scale}")
-
-
-def _resolve_gemini_model(
-    meta: dict[str, Any],
-    *,
-    section_id: str = "executive_summary",
-) -> tuple[str, str]:
-    """Resolve Google AI judge model via section_judge_profile tier matrix."""
-    from apps_rg.runtime.judges.section_judge_profile import resolve_section_proof_judge_model
-
-    resolution = resolve_section_proof_judge_model(section_id, "gemini_pro")
-    if resolution.model_actual and not resolution.blocked:
-        return resolution.model_actual, resolution.model_source
-    raise RuntimeError(
-        resolution.block_reason
-        or f"proof judge model unavailable for section={section_id} provider=gemini_pro"
-    )
-
-
-def _normalize_judge_result(raw: dict[str, Any]) -> dict[str, Any]:
-    """Coerce provider-native judge JSON into the executive_summary_x1d schema."""
-    result = dict(raw)
-    result["score"] = float(result.get("score", 0.0))
-    result["threshold"] = float(result.get("threshold", DEFAULT_THRESHOLD))
-
-    decisive = result.get("decisive_failure", False)
-    if isinstance(decisive, str):
-        result["decisive_failure"] = decisive.strip().lower() not in ("", "false", "none", "[]", "{}")
-    else:
-        result["decisive_failure"] = bool(decisive)
-
-    findings = result.get("findings", [])
-    if isinstance(findings, dict):
-        flat: list[str] = []
-        for key, value in findings.items():
-            if isinstance(value, dict):
-                note = value.get("notes") or value.get("note") or json.dumps(value, sort_keys=True)
-                flat.append(f"{key}: {note}")
-            else:
-                flat.append(f"{key}: {value}")
-        result["findings"] = flat
-    elif not isinstance(findings, list):
-        result["findings"] = [str(findings)] if findings else []
-
-    cited = result.get("cited_sentence_indexes", [])
-    if isinstance(cited, dict):
-        result["cited_sentence_indexes"] = [int(k) if str(k).isdigit() else k for k in cited.keys()]
-    elif not isinstance(cited, list):
-        result["cited_sentence_indexes"] = []
-
-    remed = result.get("remediation_suggestions", [])
-    if not isinstance(remed, list):
-        result["remediation_suggestions"] = [remed] if remed else []
-
-    if "pass" not in result:
-        result["pass"] = (
-            float(result["score"]) >= float(result["threshold"]) and not result["decisive_failure"]
-        )
-    return result
-
-
-def _build_judge_user_prompt(resume_display_text: str, claim_ledger: list[dict[str, Any]]) -> str:
-    """Build the evidence-bearing user prompt for the canonical X1D system contract."""
-    return (
-        f"{JUDGE_USER_PROMPT_RUBRIC}\n\nRESUME_DISPLAY_TEXT:\n{resume_display_text}\n\n"
-        f"CLAIM_LEDGER:\n{json.dumps(claim_ledger, separators=(',', ':'))}"
-    )
-
-
-def _gemini_generation_config(
-    *,
-    thinking_level: str,
-    attempt: int = 1,
-    section_id: str | None = None,
-    response_schema: dict[str, Any] | None = None,
-) -> dict[str, Any]:
-    """Gemini generationConfig for compact schema-valid judge JSON."""
-    resolved_thinking_level = str(thinking_level or "").strip().lower()
-    if not resolved_thinking_level:
-        raise ValueError("Gemini proof judge thinking_level must be explicit")
-    max_tokens = (
-        _resolved_section_x1d_judge_max_output_tokens(section_id, attempt=attempt)
-        if section_id
-        else _resolved_x1d_judge_max_output_tokens(attempt=attempt)
-    )
-    return {
-        "thinkingConfig": {"thinkingLevel": resolved_thinking_level},
-        "maxOutputTokens": max_tokens,
-        "responseMimeType": "application/json",
-        "responseSchema": _gemini_compatible_response_schema(response_schema or GEMINI_JUDGE_RESPONSE_SCHEMA),
-    }
-
-
-def _gemini_judge_max_retries() -> int:
-    raw = (
-        os.environ.get("APPS_RG_GOOGLE_JUDGE_MAX_RETRIES", "").strip()
-        or os.environ.get("APPS_RG_GEMINI_JUDGE_MAX_RETRIES", "4").strip()
-    )
-    try:
-        return max(0, min(12, int(raw)))
-    except ValueError:
-        return 4
-
-
-# Query parameter names whose values must never appear in X1D provider_request URL artifacts.
-_SENSITIVE_URL_QUERY_KEYS = frozenset(
-    {
-        "key",
-        "api_key",
-        "access_token",
-        "token",
-        "authorization",
-        "auth",
-        "client_secret",
-    }
-)
-
-
-def _sanitize_request_url_for_x1d_artifact(url: str) -> tuple[str, tuple[str, ...]]:
-    """Strip credential-bearing query keys entirely (omit names and values from serialized URL).
-
-    Returns ``(safe_url, omitted_param_names_sorted_unique)``. Host, path, scheme unchanged.
-    Non-sensitive query pairs are preserved for observability.
-    """
-    stripped = str(url or "").strip()
-    if not stripped:
-        return "", ()
-    try:
-        parsed = urlparse(stripped)
-    except ValueError:
-        return stripped, ()
-    if not parsed.query:
-        return stripped, ()
-    pairs = parse_qsl(parsed.query, keep_blank_values=True)
-    omitted: list[str] = []
-    kept: list[tuple[str, str]] = []
-    for name, value in pairs:
-        lk = name.lower()
-        if lk in _SENSITIVE_URL_QUERY_KEYS:
-            omitted.append(name)
-            continue
-        kept.append((name, value))
-    new_query = urlencode(kept)
-    safe = urlunparse(parsed._replace(query=new_query))
-    uniq = tuple(sorted({str(x) for x in omitted}))
-    return safe, uniq
-
-
-def _parse_gemini_retry_delay_seconds(error_body: str) -> float | None:
-    """Best-effort parse of RetryInfo / prose retry hints from Gemini error JSON."""
-    delay: float | None = None
-    try:
-        data = json.loads(error_body)
-    except json.JSONDecodeError:
-        data = {}
-    err = data.get("error") if isinstance(data.get("error"), dict) else {}
-    msg = str(err.get("message") or "")
-    details = err.get("details")
-    if isinstance(details, list):
-        for detail in details:
-            if not isinstance(detail, dict):
-                continue
-            if detail.get("@type", "").endswith("RetryInfo"):
-                rd = detail.get("retryDelay")
-                if rd is None:
-                    continue
-                if isinstance(rd, (int, float)):
-                    delay = float(rd)
-                    break
-                s = str(rd).strip().rstrip("s")
-                try:
-                    delay = float(s)
-                    break
-                except (
-                    ValueError
-                ):  # guardian: allow-silent-swallow -- P2 burndown: fail-soft optional boundary
-                    continue
-    if delay is None and msg:
-        m = re.search(r"retry\s+in\s+([0-9]+(?:\.[0-9]+)?)\s*s", msg, flags=re.I)
-        if m:
-            try:
-                delay = float(m.group(1))
-            except ValueError:
-                delay = None
-    return delay
-
-
-def _classify_gemini_http_block(status_code: int, error_body: str) -> tuple[str, str, str]:
-    """Return (evaluator_mode, provider_status, short_message) for non-success HTTP."""
-    body_l = error_body.lower()
-    if status_code == 429 or "resource_exhausted" in body_l:
-        snippet = (
-            error_body[:900] + ("…" if len(error_body) > 900 else "")
-            if error_body
-            else "Gemini quota or rate limited (HTTP 429)."
-        )
-        return "BLOCKED_RATE_LIMIT", "BLOCKED_RATE_LIMIT", snippet
-    if status_code in (401, 403):
-        snippet = (
-            error_body[:500] + ("…" if len(error_body) > 500 else "")
-            if error_body
-            else f"Gemini authorization error ({status_code})."  # guardian: allow-silent-swallow -- P2 burndown: fail-soft optional boundary
-        )
-        return (
-            "BLOCKED_PROVIDER_UNAVAILABLE",
-            "BLOCKED_PROVIDER_UNAVAILABLE",
-            f"Gemini API error {status_code}: {snippet}",
-        )
-    snippet = (
-        error_body[:900] + ("…" if len(error_body) > 900 else "")
-        if error_body
-        else f"Gemini API error ({status_code})."
-    )
-    return (
-        "BLOCKED_PROVIDER_UNAVAILABLE",
-        "BLOCKED_PROVIDER_UNAVAILABLE",
-        f"Gemini API error {status_code}: {snippet}",
-    )
-
-
-def _extract_gemini_text(data: dict[str, Any]) -> tuple[str, str | None]:
-    """Extract model text and finishReason from a Gemini generateContent response."""
-    finish_reason = None
-    candidates = data.get("candidates") or []
-    if not candidates:
-        return "", "NO_CANDIDATES"
-    candidate = candidates[0]
-    finish_reason = candidate.get("finishReason")
-    content = candidate.get("content") or {}
-    parts = content.get("parts") or []
-    text_chunks: list[str] = []
-    for part in parts:
-        if isinstance(part, dict) and part.get("text"):
-            text_chunks.append(str(part["text"]))
-    return "".join(text_chunks), finish_reason
-
-
 def _extract_json_from_text(text: str) -> dict[str, Any] | None:
-    """Robust JSON extraction from text with markdown code blocks."""
-    text = text.strip()
-
-    # Try direct JSON parse first
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:  # guardian: allow-silent-swallow -- P2 burndown: fail-soft optional boundary
-        pass
-
-    # Try removing markdown code blocks
-    patterns = [
-        r"```json\s*(.*?)\s*```",
-        r"```\s*(.*?)\s*```",
-        r"`\s*(.*?)\s*`",
-    ]
-    for pattern in patterns:
-        match = re.search(pattern, text, re.DOTALL)
-        if match:
-            try:
-                return json.loads(match.group(1).strip())
-            except json.JSONDecodeError:
-                continue
-
-    # Try to find JSON object boundaries
-    try:
-        start = text.find("{")
-        end = text.rfind("}")
-        if start != -1 and end != -1 and end > start:
-            return json.loads(text[start : end + 1])
-    except json.JSONDecodeError:  # guardian: allow-silent-swallow -- P2 burndown: fail-soft optional boundary
-        pass
-
+    s = str(text or "").strip()
+    for cand in [s, *(m.group(1).strip() for m in re.finditer(r"```(?:json)?\s*(.*?)\s*```", s, re.DOTALL))]:
+        try:
+            obj = json.loads(cand)
+            if isinstance(obj, dict):
+                return obj
+        except json.JSONDecodeError:
+            continue
+    start, end = s.find("{"), s.rfind("}")
+    if 0 <= start < end:
+        try:
+            obj = json.loads(s[start : end + 1])
+            return obj if isinstance(obj, dict) else None
+        except json.JSONDecodeError:
+            return None
     return None
-
-
-_NETWORK_TESTS_TRUTHY = frozenset({"1", "true", "yes", "on"})
 
 
 def _judge_live_https_allowed_under_pytest() -> bool:
-    """Under pytest, outbound judge HTTPS is opt-in to avoid hanging unit runs on real sockets.
+    return (not os.environ.get("PYTEST_CURRENT_TEST")) or str(os.environ.get("APPS_RG_ENABLE_NETWORK_TESTS") or "").strip().lower() in {"1", "true", "yes", "on"}
 
-    Production and non-pytest entrypoints do not set ``PYTEST_CURRENT_TEST`` and are unaffected.
-    """
-    if not os.environ.get("PYTEST_CURRENT_TEST"):
-        return True
-    return (
-        str(os.environ.get("APPS_RG_ENABLE_NETWORK_TESTS", "") or "").strip().lower() in _NETWORK_TESTS_TRUTHY
-    )
+def _make_blocked_output(provider_key: str, input_hash: str, evaluator_mode: str, provider_status: str, error: str, raw_response_ref: str | None = None, model_name: str = "", original_model: str | None = None, fallback_model: str | None = None) -> JudgeOutput:
+    p_name = PROVIDERS.get(provider_key, {"provider_name": provider_key})["provider_name"]
+    return JudgeOutput(f"x1d_{provider_key}_exec_summary", p_name, provider_key, evaluator_mode, provider_status, model_name or _policy_model_name(provider_key, "executive_summary"), False, True, error, raw_response_ref, original_model, fallback_model, input_hash=input_hash, findings=["Judge blocked - see exact_provider_error."])
 
+def _pytest_network_disabled_blocked_output(*, provider_key: str, input_hash: str, model: str, service_label: str) -> JudgeOutput:
+    return _make_blocked_output(provider_key, input_hash, "BLOCKED_PROVIDER_UNAVAILABLE", "NETWORK_TESTS_NOT_ENABLED", f"{service_label} HTTPS disabled under pytest.", model_name=model)
 
-def _pytest_network_disabled_blocked_output(
-    *,
-    provider_key: str,
-    input_hash: str,
-    model: str,
-    service_label: str,
-) -> JudgeOutput:
-    return _make_blocked_output(
-        provider_key,
-        input_hash,
-        "BLOCKED_PROVIDER_UNAVAILABLE",
-        "NETWORK_TESTS_NOT_ENABLED",
-        (
-            f"{service_label} judge HTTPS is disabled under pytest "
-            "(set APPS_RG_ENABLE_NETWORK_TESTS=1 to enable live network for judge calls)."
-        ),
-        raw_response_ref=None,
-        model_name=model,
-    )
+def _is_retriable_judge_output(output: JudgeOutput) -> bool:
+    return bool(output.provider_blocked and output.provider_status in {"BLOCKED_TIMEOUT", "BLOCKED_RATE_LIMIT", "BLOCKED_RESPONSE_PARSE_ERROR", "BLOCKED_SCHEMA_VALIDATION_ERROR"})
 
 
-def _make_blocked_output(
-    provider_key: str,
-    input_hash: str,
-    evaluator_mode: str,
-    provider_status: str,
-    error: str,
-    raw_response_ref: str | None = None,
-    model_name: str = "",
-    original_model: str | None = None,
-    fallback_model: str | None = None,
-) -> JudgeOutput:
-    """Create a blocked judge output with full context."""
-    meta = PROVIDERS.get(
-        provider_key,
-        {
-            "provider_name": provider_key,
-        },
-    )
-    evidence_model = model_name or _policy_model_name(provider_key, "executive_summary")
-    return JudgeOutput(
-        judge_id=f"x1d_{provider_key}_exec_summary",
-        provider_name=meta["provider_name"],
-        provider_key=provider_key,
-        evaluator_mode=evaluator_mode,
-        provider_status=provider_status,
-        model_name=evidence_model,
-        provider_available=False,
-        provider_blocked=True,  # Blocked providers are marked as such
-        exact_provider_error=error,
-        raw_response_ref=raw_response_ref,
-        original_model=original_model,
-        fallback_model=fallback_model,
-        rubric_version=JUDGE_RUBRIC_VERSION,
-        input_hash=input_hash,
-        output_hash="",
-        score=None,
-        score_scale=None,
-        normalized_score=None,
-        threshold=DEFAULT_THRESHOLD,
-        normalized_threshold=None,
-        pass_=False,
-        decisive_failure=False,  # Blocked providers are NOT decisive failures
-        findings=["Judge blocked - see exact_provider_error and raw_response_ref for details."],
-        cited_sentence_indexes=[],
-        remediation_suggestions=["Review provider configuration and raw response artifact."],
-    )
+def _invoke_judge_with_bounded_retries(invoke: Callable[[int], JudgeOutput], *, provider_key: str, section_id: str | None = None) -> JudgeOutput:
+    max_attempts = _section_x1d_judge_max_attempts(section_id) if section_id else max(1, min(5, runtime_limit_int("judge.x1d_max_attempts")))
+    deadline = time.monotonic() + resolve_judge_total_budget_s()
+    last: JudgeOutput | None = None
+    for attempt in range(1, max_attempts + 1):
+        if is_lane_cancelled():
+            raise TimeoutError(f"Judge {provider_key} cancelled")
+        last = invoke(attempt)
+        if not _is_retriable_judge_output(last) or attempt >= max_attempts or (deadline - time.monotonic()) <= 0.1:
+            return last
+        time.sleep(min(runtime_limit_float("judge.retry_backoff_base_seconds") + random.uniform(0.05, 0.25), max(0.0, deadline - time.monotonic())))
+    assert last is not None
+    return last
 
 
-def _make_model_backed_output(
-    provider_key: str,
-    input_hash: str,
-    model_name: str,
-    result: dict[str, Any],
-    raw_response_ref: str | None = None,
-    original_model: str | None = None,
-    fallback_model: str | None = None,
-    *,
-    deterministic_gate_summary: dict[str, Any] | None = None,
-    section_id: str | None = None,
-) -> JudgeOutput:
-    """Create a model-backed judge output from parsed result."""
-    result = _normalize_judge_result(result)
-    is_exec_summary = section_id in (None, "", "executive_summary")
-    if deterministic_gate_summary:
-        if is_exec_summary:
-            # Strictly downward-only off-domain clutter guard; ZERO finding suppression or upward score coercion.
-            from apps_rg.runtime.validators.allocation_jd_alignment_gate import (
-                reconcile_allocation_jd_alignment_judge_result,
-            )
-
-            result = reconcile_allocation_jd_alignment_judge_result(result, deterministic_gate_summary)
-        else:
-            from apps_rg.runtime.judges.executive_summary_judge_packet import (
-                reconcile_grade_only_judge_result,
-            )
-
-            result = reconcile_grade_only_judge_result(result, deterministic_gate_summary, section_id=section_id)
-    result, _dv_inferred = ensure_dimension_verdicts(
-        result, deterministic_gate_summary=None if is_exec_summary else deterministic_gate_summary
-    )
-    raw_score = float(result.get("score", 0.0))
-    declared_scale_raw = str(result.get("score_scale") or "").strip()
-    if is_exec_summary:
-        default_raw_threshold = (
-            EXEC_SUMMARY_JUDGE_THRESHOLD_NORMALIZED
-            if declared_scale_raw == "0_to_1"
-            else EXEC_SUMMARY_JUDGE_THRESHOLD_0_TO_5
-        )
-    elif section_id == "full_resume_coherence":
-        default_raw_threshold = 4.4
-    else:
-        default_raw_threshold = 4.0
-    raw_threshold = float(result.get("threshold", default_raw_threshold))
-    if is_exec_summary:
-        min_floor = (
-            EXEC_SUMMARY_JUDGE_THRESHOLD_NORMALIZED
-            if declared_scale_raw == "0_to_1"
-            else EXEC_SUMMARY_JUDGE_THRESHOLD_0_TO_5
-        )
-        raw_threshold = max(raw_threshold, min_floor)
-        result["threshold"] = raw_threshold
-    elif section_id == "full_resume_coherence" and declared_scale_raw == "0_to_5":
-        raw_threshold = max(raw_threshold, 4.4)
-        result["threshold"] = raw_threshold
-    from apps_rg.runtime.sections.executive_summary_repair_policy import judge_pass_floor_0_to_5
-
-    operator_floor = judge_pass_floor_0_to_5()
-    if operator_floor is not None:
-        raw_threshold = float(operator_floor)
-        result["threshold"] = raw_threshold
-    declared_scale = result.get("score_scale")
-    declared = declared_scale.strip() if isinstance(declared_scale, str) else None
-    score_scale, err = _validate_judge_score_contract(raw_score, raw_threshold, declared)
-    if err:
-        return _make_blocked_output(
-            provider_key,
-            input_hash,
-            "BLOCKED_SCHEMA_VALIDATION_ERROR",
-            "BLOCKED_SCHEMA_VALIDATION_ERROR",
-            err,
-            raw_response_ref=raw_response_ref,
-            model_name=model_name,
-            original_model=original_model,
-            fallback_model=fallback_model,
-        )
-
-    assert score_scale is not None  # validated above
+def _make_model_backed_output(provider_key: str, input_hash: str, model_name: str, result: dict[str, Any], raw_response_ref: str | None = None, original_model: str | None = None, fallback_model: str | None = None, *, deterministic_gate_summary: dict[str, Any] | None = None, section_id: str | None = None) -> JudgeOutput:
     try:
-        normalized_score, normalized_threshold = _compute_normalized(raw_score, raw_threshold, score_scale)
-    except ValueError as exc:
-        return _make_blocked_output(
-            provider_key,
-            input_hash,
-            "BLOCKED_SCHEMA_VALIDATION_ERROR",
-            "BLOCKED_SCHEMA_VALIDATION_ERROR",
-            str(exc),
-            raw_response_ref=raw_response_ref,
-            model_name=model_name,
-            original_model=original_model,
-            fallback_model=fallback_model,
-        )
-
-    decisive = bool(result.get("decisive_failure", False))
-    dim_floor_ok = True
-    if is_exec_summary:
-        dim_floor_ok, dim_floor_reasons = executive_summary_human_dimension_floor_passes(
-            result.get("dimension_verdicts")
-        )
-        if not dim_floor_ok:
-            existing_findings = list(result.get("findings") or [])
-            for reason in dim_floor_reasons:
-                if reason not in existing_findings:
-                    existing_findings.append(reason)
-            result["findings"] = existing_findings
-    passed = normalized_score >= normalized_threshold and not decisive and dim_floor_ok
-    output_hash = hashlib.sha256(json.dumps(result, sort_keys=True).encode()).hexdigest()[:16]
-    meta = PROVIDERS[provider_key]
-
-    provider_status = "MODEL_BACKED_PASS" if passed else "MODEL_BACKED_FAIL"
-
-    return JudgeOutput(
-        judge_id=f"x1d_{provider_key}_exec_summary",
-        provider_name=meta["provider_name"],
-        provider_key=provider_key,
-        evaluator_mode="MODEL_BACKED",
-        provider_status=provider_status,
-        model_name=model_name,
-        provider_available=True,
-        provider_blocked=False,  # Model-backed providers are not blocked
-        exact_provider_error=None,
-        raw_response_ref=raw_response_ref,
-        original_model=original_model,
-        fallback_model=fallback_model,
-        rubric_version=JUDGE_RUBRIC_VERSION,
-        input_hash=input_hash,
-        output_hash=output_hash,
-        score=raw_score,
-        score_scale=score_scale,
-        normalized_score=normalized_score,
-        threshold=raw_threshold,
-        normalized_threshold=normalized_threshold,
-        pass_=passed,
-        decisive_failure=decisive,
-        findings=list(result.get("findings", [])),
-        cited_sentence_indexes=list(result.get("cited_sentence_indexes", [])),
-        remediation_suggestions=list(result.get("remediation_suggestions", [])),
-        rationale=str(result.get("rationale") or "").strip() or None,
-        fail_reasons=[str(x) for x in (result.get("fail_reasons") or []) if str(x).strip()],
-        unsupported_claims=[str(x) for x in (result.get("unsupported_claims") or []) if str(x).strip()],
-        quality_flags=[str(x) for x in (result.get("quality_flags") or []) if str(x).strip()],
-        dimension_verdicts=dict(result.get("dimension_verdicts") or {}),
-        dimension_verdicts_inferred=bool(result.get("dimension_verdicts_inferred")),
-        model_requested=model_name,
-        model_actual=model_name,
-    )
+        proj = evaluate_v3_judge_response_to_dict(result, section_id=section_id or "executive_summary")
+    except JudgeV3SchemaError as exc:
+        return _make_blocked_output(provider_key, input_hash, "BLOCKED_SCHEMA_VALIDATION_ERROR", "BLOCKED_SCHEMA_VALIDATION_ERROR", str(exc), raw_response_ref=raw_response_ref, model_name=model_name)
+    proj, dv_inf = ensure_dimension_verdicts(proj, deterministic_gate_summary=deterministic_gate_summary, section_id=section_id)
+    scale = str(proj.get("score_scale") or "0_to_1").strip()
+    if scale not in VALID_SCORE_SCALES:
+        return _make_blocked_output(provider_key, input_hash, "BLOCKED_SCHEMA_VALIDATION_ERROR", "BLOCKED_SCHEMA_VALIDATION_ERROR", f"Invalid score_scale {scale!r}", raw_response_ref=raw_response_ref, model_name=model_name)
+    raw_sc = float(proj.get("score", 0.0))
+    raw_th = float(proj.get("threshold", DEFAULT_THRESHOLD if scale == "0_to_1" else 4.0))
+    n_sc, n_th = (raw_sc, raw_th) if scale == "0_to_1" else (raw_sc / 5.0, raw_th / 5.0)
+    decisive, findings = bool(proj.get("decisive_failure", False)), list(proj.get("findings") or [])
+    if not dv_inf:
+        veto_ok, veto_reasons = section_dimension_veto_passes(proj.get("dimension_verdicts"))
+        if not veto_ok:
+            decisive = True
+            findings.extend(r for r in veto_reasons if r not in findings)
+    passed = n_sc >= n_th and not decisive
+    out_h = hashlib.sha256(json.dumps(proj, sort_keys=True, default=str).encode("utf-8")).hexdigest()[:16]
+    p_name = PROVIDERS.get(provider_key, {"provider_name": provider_key})["provider_name"]
+    return JudgeOutput(f"x1d_{provider_key}_{section_id or 'exec_summary'}", p_name, provider_key, "MODEL_BACKED", "MODEL_BACKED_PASS" if passed else "MODEL_BACKED_FAIL", model_name, True, False, None, raw_response_ref, original_model, fallback_model, input_hash=input_hash, output_hash=out_h, score=raw_sc, score_scale=scale, normalized_score=n_sc, threshold=raw_th, normalized_threshold=n_th, pass_=passed, decisive_failure=decisive, findings=findings, cited_sentence_indexes=list(proj.get("cited_sentence_indexes") or []), remediation_suggestions=list(proj.get("remediation_suggestions") or []), rationale=str(proj.get("rationale") or "") or None, fail_reasons=list(proj.get("fail_reasons") or []), unsupported_claims=list(proj.get("unsupported_claims") or []), quality_flags=list(proj.get("quality_flags") or []), dimension_verdicts=dict(proj.get("dimension_verdicts") or {}), dimension_verdicts_inferred=dv_inf, model_requested=model_name, model_actual=model_name, section_id=section_id)
 
 
-def _openai_judge_uses_responses_api(model: str) -> bool:
-    """Route exact catalog-approved proof judges through the Responses transport."""
-    capabilities = try_model_capabilities(model)
-    return bool(
-        capabilities
-        and capabilities.provider == "openai"
-        and capabilities.proof_eligible
-        and capabilities.supports_endpoint("responses")
-    )
-
-
-def _openai_responses_text(data: dict[str, Any]) -> str:
-    text = str(data.get("output_text") or "").strip()
-    if text:
-        return text
-    parts: list[str] = []
-    for item in data.get("output") or []:
-        if not isinstance(item, dict):
-            continue
-        for block in item.get("content") or []:
-            if isinstance(block, dict) and block.get("type") in {"output_text", "text"}:
-                value = str(block.get("text") or "").strip()
-                if value:
-                    parts.append(value)
-    return "\n".join(parts)
-
-
-def _x1d_provider_request_receipt_fields(
-    judge_receipt: dict[str, Any] | None,
-    *,
-    provider_name: str,
-    model_env_source: str,
-    input_hash: str,
-    max_tokens: int,
-    response_format: str,
-    temperature: float | None = 0.1,
-    thinking_level: str | None = None,
-) -> dict[str, Any]:
-    receipt = judge_receipt or {}
-    return {
-        "provider_name": provider_name,
-        "model_env_source": model_env_source,
-        "canonical_contract_hash": receipt.get("canonical_contract_hash"),
-        "packet_hash": receipt.get("packet_hash") or input_hash,
-        "schema_hash": hashlib.sha256(
-            json.dumps(GEMINI_JUDGE_RESPONSE_SCHEMA, sort_keys=True).encode()
-        ).hexdigest()[:16],
-        "max_tokens": max_tokens,
-        "temperature": temperature,
-        "thinking_level": thinking_level,
-        "response_format": response_format,
-    }
-
-
-def _call_openai(
-    api_key: str,
-    prompt: str,
-    model: str,
-    input_hash: str,
-    provider_key: str,
-    *,
-    artifact_base: Path | None = None,
-    reasoning_effort: str | None = None,
-    model_requested: str | None = None,
-    judge_receipt: dict[str, Any] | None = None,
-    attempt: int = 1,
-    model_env_source: str = "openai",
-    section_id: str | None = None,
-    response_schema: dict[str, Any] | None = None,
-) -> JudgeOutput:
-    """Call OpenAI API with full artifact preservation (or the IDE CLI when given the session marker)."""
-    if api_key == IDE_CLI_SESSION_MARKER:
-        from apps_rg.runtime.judges.x1d_ide_cli import call_ide_cli_judge
-
-        return call_ide_cli_judge(
-            prompt=prompt, model=model, input_hash=input_hash, provider_key=provider_key,
-            artifact_base=artifact_base, model_requested=model_requested, judge_receipt=judge_receipt,
-            reasoning_effort=reasoning_effort, attempt=attempt, section_id=section_id,
-            response_schema=response_schema,
-        )
-    system_content = build_x1d_judge_system_prompt(compact=True, section_id=section_id)
-    max_tokens = (
-        _resolved_section_x1d_judge_max_output_tokens(section_id, attempt=attempt)
-        if section_id
-        else _resolved_x1d_judge_max_output_tokens(attempt=attempt)
-    )
-    judge_max_attempts = (
-        _section_x1d_judge_max_attempts(section_id) if section_id else _x1d_judge_max_attempts()
-    )
-    uses_responses_api = _openai_judge_uses_responses_api(model)
-    if not uses_responses_api:
-        raise ValueError(f"Unsupported OpenAI proof judge model for Responses transport: {model!r}")
-    effort = (reasoning_effort or "").strip().lower()
-    if not effort:
-        raise ValueError("OpenAI proof judge reasoning_effort must be explicit")
-    payload: dict[str, Any] = {
-        "model": model,
-        "input": [
-            {"role": "system", "content": system_content},
-            {"role": "user", "content": prompt},
-        ],
-        "max_output_tokens": max_tokens,
-        "reasoning": {"effort": effort},
-        "text": {
-            "format": {
-                "type": "json_schema",
-                "name": "apps_rg_x1d_judge",
-                "strict": True,
-                "schema": response_schema or GEMINI_JUDGE_RESPONSE_SCHEMA,
-            }
-        },
-    }
-
-    budget_block = _x1d_token_budget_blocked_output(
-        artifact_base=artifact_base,
-        provider="openai",
-        provider_key=provider_key,
-        model=model,
-        input_hash=input_hash,
-        prompt=prompt,
-        max_output_tokens=max_tokens,
-        section_id=section_id,
-        attempt=attempt,
-    )
-    if budget_block is not None:
-        return budget_block
-
-    # Write request artifact
-    req_path = _artifact_path(provider_key, "provider_request", artifact_base=artifact_base)
-    req_doc: dict[str, Any] = {
-        "payload": payload,
-        "input_hash": input_hash,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "model_requested": model_requested or model,
-        "model_actual": model,
-        "reasoning_effort": reasoning_effort,
-        "judge_attempt": attempt,
-        "judge_max_attempts": judge_max_attempts,
-        "compact_system_prompt": True,
-        **_x1d_provider_request_receipt_fields(
-            judge_receipt,
-            provider_name="openai",
-            model_env_source=model_env_source,
-            input_hash=input_hash,
-            max_tokens=max_tokens,
-            response_format="responses_json_schema",
-            temperature=None,
-        ),
-    }
-    if judge_receipt:
-        req_doc["judge_receipt"] = judge_receipt
-    _write_artifact(req_path, req_doc)
-
-    req = urllib.request.Request(
-        "https://api.openai.com/v1/responses",
-        data=json.dumps(payload).encode(),
-        headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
-        method="POST",
-    )
-
-    if not _judge_live_https_allowed_under_pytest():
-        return _pytest_network_disabled_blocked_output(
-            provider_key=provider_key,
-            input_hash=input_hash,
-            model=model,
-            service_label="OpenAI",
-        )
-
-    try:
-        with urlopen_provider_request(req, timeout=_judge_http_timeout()) as response:
-            raw_response = response.read().decode()
-    except urllib.error.HTTPError as e:
-        error_body = e.read().decode()
-        # Write error response artifact
-        err_path = _artifact_path(provider_key, "provider_response_raw", artifact_base=artifact_base)
-        _write_artifact(
-            err_path, {"error": True, "status_code": e.code, "body": error_body, "input_hash": input_hash}
-        )
-        _record_x1d_external_usage(
-            artifact_base=artifact_base,
-            provider="openai",
-            model=model,
-            input_hash=input_hash,
-            section_id=section_id,
-            logical_attempt=attempt,
-            transport_attempt=1,
-            outcome=f"HTTP_{e.code}",
-            provider_status="BLOCKED_PROVIDER_UNAVAILABLE",
-            raw_response_ref=str(err_path),
-        )
-        return _make_blocked_output(
-            provider_key,
-            input_hash,
-            "BLOCKED_PROVIDER_UNAVAILABLE",
-            "BLOCKED_PROVIDER_UNAVAILABLE",
-            f"OpenAI API error {e.code}: {error_body}",
-            raw_response_ref=str(err_path),
-            model_name=model,
-        )
-
-    # Write raw response artifact
-    raw_path = _artifact_path(provider_key, "provider_response_raw", artifact_base=artifact_base)
-    _write_artifact(raw_path, {"raw_response": raw_response, "input_hash": input_hash})
-
-    try:
-        data = json.loads(raw_response)
-        usage_doc = data if isinstance(data, Mapping) else {}
-        _record_x1d_external_usage(
-            artifact_base=artifact_base,
-            provider="openai",
-            model=str(usage_doc.get("model") or model),
-            input_hash=input_hash,
-            section_id=section_id,
-            logical_attempt=attempt,
-            transport_attempt=1,
-            outcome="SUCCESS",
-            provider_status="RESPONSE_RECEIVED",
-            usage=usage_doc.get("usage") if isinstance(usage_doc.get("usage"), Mapping) else None,
-            response_id=str(usage_doc.get("id") or ""),
-            raw_response_ref=str(raw_path),
-        )
-        content = _openai_responses_text(data)
-        finish_reason = str(data.get("status") or "")
-    except (json.JSONDecodeError, TypeError) as e:
-        parse_err_path = _artifact_path(provider_key, "provider_parse_result", artifact_base=artifact_base)
-        _write_artifact(
-            parse_err_path,
-            {"error": "response_structure", "detail": str(e), "raw_response_ref": str(raw_path)},
-        )
-        return _make_blocked_output(
-            provider_key,
-            input_hash,
-            "BLOCKED_RESPONSE_PARSE_ERROR",
-            "BLOCKED_RESPONSE_PARSE_ERROR",
-            f"OpenAI response parse error: {e}",
-            raw_response_ref=str(raw_path),
-            model_name=model,
-        )
-
-    if not content.strip() and finish_reason.lower() == "incomplete":
-        parse_err_path = _artifact_path(provider_key, "provider_parse_result", artifact_base=artifact_base)
-        usage = data.get("usage") or {}
-        _write_artifact(
-            parse_err_path,
-            {
-                "error": "empty_content_incomplete",
-                "finish_reason": finish_reason,
-                "usage": usage,
-                "raw_response_ref": str(raw_path),
-                "judge_attempt": attempt,
-            },
-        )
-        return _make_blocked_output(
-            provider_key,
-            input_hash,
-            "BLOCKED_RESPONSE_PARSE_ERROR",
-            "BLOCKED_RESPONSE_PARSE_ERROR",
-            (
-                f"OpenAI judge returned empty content (finish_reason={finish_reason}); "
-                "completion token budget likely consumed by reasoning — retriable"
-            ),
-            raw_response_ref=str(raw_path),
-            model_name=model,
-        )
-
-    out = _finish_judge_text_parse(
-        provider_key=provider_key,
-        input_hash=input_hash,
-        model_name=model,
-        raw_path=raw_path,
-        text=content,
-        finish_reason=finish_reason,
-        artifact_base=artifact_base,
-        judge_receipt=judge_receipt,
-        model_requested=model_requested,
-    )
-    return _attach_judge_receipt_fields(out, judge_receipt, model_requested=model_requested or model)
-
-
-def _attach_judge_receipt_fields(
-    output: JudgeOutput,
-    judge_receipt: dict[str, Any] | None,
-    *,
-    model_requested: str | None = None,
-) -> JudgeOutput:
-    if judge_receipt:
-        output.judge_packet_hash = judge_receipt.get("judge_packet_hash")
-        output.judge_packet_ref = judge_receipt.get("judge_packet_ref")
-        output.candidate_output_ref = judge_receipt.get("candidate_output_ref")
-        output.allowed_fact_packet_ref = judge_receipt.get("allowed_fact_packet_ref")
-        output.rubric_ref = judge_receipt.get("rubric_ref")
+def _finish_judge_text_parse(*, provider_key: str, input_hash: str, model_name: str, raw_path: Path, text: str, finish_reason: str | None = None, artifact_base: Path | None = None, judge_receipt: dict[str, Any] | None = None, model_requested: str | None = None, section_id: str | None = None) -> JudgeOutput:
+    _ = (finish_reason, artifact_base)
+    parsed = _extract_json_from_text(text)
+    if parsed is None:
+        return _make_blocked_output(provider_key, input_hash, "BLOCKED_RESPONSE_PARSE_ERROR", "BLOCKED_RESPONSE_PARSE_ERROR", "Failed to extract JSON from judge response.", raw_response_ref=str(raw_path), model_name=model_name)
+    out = _make_model_backed_output(provider_key, input_hash, model_name, parsed, raw_response_ref=str(raw_path), section_id=section_id)
     if model_requested:
-        output.model_requested = model_requested
-        output.model_actual = output.model_name
-    return output
-
-
-def _validate_judge_parse_result(
-    provider_key: str,
-    input_hash: str,
-    model_name: str,
-    result: dict[str, Any],
-    raw_response_ref: str,
-    *,
-    artifact_base: Path | None = None,
-) -> JudgeOutput | None:
-    """Return a blocked JudgeOutput when required judge fields are missing; else None."""
-    missing = [f for f in JUDGE_REQUIRED_FIELDS if f not in result]
-    if missing:
-        schema_err_path = _artifact_path(provider_key, "provider_parse_result", artifact_base=artifact_base)
-        _write_artifact(
-            schema_err_path,
-            {
-                "error": "schema_validation",
-                "missing_fields": missing,
-                "result_keys": list(result.keys()),
-                "raw_response_ref": raw_response_ref,
-            },
-        )
-        return _make_blocked_output(
-            provider_key,
-            input_hash,
-            "BLOCKED_SCHEMA_VALIDATION_ERROR",
-            "BLOCKED_SCHEMA_VALIDATION_ERROR",
-            f"Missing required fields: {missing}",
-            raw_response_ref=raw_response_ref,
-            model_name=model_name,
-        )
-    return None
-
-
-def _finish_judge_text_parse(
-    *,
-    provider_key: str,
-    input_hash: str,
-    model_name: str,
-    raw_path: Path,
-    text: str,
-    finish_reason: str | None = None,
-    original_model: str | None = None,
-    fallback_model: str | None = None,
-    artifact_base: Path | None = None,
-    judge_receipt: dict[str, Any] | None = None,
-    model_requested: str | None = None,
-    section_id: str | None = None,
-) -> JudgeOutput:
-    """Parse extracted judge text into JudgeOutput or blocked status."""
-    allowed_finish_reasons = {
-        "gemini_pro": {"STOP"},
-        "openai_chatgpt": {"COMPLETED"},
-    }
-    if finish_reason and str(finish_reason).upper() not in allowed_finish_reasons.get(provider_key, set()):
-        parse_err_path = _artifact_path(provider_key, "provider_parse_result", artifact_base=artifact_base)
-        _write_artifact(
-            parse_err_path,
-            {
-                "error": "finish_reason",
-                "finish_reason": finish_reason,
-                "text_preview": text[:500],
-                "raw_response_ref": str(raw_path),
-            },
-        )
-        return _make_blocked_output(
-            provider_key,
-            input_hash,
-            "BLOCKED_RESPONSE_PARSE_ERROR",
-            "BLOCKED_RESPONSE_PARSE_ERROR",
-            f"{provider_key} finish/status={finish_reason} (incomplete judge JSON)",
-            raw_response_ref=str(raw_path),
-            model_name=model_name,
-            original_model=original_model,
-            fallback_model=fallback_model,
-        )
-
-    if not str(text).strip():
-        parse_err_path = _artifact_path(provider_key, "provider_parse_result", artifact_base=artifact_base)
-        _write_artifact(parse_err_path, {"error": "empty_text", "raw_response_ref": str(raw_path)})
-        return _make_blocked_output(
-            provider_key,
-            input_hash,
-            "BLOCKED_RESPONSE_PARSE_ERROR",
-            "BLOCKED_RESPONSE_PARSE_ERROR",
-            "Response contained no judge text",
-            raw_response_ref=str(raw_path),
-            model_name=model_name,
-            original_model=original_model,
-            fallback_model=fallback_model,
-        )
-
-    result = _extract_json_from_text(text)
-    if result is None:
-        parse_err_path = _artifact_path(provider_key, "provider_parse_result", artifact_base=artifact_base)
-        _write_artifact(
-            parse_err_path,
-            {
-                "error": "json_extraction",
-                "text_preview": text[:500],
-                "raw_response_ref": str(raw_path),
-            },
-        )
-        return _make_blocked_output(
-            provider_key,
-            input_hash,
-            "BLOCKED_RESPONSE_PARSE_ERROR",
-            "BLOCKED_RESPONSE_PARSE_ERROR",
-            f"Failed to extract JSON from {provider_key} response",
-            raw_response_ref=str(raw_path),
-            model_name=model_name,
-            original_model=original_model,
-            fallback_model=fallback_model,
-        )
-
-    blocked = _validate_judge_parse_result(
-        provider_key, input_hash, model_name, result, str(raw_path), artifact_base=artifact_base
-    )
-    if blocked is not None:
-        return blocked
-
-    parse_path = _artifact_path(provider_key, "provider_parse_result", artifact_base=artifact_base)
-    _write_artifact(
-        parse_path,
-        {
-            "result": result,
-            "raw_response_ref": str(raw_path),
-            "original_model": original_model,
-            "fallback_model": fallback_model,
-        },
-    )
-
-    gate_summary = (judge_receipt or {}).get("deterministic_gate_summary") if judge_receipt else None
-    resolved_section_id = section_id or ((judge_receipt or {}).get("section_id") if judge_receipt else None)
-    out = _make_model_backed_output(
-        provider_key,
-        input_hash,
-        model_name,
-        result,
-        raw_response_ref=str(raw_path),
-        original_model=original_model,
-        fallback_model=fallback_model,
-        deterministic_gate_summary=gate_summary,
-        section_id=resolved_section_id,
-    )
-    return _attach_judge_receipt_fields(out, judge_receipt, model_requested=model_requested or model_name)
-
-
-def _call_gemini(
-    api_key: str,
-    prompt: str,
-    model: str,
-    input_hash: str,
-    provider_key: str,
-    *,
-    model_source: str = "unknown",
-    artifact_base: Path | None = None,
-    model_requested: str | None = None,
-    judge_receipt: dict[str, Any] | None = None,
-    thinking_level: str | None = None,
-    attempt: int = 1,
-    section_id: str | None = None,
-    response_schema: dict[str, Any] | None = None,
-) -> JudgeOutput:
-    """Call Gemini API with full artifact preservation (or the IDE CLI when given the session marker)."""
-    if api_key == IDE_CLI_SESSION_MARKER:
-        from apps_rg.runtime.judges.x1d_ide_cli import call_ide_cli_judge
-
-        return call_ide_cli_judge(
-            prompt=prompt, model=model, input_hash=input_hash, provider_key=provider_key,
-            artifact_base=artifact_base, model_requested=model_requested, judge_receipt=judge_receipt,
-            reasoning_effort=thinking_level, attempt=attempt, section_id=section_id,
-            response_schema=response_schema,
-        )
-    logical_attempt = attempt
-    judge_max_attempts = (
-        _section_x1d_judge_max_attempts(section_id) if section_id else _x1d_judge_max_attempts()
-    )
-    max_tokens = (
-        _resolved_section_x1d_judge_max_output_tokens(section_id, attempt=attempt)
-        if section_id
-        else _resolved_x1d_judge_max_output_tokens(attempt=attempt)
-    )
-    resolved_thinking_level = str(thinking_level or "").strip().lower()
-    if not resolved_thinking_level:
-        raise ValueError("Gemini proof judge thinking_level must be explicit")
-    generation_config = _gemini_generation_config(
-        thinking_level=resolved_thinking_level,
-        attempt=attempt,
-        section_id=section_id,
-        response_schema=response_schema,
-    )
-    payload = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "systemInstruction": {"parts": [{"text": build_x1d_judge_system_prompt(compact=True, section_id=section_id)}]},
-        "generationConfig": generation_config,
-    }
-
-    budget_block = _x1d_token_budget_blocked_output(
-        artifact_base=artifact_base,
-        provider="gemini",
-        provider_key=provider_key,
-        model=model,
-        input_hash=input_hash,
-        prompt=prompt,
-        max_output_tokens=max_tokens,
-        section_id=section_id,
-        attempt=attempt,
-    )
-    if budget_block is not None:
-        return budget_block
-
-    endpoint_version = "v1beta" if _uses_gemini_v1beta_endpoint(model) else "v1"
-    url = f"https://generativelanguage.googleapis.com/{endpoint_version}/models/{model}:generateContent"
-
-    retries = _gemini_judge_max_retries()
-    safe_url, omitted_q = _sanitize_request_url_for_x1d_artifact(url)
-
-    # Write request artifact (never persist raw API keys in URLs or elsewhere).
-    req_path = _artifact_path(provider_key, "provider_request", artifact_base=artifact_base)
-    artifact_body: dict[str, Any] = {
-        "payload": payload,
-        "url": safe_url,
-        "resolved_model": model,
-        "resolved_model_source": model_source,
-        "model_requested": model_requested or model,
-        "model_actual": model,
-        "thinking_level": resolved_thinking_level,
-        "provider_key": provider_key,
-        "request_timeout_seconds": 60,
-        "gemini_max_retries_configured": retries,
-        "judge_max_attempts": judge_max_attempts,
-        "input_hash": input_hash,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "judge_attempt": attempt,
-        "gemini_thinking_config": dict(generation_config.get("thinkingConfig") or {}),
-        "gemini_thinking_optimization_enabled": bool(generation_config.get("thinkingConfig")),
-        **_x1d_provider_request_receipt_fields(
-            judge_receipt,
-            provider_name="gemini",
-            model_env_source=model_source,
-            input_hash=input_hash,
-            max_tokens=max_tokens,
-            response_format="responseSchema",
-            temperature=None,
-            thinking_level=resolved_thinking_level,
-        ),
-    }
+        out.model_requested = model_requested
     if judge_receipt:
-        artifact_body["judge_receipt"] = judge_receipt
-    if omitted_q:
-        artifact_body["redacted_query_param_names"] = list(omitted_q)
-    _write_artifact(req_path, artifact_body)
-
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(payload).encode(),
-        headers={"Content-Type": "application/json", "x-goog-api-key": api_key},
-        method="POST",
-    )
-    raw_response = ""
-
-    if not _judge_live_https_allowed_under_pytest():
-        return _pytest_network_disabled_blocked_output(
-            provider_key=provider_key,
-            input_hash=input_hash,
-            model=model,
-            service_label="Gemini",
-        )
-
-    for transport_attempt in range(retries + 1):
-        try:
-            with _GEMINI_CONCURRENCY_SEMAPHORE:
-                with urlopen_provider_request(req, timeout=_judge_http_timeout()) as response:
-                    raw_response = response.read().decode()
-            break
-        except urllib.error.HTTPError as e:
-            body = e.read().decode(errors="replace")
-            hard_quota = any(
-                marker in body.lower()
-                for marker in (
-                    "exceeded its monthly spending cap",
-                    "monthly spending cap",
-                    "project spend cap",
-                    "billing account",
-                )
-            )
-            if transport_attempt < retries and e.code == 429 and not hard_quota:
-                _record_x1d_external_usage(
-                    artifact_base=artifact_base,
-                    provider="gemini",
-                    model=model,
-                    input_hash=input_hash,
-                    section_id=section_id,
-                    logical_attempt=logical_attempt,
-                    transport_attempt=transport_attempt + 1,
-                    outcome="HTTP_429",
-                    provider_status="RETRYING",
-                    retry_reason="provider_rate_limit",
-                )
-                if is_lane_cancelled():
-                    raise TimeoutError("Gemini judge cancelled during rate-limit backoff")
-                wait_s = _parse_gemini_retry_delay_seconds(body)
-                if wait_s is None:
-                    wait_s = min(15.0, (2.0**transport_attempt) + random.uniform(0.25, 1.25))
-                else:
-                    wait_s = float(wait_s) + random.uniform(0.15, 0.75)
-                time.sleep(min(15.0, max(1.0, float(wait_s))))
-                continue
-
-            eval_mode, prov_status, msg = _classify_gemini_http_block(e.code, body)
-            err_path = _artifact_path(provider_key, "provider_response_raw", artifact_base=artifact_base)
-            _write_artifact(
-                err_path,
-                {
-                    "error": True,
-                    "status_code": e.code,
-                    "body": body,
-                    "input_hash": input_hash,
-                    "attempt": transport_attempt,
-                    "retries_configured": retries,
-                },
-            )
-            _record_x1d_external_usage(
-                artifact_base=artifact_base,
-                provider="gemini",
-                model=model,
-                input_hash=input_hash,
-                section_id=section_id,
-                logical_attempt=logical_attempt,
-                transport_attempt=transport_attempt + 1,
-                outcome=f"HTTP_{e.code}",
-                provider_status=prov_status,
-                raw_response_ref=str(err_path),
-            )
-            return _make_blocked_output(
-                provider_key,
-                input_hash,
-                eval_mode,
-                prov_status,
-                msg,
-                raw_response_ref=str(err_path),
-                model_name=model,
-            )
-
-    # Write raw response artifact
-    raw_path = _artifact_path(provider_key, "provider_response_raw", artifact_base=artifact_base)
-    _write_artifact(raw_path, {"raw_response": raw_response, "input_hash": input_hash})
-
-    try:
-        data = json.loads(raw_response)
-    except json.JSONDecodeError as e:
-        parse_err_path = _artifact_path(provider_key, "provider_parse_result", artifact_base=artifact_base)
-        _write_artifact(
-            parse_err_path,
-            {
-                "error": "response_structure",
-                "detail": str(e),
-                "raw_response_ref": str(raw_path),
-            },
-        )
-        _record_x1d_external_usage(
-            artifact_base=artifact_base,
-            provider="gemini",
-            model=model,
-            input_hash=input_hash,
-            section_id=section_id,
-            logical_attempt=logical_attempt,
-            transport_attempt=transport_attempt + 1,
-            outcome="RESPONSE_UNPARSEABLE",
-            provider_status="BLOCKED_RESPONSE_PARSE_ERROR",
-            raw_response_ref=str(raw_path),
-        )
-        return _make_blocked_output(
-            provider_key,
-            input_hash,
-            "BLOCKED_RESPONSE_PARSE_ERROR",
-            "BLOCKED_RESPONSE_PARSE_ERROR",
-            f"Gemini response envelope parse error: {e}",
-            raw_response_ref=str(raw_path),
-            model_name=model,
-        )
-
-    usage_doc = data if isinstance(data, Mapping) else {}
-    _record_x1d_external_usage(
-        artifact_base=artifact_base,
-        provider="gemini",
-        model=str(usage_doc.get("modelVersion") or model),
-        input_hash=input_hash,
-        section_id=section_id,
-        logical_attempt=logical_attempt,
-        transport_attempt=transport_attempt + 1,
-        outcome="SUCCESS",
-        provider_status="RESPONSE_RECEIVED",
-        usage=usage_doc.get("usageMetadata") if isinstance(usage_doc.get("usageMetadata"), Mapping) else None,
-        response_id=str(usage_doc.get("responseId") or ""),
-        raw_response_ref=str(raw_path),
-    )
-
-    text, finish_reason = _extract_gemini_text(data)
-    out = _finish_judge_text_parse(
-        provider_key=provider_key,
-        input_hash=input_hash,
-        model_name=model,
-        raw_path=raw_path,
-        text=text,
-        finish_reason=finish_reason,
-        artifact_base=artifact_base,
-        judge_receipt=judge_receipt,
-        model_requested=model_requested,
-    )
-    out.reasoning_effort = resolved_thinking_level
+        out.judge_packet_hash = judge_receipt.get("judge_packet_hash")
+        out.judge_packet_ref = judge_receipt.get("judge_packet_ref")
     return out
 
 
+def _call_gemini(api_key: str, prompt: str, model: str, input_hash: str, provider_key: str = "gemini_pro", *, model_source: str = "", artifact_base: Path | None = None, model_requested: str | None = None, judge_receipt: dict[str, Any] | None = None, thinking_level: str | None = None, attempt: int = 1, section_id: str | None = None, response_schema: dict[str, Any] | None = None) -> JudgeOutput:
+    _ = model_source
+    if api_key == IDE_CLI_SESSION_MARKER:
+        return call_ide_cli_judge(prompt=prompt, model=model, input_hash=input_hash, provider_key=provider_key, artifact_base=artifact_base, model_requested=model_requested, judge_receipt=judge_receipt, reasoning_effort=thinking_level, attempt=attempt, section_id=section_id, response_schema=response_schema)
+    if not _judge_live_https_allowed_under_pytest():
+        return _pytest_network_disabled_blocked_output(provider_key=provider_key, input_hash=input_hash, model=model, service_label="Gemini")
+    return _make_blocked_output(provider_key, input_hash, "BLOCKED_PROVIDER_UNAVAILABLE", "EXTERNAL_HTTP_DISABLED_USE_IDE_CLI", "Use ide_cli transport.", model_name=model)
+
+
+def _call_openai(api_key: str, prompt: str, model: str, input_hash: str, provider_key: str = "openai_chatgpt", *, artifact_base: Path | None = None, reasoning_effort: str | None = None, model_requested: str | None = None, judge_receipt: dict[str, Any] | None = None, attempt: int = 1, model_env_source: str = "", section_id: str | None = None, response_schema: dict[str, Any] | None = None) -> JudgeOutput:
+    _ = model_env_source
+    if api_key == IDE_CLI_SESSION_MARKER:
+        return call_ide_cli_judge(prompt=prompt, model=model, input_hash=input_hash, provider_key=provider_key, artifact_base=artifact_base, model_requested=model_requested, judge_receipt=judge_receipt, reasoning_effort=reasoning_effort, attempt=attempt, section_id=section_id, response_schema=response_schema)
+    if not _judge_live_https_allowed_under_pytest():
+        return _pytest_network_disabled_blocked_output(provider_key=provider_key, input_hash=input_hash, model=model, service_label="OpenAI")
+    return _make_blocked_output(provider_key, input_hash, "BLOCKED_PROVIDER_UNAVAILABLE", "EXTERNAL_HTTP_DISABLED_USE_IDE_CLI", "Use ide_cli transport.", model_name=model)
+
+
+def _build_judge_user_prompt(resume_display_text: str, claim_ledger: list[dict[str, Any]]) -> str:
+    return f"{RUBRIC}\n\nRESUME_DISPLAY_TEXT:\n{resume_display_text}\n\nCLAIM_LEDGER:\n{json.dumps(claim_ledger, separators=(',', ':'))}"
+
+
 def _mocked_output(provider_key: str, input_hash: str) -> JudgeOutput:
-    """Create a mocked judge output."""
-    meta = PROVIDERS[provider_key]
-    model_name = _policy_model_name(provider_key, "executive_summary")
-    return JudgeOutput(
-        judge_id=f"x1d_{provider_key}_exec_summary",
-        provider_name=meta["provider_name"],
-        provider_key=provider_key,
-        evaluator_mode="MOCKED",
-        provider_status="MOCKED",
-        model_name=model_name,
-        provider_available=False,
-        provider_blocked=False,  # Mocked is not blocked
-        exact_provider_error=None,
-        raw_response_ref=None,
-        rubric_version=JUDGE_RUBRIC_VERSION,
-        input_hash=input_hash,
-        output_hash="mocked-output",
-        score=0.80,
-        score_scale="0_to_1",
-        normalized_score=0.80,
-        threshold=DEFAULT_THRESHOLD,
-        normalized_threshold=0.80,
-        pass_=True,
-        decisive_failure=False,
-        findings=["MOCKED plumbing judge. Not valid for X3_ALLOW."],
-        cited_sentence_indexes=[],
-        remediation_suggestions=[],
-    )
+    if os.environ.get("APPS_RG_PRODUCTION_RUN", "").strip() == "1" or not (os.environ.get("PYTEST_CURRENT_TEST") or "pytest" in sys.modules):
+        raise RuntimeError("MOCK_JUDGE_FORBIDDEN")
+    p_name = PROVIDERS.get(provider_key, {"provider_name": provider_key})["provider_name"]
+    return JudgeOutput(f"x1d_{provider_key}_exec_summary", p_name, provider_key, "MOCKED", "MOCKED", _policy_model_name(provider_key, "executive_summary"), False, False, None, input_hash=input_hash, output_hash="mocked-output", score=0.80, score_scale="0_to_1", normalized_score=0.80, threshold=DEFAULT_THRESHOLD, normalized_threshold=0.80, pass_=True, findings=["MOCKED plumbing judge."])
 
 
-def _is_test_environment() -> bool:
-    return bool(os.environ.get("PYTEST_CURRENT_TEST") or ("pytest" in sys.modules))
-
-
-def run_llm_judges(
-    *,
-    resume_display_text: str,
-    claim_ledger: list[dict[str, Any]],
-    judge_keys: list[str],
-    mode: str = "blocked_if_unavailable",
-    artifact_base: Path | None = None,
-    judge_packet: dict[str, Any] | None = None,
-    judge_packet_ref: str | None = None,
-    compiled_prompt: str | None = None,
-    section_id: str = "executive_summary",
-) -> list[JudgeOutput]:
-    """Run or block the requested provider judges (GRADE_ONLY packet or rubric prompt)."""
-    from apps_rg.runtime.judges.executive_summary_judge_packet import (
-        judge_contract_hash as _exec_contract_hash,
-    )
-    from apps_rg.runtime.judges.executive_summary_judge_packet import judge_packet_hash as _exec_hash
-    from apps_rg.runtime.judges.executive_summary_judge_packet import (
-        render_judge_prompt_from_packet as _exec_render_packet,
-    )
-    from apps_rg.runtime.judges.grade_only_judge_packet import (
-        judge_packet_hash as _generic_hash,
-    )
-    from apps_rg.runtime.judges.grade_only_judge_packet import (
-        render_judge_prompt_from_packet as _generic_render_packet,
-    )
+def run_llm_judges(*, resume_display_text: str, claim_ledger: list[dict[str, Any]], judge_keys: list[str], mode: str = "blocked_if_unavailable", artifact_base: Path | None = None, judge_packet: dict[str, Any] | None = None, judge_packet_ref: str | None = None, compiled_prompt: str | None = None, section_id: str = "executive_summary") -> list[JudgeOutput]:
+    from apps_rg.runtime.judges.executive_summary_judge_packet import judge_contract_hash as _exec_contract, judge_packet_hash as _exec_h, render_judge_prompt_from_packet as _exec_r
+    from apps_rg.runtime.judges.grade_only_judge_packet import judge_packet_hash as _gen_h, render_judge_prompt_from_packet as _gen_r
     from apps_rg.runtime.judges.section_judge_profile import resolve_section_proof_judge_model
-    from apps_rg.runtime.section_judge_policy import normalize_section_id
 
+    _ = compiled_prompt
     sid = normalize_section_id(section_id or (judge_packet or {}).get("section", "executive_summary"))
-    use_grade_only_packet = judge_packet is not None
-    if use_grade_only_packet:
-        render_packet = (
-            _exec_render_packet
-            if str(judge_packet.get("judge_packet_version", "")).startswith("executive_summary")
-            else _generic_render_packet
-        )
-        hash_packet = (
-            _exec_hash
-            if "executive_summary" in str(judge_packet.get("judge_packet_version", ""))
-            else _generic_hash
-        )
+    if judge_packet is not None:
+        is_exec = "executive_summary" in str(judge_packet.get("judge_packet_version", ""))
+        input_hash, prompt = (_exec_h if is_exec else _gen_h)(judge_packet), (_exec_r if is_exec else _gen_r)(judge_packet)
+        if mode != "mocked":
+            from apps_rg.runtime.judges.x1d_panel_bridge import run_grade_only_judges_via_core_panel
+            return run_grade_only_judges_via_core_panel(judge_keys=judge_keys, judge_packet=judge_packet, user_prompt=prompt, input_hash=input_hash, section_id=sid, mode=mode, artifact_base=artifact_base, judge_packet_ref=judge_packet_ref, contract_hash=_exec_contract(judge_packet) if is_exec else None)
     else:
-        render_packet = _generic_render_packet
-        hash_packet = _generic_hash
-    if use_grade_only_packet:
-        input_hash = hash_packet(judge_packet)
-        prompt = render_packet(judge_packet)
-        if compiled_prompt and compiled_prompt.strip()[:500] in prompt:
-            pass  # packet path must not embed generator prompt
-    else:
-        input_payload = {
-            "resume_display_text": resume_display_text,
-            "claim_ledger": claim_ledger,
-            "rubric": RUBRIC,
-            "prompt_contract_version": JUDGE_INPUT_PROMPT_VERSION,
-        }
-        input_hash = hashlib.sha256(json.dumps(input_payload, sort_keys=True).encode()).hexdigest()[:16]
         prompt = _build_judge_user_prompt(resume_display_text, claim_ledger)
+        input_hash = hashlib.sha256(prompt.encode("utf-8")).hexdigest()[:16]
 
-    base_receipt: dict[str, Any] | None = None
-    contract_hash: str | None = None
-    if use_grade_only_packet and judge_packet:
-        if str(judge_packet.get("judge_packet_version", "")).startswith("executive_summary"):
-            contract_hash = _exec_contract_hash(judge_packet)
-        base_receipt = {
-            "judge_packet_hash": input_hash,
-            "packet_hash": input_hash,
-            "canonical_contract_hash": contract_hash,
-            "judge_packet_ref": judge_packet_ref,
-            "candidate_output_ref": "candidate_output.resume_display_text",
-            "allowed_fact_packet_ref": "allowed_fact_packet",
-            "rubric_ref": judge_packet.get("rubric_ref") if judge_packet else None,
-            "deterministic_gate_summary": judge_packet.get("deterministic_gate_summary"),
-        }
-
-    if use_grade_only_packet and judge_packet is not None and mode != "mocked":
-        from apps_rg.runtime.judges.x1d_panel_bridge import run_grade_only_judges_via_core_panel
-
-        return run_grade_only_judges_via_core_panel(
-            judge_keys=judge_keys,
-            judge_packet=judge_packet,
-            user_prompt=prompt,
-            input_hash=input_hash,
-            section_id=sid,
-            mode=mode,
-            artifact_base=artifact_base,
-            judge_packet_ref=judge_packet_ref,
-            contract_hash=contract_hash,
-        )
-
-    def _evaluate_single_judge(key: str) -> JudgeOutput:
-        proof_eligible_judge = False
-        model_tier: str | None = None
+    def _eval_one(key: str) -> JudgeOutput:
         if key not in PROVIDERS:
-            return _make_blocked_output(
-                key,
-                input_hash,
-                "BLOCKED_PROVIDER_UNAVAILABLE",
-                "BLOCKED_PROVIDER_UNAVAILABLE",
-                f"Unknown judge provider key: {key}",
-            )
-
+            return _make_blocked_output(key, input_hash, "BLOCKED_PROVIDER_UNAVAILABLE", "BLOCKED_PROVIDER_UNAVAILABLE", f"Unknown judge provider key: {key}")
         if mode == "mocked":
-            if not _is_test_environment():
-                raise RuntimeError("MOCK_JUDGE_FORBIDDEN: mode='mocked' is strictly forbidden in production runtime.")
+            if os.environ.get("APPS_RG_PRODUCTION_RUN", "").strip() == "1" or not (os.environ.get("PYTEST_CURRENT_TEST") or "pytest" in sys.modules):
+                raise RuntimeError("MOCK_JUDGE_FORBIDDEN")
             return _mocked_output(key, input_hash)
-
-        meta = PROVIDERS[key]
         api_key, env_checked = resolve_x1d_provider_credentials(key, os.environ)
         if not api_key:
-            from apps_rg.runtime.judges.x1d_ide_cli import uses_ide_cli_judges
-
-            if uses_ide_cli_judges():
-                block_message = f"IDE CLI judge transport unavailable: {env_checked[0] if env_checked else 'unknown'}"
-            elif key == "gemini_pro":
-                block_message = (
-                    f"No non-empty API credential in {env_checked}; "
-                    f"Gemini resolves GOOGLE_API_KEY then deprecated GEMINI_API_KEY alias."
-                )
-            else:
-                block_message = f"{meta['env']} environment variable not set"
-            return _make_blocked_output(
-                key,
-                input_hash,
-                "BLOCKED_PROVIDER_UNAVAILABLE",
-                "BLOCKED_PROVIDER_UNAVAILABLE",
-                block_message,
-            )
-
-        reasoning_effort: str | None = None
-        model_requested = ""
-        if use_grade_only_packet:
-            resolution = resolve_section_proof_judge_model(sid, key)
-            if resolution.blocked:
-                blocked = _make_blocked_output(
-                    key,
-                    input_hash,
-                    "BLOCKED_MODEL_CONFIG",
-                    "BLOCKED_MODEL_CONFIG",
-                    resolution.block_reason or "proof judge model unavailable",
-                    model_name=resolution.model_requested or "unconfigured",
-                )
-                if base_receipt:
-                    blocked.judge_packet_hash = base_receipt.get("judge_packet_hash")
-                    blocked.judge_packet_ref = base_receipt.get("judge_packet_ref")
-                    blocked.model_requested = resolution.model_requested
-                blocked.section_id = sid
-                blocked.model_tier = resolution.model_tier
-                blocked.proof_eligible_judge = False
-                return blocked
-            model = resolution.model_actual
-            model_source = resolution.model_source
-            model_requested = resolution.model_requested
-            reasoning_effort = resolution.reasoning_effort
-            proof_eligible_judge = resolution.proof_eligible_judge
-            model_tier = resolution.model_tier
-        else:
-            resolution = resolve_section_proof_judge_model(sid, key)
-            if resolution.blocked:
-                return _make_blocked_output(
-                    key,
-                    input_hash,
-                    "BLOCKED_MODEL_CONFIG",
-                    "BLOCKED_MODEL_CONFIG",
-                    resolution.block_reason or "judge model unavailable",
-                    model_name=resolution.model_requested or "unconfigured",
-                )
-            model = resolution.model_actual
-            model_source = resolution.model_source
-            reasoning_effort = resolution.reasoning_effort
-            model_requested = model
-
-        receipt = dict(base_receipt) if base_receipt else None
-
-        try:
-            if key == "openai_chatgpt":
-                output = _invoke_judge_with_bounded_retries(
-                    lambda attempt, _api=api_key, _prompt=prompt, _model=model: _call_openai(
-                        _api,
-                        _prompt,
-                        _model,
-                        input_hash,
-                        key,
-                        artifact_base=artifact_base,
-                        reasoning_effort=reasoning_effort,
-                        model_requested=model_requested,
-                        judge_receipt=receipt,
-                        attempt=attempt,
-                        model_env_source=model_source,
-                        section_id=sid,
-                    ),
-                    provider_key=key,
-                    section_id=sid,
-                )
-            else:
-                output = _invoke_judge_with_bounded_retries(
-                    lambda attempt, _api=api_key, _prompt=prompt, _model=model: _call_gemini(
-                        _api,
-                        _prompt,
-                        _model,
-                        input_hash,
-                        key,
-                        model_source=model_source,
-                        artifact_base=artifact_base,
-                        model_requested=model_requested,
-                        judge_receipt=receipt,
-                        thinking_level=reasoning_effort,
-                        attempt=attempt,
-                        section_id=sid,
-                    ),
-                    provider_key=key,
-                    section_id=sid,
-                )
-            if use_grade_only_packet:
-                output.section_id = sid
-                output.model_tier = model_tier
-                output.proof_eligible_judge = bool(
-                    proof_eligible_judge
-                    and output.evaluator_mode == "MODEL_BACKED"
-                    and not output.provider_blocked
-                )
-                if output.fallback_model:
-                    from apps_rg.runtime.judges.section_judge_profile import (
-                        is_forbidden_proof_judge_model,
-                    )
-
-                    if is_forbidden_proof_judge_model(str(output.fallback_model)):
-                        output.proof_eligible_judge = False
-                        output.fallback_used = True
-            return output
-        except (
-            ImportError,
-            AttributeError,
-            KeyError,
-            OSError,
-            RuntimeError,
-            TypeError,
-            ValueError,
-            urllib.error.URLError,
-        ) as exc:
-            return _make_blocked_output(
-                key,
-                input_hash,
-                "BLOCKED_PROVIDER_UNAVAILABLE",
-                "BLOCKED_PROVIDER_UNAVAILABLE",
-                f"{meta['provider_name']} judge call failed: {type(exc).__name__}: {exc}",
-                model_name=model,
-            )
+            return _make_blocked_output(key, input_hash, "BLOCKED_PROVIDER_UNAVAILABLE", "BLOCKED_PROVIDER_UNAVAILABLE", f"Credentials unavailable: {env_checked}")
+        res = resolve_section_proof_judge_model(sid, key)
+        if res.blocked:
+            return _make_blocked_output(key, input_hash, "BLOCKED_MODEL_CONFIG", "BLOCKED_MODEL_CONFIG", res.block_reason or "model blocked", model_name=res.model_requested or "unconfigured")
+        caller = _call_openai if key == "openai_chatgpt" else _call_gemini
+        return _invoke_judge_with_bounded_retries(lambda att: caller(api_key, prompt, res.model_actual, input_hash, key, artifact_base=artifact_base, model_requested=res.model_requested, attempt=att, section_id=sid), provider_key=key, section_id=sid)
 
     if mode != "mocked" and len(judge_keys) > 1:
-        with DaemonWorkerPool(max_workers=len(judge_keys), thread_name_prefix="apps-rg-x1d-judge") as executor:
-            futures = [executor.submit(_evaluate_single_judge, key) for key in judge_keys]
-            return [f.result() for f in futures]
-
-    return [_evaluate_single_judge(key) for key in judge_keys]
+        with DaemonWorkerPool(max_workers=len(judge_keys), thread_name_prefix="apps-rg-v3-judge") as pool:
+            return [f.result() for f in [pool.submit(_eval_one, k) for k in judge_keys]]
+    return [_eval_one(k) for k in judge_keys]

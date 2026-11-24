@@ -1,0 +1,109 @@
+{
+  "checks": [
+    {
+      "critical": true,
+      "failure_tag": "HALLUCINATED_FACT",
+      "id": "unsupported_claim_absent",
+      "pillar": "factual_faithfulness",
+      "question": "Is every material claim, metric, date, and credential directly supported by the verified source evidence without invention?",
+      "weight": 0.25
+    },
+    {
+      "critical": true,
+      "failure_tag": "UNSUPPORTED_EXTRAPOLATION",
+      "id": "source_contradiction_absent",
+      "pillar": "factual_faithfulness",
+      "question": "Does the draft preserve exact scope, ownership, and chronology without contradicting or exaggerating source records?",
+      "weight": 0.2
+    },
+    {
+      "critical": false,
+      "failure_tag": "OMITTED_CONSTRAINT",
+      "id": "core_question_fully_answered",
+      "pillar": "completeness_and_relevance",
+      "question": "Does the artifact directly address the target role, recipient mandate, or primary evaluation prompt without off-target padding?",
+      "weight": 0.15
+    },
+    {
+      "critical": false,
+      "failure_tag": "OMITTED_CONSTRAINT",
+      "id": "scope_constraints_covered",
+      "pillar": "completeness_and_relevance",
+      "question": "Are the required domain constraints, seniority expectations, and section boundaries respected without missing key requirements?",
+      "weight": 0.15
+    },
+    {
+      "critical": false,
+      "failure_tag": "AI_FILLER_VOICE",
+      "id": "cold_reader_jargon_free",
+      "pillar": "cold_reader_clarity",
+      "question": "Does the prose read naturally to a cold target reader without opaque insider shorthand, keyword stuffing, or robotic filler?",
+      "weight": 0.15
+    },
+    {
+      "critical": false,
+      "failure_tag": "UNACTIONABLE_TAKEAWAY",
+      "id": "concrete_owner_and_next_step",
+      "pillar": "actionability_and_proportion",
+      "question": "Does the artifact pair concrete mechanisms with proportionate outcomes or clear recipient value at the expected density?",
+      "weight": 0.1
+    }
+  ],
+  "cold_read_question": "After one cold read, does this artifact state verified facts clearly and fit the target mandate without distortion or filler?",
+  "dimensions": {
+    "actionability_and_proportion": {
+      "anchors": {
+        "1": "Vague assertions with no concrete mechanism, measurable outcome, or usable value.",
+        "2": "Generic claims or bloated density disproportionate to the section or channel.",
+        "3": "Acceptable mechanism and outcome pairing, though sharpness or concision could improve.",
+        "4": "Concrete mechanisms paired with credible outcomes at appropriate channel density.",
+        "5": "High-conviction executive signal pairing specific mechanisms with clear, proportionate impact."
+      },
+      "title": "Mechanism-to-Outcome Signal and Proportion",
+      "weight": 0.1
+    },
+    "cold_reader_clarity": {
+      "anchors": {
+        "1": "Opaque insider shorthand, keyword soup, or robotic boilerplate that blocks comprehension.",
+        "2": "Stiff machine cadence or unexplained acronyms requiring insider context to decode.",
+        "3": "Clear overall on first read, with occasional stiff phrasing or dense clauses.",
+        "4": "Natural, direct human prose understood immediately by a cold target reader.",
+        "5": "Crisp, authentic executive voice with zero artificial filler or jargon clutter."
+      },
+      "title": "Cold-Reader Clarity and Natural Human Voice",
+      "weight": 0.15
+    },
+    "completeness_and_relevance": {
+      "anchors": {
+        "1": "Misses the target role or recipient mandate and fills space with unrelated background.",
+        "2": "Touches only a peripheral aspect of the mandate while omitting core domain proof.",
+        "3": "Addresses the primary mandate adequately with minor off-target or secondary detail.",
+        "4": "Directly aligns verified proof to the target mandate without off-domain padding.",
+        "5": "Tightly scoped, high-signal proof tailored to the exact target mandate and seniority."
+      },
+      "title": "Target Mandate Fit and Scope Relevance",
+      "weight": 0.3
+    },
+    "factual_faithfulness": {
+      "anchors": {
+        "1": "Contains fabricated claims, invented dates or metrics, or direct contradictions of verified source evidence.",
+        "2": "Stretches tentative or adjacent work into unsupported ownership or misattributes employer scope.",
+        "3": "Supported by source records overall, with minor overgeneralization that does not invent facts.",
+        "4": "Every material claim, date, metric, and role boundary is directly grounded in source evidence.",
+        "5": "Completely faithful to verified source evidence with exact scope, chronology, and restraint."
+      },
+      "title": "Factual Faithfulness and Source Entailment",
+      "weight": 0.45
+    }
+  },
+  "pass_rule": "human_verdict == PASS requires all critical checks == YES and sum(passed check weights) >= 0.80",
+  "pass_threshold": 0.8,
+  "rubric_id": "external_judge_rubric_v2",
+  "rubric_sha256": "1d025b6d277efb76247055b1ab2df159bbb2d48157548944ab66c566198a4524",
+  "scale_type": "atomic_binary_v2",
+  "schema_version": "2.0.0",
+  "verdict_values": [
+    "PASS",
+    "FAIL"
+  ]
+}

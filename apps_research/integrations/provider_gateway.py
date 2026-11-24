@@ -461,14 +461,27 @@ def invoke_gemini_handoff_judge(
                 attempt.mark_local_dispatch_started()
                 try:
                     if resolved_urlopen is None and "argon" in str(pin.model).lower():
-                        from apps_rg.runtime.judges.inprocess_proof_judge import (
-                            evaluate_argon_handoff_payload,
+                        from apps_eval.graders.judge.preflight_lint import (
+                            screen_handoff_payload_deterministic,
                         )
 
-                        argon_payload = evaluate_argon_handoff_payload(
-                            model=pin.model,
-                            body=body,
+                        screen_rcpt = screen_handoff_payload_deterministic(body=body)
+                        inner = json.dumps(
+                            {
+                                "verdict": "PASS" if screen_rcpt.passed else "FAIL",
+                                "llm_judge_executed": False,
+                                "normalized_unit_score": None,
+                                "failed_gates": screen_rcpt.failed_gates,
+                            },
+                            separators=(",", ":"),
                         )
+                        argon_payload = {
+                            "responseId": f"handoff-screen-{_request_digest(body)[:16]}",
+                            "modelVersion": pin.model,
+                            "x_deterministic_screen": True,
+                            "x_model_call": False,
+                            "candidates": [{"content": {"parts": [{"text": inner}], "role": "model"}, "finishReason": "STOP", "index": 0}],
+                        }
                         response_body = json.dumps(argon_payload, separators=(",", ":")).encode("utf-8")
                         attempt.mark_response_headers(
                             status_code=200,

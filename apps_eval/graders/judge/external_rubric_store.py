@@ -26,7 +26,24 @@ from apps_eval.graders.judge.frontier_rubric_contract import (
 )
 
 DEFAULT_EXTERNAL_RUBRIC_REL_PATH = Path("config/governance/external_judge_rubric_v1.json")
+DEFAULT_EXTERNAL_RUBRIC_V2_REL_PATH = Path("config/governance/external_judge_rubric_v2.json")
 DEFAULT_HUMAN_GOLD_STORE_REL_PATH = Path("data/judge_calibration/ide_judge_external_human_labels_v1.json")
+
+SUPPORTED_EXTERNAL_RUBRIC_IDS: frozenset[str] = frozenset(
+    {"external_judge_rubric_v1", "external_judge_rubric_v2"}
+)
+EXTERNAL_V2_CHECK_WEIGHTS: dict[str, float] = {
+    "unsupported_claim_absent": 0.25,
+    "source_contradiction_absent": 0.20,
+    "core_question_fully_answered": 0.15,
+    "scope_constraints_covered": 0.15,
+    "cold_reader_jargon_free": 0.15,
+    "concrete_owner_and_next_step": 0.10,
+}
+EXTERNAL_V2_CRITICAL_CHECKS: tuple[str, ...] = (
+    "unsupported_claim_absent",
+    "source_contradiction_absent",
+)
 
 EXTERNAL_RUBRIC_DIMENSIONS: tuple[str, ...] = (
     "factual_faithfulness",
@@ -42,6 +59,8 @@ VALID_JUDGE_SURFACES: frozenset[str] = frozenset(
         # Engine-level & prefixed surfaces
         "resume_engine",
         "outreach_engine",
+        "apps_research",
+        "apps_eval",
         "combined_resume_and_outreach",
         "resume_engine:headline",
         "resume_engine:executive_summary",
@@ -51,13 +70,30 @@ VALID_JUDGE_SURFACES: frozenset[str] = frozenset(
         "resume_engine:whole_resume_coherence",
         "outreach_engine:x1d_quorum",
         "outreach_engine:executive_judge_panel",
+        # Judge v3 cluster & profile surfaces
+        "resume_sections",
+        "resume_sections:headline",
+        "resume_sections:executive_summary",
+        "resume_sections:competencies",
+        "resume_sections:employment_bullets",
+        "resume_sections:role_narrative",
+        "resume_whole_coherence",
+        "resume_whole_coherence:full_resume_executive_audit",
+        "outreach_sequence",
+        "outreach_sequence:outreach_multi_touch_sequence",
+        "outreach_sequence:outreach_single_message",
+        "company_research_brief",
+        "company_research_brief:executive_company_brief",
+        "company_research_brief:research_handoff_packet",
+        "agent_trace_and_calibration",
+        "agent_trace_and_calibration:agent_execution_trace",
+        "agent_trace_and_calibration:human_calibration_studio",
         # Resume Engine judge surfaces
         "resume_headline",
         "resume_executive_summary",
         "resume_competencies",
         "resume_employment_bullets",
         "resume_role_narrative",
-        "resume_whole_coherence",
         "headline",
         "executive_summary",
         "competencies",
@@ -140,7 +176,7 @@ def _validate_dimension_anchors(dim_key: str, spec: Any) -> None:
 
 
 def load_and_verify_external_rubric(rubric_path: Path | None = None) -> dict[str, Any]:
-    """Load and verify `external_judge_rubric_v1.json` integrity and independence fail-closed."""
+    """Load and verify `external_judge_rubric_v1.json` or `external_judge_rubric_v2.json` fail-closed."""
     repo_root = Path(__file__).resolve().parents[3]
     target = Path(rubric_path) if rubric_path is not None else (repo_root / DEFAULT_EXTERNAL_RUBRIC_REL_PATH)
     if not target.is_file():
@@ -152,19 +188,36 @@ def load_and_verify_external_rubric(rubric_path: Path | None = None) -> dict[str
     payload = json.loads(raw_text)
     if not isinstance(payload, dict):
         raise ValueError("External judge rubric must decode to a JSON object.")
-    if str(payload.get("rubric_id") or "") != "external_judge_rubric_v1":
+    rub_id = str(payload.get("rubric_id") or "")
+    if rub_id not in SUPPORTED_EXTERNAL_RUBRIC_IDS:
         raise ValueError(f"Unexpected external rubric_id: {payload.get('rubric_id')!r}.")
     dims = payload.get("dimensions")
-    if not isinstance(dims, Mapping) or tuple(dims.keys()) != EXTERNAL_RUBRIC_DIMENSIONS:
+    if not isinstance(dims, Mapping) or set(dims.keys()) != set(EXTERNAL_RUBRIC_DIMENSIONS):
         raise ValueError(f"External rubric dimensions must match {EXTERNAL_RUBRIC_DIMENSIONS}.")
     for dim_key in EXTERNAL_RUBRIC_DIMENSIONS:
         _validate_dimension_anchors(dim_key, dims[dim_key])
+    if rub_id == "external_judge_rubric_v2":
+        checks = payload.get("checks")
+        if not isinstance(checks, list) or [str(c.get("id") or "") for c in checks] != list(EXTERNAL_V2_CHECK_WEIGHTS):
+            raise ValueError("external_judge_rubric_v2 checks must match canonical 6-check order.")
+        if abs(sum(float(c.get("weight", 0.0)) for c in checks) - 1.0) > 1e-6:
+            raise ValueError("external_judge_rubric_v2 check weights must sum to 1.0.")
     expected_sha = compute_external_rubric_sha256(payload)
     observed_sha = str(payload.get("rubric_sha256") or "").strip()
     if not observed_sha or observed_sha != expected_sha:
         raise ValueError(
             f"External rubric SHA-256 mismatch: expected {expected_sha}, observed {observed_sha or 'EMPTY'}."
         )
+    return payload
+
+
+def load_and_verify_external_rubric_v2(rubric_path: Path | None = None) -> dict[str, Any]:
+    """Load and verify `external_judge_rubric_v2.json` 1:1 binary human calibration SSOT."""
+    repo_root = Path(__file__).resolve().parents[3]
+    target = Path(rubric_path) if rubric_path is not None else (repo_root / DEFAULT_EXTERNAL_RUBRIC_V2_REL_PATH)
+    payload = load_and_verify_external_rubric(target)
+    if str(payload.get("rubric_id") or "") != "external_judge_rubric_v2":
+        raise ValueError(f"Expected external_judge_rubric_v2, got {payload.get('rubric_id')!r}.")
     return payload
 
 
@@ -226,7 +279,7 @@ def _validate_record_digests(
     if candidate_text is not None and compute_payload_sha256(candidate_text) != art_sha:
         raise ValueError(f"Candidate payload SHA-256 mismatch for case '{case_id}'.")
     rub_id = str(raw.get("external_rubric_id") or "").strip()
-    if rub_id != "external_judge_rubric_v1":
+    if rub_id not in SUPPORTED_EXTERNAL_RUBRIC_IDS:
         raise ValueError(f"Unsupported external_rubric_id {rub_id!r}.")
     rub_sha = _validate_sha256_hex(str(raw.get("external_rubric_sha256") or ""), "external_rubric_sha256")
     if expected_rubric_sha256 and rub_sha != expected_rubric_sha256:
@@ -234,6 +287,19 @@ def _validate_record_digests(
             f"Record '{case_id}' external_rubric_sha256 {rub_sha} != active rubric {expected_rubric_sha256}."
         )
     return art_sha, rub_id, rub_sha
+
+
+def _derive_dimension_grades_from_atomic(atomic: Mapping[str, bool]) -> dict[str, int]:
+    """Derive 4-pillar 1..5 compatibility grades from the 6 canonical binary v2 checks."""
+    f_all = bool(atomic.get("unsupported_claim_absent")) and bool(atomic.get("source_contradiction_absent"))
+    f_any = bool(atomic.get("unsupported_claim_absent")) or bool(atomic.get("source_contradiction_absent"))
+    c_cnt = int(bool(atomic.get("core_question_fully_answered"))) + int(bool(atomic.get("scope_constraints_covered")))
+    return {
+        "factual_faithfulness": 5 if f_all else (2 if f_any else 1),
+        "completeness_and_relevance": 5 if c_cnt == 2 else (3 if c_cnt == 1 else 2),
+        "cold_reader_clarity": 5 if atomic.get("cold_reader_jargon_free") else 2,
+        "actionability_and_proportion": 5 if atomic.get("concrete_owner_and_next_step") else 2,
+    }
 
 
 @dataclass(frozen=True)
@@ -258,7 +324,12 @@ class ExternalHumanLabelRecord:
     evidence_context_sha256: str = ""
 
     def normalized_human_score(self) -> float:
-        """Map weighted 1..5 ordinal grade onto [0.0, 1.0] (weights: F=0.35, C=0.25, R=0.20, A=0.20)."""
+        """Return exact passed check weight sum for v2 binary labels, or weighted 1..5 mapping for v1."""
+        if self.external_rubric_id == "external_judge_rubric_v2" and set(EXTERNAL_V2_CHECK_WEIGHTS).issubset(
+            self.atomic_checks.keys()
+        ):
+            passed_sum = sum(w for cid, w in EXTERNAL_V2_CHECK_WEIGHTS.items() if self.atomic_checks.get(cid))
+            return round(max(0.0, min(1.0, passed_sum)), 4)
         weights = {
             "factual_faithfulness": 0.35,
             "completeness_and_relevance": 0.25,
@@ -289,25 +360,44 @@ class ExternalHumanLabelRecord:
         topic = _require_non_empty_field(raw, "topic_family", 2).lower()
         partition = _validate_membership(str(raw.get("partition") or "").strip(), VALID_PARTITIONS, "partition")
         art_sha, rub_id, rub_sha = _validate_record_digests(raw, case_id, expected_rubric_sha256, candidate_text)
-        grades = _validate_dimension_grades(raw.get("dimension_grades") or {})
+        atomic = validate_atomic_checks(raw.get("atomic_checks"))
+        raw_grades = raw.get("dimension_grades")
+        if rub_id == "external_judge_rubric_v2":
+            if set(atomic.keys()) != set(EXTERNAL_V2_CHECK_WEIGHTS):
+                raise ValueError(
+                    f"external_judge_rubric_v2 requires all 6 canonical atomic_checks: {sorted(EXTERNAL_V2_CHECK_WEIGHTS)}."
+                )
+            grades = _validate_dimension_grades(raw_grades) if raw_grades else _derive_dimension_grades_from_atomic(atomic)
+        else:
+            grades = _validate_dimension_grades(raw_grades or {})
         verdict = _validate_membership(str(raw.get("human_verdict") or "").strip().upper(), VALID_HUMAN_VERDICTS, "human_verdict")
         annotator = validate_human_annotator_id(str(raw.get("annotator_id") or ""))
         graded_at = _require_non_empty_field(raw, "graded_at_utc", 10)
-        atomic = validate_atomic_checks(raw.get("atomic_checks"))
         f_tags = validate_failure_tags(raw.get("failure_tags"))
         notes = str(raw.get("notes") or "").strip()
         rationale = str(raw.get("critique_rationale") or notes).strip()
         ev_sha = str(raw.get("evidence_context_sha256") or "").strip().lower()
         if ev_sha:
             ev_sha = _validate_sha256_hex(ev_sha, "evidence_context_sha256")
-        enforce_pass_rule_and_critique(
-            grades,
-            verdict,
-            atomic_checks=atomic,
-            failure_tags=f_tags,
-            critique_rationale=rationale,
-            require_fail_critique=require_fail_critique,
-        )
+        if rub_id == "external_judge_rubric_v2":
+            failed_crit = [cid for cid in EXTERNAL_V2_CRITICAL_CHECKS if not atomic.get(cid)]
+            v2_score = round(sum(w for cid, w in EXTERNAL_V2_CHECK_WEIGHTS.items() if atomic.get(cid)), 4)
+            if verdict == "PASS" and (failed_crit or v2_score < 0.80 - 1e-9):
+                raise ValueError(
+                    f"external_judge_rubric_v2 PASS blocked: failed_critical={failed_crit}, weighted_score={v2_score}."
+                )
+            if verdict == "FAIL" and (require_fail_critique or bool(atomic)):
+                if len(f_tags) < 1 and len(rationale) < 8:
+                    raise ValueError("FAIL requires >= 1 structured failure_tags entry or critique_rationale (>= 8 chars).")
+        else:
+            enforce_pass_rule_and_critique(
+                grades,
+                verdict,
+                atomic_checks=atomic,
+                failure_tags=f_tags,
+                critique_rationale=rationale,
+                require_fail_critique=require_fail_critique,
+            )
         return cls(
             case_id=case_id,
             judge_surface=surface,
@@ -424,7 +514,7 @@ class ExternalRubricHumanStore:
         q_list = list(quarantined) if quarantined is not None else self.load_quarantined()
         body: dict[str, Any] = {
             "schema_version": "ide-judge-external-human-labels:1.1.0",
-            "external_rubric_id": "external_judge_rubric_v1",
+            "external_rubric_id": str(self.rubric["rubric_id"]),
             "external_rubric_sha256": self.rubric_sha256,
             "record_count": len(validated),
             "records": [r.to_dict() for r in validated],
@@ -475,18 +565,23 @@ class ExternalRubricHumanStore:
 
 __all__ = [
     "DEFAULT_EXTERNAL_RUBRIC_REL_PATH",
+    "DEFAULT_EXTERNAL_RUBRIC_V2_REL_PATH",
     "DEFAULT_HUMAN_GOLD_STORE_REL_PATH",
     "EXTERNAL_RUBRIC_DIMENSIONS",
+    "EXTERNAL_V2_CHECK_WEIGHTS",
+    "EXTERNAL_V2_CRITICAL_CHECKS",
     "ExternalHumanLabelRecord",
     "ExternalRubricHumanStore",
     "FORBIDDEN_ANNOTATOR_TOKENS",
     "FORBIDDEN_INTERNAL_RULE_LEAK_TOKENS",
+    "SUPPORTED_EXTERNAL_RUBRIC_IDS",
     "VALID_HUMAN_VERDICTS",
     "VALID_JUDGE_SURFACES",
     "VALID_PARTITIONS",
     "compute_external_rubric_sha256",
     "compute_payload_sha256",
     "load_and_verify_external_rubric",
+    "load_and_verify_external_rubric_v2",
     "validate_human_annotator_id",
     "verify_partition_isolation",
 ]

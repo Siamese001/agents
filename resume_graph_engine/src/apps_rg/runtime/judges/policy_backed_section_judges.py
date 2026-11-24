@@ -32,6 +32,13 @@ def run_policy_section_judges(
     judge_packet_path: Path | None = None,
 ) -> list[JudgeOutput]:
     """Build JudgePacket and invoke ``run_llm_judges`` with section policy model tiers."""
+    import os
+
+    if mode == "mocked":
+        if os.environ.get("APPS_RG_PRODUCTION_RUN", "").strip() == "1" or not (
+            os.environ.get("PYTEST_CURRENT_TEST") or "pytest" in __import__("sys").modules
+        ):
+            raise RuntimeError("MOCK_JUDGE_FORBIDDEN: mode='mocked' is forbidden in production.")
     sid = normalize_section_id(section_id)
     policy = get_section_judge_policy(sid)
     packet = build_grade_only_judge_packet(

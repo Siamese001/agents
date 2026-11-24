@@ -1,534 +1,87 @@
-"""X1D judges for competencies — reuses executive_summary_x1d provider adapters."""
+"""Clean-Slate Judge v3 Binding for `competencies` (`<= 90L`, zero prose wall)."""
 from __future__ import annotations
 
-import hashlib
-import json
 import os
-import sys
-from concurrent.futures import Future
 from pathlib import Path
+import sys
 from typing import Any
 
-from apps_rg.runtime.providers.wallclock_http_guard import DaemonWorkerPool
-
-from apps_rg.runtime.judges.executive_summary_x1d import (
-    DEFAULT_THRESHOLD,
-    JUDGE_COMPACT_OUTPUT,
-    PROVIDERS,
-    JudgeOutput,
-    _call_gemini,
-    _call_openai,
-    build_judge_response_schema,
-    _invoke_judge_with_bounded_retries,
-    _make_blocked_output,
-    _resolve_gemini_model,
-    resolve_x1d_provider_credentials,
-)
-from apps_rg.runtime.judges.grade_only_judge_packet import (
-    build_grade_only_judge_packet,
-    judge_packet_hash,
-    write_judge_packet,
-)
-from apps_rg.runtime.judges.section_judge_profile import resolve_section_proof_judge_model
-from apps_rg.runtime.quality.overlap_engine import SHARED_OVERLAP_DECISIVE_FAILURE_CLAUSE
-
-JUDGE_RUBRIC_VERSION = "competencies_x1d_v4"
-
-COMPETENCIES_RUBRIC_DIMENSION_IDS: tuple[str, ...] = (
-    "factual_support",
-    "ats_alignment_without_stuffing",
-    "seniority_executive_relevance",
-    "complementarity",
-    "no_bullet_restatement",
-    "anti_overfit",
-    "category_clarity",
-    "svp_agentic_specificity",
-    "partner_architecture_specificity",
-    "root_chronology_discipline",
+from apps_rg.runtime.judges.executive_summary_x1d import JudgeOutput
+from apps_rg.runtime.judges.policy_backed_section_judges import run_policy_section_judges
+from apps_rg.runtime.judges.v3_section_judge import (
+    build_section_v3_response_schema,
+    get_apps_rg_v3_profile,
+    render_section_v3_rubric,
 )
 
-COMPETENCIES_JUDGE_RESPONSE_SCHEMA = build_judge_response_schema(
-    COMPETENCIES_RUBRIC_DIMENSION_IDS
+JUDGE_RUBRIC_VERSION = "competencies_judge_v3"
+JUDGE_RUBRIC_REF = "config/governance/judge_rubrics_v3.json#resume_sections:competencies"
+
+COMPETENCIES_RUBRIC_DIMENSION_IDS: tuple[str, ...] = tuple(
+    c.id for c in get_apps_rg_v3_profile("competencies").checks
 )
-
-COMPETENCIES_JUDGE_OUTPUT_CONTRACT = (
-    "Required competencies dimension_verdicts keys: "
-    + ", ".join(COMPETENCIES_RUBRIC_DIMENSION_IDS)
-    + ". Do not substitute executive_summary dimension ids.\n"
-    '"dimension_verdicts": {'
-    + ", ".join(
-        f'"{dim}": {{"pass": true, "severity": "none", "codes": []}}'
-        for dim in COMPETENCIES_RUBRIC_DIMENSION_IDS
-    )
-    + "}"
-)
-
-COMPETENCIES_RUBRIC = """
-You are evaluating 6-8 executive resume competency categories (short labels plus compact capability phrases).
-This is REQUIRED proof taxonomy grading. Deterministic X2 gates remain authoritative for source lineage,
-and this X1D judge must pass before competencies can be product proof eligible.
-Return JSON only with: score_scale, score, threshold, pass, decisive_failure, findings, cited_sentence_indexes, remediation_suggestions.
-
-Score contract:
-- score_scale must be "0_to_1" or "0_to_5". Do not omit score_scale. Required pass is 4.0/5.
-- Calibration bands: Award 4.6 to 4.9 (0.92 to 0.98) when 6-8 distinct categories are graph-backed, category ordering aligns with the target role and company (e.g. prioritizing partner architecture for partner roles, or insurance core modernization and enterprise strategy for insurance IT leadership roles), partner terms bind to valid Unify/IBM/Slalom roots (never InsurTech or EY), and each category combines concrete SVP agentic/architecture mechanisms with source-bound role-episode terms.
-- Frozen graph-allocation authority: Terms with support_class="FROZEN_RESUME_GRAPH_ALLOCATION" (such as "AWS alliance joint architecture leadership" or "AI co-sell bundling with strategic partners") are mandatory deterministic role-episode bindings from the whole-resume graph allocation plan. Do not penalize these required bindings for concise role-episode phrasing or cross-category commercial/alliance alignment when paired with concrete technical mechanisms in their categories.
-
-Rubric dimensions:
-1. factual_support: terms align with claim_ledger and allowed bul_* resume facts only; graph-skill support may inform phrasing, but JD/briefing never become proof.
-2. ats_alignment_without_stuffing: relevant clusters without keyword stuffing or JD-as-proof; favor semantic coverage and distinct ATS query clusters over repeating the same three metrics or one employer lane.
-3. seniority_executive_relevance: reads as executive-level capability groupings with breadth across the graph, not a single repeated theme or junior operator checklist.
-4. complementarity: augments executive summary, Unify, and IBM generated sections; not a mechanical restatement of bullets, the same proof surface, or career-phase narration.
-5. no_bullet_restatement: avoids copying long bullet fragments, outcome laundry lists, repeated metric language, or employer-specific verbatim lines.
-6. anti_overfit: no JD-only or briefing-only skills framed as proof; company-specific targeting may influence label choice, not evidence; do not collapse multiple categories onto one metric family; no AI-authenticity dead giveaways such as template phrasing or buzzword soup.
-7. category_clarity: labels are crisp; terms are compact keyword phrases (not sentence-style competency claims) and each category should be semantically distinct, graph-backed, and tied to a different skill family.
-8. svp_agentic_specificity: no generic or mundane competency terms; phrases should sound like believable work by an SVP-level engineering leader and deep agentic AI practitioner, with concrete mechanisms plus operating/commercial context. Penalize table-stakes phrases such as "hyperscaler co-sell", "platform commercialization", "stakeholder alignment", "cloud architecture", or "runtime policy controls" when they appear without richer mechanism/context.
-9. partner_architecture_specificity: for partnership roles (e.g. applied-AI and cloud partnerships), competencies must include a partner-applied AI architecture category prioritized first with reference architecture or joint solution patterns. For enterprise, insurance, or general engineering executive roles, partner or hyperscaler terms should clearly reflect joint solutions, accelerators, or enterprise cloud integration without requiring partner category prioritization first. Generic ecosystem/GTM wording alone is insufficient.
-10. root_chronology_discipline: partner architecture wording must bind only to valid Unify/IBM/Slalom roots. Do not credit partner-scaling language sourced from InsurTech or EY; do not launder later partner expectations into 2014-2017 InsurTech cloud modernization.
-
-Adversarial review lens:
-- Head of Talent Acquisition pass: would the taxonomy feel recruiter-clean and senior enough for the target company?
-- AI authenticity pass: no generic generated labels, no buzzword soup, no phrase recycling across categories.
-
-Anti-AI filters:
-- no em dashes in labels or findings
-- no template phrasing like "strategic leadership" repeated across categories
-- no repeated metric families copied into multiple categories
-- no first-person voice, self-reference, or resume prose leakage
-- no unsupported tools, benchmarks, certifications, or employer claims
-- no sentence-style category labels or bullet-shaped terms
-- no "transformational", "innovative", or "cutting-edge" filler without concrete grounding
-
-- The deterministic product shape expects 6-8 categories; flag fewer than 6, more than 8, unjustified padding, or duplicate category groups as quality_flags.
-- Sentence-style competency claims are out of scope for this section format; flag them as quality_flags only.
-- Judge pass/fail gates product proof eligibility for competencies.
-- companion_context_used_as_proof must remain false; JD/briefing/targeting_only — never proof (aligns with PA contract).
-- Terms require source_fact_ids / claim_ledger binding — no JD-only skills as proof.
-- When the categories collapse onto the same few metrics, fact surfaces, or employer lane, lower the score even if the shape is technically valid.
-- For partner-applied roles, fail or lower sharply if ccb_partner_applied_ai_architecture is missing, if partner architecture wording appears outside the partner architecture bundle, or if partner terms bind to InsurTech/EY roots.
-- If the labels feel machine-generated or too generic to survive a TA skim, treat that as a quality flag.
-- If the terms could belong unchanged to any cloud/AI executive rather than this candidate's graph-backed SVP agentic work, fail or lower svp_agentic_specificity.
-
-Decisive failure triggers (advisory only):
-- JD or briefing used as primary evidence for unsupported clusters
-- obvious bullet paste or first-person resume voice leakage
-- format breaks (full sentences inside terms, bullet markers)
-- repeated metric/language loops across multiple categories
-- generic category labels with no graph-backed differentiation
-- mundane visible competency phrases that lack agentic mechanism, executive operating context, or believable SVP scope
-- company-specific targeting used as proof rather than label choice
-""".strip() + "\n" + SHARED_OVERLAP_DECISIVE_FAILURE_CLAUSE
-
-
-def _build_prompt(
-    competencies_json: str,
-    claim_ledger: list[dict[str, Any]],
-    companion_context: str,
-    *,
-    target_role: str = "",
-    target_company: str = "",
-    jd_text: str = "",
-    briefing: str = "",
-    allowed_fact_packet: dict[str, Any] | list[dict[str, Any]] | None = None,
-) -> str:
-    block = (
-        f"\nREAD_ONLY_GENERATED_SECTIONS:\n{companion_context}\n"
-        if companion_context.strip()
-        else "\n(No companion generated-section artifacts on disk.)\n"
-    )
-    targeting_block = (
-        f"\nTARGETING_CONTEXT (NOT PROOF — evaluate ATS/role alignment against this target):\n"
-        f"TARGET_ROLE: {target_role}\n"
-        f"TARGET_COMPANY: {target_company}\n"
-        f"JD_TEXT: {jd_text}\n"
-        f"BRIEFING: {briefing}\n"
-    )
-    fact_packet_block = (
-        f"\nALLOWED_FACT_PACKET:\n{json.dumps(allowed_fact_packet, ensure_ascii=False, separators=(',', ':'))}\n"
-        if allowed_fact_packet is not None
-        else ""
-    )
-    return (
-        f"{COMPETENCIES_RUBRIC}\n\n{JUDGE_COMPACT_OUTPUT}\n\n"
-        f"{COMPETENCIES_JUDGE_OUTPUT_CONTRACT}\n\n"
-        f"{targeting_block}\n"
-        f"COMPETENCIES_JSON:\n{competencies_json}\n"
-        f"{block}\n"
-        f"{fact_packet_block}"
-        f"CLAIM_LEDGER:\n{json.dumps(claim_ledger, separators=(',', ':'))}"
-    )
+COMPETENCIES_JUDGE_RESPONSE_SCHEMA = build_section_v3_response_schema("competencies")
+COMPETENCIES_RUBRIC = render_section_v3_rubric("competencies")
 
 
 def _is_test_environment() -> bool:
-    if os.environ.get("APPS_RG_PRODUCTION_RUN", "").strip() == "1":
-        return False
     return bool(os.environ.get("PYTEST_CURRENT_TEST") or ("pytest" in sys.modules))
 
 
-def _mocked(provider_key: str, input_hash: str) -> JudgeOutput:
-    meta = PROVIDERS[provider_key]
-    from apps_rg.runtime.judges.executive_summary_x1d import _policy_model_name
-
-    model_name = _policy_model_name(provider_key, "competencies")
-    return JudgeOutput(
-        judge_id=f"x1d_{provider_key}_competencies",
-        provider_name=meta["provider_name"],
-        provider_key=provider_key,
-        evaluator_mode="MOCKED",
-        provider_status="MOCKED",
-        model_name=model_name,
-        provider_available=False,
-        provider_blocked=False,
-        exact_provider_error=None,
-        rubric_version=JUDGE_RUBRIC_VERSION,
-        input_hash=input_hash,
-        output_hash="mocked-output",
-        score=0.80,
-        score_scale="0_to_1",
-        normalized_score=0.80,
-        threshold=DEFAULT_THRESHOLD,
-        normalized_threshold=0.80,
-        pass_=True,
-        decisive_failure=False,
-        findings=["MOCKED plumbing judge. Not valid for X3_ALLOW."],
-        cited_sentence_indexes=[],
-        remediation_suggestions=[],
-    )
-
-
-def _empty_competencies_dimension_verdict(*, pass_: bool) -> dict[str, Any]:
-    return {
-        "pass": pass_,
-        "severity": "none" if pass_ else "major",
-        "codes": [],
-    }
-
-
-def _normalize_competencies_dimension_verdicts(output: JudgeOutput) -> JudgeOutput:
-    raw = output.dimension_verdicts if isinstance(output.dimension_verdicts, dict) else {}
-    normalized: dict[str, dict[str, Any]] = {}
-    inferred = bool(output.dimension_verdicts_inferred)
-
-    for dim in COMPETENCIES_RUBRIC_DIMENSION_IDS:
-        verdict = raw.get(dim)
-        if not isinstance(verdict, dict):
-            normalized[dim] = _empty_competencies_dimension_verdict(pass_=bool(output.pass_))
-            inferred = True
-            continue
-        codes = verdict.get("codes")
-        dim_pass = bool(verdict.get("pass", output.pass_))
-        if (
-            not dim_pass
-            and output.pass_
-            and not output.unsupported_claims
-            and not output.decisive_failure
-            and codes == ["inferred_from_findings"]
-        ):
-            dim_pass = True
-            codes = []
-        normalized[dim] = {
-            "pass": dim_pass,
-            "severity": "none" if dim_pass else str(verdict.get("severity") or "major"),
-            "codes": codes if isinstance(codes, list) else [],
-        }
-
-    if set(raw) != set(COMPETENCIES_RUBRIC_DIMENSION_IDS):
-        inferred = True
-        if "competencies_dimension_verdicts_normalized" not in output.quality_flags:
-            output.quality_flags.append("competencies_dimension_verdicts_normalized")
-
-    output.dimension_verdicts = normalized
-    output.dimension_verdicts_inferred = inferred
-    return output
+def _competencies_display_text(categories: list[dict[str, Any]]) -> str:
+    lines: list[str] = []
+    for row in categories or []:
+        if isinstance(row, dict):
+            label = str(row.get("category") or row.get("label") or "").strip()
+            terms = ", ".join(str(t) for t in (row.get("terms") or row.get("skills") or []) if str(t).strip())
+            lines.append(f"{label}: {terms}".strip(": "))
+    return "\n".join(lines)
 
 
 def run_competencies_judges(
     *,
-    competencies: list[dict[str, Any]],
-    claim_ledger: list[dict[str, Any]],
-    judge_keys: list[str],
-    companion_context: str = "",
-    target_role: str = "",
-    target_company: str = "",
-    jd_text: str = "",
-    briefing: str = "",
-    targeting_context: dict[str, Any] | None = None,
-    allowed_fact_packet: dict[str, Any] | list[dict[str, Any]] | None = None,
-    deterministic_gate_summary: dict[str, Any] | None = None,
+    competency_categories: list[dict[str, Any]] | None = None,
+    candidate_output: dict[str, Any] | None = None,
+    claim_ledger: list[dict[str, Any]] | None = None,
+    judge_keys: list[str] | None = None,
     mode: str = "blocked_if_unavailable",
     artifact_base: Path | None = None,
+    targeting_context: dict[str, Any] | None = None,
+    deterministic_gate_summary: dict[str, Any] | None = None,
+    allowed_fact_packet: dict[str, Any] | list[dict[str, Any]] | None = None,
+    resume_display_text: str = "",
+    **_extra: Any,
 ) -> list[JudgeOutput]:
-    tc = dict(targeting_context or {})
-    eff_role = str(tc.get("target_title") or tc.get("target_role") or target_role or "")
-    eff_company = str(tc.get("target_company") or target_company or "")
-    eff_jd = str(tc.get("jd_text") or jd_text or "")
-    eff_briefing = str(tc.get("briefing") or briefing or "")
-
-    competencies_json = json.dumps(competencies, separators=(",", ":"), ensure_ascii=False)
-    input_payload = {
-        "competencies": competencies,
-        "claim_ledger": claim_ledger,
-        "companion_context": companion_context,
-        "target_role": eff_role,
-        "target_company": eff_company,
-        "jd_text": eff_jd,
-        "briefing": eff_briefing,
-        "allowed_fact_packet": allowed_fact_packet,
-        "deterministic_gate_summary": deterministic_gate_summary,
-        "rubric": COMPETENCIES_RUBRIC,
-    }
-    input_hash = hashlib.sha256(json.dumps(input_payload, sort_keys=True).encode()).hexdigest()[:16]
-    packet = build_grade_only_judge_packet(
-        section_id="competencies",
-        candidate_output={
-            "competencies": competencies,
-            "companion_context": companion_context,
-        },
-        section_rubric=f"{COMPETENCIES_RUBRIC}\n\n{COMPETENCIES_JUDGE_OUTPUT_CONTRACT}",
-        rubric_ref="apps_rg/runtime/judges/competencies_x1d.py#COMPETENCIES_RUBRIC",
-        claim_ledger=claim_ledger,
+    cats = list(competency_categories or (candidate_output or {}).get("competency_categories") or [])
+    display = resume_display_text or str((candidate_output or {}).get("resume_display_text") or "") or _competencies_display_text(cats)
+    cand = dict(candidate_output or {"competency_categories": cats, "resume_display_text": display})
+    packet_path = (artifact_base / "competencies_judge_packet.json") if artifact_base else None
+    outputs = run_policy_section_judges(
+        "competencies",
+        candidate_output=cand,
+        section_rubric=COMPETENCIES_RUBRIC,
+        rubric_ref=JUDGE_RUBRIC_REF,
+        claim_ledger=list(claim_ledger or []),
+        judge_keys=list(judge_keys or ["gemini_pro", "openai_chatgpt"]),
         allowed_fact_packet=allowed_fact_packet,
-        targeting_context={
-            "target_title": eff_role,
-            "target_company": eff_company,
-            "jd_text": eff_jd,
-            "briefing": eff_briefing,
-        },
+        targeting_context=targeting_context,
         deterministic_gate_summary=deterministic_gate_summary,
+        resume_display_text=display,
+        mode=mode,
+        artifact_base=artifact_base,
+        judge_packet_path=packet_path,
     )
-    judge_receipt: dict[str, Any] | None = None
-    if artifact_base is not None and mode != "mocked":
-        packet_ref = write_judge_packet(artifact_base / "competencies_judge_packet.json", packet)
-        judge_receipt = {
-            "judge_packet_hash": judge_packet_hash(packet),
-            "judge_packet_ref": packet_ref,
-            "rubric_ref": packet["rubric_ref"],
-            "deterministic_gate_summary": packet["deterministic_gate_summary"],
-        }
-    prompt = _build_prompt(
-        competencies_json,
-        claim_ledger,
-        companion_context,
-        target_role=eff_role,
-        target_company=eff_company,
-        jd_text=eff_jd,
-        briefing=eff_briefing,
-        allowed_fact_packet=allowed_fact_packet,
-    )
-
-    outputs: list[JudgeOutput] = []
-    prelaunched_futures: dict[str, Future[JudgeOutput]] = {}
-    executor: DaemonWorkerPool | None = None
-    if mode != "mocked" and len(judge_keys) > 1:
-        executor = DaemonWorkerPool(max_workers=len(judge_keys), thread_name_prefix="apps-rg-comp-judge")
-        for pkey in judge_keys:
-            if pkey not in PROVIDERS:
-                continue
-            p_api_key, _ = resolve_x1d_provider_credentials(pkey, os.environ)
-            if not p_api_key:
-                continue
-            p_res = resolve_section_proof_judge_model("competencies", pkey)
-            if p_res.blocked:
-                continue
-            p_meta = PROVIDERS[pkey]
-            if pkey == "gemini_pro":
-                p_model, p_model_source = _resolve_gemini_model(p_meta, section_id="competencies")
-            else:
-                p_model = p_res.model_actual
-                p_model_source = p_res.model_source
-            p_model_req = p_res.model_requested or p_model
-            p_effort = p_res.reasoning_effort
-
-            def _make_dispatch(
-                _k: str = pkey,
-                _ak: str = p_api_key,
-                _m: str = p_model,
-                _ms: str = p_model_source,
-                _mr: str = p_model_req,
-                _ef: str | None = p_effort,
-            ):
-                def _d(attempt_no: int) -> JudgeOutput:
-                    if _k == "openai_chatgpt":
-                        return _call_openai(
-                            _ak,
-                            prompt,
-                            _m,
-                            input_hash,
-                            _k,
-                            artifact_base=artifact_base,
-                            reasoning_effort=_ef,
-                            model_requested=_mr,
-                            judge_receipt=judge_receipt,
-                            model_env_source=_ms,
-                            attempt=attempt_no,
-                            section_id="competencies",
-                            response_schema=COMPETENCIES_JUDGE_RESPONSE_SCHEMA,
-                        )
-                    return _call_gemini(
-                        _ak,
-                        prompt,
-                        _m,
-                        input_hash,
-                        _k,
-                        model_source=_ms,
-                        artifact_base=artifact_base,
-                        model_requested=_mr,
-                        judge_receipt=judge_receipt,
-                        thinking_level=_ef,
-                        attempt=attempt_no,
-                        section_id="competencies",
-                        response_schema=COMPETENCIES_JUDGE_RESPONSE_SCHEMA,
-                    )
-
-                return _d
-
-            prelaunched_futures[pkey] = executor.submit(
-                _invoke_judge_with_bounded_retries,
-                _make_dispatch(),
-                provider_key=pkey,
-                section_id="competencies",
-            )
-
-    try:
-        for key in judge_keys:
-            if key not in PROVIDERS:
-                out = _make_blocked_output(
-                    key,
-                    input_hash,
-                    "BLOCKED_PROVIDER_UNAVAILABLE",
-                    "BLOCKED_PROVIDER_UNAVAILABLE",
-                    f"Unknown judge provider key: {key}",
-                )
-                out.judge_id = f"x1d_{key}_competencies"
-                outputs.append(out)
-                continue
-
-            if mode == "mocked":
-                if not _is_test_environment():
-                    raise RuntimeError(
-                        "MOCK_JUDGE_FORBIDDEN: mode='mocked' is strictly forbidden in production runtime."
-                    )
-                outputs.append(_normalize_competencies_dimension_verdicts(_mocked(key, input_hash)))
-                continue
-
-            meta = PROVIDERS[key]
-            api_key, env_checked = resolve_x1d_provider_credentials(key, os.environ)
-            if not api_key:
-                from apps_rg.runtime.judges.x1d_ide_cli import ide_cli_unavailable_reason, uses_ide_cli_judges
-
-                if uses_ide_cli_judges():
-                    detail = f"IDE CLI judge session unavailable: {ide_cli_unavailable_reason()}"
-                elif key == "gemini_pro":
-                    detail = (
-                        f"No non-empty API credential in {env_checked}; "
-                        f"(Gemini: GOOGLE_API_KEY, then deprecated GEMINI_API_KEY alias)."
-                    )
-                else:
-                    detail = f"{meta['env']} environment variable not set"
-                out = _make_blocked_output(
-                    key,
-                    input_hash,
-                    "BLOCKED_PROVIDER_UNAVAILABLE",
-                    "BLOCKED_PROVIDER_UNAVAILABLE",
-                    detail,
-                )
-                out.judge_id = f"x1d_{key}_competencies"
-                outputs.append(out)
-                continue
-
-            resolution = resolve_section_proof_judge_model("competencies", key)
-            if resolution.blocked:
-                out = _make_blocked_output(
-                    key,
-                    input_hash,
-                    "BLOCKED_MODEL_CONFIG",
-                    "BLOCKED_MODEL_CONFIG",
-                    resolution.block_reason or "proof judge model unavailable",
-                    model_name=resolution.model_requested or "unconfigured",
-                )
-                out.judge_id = f"x1d_{key}_competencies"
-                out.section_id = "competencies"
-                out.model_tier = resolution.model_tier
-                outputs.append(out)
-                continue
-
-            if key == "gemini_pro":
-                model, model_source = _resolve_gemini_model(meta, section_id="competencies")
-            else:
-                model = resolution.model_actual
-                model_source = resolution.model_source
-            model_requested = resolution.model_requested or model
-            reasoning_effort = resolution.reasoning_effort
-
-            try:
-                if key in prelaunched_futures:
-                    output = prelaunched_futures[key].result()
-                else:
-                    def _dispatch(attempt_no: int) -> JudgeOutput:
-                        if key == "openai_chatgpt":
-                            return _call_openai(
-                                api_key,
-                                prompt,
-                                model,
-                                input_hash,
-                                key,
-                                artifact_base=artifact_base,
-                                reasoning_effort=reasoning_effort,
-                                model_requested=model_requested,
-                                judge_receipt=judge_receipt,
-                                model_env_source=model_source,
-                                attempt=attempt_no,
-                                section_id="competencies",
-                                response_schema=COMPETENCIES_JUDGE_RESPONSE_SCHEMA,
-                            )
-                        return _call_gemini(
-                            api_key,
-                            prompt,
-                            model,
-                            input_hash,
-                            key,
-                            model_source=model_source,
-                            artifact_base=artifact_base,
-                            model_requested=model_requested,
-                            judge_receipt=judge_receipt,
-                            thinking_level=reasoning_effort,
-                            attempt=attempt_no,
-                            section_id="competencies",
-                            response_schema=COMPETENCIES_JUDGE_RESPONSE_SCHEMA,
-                        )
-
-                    output = _invoke_judge_with_bounded_retries(
-                        _dispatch,
-                        provider_key=key,
-                        section_id="competencies",
-                    )
-                output.judge_id = f"x1d_{key}_competencies"
-                output.rubric_version = JUDGE_RUBRIC_VERSION
-                output.section_id = "competencies"
-                output.model_tier = resolution.model_tier
-                output.advisory_only = False
-                output.proof_eligible_judge = bool(
-                    resolution.proof_eligible_judge
-                    and output.evaluator_mode == "MODEL_BACKED"
-                    and not output.provider_blocked
-                )
-                outputs.append(_normalize_competencies_dimension_verdicts(output))
-            except Exception as exc:  # noqa: BLE001  # guardian: allow-broad-exception -- fail-soft optional boundary
-                blocked = _make_blocked_output(
-                    key,
-                    input_hash,
-                    "BLOCKED_PROVIDER_UNAVAILABLE",
-                    "BLOCKED_PROVIDER_UNAVAILABLE",
-                    f"{meta['provider_name']} judge call failed: {type(exc).__name__}: {exc}",
-                    model_name=model,
-                )
-                blocked.judge_id = f"x1d_{key}_competencies"
-                outputs.append(blocked)
-    finally:
-        if executor is not None:
-            executor.shutdown(wait=False)
-
+    for out in outputs:
+        out.judge_id = f"x1d_{out.provider_key}_competencies"
+        out.rubric_version = JUDGE_RUBRIC_VERSION
     return outputs
 
 
-__all__ = ["run_competencies_judges", "JUDGE_RUBRIC_VERSION"]
+__all__ = [
+    "COMPETENCIES_JUDGE_RESPONSE_SCHEMA",
+    "COMPETENCIES_RUBRIC",
+    "COMPETENCIES_RUBRIC_DIMENSION_IDS",
+    "JUDGE_RUBRIC_VERSION",
+    "_is_test_environment",
+    "run_competencies_judges",
+]

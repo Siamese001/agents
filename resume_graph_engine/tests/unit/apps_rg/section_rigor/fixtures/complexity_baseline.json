@@ -256,11 +256,6 @@
       "section_id": "executive_summary"
     },
     {
-      "loc": 197,
-      "module_path": "apps_rg/runtime/judges/executive_summary_x1d_gate_closure_map.py",
-      "section_id": "executive_summary"
-    },
-    {
       "loc": 31,
       "module_path": "apps_rg/runtime/dispatch/executive_summary_pa.py",
       "section_id": "executive_summary"

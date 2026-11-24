@@ -1,22 +1,19 @@
-"""Unit tests for executive_summary X1D dimension_verdicts and operator matrix."""
-
+"""Unit tests for Clean-Slate Judge v3 `executive_summary_x1d_dimension_verdicts`."""
 from __future__ import annotations
 
 import json
-
-import pytest
 
 from apps_rg.runtime.judges.executive_summary_x1d import _make_model_backed_output
 from apps_rg.runtime.judges.executive_summary_x1d_dimension_verdicts import (
     EXEC_SUMMARY_RUBRIC_DIMENSION_IDS,
     build_x1d_dimension_matrix,
     ensure_dimension_verdicts,
-    infer_dimension_verdicts_from_judge_blob,
+    section_dimension_veto_passes,
     write_x1d_dimension_matrix_artifact,
 )
 
 
-def _all_pass_gates() -> dict[str, dict[str, bool]]:
+def _all_pass_gates() -> dict[str, dict[str, object]]:
     return {
         "x2_exec_summary_sentence_band_3_to_4": {"pass": True, "detail": "ok"},
         "x2_exec_summary_evidence_utilization": {"pass": True, "detail": "ok"},
@@ -24,44 +21,11 @@ def _all_pass_gates() -> dict[str, dict[str, bool]]:
     }
 
 
-def test_infer_dimension_verdicts_from_claude_style_blob() -> None:
+def test_ensure_dimension_verdicts_validates_explicit_v3_block() -> None:
     body = {
-        "pass": False,
-        "score": 3.0,
-        "findings": ["bullet stack", "weak domain targeting for mandate"],
-        "quality_flags": ["bullet_stack_prose", "weak_domain_targeting"],
-        "fail_reasons": ["Generic interchangeable peer summary"],
-    }
-    verdicts = infer_dimension_verdicts_from_judge_blob(body, deterministic_gate_summary=_all_pass_gates())
-    assert len(verdicts) == 6
-    assert verdicts["six_second_scannability"]["pass"] is False
-    assert verdicts["strategic_mandate_resonance"]["pass"] is False
-
-
-def test_infer_dimension_verdicts_flags_ta_screen_and_ai_authenticity_language() -> None:
-    body = {
-        "pass": True,
-        "score": 4.5,
-        "findings": [
-            "Ordinary peer summary, not an immediate call.",
-            "The cadence feels machine-generated, with em dashes and buzzword soup.",
-        ],
-        "quality_flags": [],
-        "fail_reasons": [],
-    }
-    verdicts = infer_dimension_verdicts_from_judge_blob(
-        body,
-        deterministic_gate_summary=_all_pass_gates(),
-    )
-    assert verdicts["immediate_call_conviction"]["pass"] is False
-    assert verdicts["spoken_executive_authenticity"]["pass"] is False
-
-
-def test_ensure_dimension_verdicts_validates_explicit_block() -> None:
-    body = {
-        "score_scale": "0_to_5",
-        "score": 4.8,
-        "threshold": 4.7,
+        "score_scale": "0_to_1",
+        "score": 1.0,
+        "threshold": 0.80,
         "pass": True,
         "decisive_failure": False,
         "findings": [],
@@ -74,20 +38,20 @@ def test_ensure_dimension_verdicts_validates_explicit_block() -> None:
     }
     out, inferred = ensure_dimension_verdicts(body, deterministic_gate_summary=_all_pass_gates())
     assert inferred is False
-    assert len(out["dimension_verdicts"]) == 6
+    assert set(out["dimension_verdicts"]) == set(EXEC_SUMMARY_RUBRIC_DIMENSION_IDS)
 
 
-def test_make_model_backed_output_attaches_dimension_verdicts() -> None:
+def test_make_model_backed_output_attaches_v3_dimension_verdicts() -> None:
     body = {
-        "score_scale": "0_to_5",
-        "score": 3.0,
-        "threshold": 4.7,
-        "pass": False,
-        "decisive_failure": False,
-        "findings": ["robotic prose and bullet stack"],
-        "cited_sentence_indexes": [1],
-        "remediation_suggestions": [],
-        "quality_flags": ["bullet_stack_prose"],
+        "cold_read_takeaway": "Robotic template cadence detected.",
+        "checks": {
+            "verified_claim_entailment": {"verdict": "YES", "evidence_span": ""},
+            "proof_boundary_integrity": {"verdict": "YES", "evidence_span": ""},
+            "mandate_fit_without_clutter": {"verdict": "NO", "evidence_span": "off-domain legacy clutter"},
+            "authentic_human_voice": {"verdict": "NO", "evidence_span": "abstract noun soup"},
+            "distinct_mechanism_to_outcome": {"verdict": "YES", "evidence_span": ""},
+        },
+        "failure_tags": ["AI_FILLER_VOICE", "OMITTED_CONSTRAINT"],
     }
     out = _make_model_backed_output(
         "openai_chatgpt",
@@ -97,8 +61,16 @@ def test_make_model_backed_output_attaches_dimension_verdicts() -> None:
         deterministic_gate_summary=_all_pass_gates(),
     )
     assert out.dimension_verdicts
-    assert "six_second_scannability" in out.dimension_verdicts
-    assert "spoken_executive_authenticity" in out.dimension_verdicts
+    assert out.dimension_verdicts["authentic_human_voice"]["pass"] is False
+    assert out.pass_ is False
+
+
+def test_section_dimension_veto_blocks_allocated_metric_overlap() -> None:
+    ok, reasons = section_dimension_veto_passes(
+        {"distinct_mechanism_to_outcome": {"pass": True, "severity": "minor", "codes": ["MINOR_ALLOCATED_METRIC_OVERLAP"]}}
+    )
+    assert ok is False
+    assert any("section_judge_veto_code:" in r for r in reasons)
 
 
 def test_dimension_matrix_consensus_fail() -> None:
@@ -109,31 +81,24 @@ def test_dimension_matrix_consensus_fail() -> None:
             "provider_name": "Gemini",
             "pass": False,
             "dimension_verdicts": {
-                "spoken_executive_authenticity": {"pass": False, "severity": "major", "codes": ["ai_bridge_crutch"]},
-                **{d: {"pass": True, "severity": "none", "codes": []} for d in EXEC_SUMMARY_RUBRIC_DIMENSION_IDS if d != "spoken_executive_authenticity"},
-            },
-        },
-        {
-            "evaluator_mode": "MODEL_BACKED",
-            "provider_key": "anthropic_claude",
-            "provider_name": "Claude",
-            "pass": False,
-            "dimension_verdicts": {
-                "spoken_executive_authenticity": {"pass": False, "severity": "major", "codes": ["ai_bridge_crutch"]},
-                **{d: {"pass": True, "severity": "none", "codes": []} for d in EXEC_SUMMARY_RUBRIC_DIMENSION_IDS if d != "spoken_executive_authenticity"},
+                "authentic_human_voice": {"pass": False, "severity": "major", "codes": ["AI_FILLER_VOICE"]},
+                **{d: {"pass": True, "severity": "none", "codes": []} for d in EXEC_SUMMARY_RUBRIC_DIMENSION_IDS if d != "authentic_human_voice"},
             },
         },
         {
             "evaluator_mode": "MODEL_BACKED",
             "provider_key": "openai_chatgpt",
             "provider_name": "OpenAI",
-            "pass": True,
-            "dimension_verdicts": {d: {"pass": True, "severity": "none", "codes": []} for d in EXEC_SUMMARY_RUBRIC_DIMENSION_IDS},
+            "pass": False,
+            "dimension_verdicts": {
+                "authentic_human_voice": {"pass": False, "severity": "major", "codes": ["AI_FILLER_VOICE"]},
+                **{d: {"pass": True, "severity": "none", "codes": []} for d in EXEC_SUMMARY_RUBRIC_DIMENSION_IDS if d != "authentic_human_voice"},
+            },
         },
     ]
     matrix = build_x1d_dimension_matrix(judges)
-    assert matrix["by_dimension"]["spoken_executive_authenticity"]["consensus_fail"] is True
-    assert matrix["by_dimension"]["spoken_executive_authenticity"]["fail_count"] == 2
+    assert matrix["by_dimension"]["authentic_human_voice"]["consensus_fail"] is True
+    assert matrix["by_dimension"]["authentic_human_voice"]["fail_count"] == 2
 
 
 def test_write_matrix_artifact(tmp_path) -> None:
@@ -147,4 +112,4 @@ def test_write_matrix_artifact(tmp_path) -> None:
     ]
     path = write_x1d_dimension_matrix_artifact(tmp_path / "x1d_dimension_matrix.json", judges)
     body = json.loads(open(path, encoding="utf-8").read())
-    assert body["schema"] == "executive_summary_x1d_dimension_matrix_v1"
+    assert body["schema"] == "executive_summary_x1d_dimension_matrix_v3"

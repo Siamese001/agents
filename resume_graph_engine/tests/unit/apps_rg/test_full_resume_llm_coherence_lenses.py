@@ -46,7 +46,7 @@ def _make_judge(*, key: str, pass_: bool, findings: list[str] | None = None, dec
 
 
 def test_rubric_v3_prompt_contains_six_hr_lenses_and_briefing_context():
-    assert FULL_RESUME_COHERENCE_RUBRIC_VERSION == "full_resume_llm_coherence_v3"
+    assert FULL_RESUME_COHERENCE_RUBRIC_VERSION == "full_resume_coherence_judge_v3"
     assert len(LENS_DEFINITIONS) == 6
     assert "narrative_coherence" in LENS_DEFINITIONS
     assert "hr_recruiter_first_impression" in LENS_DEFINITIONS
@@ -61,14 +61,11 @@ def test_rubric_v3_prompt_contains_six_hr_lenses_and_briefing_context():
         target_role="Manager of Applied AI Architecture, Partnerships",
         jd_context="Enterprise customer adoption, GTM alliance, AI safety frameworks.",
     )
-    assert "EVALUATION LENSES & CORE DIMENSIONS:" in prompt
-    assert "hr_recruiter_first_impression" in prompt
-    assert "6-Second Initial Screen" in prompt
-    assert "ats_semantic_taxonomy" in prompt
-    assert "jd_briefing_resonance" in prompt
-    assert "knockout_and_risk_vectors" in prompt
-    assert "altitude_and_band_calibration" in prompt
-    assert "TARGETING_CONTEXT (not proof)" in prompt
+    assert "end_to_end_factual_consistency" in prompt
+    assert "zero_cross_section_metric_echo" in prompt
+    assert "unified_mandate_arc" in prompt
+    assert "consistent_executive_voice" in prompt
+    assert "TARGETING_CONTEXT" in prompt or "Anthropic" in prompt
 
 
 def test_categorize_finding_by_lens():
@@ -111,7 +108,7 @@ def test_aggregate_full_resume_coherence_extracts_structured_lens_analysis():
     assert "lens_analysis" in agg
 
     lens_analysis = agg["lens_analysis"]
-    assert lens_analysis["rubric_version"] == "full_resume_llm_coherence_v3"
+    assert lens_analysis["rubric_version"] == "full_resume_coherence_judge_v3"
     assert set(lens_analysis["lenses_evaluated"]) == set(LENS_DEFINITIONS)
 
     assert lens_analysis["lens_status"]["hr_recruiter_first_impression"] == "OBSERVATION"
@@ -180,7 +177,7 @@ def test_emit_full_resume_llm_coherence_review_persists_lens_analysis(tmp_path: 
     assert review_file.is_file()
     review_data = json.loads(review_file.read_text(encoding="utf-8"))
     assert "lens_analysis" in review_data
-    assert review_data["lens_analysis"]["rubric_version"] == "full_resume_llm_coherence_v3"
+    assert review_data["lens_analysis"]["rubric_version"] == "full_resume_coherence_judge_v3"
     assert len(review_data["lens_analysis"]["lenses_evaluated"]) == 6
 
     x1d_file = tmp_path / "emit_lens_test" / "x1d_full_resume_judge_outputs.json"

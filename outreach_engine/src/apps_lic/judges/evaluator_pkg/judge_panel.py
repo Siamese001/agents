@@ -322,12 +322,23 @@ class ExecutiveOutreachJudgePanel(RubricConfigAndTournamentBase):
         *,
         agy_bin: str | None = None,
     ) -> dict[str, object]:
-        """Run deterministic pre-gates plus live keyless IDE CLI 6-lens rubric judgment (fail-closed)."""
+        """Two-stage evaluation: Stage A deterministic preflight first, Stage B Judge v3 IDE CLI second."""
         from apps_lic.judges.ide_cli_judge import call_outreach_panel_ide_cli_judge
 
         det_verdict = self.evaluate_authoritative(draft, candidate, opportunity)
+        if not det_verdict.hard_gate_passed:
+            return {
+                "passed": False,
+                "status": "STAGE_A_BLOCKED",
+                "hard_gate_passed": False,
+                "evaluator_kind": "deterministic_gate",
+                "llm_judge_executed": False,
+                "normalized_unit_score": None,
+                "deterministic_violations": list(det_verdict.violations),
+                "ide_cli_judge": None,
+            }
         fact_summaries = [
-            f"{f.fact_id}: {getattr(f, 'claim_text', getattr(f, 'text', ''))}"
+            f"{f.fact_id}: {getattr(f, 'statement', getattr(f, 'claim_text', getattr(f, 'text', '')))}"
             for f in candidate.verified_facts
         ]
         cli_res = call_outreach_panel_ide_cli_judge(
@@ -338,15 +349,18 @@ class ExecutiveOutreachJudgePanel(RubricConfigAndTournamentBase):
             verified_facts=fact_summaries,
             company_name=opportunity.company_name,
             rubric=self._active_rubric,
-            pass_threshold=self.get_min_composite_score(0.75),
+            pass_threshold=self.get_min_composite_score(0.80),
             agy_bin=agy_bin,
         )
-        combined_passed = bool(det_verdict.hard_gate_passed and cli_res.passed and not cli_res.provider_blocked)
+        combined_passed = bool(cli_res.passed and not cli_res.provider_blocked)
         return {
             "passed": combined_passed,
             "status": "PASSED" if combined_passed else "BLOCKED",
-            "hard_gate_passed": det_verdict.hard_gate_passed,
-            "deterministic_violations": list(det_verdict.violations),
+            "hard_gate_passed": True,
+            "evaluator_kind": "llm_judge" if cli_res.llm_judge_executed else "skipped",
+            "llm_judge_executed": cli_res.llm_judge_executed,
+            "normalized_unit_score": cli_res.normalized_unit_score,
+            "deterministic_violations": [],
             "ide_cli_judge": cli_res.to_dict(),
         }
 

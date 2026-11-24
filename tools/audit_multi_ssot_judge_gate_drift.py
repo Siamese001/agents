@@ -100,6 +100,25 @@ def audit_multi_ssot_judge_gate_drift(repo_root: Path) -> dict[str, Any]:
     )
     if panel.verdict != "FAIL":
         v3_errs.append(f"multi_lens_panel_missed_single_lens_veto:{panel.verdict}")
+    # Probe D: Section judge dimension veto must reject MINOR_ALLOCATED_METRIC_OVERLAP.
+    rg_src = str((root / "resume_graph_engine" / "src").resolve())
+    if rg_src not in sys.path:
+        sys.path.insert(0, rg_src)
+    from apps_rg.runtime.judges.executive_summary_x1d_dimension_verdicts import (
+        section_dimension_veto_passes,
+    )
+
+    veto_ok, _ = section_dimension_veto_passes(
+        {
+            "differentiated_edge": {
+                "pass": True,
+                "severity": "minor",
+                "codes": ["MINOR_ALLOCATED_METRIC_OVERLAP"],
+            }
+        }
+    )
+    if veto_ok:
+        v3_errs.append("section_dimension_veto_missed_minor_allocated_metric_overlap")
     vectors["V3_LIVE_NEGATIVE_PROBES"] = "PASS" if not v3_errs else "FAIL"
     for e in v3_errs:
         violations.append({"vector": "V3_LIVE_NEGATIVE_PROBES", "message": e})
@@ -303,6 +322,65 @@ def audit_multi_ssot_judge_gate_drift(repo_root: Path) -> dict[str, Any]:
     vectors["V7_EXTERNAL_RUBRIC_HUMAN_DRIFT"] = "PASS" if not v7_errs else "FAIL"
     for e in v7_errs:
         violations.append({"vector": "V7_EXTERNAL_RUBRIC_HUMAN_DRIFT", "message": e})
+
+    # Vector 8: Clean-Slate Judge v3 Rubric SSOT, 300-Word Anti-Bloat Cap, and v2 Human Parity.
+    v8_errs: list[str] = []
+    try:
+        from apps_eval.graders.judge.external_rubric_store import load_and_verify_external_rubric_v2
+        from apps_eval.graders.judge.v3_evaluator import (
+            JudgeV3SchemaError,
+            build_v3_evaluation_bundle,
+            parse_and_seal_v3_verdict,
+        )
+        from apps_eval.graders.judge.v3_registry import JudgeRubricRegistryV3
+        from tools.validate_judge_rubrics_v3 import validate_judge_rubrics_v3
+
+        ok_v3, errs_v3, _ = validate_judge_rubrics_v3(
+            root / "config" / "governance" / "judge_rubrics_v3.json",
+            root / "config" / "governance" / "external_judge_rubric_v2.json",
+        )
+        if not ok_v3:
+            v8_errs.extend(f"v3_rubric_gate:{err}" for err in (errs_v3 or ["failed"]))
+        load_and_verify_external_rubric_v2(root / "config" / "governance" / "external_judge_rubric_v2.json")
+
+        reg = JudgeRubricRegistryV3.load(root / "config" / "governance" / "judge_rubrics_v3.json")
+        probe_bundle, probe_prof, _ = build_v3_evaluation_bundle(
+            profile_token="agent_trace_and_calibration:human_calibration_studio",
+            artifact_id="ssot-v8-probe",
+            raw_input={
+                "candidate_text": "Led enterprise AI governance delivery reducing cycle time by 30%.",
+                "target_context": "Target: SVP AI Transformation",
+                "source_evidence": ["Verified Career Fact: Led enterprise AI governance delivery (30% cycle reduction)."],
+            },
+            author_model_family="anthropic",
+            registry=reg,
+            repo_root=root,
+        )
+        try:
+            parse_and_seal_v3_verdict(
+                {
+                    "cold_read_takeaway": "Unsupported metric.",
+                    "checks": {
+                        cid: {"verdict": "NO" if cid == "unsupported_claim_absent" else "YES", "evidence_span": ""}
+                        for cid in probe_prof.check_ids
+                    },
+                    "failure_tags": ["HALLUCINATED_FACT"],
+                },
+                bundle=probe_bundle,
+                profile=probe_prof,
+                rubric_sha256=reg.rubric_sha256,
+                judge_model_id="gemini-4-argon-medium",
+                judge_model_family="google",
+            )
+            v8_errs.append("v3_evaluator_accepted_missing_evidence_span_on_no")
+        except JudgeV3SchemaError:
+            pass
+    except Exception as exc:  # guardian: allow-broad-exception -- fail closed on V8 Judge v3 parity or probe error
+        v8_errs.append(f"judge_v3_clean_slate_audit_error:{exc}")
+
+    vectors["V8_JUDGE_V3_CLEAN_SLATE_PARITY"] = "PASS" if not v8_errs else "FAIL"
+    for e in v8_errs:
+        violations.append({"vector": "V8_JUDGE_V3_CLEAN_SLATE_PARITY", "message": e})
 
     return {
         "schema_version": "agents.multi_ssot_judge_gate_drift.v1",

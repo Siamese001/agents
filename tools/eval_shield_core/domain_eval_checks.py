@@ -135,7 +135,7 @@ def check_resume_graph_engine_domain(repo_root: Path, *, inject_fault: bool = Fa
     )
     if "deterministic_gate_summary" in rendered_blind or '"all_passed": true' in rendered_blind:
         failures.append("blind_judge_leaked_deterministic_gate_summary")
-    if "INANIMATE_SUBJECT_DATASHEET_BAN" not in rendered_blind:
+    if "authentic_human_voice" not in rendered_blind or "abstract noun soup" not in rendered_blind:
         failures.append("blind_judge_missing_inanimate_subject_ban")
 
     from apps_rg.runtime.sections.ibm_narrative_lane import normalize_parsed_output
@@ -201,10 +201,55 @@ def check_resume_graph_engine_domain(repo_root: Path, *, inject_fault: bool = Fa
     if HEADLINE_EXECUTIVE_ABSTRACTION_RE.search("Agile Scrum Ceremonies") is not None:
         failures.append("fault_injected_non_executive_headline_segment_not_rejected")
 
+    from apps_rg.evals.planted_defect_gate import (
+        build_default_rg_planted_defect_corpus,
+        evaluate_rg_g5_repeatability,
+        evaluate_rg_g6_planted_defects,
+    )
+    from apps_rg.runtime.judges.executive_summary_x1d_dimension_verdicts import (
+        section_dimension_veto_passes,
+    )
+    from apps_rg.runtime.judges.grade_only_judge_packet import (
+        compact_candidate_output_for_judge,
+    )
+
+    rg_corpus = build_default_rg_planted_defect_corpus()
+    rg_g5 = evaluate_rg_g5_repeatability(rg_corpus)
+    rg_g6 = evaluate_rg_g6_planted_defects(rg_corpus)
+    if not rg_g5.passed:
+        failures.append(f"apps_rg_g5_repeatability_failed:{rg_g5.violations}")
+    if not rg_g6.passed:
+        failures.append(f"apps_rg_g6_planted_defects_failed:{rg_g6.violations}")
+
+    compacted_judge_cand = compact_candidate_output_for_judge(
+        {
+            "bullets": ["B1", "B2"],
+            "selected_fact_plan": {
+                "section_id": "ibm_bullets",
+                "allocation_assignments": [{"bullet_idx": 1}],
+                "selected_metrics": ["$10M", "BCBS 239"],
+            },
+        }
+    )
+    projected_plan = compacted_judge_cand.get("selected_fact_plan") or {}
+    if "allocation_assignments" in projected_plan or "selected_metrics" in projected_plan:
+        failures.append("grade_only_judge_packet_leaked_allocation_plumbing")
+    veto_ok, _ = section_dimension_veto_passes(
+        {
+            "differentiated_edge": {
+                "pass": True,
+                "severity": "minor",
+                "codes": ["MINOR_ALLOCATED_METRIC_OVERLAP"],
+            }
+        }
+    )
+    if veto_ok:
+        failures.append("section_dimension_veto_missed_allocated_metric_overlap")
+
     return {
         "domain": "resume_graph_engine",
         "status": "PASS" if not failures else "FAIL",
-        "checks_run": 13,
+        "checks_run": 17,
         "failures": failures,
     }
 

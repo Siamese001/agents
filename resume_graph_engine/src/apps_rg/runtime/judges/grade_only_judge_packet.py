@@ -13,16 +13,12 @@ JUDGE_PACKET_VERSION = "apps_rg_grade_only_judge_packet_v2"
 _PRE_X2_PENDING_GATE_KEY = "x2_judge_snapshot_pending"
 
 # ``selected_fact_plan`` is both a proof surface and an operational audit surface.
-# Judges need the former, but traversal ledgers and ranking diagnostics can be
-# megabytes large and are not claim authority.  Keep the proof-bearing fields in
-# provider input and bind the omitted audit fields by digest so the durable lane
-# artifacts remain traceable without exceeding provider input limits.
+# Judges need the former, but traversal ledgers, ranking diagnostics, and internal
+# slot/metric allocation plumbing must be stripped so judges read the section cold
+# like a hiring manager and never excuse repeated metrics or acronyms because
+# "each matches its allocated metric_outcome_id".
 _SELECTED_FACT_PLAN_JUDGE_FIELDS = frozenset(
     {
-        "allocation_assignments",
-        "allocation_plan_digest",
-        "allocation_plan_id",
-        "allocation_scope",
         "allowed_graph_evidence_ids",
         "durable_graph_state_mutated",
         "facts",
@@ -40,11 +36,6 @@ _SELECTED_FACT_PLAN_JUDGE_FIELDS = frozenset(
         "selected_employer_lanes",
         "selected_employer_roots",
         "selected_headline_positioning_families",
-        "selected_metrics",
-        "selected_skill_ids",
-        "selected_skills",
-        "selection_method",
-        "selection_rationale",
         "target_role_profile",
     }
 )
@@ -103,27 +94,15 @@ def ensure_panel_gate_summary(
         }
     }
 
-GRADE_ONLY_INSTRUCTION = """
-You are grading a generated resume section candidate produced by a separate generator.
-judge_task: GRADE_ONLY
+GRADE_ONLY_INSTRUCTION = (
+    "Blind hiring-committee evaluation (GRADE_ONLY). Evaluate candidate_output strictly against "
+    "allowed_fact_packet and targeting_context using atomic YES/NO checks and verbatim failure spans. "
+    "Do NOT write replacement prose."
+)
 
-Mandatory rules:
-- Do NOT write replacement section content.
-- Do NOT rewrite or edit the candidate text.
-- Do NOT add claims, metrics, credentials, or facts.
-- JD_TEXT and BRIEFING are targeting context only — never proof.
-- Grade only against the rubric, allowed_fact_packet (when provided), and candidate_output.
-- Return ONLY the required structured judge JSON schema (no markdown fences, no prose).
-""".strip()
-
-REQUIRED_JUDGE_OUTPUT_SCHEMA = """
-Return ONLY one compact JSON object:
-{"score_scale":"0_to_5","score":0.0,"threshold":4.0,"pass":true,"decisive_failure":false,
- "findings":["short strings"],"cited_sentence_indexes":[1],
- "remediation_suggestions":[],"rationale":"one short paragraph",
- "fail_reasons":[],"unsupported_claims":[],"quality_flags":[]}
-score_scale must be 0_to_5 with in-range score/threshold (0.0 to 5.0, required pass >= 4.0).
-""".strip()
+REQUIRED_JUDGE_OUTPUT_SCHEMA = (
+    '{"cold_read_takeaway":"...","checks":{"<check_id>":{"verdict":"YES|NO","evidence_span":"..."}},"failure_tags":[]}'
+)
 
 
 def build_grade_only_judge_packet(
@@ -239,7 +218,11 @@ def write_judge_packet(path: Path, packet: dict[str, Any]) -> str:
 
 
 def render_judge_prompt_from_packet(packet: dict[str, Any]) -> str:
-    """Render judge user message from JudgePacket — never the generator compiled_prompt."""
+    """Render judge user message from JudgePacket — never the generator compiled_prompt.
+
+    Frontier-lab grader separation: omit ``deterministic_gate_summary`` from the rendered prompt
+    so section LLM judges evaluate candidate text blind to X2 pass flags.
+    """
     candidate = packet.get("candidate_output") or {}
     return "\n\n".join(
         [
@@ -263,8 +246,6 @@ def render_judge_prompt_from_packet(packet: dict[str, Any]) -> str:
                 ensure_ascii=False,
                 indent=2,
             ),
-            "DETERMINISTIC_GATE_SUMMARY:\n"
-            + json.dumps(packet.get("deterministic_gate_summary") or {}, ensure_ascii=False, indent=2),
         ]
     )
 

@@ -32,13 +32,30 @@ DEFAULT_JUDGE_GOVERNED_SURFACES: tuple[JudgeGovernedSurface, ...] = (
         min_distinct_families=1,
     ),
     JudgeGovernedSurface(
+        surface_id="apps_rg_whole_coherence",
+        source_globs=(
+            "resume_graph_engine/src/apps_rg/runtime/assembly/final_resume_assembly*.py",
+        ),
+        receipt_rel_path="artifacts/eval_harness/judge_receipts/apps_rg_whole_coherence_receipt.json",
+        artifact_rel_path="artifacts/eval_harness/judge_receipts/apps_rg_whole_coherence_artifact.json",
+        min_distinct_families=1,
+    ),
+    JudgeGovernedSurface(
         surface_id="apps_lic_outreach_sequence",
         source_globs=(
             "outreach_engine/src/apps_lic/pipeline/orchestrator_pkg/*.py",
-            "outreach_engine/src/apps_lic/judges/evaluator_pkg/*.py",
         ),
         receipt_rel_path="artifacts/eval_harness/judge_receipts/apps_lic_outreach_receipt.json",
         artifact_rel_path="artifacts/eval_harness/judge_receipts/apps_lic_outreach_artifact.json",
+        min_distinct_families=1,
+    ),
+    JudgeGovernedSurface(
+        surface_id="apps_research_company_brief",
+        source_globs=(
+            "apps_research/engines/company_brief_engine.py",
+        ),
+        receipt_rel_path="artifacts/eval_harness/judge_receipts/apps_research_company_brief_receipt.json",
+        artifact_rel_path="artifacts/eval_harness/judge_receipts/apps_research_company_brief_artifact.json",
         min_distinct_families=1,
     ),
 )
@@ -90,9 +107,20 @@ def verify_diff_judge_receipts(
             triggered.append(entry)
             continue
 
-        if str(receipt.get("verdict") or "").upper() != "PASS":
+        if receipt.get("llm_judge_executed") is False:
             entry["status"] = "FAIL"
-            entry["reasons"].append(f"RECEIPT_VERDICT_NOT_PASS:{receipt.get('verdict')}")
+            entry["reasons"].append("STAGE_B_LLM_JUDGE_NOT_EXECUTED")
+
+        if "normalized_unit_score" in receipt:
+            nus = receipt.get("normalized_unit_score")
+            if nus is None or isinstance(nus, bool) or not (0.0 <= float(nus) <= 1.0):
+                entry["status"] = "FAIL"
+                entry["reasons"].append(f"NON_UNIT_NORMALIZED_SCORE:{nus!r}")
+
+        verdict_tok = str(receipt.get("verdict") or receipt.get("status") or "").upper()
+        if verdict_tok != "PASS" or receipt.get("passed") is False:
+            entry["status"] = "FAIL"
+            entry["reasons"].append(f"RECEIPT_VERDICT_NOT_PASS:{verdict_tok or receipt.get('passed')}")
 
         prov_ok, prov_reasons = validate_blind_judge_verdict_provenance(
             receipt,

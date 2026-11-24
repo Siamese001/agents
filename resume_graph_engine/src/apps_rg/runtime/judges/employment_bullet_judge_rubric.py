@@ -1,13 +1,14 @@
-"""SSOT: employment bullet judge dimensions (Unify / IBM) — not executive-summary rubrics."""
-
+"""Domain-General Employment Bullet Judge v3 Contract (`<= 95L`, zero employer hardcoding)."""
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Final
 
-from apps_rg.runtime.quality.overlap_engine import SHARED_OVERLAP_DECISIVE_FAILURE_CLAUSE
+from apps_rg.runtime.judges.v3_section_judge import (
+    get_apps_rg_v3_profile,
+    render_section_v3_rubric,
+)
 
-# Executive-summary judge dimensions that must never appear on bullet lanes.
 FORBIDDEN_EXEC_SUMMARY_DIMENSION_IDS: Final[frozenset[str]] = frozenset(
     {
         "executive_signal",
@@ -25,7 +26,7 @@ FORBIDDEN_EXEC_SUMMARY_DIMENSION_IDS: Final[frozenset[str]] = frozenset(
     }
 )
 
-EMPLOYMENT_BULLET_RUBRIC_VERSION: Final[str] = "employment_bullet_judge_v2"
+EMPLOYMENT_BULLET_RUBRIC_VERSION: Final[str] = "employment_bullet_judge_v3"
 
 
 @dataclass(frozen=True, slots=True)
@@ -34,189 +35,35 @@ class BulletJudgeDimension:
     criterion: str
 
 
-def _numbered_block(dimensions: tuple[BulletJudgeDimension, ...]) -> str:
-    lines = ["Rubric dimensions (employment bullets — not executive summary):"]
-    for idx, dim in enumerate(dimensions, start=1):
-        lines.append(f"{idx}. {dim.dimension_id}: {dim.criterion}")
-    return "\n".join(lines)
-
-
-# Shared across Unify and IBM bullet lanes.
-SHARED_EMPLOYMENT_BULLET_DIMENSIONS: Final[tuple[BulletJudgeDimension, ...]] = (
-    BulletJudgeDimension(
-        "claim_ledger_grounding",
-        "each bullet maps to bul_* source_fact_ids in the claim ledger; metrics match allowed facts verbatim.",
-    ),
-    BulletJudgeDimension(
-        "bullet_line_discipline",
-        "one high-impact resume bullet per slot — concise line, no narrative paragraph or multi-sentence block.",
-    ),
-    BulletJudgeDimension(
-        "evidence_density",
-        "every bullet has a specific action, named delivery detail, and a source-backed business, adoption, risk, or delivery result; a capability-only statement fails.",
-    ),
-    BulletJudgeDimension(
-        "jd_briefing_targeting_discipline",
-        "JD and briefing shape emphasis and relevance — ensure bullet selection emphasizes candidate's verified achievements addressing target role priorities (e.g. commercial expansion, M&A due diligence, and operating models for advisory mandates; platform scale and runtime governance for technical mandates); never use JD or briefing as fake candidate experience proof (never JD-as-proof, briefing-as-proof).",
-    ),
-    BulletJudgeDimension(
-        "keyword_discipline_without_stuffing",
-        "role-relevant phrasing without ATS keyword bags or copied JD phrases as proof.",
-    ),
-    BulletJudgeDimension(
-        "cross_bullet_outcome_diversity",
-        "each bullet answers a distinct outcome spine — not restatements of the same mechanism stack, and never repeats a named regulatory standard (e.g. BCBS 239, SOC 2) or numeric KPI figure (e.g. 99.9%, $10M, 20%) across two bullets in the section (repeating a standard or figure is a mandatory decisive failure, never minor).",
-    ),
-    BulletJudgeDimension(
-        "employer_scope_purity",
-        "no cross-employer fact leakage, wrong-company names, or facts from other employment slices.",
-    ),
-)
-
-UNIFY_BULLET_ONLY_DIMENSIONS: Final[tuple[BulletJudgeDimension, ...]] = (
-    BulletJudgeDimension(
-        "current_role_unify_platform_signal",
-        "Unify reads as the candidate's current-role platform proof (governance, commercialization, scale) where evidenced.",
-    ),
-    BulletJudgeDimension(
-        "protected_metric_anchor",
-        "bul_unify_006 preserves each commercial or scale metric explicitly assigned by its sealed metric_outcome_ids, without splitting or diluting the assigned outcome.",
-    ),
-    BulletJudgeDimension(
-        "mechanism_inventory_cap",
-        "at most one mechanism-dense bullet; others stay outcome-led, not comma-stacked architecture inventories.",
-    ),
-)
-
-IBM_BULLET_ONLY_DIMENSIONS: Final[tuple[BulletJudgeDimension, ...]] = (
-    BulletJudgeDimension(
-        "foundation_enterprise_credibility",
-        "IBM bullets prove enterprise/platform foundation — not ownership of current agentic runtime product lines.",
-    ),
-    BulletJudgeDimension(
-        "ibm_fact_scope_only",
-        "bul_ibm_* facts only — no Unify, InsurTech, EY, education, or early-career contamination.",
-    ),
-    BulletJudgeDimension(
-        "no_unify_runtime_vocabulary",
-        "no Unify-era agentic runtime vocabulary (agentic AI, GraphRAG, multi-agent orchestration, etc.).",
-    ),
-    BulletJudgeDimension(
-        "narrative_slot_reservation",
-        "bullets deliver KPI lines; they do not preempt the IBM one-sentence narrative capstone.",
-    ),
+SHARED_EMPLOYMENT_BULLET_DIMENSIONS: Final[tuple[BulletJudgeDimension, ...]] = tuple(
+    BulletJudgeDimension(c.id, c.question)
+    for c in get_apps_rg_v3_profile("employment_bullets").checks
 )
 
 
 def employment_bullet_dimensions(section_id: str) -> tuple[BulletJudgeDimension, ...]:
-    lane = str(section_id or "").strip().lower()
-    if lane == "unify_bullets":
-        return SHARED_EMPLOYMENT_BULLET_DIMENSIONS + UNIFY_BULLET_ONLY_DIMENSIONS
-    if lane == "ibm_bullets":
-        return SHARED_EMPLOYMENT_BULLET_DIMENSIONS + IBM_BULLET_ONLY_DIMENSIONS
+    _ = section_id
     return SHARED_EMPLOYMENT_BULLET_DIMENSIONS
 
 
 def pool_selector_dimension_ids(section_id: str) -> tuple[str, ...]:
-    """Subset scored per candidate variant in the Claude pool selector."""
-    lane = str(section_id or "").strip().lower()
-    if lane == "unify_bullets":
-        return (
-            "claim_ledger_grounding",
-            "bullet_line_discipline",
-            "evidence_density",
-            "jd_briefing_targeting_discipline",
-            "keyword_discipline_without_stuffing",
-            "cross_bullet_outcome_diversity",
-            "current_role_unify_platform_signal",
-            "protected_metric_anchor",
-        )
-    if lane == "ibm_bullets":
-        return (
-            "claim_ledger_grounding",
-            "bullet_line_discipline",
-            "evidence_density",
-            "jd_briefing_targeting_discipline",
-            "keyword_discipline_without_stuffing",
-            "cross_bullet_outcome_diversity",
-            "foundation_enterprise_credibility",
-            "no_unify_runtime_vocabulary",
-        )
-    return tuple(d.dimension_id for d in SHARED_EMPLOYMENT_BULLET_DIMENSIONS)
+    return tuple(d.dimension_id for d in employment_bullet_dimensions(section_id))
 
 
 def pool_selector_scoring_instruction(section_id: str) -> str:
-    dims = pool_selector_dimension_ids(section_id)
-    numbered = "\n".join(f"  - {d}" for d in dims)
+    dims = ", ".join(pool_selector_dimension_ids(section_id))
     return (
-        "Score each candidate variant 0.0–1.0 on these employment-bullet dimensions only "
-        "(do not use executive-summary dimensions such as synthesis_quality, resume_voice, "
-        "evidence_utilization, or sentence-count criteria):\n"
-        f"{numbered}\n"
-        "- Calibration band: Award 0.92 to 0.98 when a candidate variant cites valid source_fact_ids, "
-        "opens with a strong executive action verb, names a concrete technical/operating mechanism, "
-        "and terminates in a graph-bound business or operational outcome without copying JD phrases. "
-        "When a slot carries no numeric metric (`metric_raw` is null / qualitative slot), a concrete "
-        "graph-bound qualitative outcome (such as establishing data lineage, explainability, or risk visibility, "
-        "connecting data models/BI views to portfolio, budget, and cost-assumption decisions, reducing adoption risk, "
-        "or converting discovery into architecture-backed solution narratives and delivery-ready handoff packages) "
-        "fully satisfies `evidence_density` and `claim_ledger_grounding` in the 0.90–0.96 calibration band; "
-        "never penalize a qualitative slot below 0.88 for lacking a number or ending in a decision-support or solution-handoff outcome. "
-        "Prefer natural sentence cadence across the selected set (mixing 'by <gerund>', 'to <verb>', and 'that/which <verb>' clauses "
-        "rather than repeating identical ', <gerund>ing ...' participial tails on every bullet). "
-        "Never penalize a candidate variant merely because it is the only available variant for its slot.\n"
-        "- Composite score = minimum across dimensions (weakest dimension governs).\n"
-        "- Apply min_selection_score as the pass floor for pool selection (score below floor => passes=false)."
+        f"Evaluate candidate bullet variants strictly on atomic bullet checks ({dims}). "
+        "Require verified episode fact grounding, active human ownership, and non-duplicate outcomes."
     )
 
 
-def grade_only_rubric_text(section_id: str, *, bullet_count: int, bullet_id_range: str) -> str:
-    dims = employment_bullet_dimensions(section_id)
-    block = _numbered_block(dims)
-    lane = str(section_id or "").strip().lower()
-    extra = ""
-    if lane == "unify_bullets":
-        extra = (
-            "\n\nDecisive failure triggers:\n"
-            "- unsupported metric or cross-employer fact leakage (IBM/InsurTech/EY)\n"
-            "- first-person language\n"
-            f"- wrong bullet count (expected {bullet_count})\n"
-            "- a metric outcome explicitly assigned to bul_unify_006 is missing or split incorrectly\n"
-            "- JD phrase copied as proof (>4 consecutive words)\n"
-            "- generic filler that loses Unify-specific mechanisms or protected metrics\n"
-            "- a bullet with no specific action, delivery detail, and evidence-backed result"
-        )
-    elif lane == "ibm_bullets":
-        extra = (
-            "\n\nDecisive failure triggers:\n"
-            "- unsupported metric or cross-employer fact leakage (bul_unify_*, InsurTech, EY, etc.)\n"
-            "- first-person language\n"
-            f"- wrong bullet count (expected {bullet_count})\n"
-            "- JD phrase copied as proof (>4 consecutive words)\n"
-            "- Unify runtime vocabulary in bullet text\n"
-            "- a bullet with no specific action, delivery detail, and evidence-backed result\n"
-            f"{SHARED_OVERLAP_DECISIVE_FAILURE_CLAUSE}"
-        )
-    else:
-        extra = f"\n\nDecisive failure triggers:\n{SHARED_OVERLAP_DECISIVE_FAILURE_CLAUSE}"
-    if lane == "unify_bullets":
-        extra = extra + f"\n{SHARED_OVERLAP_DECISIVE_FAILURE_CLAUSE}"
-    return (
-        f"You are evaluating exactly {bullet_count} employment bullets ({bullet_id_range}).\n"
-        "This is a BULLET-LINE lane — not an executive summary paragraph.\n"
-        "Return JSON only with: score_scale, score, threshold, pass, decisive_failure, findings, "
-        "cited_sentence_indexes, remediation_suggestions.\n\n"
-        "Score contract:\n"
-        '- score_scale must be "0_to_1" or "0_to_5" only.\n'
-        "- Keep score and threshold within the declared scale.\n"
-        "- Employment pool lanes: min_selection_score is the pass floor for Claude pool selection.\n\n"
-        f"{block}"
-        f"{extra}"
-    ).strip()
+def grade_only_rubric_text(section_id: str, *, bullet_count: int = 0, bullet_id_range: str = "") -> str:
+    _ = (bullet_count, bullet_id_range)
+    return render_section_v3_rubric(section_id or "employment_bullets")
 
 
 def assert_no_exec_summary_dimensions(section_id: str) -> None:
-    """Raise if bullet rubric accidentally reuses executive-summary dimension ids."""
     ids = {d.dimension_id for d in employment_bullet_dimensions(section_id)}
     overlap = ids & FORBIDDEN_EXEC_SUMMARY_DIMENSION_IDS
     if overlap:
@@ -224,12 +71,10 @@ def assert_no_exec_summary_dimensions(section_id: str) -> None:
 
 
 __all__ = [
+    "BulletJudgeDimension",
     "EMPLOYMENT_BULLET_RUBRIC_VERSION",
     "FORBIDDEN_EXEC_SUMMARY_DIMENSION_IDS",
-    "BulletJudgeDimension",
     "SHARED_EMPLOYMENT_BULLET_DIMENSIONS",
-    "UNIFY_BULLET_ONLY_DIMENSIONS",
-    "IBM_BULLET_ONLY_DIMENSIONS",
     "assert_no_exec_summary_dimensions",
     "employment_bullet_dimensions",
     "grade_only_rubric_text",

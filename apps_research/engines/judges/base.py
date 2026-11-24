@@ -1,34 +1,36 @@
-"""Base judge infrastructure for apps_research W9 judges.
+"""Base judge infrastructure for `apps_research` (zero cross-subsystem `apps_rg` imports)."""
+from __future__ import annotations
 
-W9 Scope:
-- claim support judge
-- citation quality judge
-- coverage depth judge
-- contradiction resolution judge
-- source authority judge
-- cache compatibility judge
-- briefing injection judge
-- downstream relevance judges for apps_rg/apps_lic
-- deterministic graders
-- mapping judge/eval results into G09, G10, G22, G25 evidence
-
-W9 Constraints:
-- Do NOT change Exit X3 logic
-- Do NOT write cache
-- Do NOT add L6 learning
-- Do NOT add UWG writeback
-- Do NOT let judges directly decide X3
-"""
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
 from datetime import datetime, timezone
+from typing import Any, Dict, Mapping, Tuple
 
-from apps_rg.runtime.apps_runtime_compat import JudgeResult
+from apps_research.engines.judges.v3_brief_judge import evaluate_research_brief_v3
+
+G09_DIMENSIONS = ["source_authority", "citation_quality", "attribution_completeness"]
+G10_DIMENSIONS = ["claim_support", "contradiction_resolution", "factual_grounding"]
+G22_DIMENSIONS = ["coverage_depth", "injection_quality", "completeness"]
+G25_DIMENSIONS = ["cache_compatibility", "downstream_relevance", "semantic_stability"]
+
+
+@dataclass(frozen=True, slots=True)
+class JudgeResult:
+    """Self-contained `apps_research` judge result contract (decoupled from `apps_rg`)."""
+
+    judge_id: str
+    dimension: str
+    score: float | None
+    confidence: float
+    evidence_refs: Tuple[str, ...] = ()
+    run_id: str = ""
+    judge_version: str = "v3.0.0"
+    llm_judge_executed: bool = False
 
 
 @dataclass(frozen=True, slots=True)
 class JudgeEvidence:
     """Evidence produced by a judge evaluation."""
+
     judge_id: str
     dimension: str
     score: float
@@ -36,9 +38,8 @@ class JudgeEvidence:
     reasoning: str
     evidence_refs: Tuple[str, ...] = field(default_factory=tuple)
     timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-    
+
     def to_gate_evidence(self, gate_id: str) -> Dict[str, Any]:
-        """Convert judge evidence to gate evidence format."""
         return {
             "gate_id": gate_id,
             "dimension": self.dimension,
@@ -52,20 +53,16 @@ class JudgeEvidence:
 
 
 class BaseResearchJudge:
-    """W9 stub base for apps_research judges.
-    
-    Judges are stubs only — execution is owned by core.
-    Judges produce metadata that feeds into gates (G09, G10, G22, G25).
-    Judges do NOT directly decide X3 — Exit owns X3.
-    """
-    
+    """Metadata & Judge v3 adapter base for `apps_research` (honest stub flags, zero fake calibration)."""
+
     judge_id: str = ""
     dimension: str = ""
-    version: str = "W9.0.0"
+    version: str = "v3.0.0"
     IS_STUB: bool = True
-    
+    IS_CALIBRATED: bool = False
+    v3_profile_token: str = "company_research_brief:company_brief_synthesis"
+
     def to_judge_result(self, evidence: JudgeEvidence, run_id: str = "") -> JudgeResult:
-        """Convert evidence to JudgeResult for downstream consumption."""
         return JudgeResult(
             judge_id=self.judge_id,
             dimension=self.dimension,
@@ -76,56 +73,29 @@ class BaseResearchJudge:
             judge_version=self.version,
         )
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Gate Mapping Constants (G09, G10, G22, G25)
-# ─────────────────────────────────────────────────────────────────────────────
-
-# G09: Source Quality & Attribution
-# - Maps from: source_authority_judge, citation_quality_judge
-G09_DIMENSIONS = ["source_authority", "citation_quality", "attribution_completeness"]
-
-# G10: Factual Grounding
-# - Maps from: claim_support_judge, contradiction_resolution_judge
-G10_DIMENSIONS = ["claim_support", "contradiction_resolution", "factual_grounding"]
-
-# G22: Answer Completeness
-# - Maps from: coverage_depth_judge, briefing_injection_judge
-G22_DIMENSIONS = ["coverage_depth", "injection_quality", "completeness"]
-
-# G25: Cache Consistency & Relevance
-# - Maps from: cache_compatibility_judge, downstream_relevance_judge
-G25_DIMENSIONS = ["cache_compatibility", "downstream_relevance", "semantic_stability"]
+    def evaluate_v3(
+        self,
+        brief_payload: Mapping[str, Any],
+        *,
+        artifact_id: str = "research-brief",
+        llm_raw_response: Mapping[str, Any] | str | None = None,
+        judge_model_id: str | None = None,
+    ) -> Any:
+        return evaluate_research_brief_v3(
+            artifact_id=artifact_id,
+            brief_payload=brief_payload,
+            profile_token=self.v3_profile_token,
+            llm_raw_response=llm_raw_response,
+            judge_model_id=judge_model_id,
+        )
 
 
 def map_judge_evidence_to_gate(
     evidence: JudgeEvidence,
     gate_id: str,
-    threshold: float = 0.7
+    threshold: float = 0.80,
 ) -> Tuple[str, float, str]:
-    """Map judge evidence to gate verdict components.
-    
-    Args:
-        evidence: JudgeEvidence from any judge
-        gate_id: Target gate ID (G09, G10, G22, G25)
-        threshold: Pass/fail threshold (default 0.7)
-        
-    Returns:
-        Tuple of (result, score, reason)
-        result is "PASS", "FAIL", or "WARN"
-    """
+    _ = gate_id
     score = evidence.score
-    
-    if score >= threshold:
-        result = "PASS"
-    elif score >= threshold * 0.8:
-        result = "WARN"
-    else:
-        result = "FAIL"
-    
-    reason = (
-        f"{evidence.judge_id} scored {evidence.dimension}={score:.2f} "
-        f"(threshold={threshold:.2f})"
-    )
-    
-    return result, score, reason
+    result = "PASS" if score >= threshold else ("WARN" if score >= threshold * 0.8 else "FAIL")
+    return result, score, f"{evidence.judge_id} scored {evidence.dimension}={score:.2f} (threshold={threshold:.2f})"

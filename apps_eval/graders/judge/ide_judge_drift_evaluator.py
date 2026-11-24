@@ -128,6 +128,7 @@ def compute_quadratic_weighted_kappa(human_bins: Sequence[int], judge_bins: Sequ
 
 
 _SCORE_KEYS = (
+    "normalized_unit_score",
     "overall_score",
     "weighted_overall_score",
     "recomputed_weighted_overall",
@@ -147,7 +148,19 @@ def _extract_raw_judge_score(verdict_payload: Mapping[str, Any]) -> float:
 
 
 def _scale_raw_score_to_unit(val: float, verdict_payload: Mapping[str, Any]) -> float:
-    if val <= 1.0 and "average_relevance_score" in verdict_payload:
+    if verdict_payload.get("normalized_unit_score") is not None:
+        u = float(verdict_payload["normalized_unit_score"])
+        if u < 0.0 or u > 1.0:
+            raise ValueError(f"Judge v3 normalized_unit_score {u} must lie in [0.0, 1.0].")
+        return u
+    scale = str(verdict_payload.get("score_scale") or "").strip().lower()
+    if scale in {"0_to_1", "unit"}:
+        return max(0.0, min(1.0, val))
+    if scale == "1_to_5":
+        return max(0.0, min(1.0, (val - 1.0) / 4.0))
+    if scale == "0_to_5":
+        return max(0.0, min(1.0, val / 5.0))
+    if val <= 1.0:
         return val
     return val / 10.0 if val <= 10.0 else val / 100.0
 

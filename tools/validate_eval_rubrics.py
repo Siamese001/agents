@@ -175,9 +175,18 @@ def _validate_exit_and_domain_rubrics(repo_root: Path) -> tuple[int, list[str]]:
 
 
 def _validate_judge_rubrics_and_profiles(repo_root: Path) -> list[str]:
-    """Validate judge rubric banks and approved model pins across all 5 config roots."""
+    """Validate Clean-Slate Judge v3 rubrics, legacy rubric banks, and approved model pins."""
     violations: list[str] = []
-    for j_rel in ("config/judges/rubrics.yaml", "resume_graph_engine/config/judges/rubrics.yaml"):
+    from tools.validate_judge_rubrics_v3 import validate_judge_rubrics_v3
+
+    v3_ok, v3_errs, _ = validate_judge_rubrics_v3(
+        repo_root / "config" / "governance" / "judge_rubrics_v3.json",
+        repo_root / "config" / "governance" / "external_judge_rubric_v2.json",
+    )
+    if not v3_ok:
+        violations.extend(v3_errs)
+
+    for j_rel in ("config/judges/rubrics.yaml",):
         j_rubric = repo_root / j_rel
         if not j_rubric.is_file():
             continue

@@ -140,17 +140,24 @@ def _resolve_ide_cli_judge(
         source = f"yaml_ide_cli_judging:writer_maker={maker}"
 
     effort: str | None = None
-    if provider_key == "gemini_pro":
-        if "argon-medium" in model_id:
-            effort = "medium"
-        elif "argon-high" in model_id:
-            effort = "high"
+    if model_id.endswith("-high") or "argon-high" in model_id:
+        effort = "high"
+    elif model_id.endswith("-medium") or "argon-medium" in model_id:
+        effort = "medium"
     try:
         caps = try_model_capabilities(model_id)
         if caps is None:
             raise ModelCapabilityError(f"MODEL_CAPABILITY_NOT_REGISTERED: {model_id}")
-        if provider_key != "gemini_pro" and "low" in (caps.reasoning_efforts or ()):
-            effort = "low"
+        supported_efforts = tuple(caps.reasoning_efforts or ())
+        if effort is None and supported_efforts:
+            if "medium" in supported_efforts:
+                effort = "medium"
+            elif "high" in supported_efforts:
+                effort = "high"
+            elif "low" in supported_efforts:
+                effort = "low"
+        elif effort is not None and supported_efforts and effort not in supported_efforts:
+            effort = supported_efforts[0]
         assert_model_request_capabilities(
             model_id,
             provider=caps.provider,

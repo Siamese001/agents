@@ -64,11 +64,14 @@ def _load_cached_rubric_file(file_path: Path) -> dict[str, Any]:
 
 @dataclass
 class EvaluationReport:
-    """Consolidated multi-lens rubric evaluation report."""
+    """Consolidated Stage A deterministic preflight + Stage B report (never masquerades as LLM when deterministic)."""
     passed: bool
     status: str = "PASSED"
     judge_passed: bool = True
     hard_gate_passed: bool = True
+    evaluator_kind: str = "deterministic_gate"
+    llm_judge_executed: bool = False
+    normalized_unit_score: float | None = None
     lens1_altitude_score: float = 1.0
     lens2_grounding_score: float = 1.0
     lens3_resonance_score: float = 1.0
@@ -105,7 +108,9 @@ class EvaluationReport:
     def to_dict(self) -> dict[str, Any]:
         return {
             "passed": self.passed, "status": self.status, "judge_passed": self.judge_passed,
-            "hard_gate_passed": self.hard_gate_passed, "composite_score": self.composite_score, "score_band": self.score_band,
+            "hard_gate_passed": self.hard_gate_passed, "evaluator_kind": self.evaluator_kind,
+            "llm_judge_executed": self.llm_judge_executed, "normalized_unit_score": self.normalized_unit_score,
+            "composite_score": self.composite_score, "score_band": self.score_band,
             "lens1_altitude_score": self.lens1_altitude_score, "lens2_grounding_score": self.lens2_grounding_score,
             "lens3_resonance_score": self.lens3_resonance_score, "lens4_cta_score": self.lens4_cta_score,
             "lens5_anti_spam_score": self.lens5_anti_spam_score, "lens6_constraints_score": self.lens6_constraints_score,

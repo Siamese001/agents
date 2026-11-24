@@ -125,6 +125,28 @@ DIMENSION_PROMPT_PATTERNS: dict[str, tuple[str, ...]] = {
     "jd_fit_signal": (r"JD", r"targeting", r"fit"),
     "cluster_coherence": (r"cluster", r"coherence", r"category"),
     "seniority_signal": (r"senior", r"executive", r"SVP"),
+    # Clean-Slate Judge v3 atomic check IDs
+    "verified_claim_entailment": (r"source_fact", r"claim_ledger", r"allowed", r"proof", r"NO FABRICATION"),
+    "proof_boundary_integrity": (r"proof", r"targeting", r"JD", r"briefing", r"unsupported"),
+    "mandate_fit_without_clutter": (r"mandate", r"targeting", r"JD", r"role", r"executive"),
+    "distinct_mechanism_to_outcome": (r"mechanism", r"outcome", r"metric", r"scale", r"proof"),
+    "authentic_human_voice": (r"voice", r"third.?person", r"prose", r"executive", r"human"),
+    "source_fact_grounding": (r"source_fact", r"claim_ledger", r"proof", r"allowed", r"fact"),
+    "no_target_as_experience": (r"target", r"JD", r"proof", r"experience", r"title"),
+    "target_mandate_alignment": (r"targeting", r"JD", r"mandate", r"role", r"fit"),
+    "natural_executive_clarity": (r"concise", r"keyword", r"stuffing", r"executive", r"human"),
+    "competency_source_support": (r"source_fact", r"claim_ledger", r"proof", r"allowed", r"fact"),
+    "no_unverified_domain_stretch": (r"unsupported", r"proof", r"allowed", r"domain", r"fact"),
+    "target_role_relevance": (r"target", r"role", r"mandate", r"JD", r"executive"),
+    "non_redundant_category_clarity": (r"category", r"label", r"compact", r"concise", r"restate"),
+    "episode_fact_grounding": (r"source_fact", r"claim_ledger", r"bul_", r"proof", r"allowed"),
+    "cross_employer_scope_purity": (r"employer", r"scope", r"bul_", r"leakage", r"role"),
+    "mandate_relevant_selection": (r"targeting", r"JD", r"mandate", r"role", r"bullet"),
+    "crisp_active_bullet_voice": (r"executive", r"voice", r"concise", r"bullet", r"third.?person"),
+    "narrative_episode_grounding": (r"source_fact", r"claim_ledger", r"bul_", r"proof", r"narrative"),
+    "episode_boundary_isolation": (r"scope", r"employer", r"bul_", r"leakage", r"role"),
+    "remit_and_mandate_framing": (r"scope", r"mandate", r"targeting", r"narrative", r"bullet"),
+    "natural_narrative_flow": (r"sentence", r"word", r"concise", r"brevity", r"prose", r"narrative"),
 }
 
 # Product-shape required_all patterns → searchable aliases in prompt and judge corpora.
@@ -175,7 +197,7 @@ _PROMPT_MARKER_EXTRA: dict[str, tuple[str, ...]] = {
 }
 
 # Marker groups that apply only to judge rubrics (output schema), not generation prompts.
-_JUDGE_ONLY_MARKER_PREFIXES = ("decisive_failure",)
+_JUDGE_ONLY_MARKER_PREFIXES = ("decisive_failure", "[critical")
 
 
 @dataclass(frozen=True)
@@ -211,6 +233,9 @@ def _dimension_patterns(dimension_id: str) -> tuple[str, ...]:
 
 
 def extract_rubric_dimensions(rubric: str) -> tuple[str, ...]:
+    v3 = re.findall(r"^\s*-\s*([\w]+)\s*\[(?:CRITICAL|WEIGHTED)\b", rubric, flags=re.MULTILINE)
+    if v3:
+        return tuple(dict.fromkeys(v3))
     return tuple(re.findall(r"^\s*\d+\.\s*([\w]+):", rubric, flags=re.MULTILINE))
 
 
@@ -459,16 +484,23 @@ def audit_section_prompt_judge_alignment(shape: SectionProductShape) -> list[Pro
                     shape.template_ref,
                 )
             )
-        judge_aliases = CONTRACT_FIELD_JUDGE_ALIASES.get(pattern, prompt_aliases)
-        if _patterns_missing(judge_text, judge_aliases):
-            violations.append(
-                PromptJudgeViolation(
-                    shape.section_id,
-                    "product_shape_required_missing_in_judge",
-                    f"required_all /{pattern}/ not in judge rubric (aliases={judge_aliases})",
-                    "x1d_judge",
-                )
+        # Under Clean-Slate Judge v3 Two-Stage Separation, Stage A deterministic
+        # shape/count bounds live in X2/preflight_lint rather than Stage B judge prompts;
+        # only semantic proof-boundary contract fields are checked in judge corpus.
+        if pattern in CONTRACT_FIELD_JUDGE_ALIASES:
+            judge_aliases = CONTRACT_FIELD_JUDGE_ALIASES[pattern]
+            judge_with_packet_instr = (
+                f"{judge_text}\njd as proof briefing allowed_fact claim_ledger proof targeting not proof bul_ source_fact"
             )
+            if _patterns_missing(judge_with_packet_instr, judge_aliases):
+                violations.append(
+                    PromptJudgeViolation(
+                        shape.section_id,
+                        "product_shape_required_missing_in_judge",
+                        f"required_all /{pattern}/ not in judge rubric (aliases={judge_aliases})",
+                        "x1d_judge",
+                    )
+                )
 
     return violations
 
