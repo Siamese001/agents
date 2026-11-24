@@ -89,7 +89,9 @@ def run_headline_v2(args: SimpleNamespace, *, artifact_dir_override: Path | None
     pool, base, base_path, base_hash, front_spine = _spl.load_section_proof_for_lane(section_id="headline", args=args, repo_root=repo_root, collect_employment_bullets_fn=collect_employment_bullets)
     selected_fact_plan, allowed_fact_ids, bullet_rows, proof_pool_metadata = dict(pool.selected_fact_plan), pool.allowed_fact_ids, pool.bullet_rows, pool.proof_pool_metadata
     candidate_pool_ids, employer_names, candidate_name_tokens = sorted(allowed_fact_ids), collect_employer_names_lower(base), extract_candidate_name_tokens(base)
-    companion_context = "" if (dependencies_for_section("headline") == () and os.environ.get("APPS_RG_HEADLINE_LOAD_COMPANION", "").strip() != "1") else _hl_override("load_companion_context", load_companion_context)()
+    from apps_rg.runtime.env_bootstrap import get_env_str
+
+    companion_context = "" if (dependencies_for_section("headline") == () and get_env_str("APPS_RG_HEADLINE_LOAD_COMPANION", "").strip() != "1") else _hl_override("load_companion_context", load_companion_context)()
     companion_nonempty, resume_blob, employer_blob = bool(companion_context.strip()), build_resume_support_blob(bullet_rows, companion_context), "\n".join(f"- {n}" for n in employer_names)
     runtime_payload = build_runtime_payload(base_json_path=base_path, base_hash=base_hash, selected_fact_plan=selected_fact_plan, allowed_fact_ids=allowed_fact_ids, target_title=args.target_title, target_company=args.target_company, jd_text=args.jd_text, briefing=args.briefing, repo_root=repo_root)
     runtime_payload["proof_pool_metadata"] = proof_pool_metadata

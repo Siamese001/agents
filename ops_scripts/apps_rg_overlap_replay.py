@@ -221,9 +221,11 @@ def scan_baseline_flaws_for_units(units: list[dict[str, Any]]) -> dict[str, Any]
 
 def resolve_proofs_dirs() -> list[Path]:
     """Find all runtime_proofs/full_resume_* directories containing FINAL_RESUME_OUTPUT.txt."""
+    from infrastructure.config.env_loader import get_main_repo_root
+
     candidates = [
         REPO_ROOT / "resume_graph_engine" / "artifacts" / "apps_rg" / "runtime_proofs",
-        Path("/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs"),
+        get_main_repo_root(REPO_ROOT) / "resume_graph_engine" / "artifacts" / "apps_rg" / "runtime_proofs",
     ]
     seen_runs: dict[str, Path] = {}
     for base in candidates:

@@ -560,15 +560,17 @@ def _run_product_from_cli(args: argparse.Namespace) -> dict[str, Any]:
     if getattr(args, "no_cache", False):
         cache_env_updates["APPS_RG_NO_CACHE"] = "1"
         cache_env_updates["APPS_RG_REQUIRE_FRESH_RUN"] = "1"
+    from apps_rg.runtime.env_bootstrap import get_env_str
+
     cli_timeout = getattr(args, "timeout", None)
-    env_timeout_raw = os.environ.get("APPS_RG_WHOLE_RUN_TIMEOUT_SECONDS", "").strip()
+    env_timeout_raw = get_env_str("APPS_RG_WHOLE_RUN_TIMEOUT_SECONDS", "").strip()
     if cli_timeout is not None and float(cli_timeout) > 0:
         whole_timeout_s = float(cli_timeout)
     elif env_timeout_raw:
         whole_timeout_s = max(5.0, float(env_timeout_raw))
     else:
         whole_timeout_s = resolve_section_run_timeout_s()
-    if not os.environ.get(WHOLE_RUN_DEADLINE_ENV, "").strip():
+    if not get_env_str(WHOLE_RUN_DEADLINE_ENV, "").strip():
         cache_env_updates[WHOLE_RUN_DEADLINE_ENV] = f"{time.monotonic() + whole_timeout_s:.6f}"
     with temporary_env_override(cache_env_updates):
         result = run_canonical_apps_rg_from_cli_primitives(**dispatch_kwargs)

@@ -79,10 +79,10 @@ def _run_hook(fn, payload: dict[str, object], repo_root: Path) -> dict[str, obje
 
 
 def test_wave1_prompt_stage_manifests_and_write_scope(tmp_path: Path) -> None:
-    """All 4 consolidated sidecar prompts declare stage isolation and write outside scope allows solo root-cause fixes."""
-    assert len(PROMPT_STAGE_ALLOWED_WRITE_PATHS) == 4
+    """All 5 consolidated sidecar prompts declare stage isolation and write outside scope allows solo root-cause fixes."""
+    assert len(PROMPT_STAGE_ALLOWED_WRITE_PATHS) == 5
     prompt_files = sorted((REPO_ROOT / "automations" / "prompts").glob("agents_*_agent.md"))
-    assert len(prompt_files) == 4
+    assert len(prompt_files) == 5
     for pf in prompt_files:
         text = pf.read_text(encoding="utf-8")
         assert "PYTHONDONTWRITEBYTECODE=1" in text, pf.name
@@ -390,6 +390,13 @@ def test_all_6_agent_pairs_strictly_mece_disjoint_and_paths_exist() -> None:
     synthetic["agents-core-runtime-orchestration"] = synthetic["agents-core-runtime-orchestration"] + ("tools/lint_secrets.py",)
     overlap_errs = validate_stage_ownership_disjointness(None, stage_paths=synthetic)
     assert any("STAGE_WRITE_PATH_OVERLAP" in err and "lint_secrets.py" in err for err in overlap_errs)
+
+    # Counterfactual: dropping a stage leaves tracked files uncovered and fails closed
+    from tools.prompt_scope_isolation import validate_stage_full_repo_coverage
+
+    partial = {k: v for k, v in PROMPT_STAGE_ALLOWED_WRITE_PATHS.items() if k != "agents-graph-retrieval-qrels-assurance"}
+    uncovered_errs = validate_stage_full_repo_coverage(REPO_ROOT, stage_paths=partial)
+    assert any("STAGE_WRITE_PATH_UNCOVERED" in err and "apps_research/" in err for err in uncovered_errs)
 
 
 def test_parallel_active_stage_leases_block_peer_code_stepping_while_solo_allows_root_cause(

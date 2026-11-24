@@ -319,7 +319,9 @@ DEFAULT_WHOLE_RESUME_TIMEOUT_SECONDS = 480.0
 
 def remaining_whole_run_budget_s() -> float | None:
     """Return remaining seconds against an active whole-resume monotonic deadline, if set."""
-    raw = os.environ.get(WHOLE_RUN_DEADLINE_ENV, "").strip()
+    from apps_rg.runtime.env_bootstrap import get_env_str
+
+    raw = get_env_str(WHOLE_RUN_DEADLINE_ENV, "").strip()
     if not raw:
         return None
     try:

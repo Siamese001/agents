@@ -5,7 +5,7 @@ description: Consolidated E2E pipeline and hybrid retrieval assurance across out
 
 # Agents Domain, Retrieval & Rubric Surface Assurance (On-Demand)
 
-Consolidates `agents-outreach-resume-functionality`, `agents-research-retrieval-surface`, and `agents-evals-judge-assurance` into a single behavioral, fail-closed on-demand workflow (zero daily background schedules).
+Consolidates `agents-graph-retrieval-qrels-assurance` (`3/5`), `agents-domain-synthesis-pipelines` (`4/5`), and `agents-evals-flywheel-assurance` (`5/5`) into behavioral, fail-closed on-demand workflows (zero daily background schedules).
 
 ## Execution Protocol
 
@@ -14,6 +14,11 @@ Consolidates `agents-outreach-resume-functionality`, `agents-research-retrieval-
    ```bash
    .venv/bin/python tools/e2e_functionality_auditor.py --read-only --json
    .venv/bin/python tools/retrieval_surface_auditor.py --read-only --json
+   .venv/bin/python tools/audit_qrels_coverage.py
+   .venv/bin/python tools/audit_resume_fact_provenance.py --strict --json
+   .venv/bin/python tools/lint_prompt_validator_vocab_symmetry.py
+   .venv/bin/python tools/lint_apps_rg_domain_literals.py
+   .venv/bin/python tools/lint_no_jd_overfitting.py
    .venv/bin/python tools/validate_eval_rubrics.py --json
    .venv/bin/python ops_scripts/run_e2e_authoritative_smoke.py --read-only
    .venv/bin/python tools/verify_graph_integrity_and_embeddings.py

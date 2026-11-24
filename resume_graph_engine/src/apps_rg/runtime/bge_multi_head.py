@@ -195,11 +195,11 @@ def encode_texts_bge_m3_dense(
             missing_texts.append(s)
 
     if missing_texts:
-        import os
         import torch
+        from apps_rg.runtime.env_bootstrap import set_env_default
 
-        os.environ["HF_HUB_OFFLINE"] = "1"
-        os.environ["TRANSFORMERS_OFFLINE"] = "1"
+        set_env_default("HF_HUB_OFFLINE", "1")
+        set_env_default("TRANSFORMERS_OFFLINE", "1")
         device = "mps" if hasattr(torch.backends, "mps") and torch.backends.mps.is_available() else "cpu"
         from apps_rg.runtime.bge_embedding import get_bge_runtime
 

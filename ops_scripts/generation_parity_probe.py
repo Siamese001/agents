@@ -510,7 +510,7 @@ def main(argv: list[str] | None = None) -> int:
     run_p.add_argument(
         "--truist-sections-root",
         type=Path,
-        default=Path("/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_judge_verify_20261118/modular_r4/sections"),
+        default=REPO_ROOT / "resume_graph_engine" / "artifacts" / "apps_rg" / "runtime_proofs" / "truist_judge_verify_20261118" / "modular_r4" / "sections",
     )
     run_p.add_argument(
         "--canned-digests",

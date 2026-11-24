@@ -166,8 +166,10 @@ def dispatch_patch_lanes_wave_parallel(
         companion_accepted_in_modular_sections_root,
     )
 
+    from apps_rg.runtime.env_bootstrap import get_env_str
+
     repo = plan.repo
-    log_stream = sys.stderr if os.environ.get("APPS_RG_WHOLE_RUN_ENVELOPE") == "1" else sys.stdout
+    log_stream = sys.stderr if get_env_str("APPS_RG_WHOLE_RUN_ENVELOPE") == "1" else sys.stdout
     results: dict[str, dict[str, Any]] = {}
     run_timed_out = False
     run_timeout_reason = ""

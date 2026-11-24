@@ -99,7 +99,9 @@ def run_role_narrative_v2(
     preflight_art: dict[str, Any] = {"skipped": True, "reason": "non_ibm_or_mock"}
     preflight_blocked = False
     if section_id == "ibm_narrative":
-        preflight_art = {"skipped": True, "reason": "mock_judge_cli_flags"} if judge_allowed_mock else dict(run_ibm_narrative_judge_credentials_preflight(judge_keys, os.environ))
+        from apps_rg.runtime.env_bootstrap import snapshot_process_env
+
+        preflight_art = {"skipped": True, "reason": "mock_judge_cli_flags"} if judge_allowed_mock else dict(run_ibm_narrative_judge_credentials_preflight(judge_keys, snapshot_process_env()))
         preflight_blocked = bool(preflight_art.get("preflight_blocked"))
         write_json(artifact_dir / "ibm_narrative_judge_preflight.json", preflight_art)
     prepare_section_l2_before_provider(artifact_dir, section_id, runtime_payload, provider_lane=str(args.provider))

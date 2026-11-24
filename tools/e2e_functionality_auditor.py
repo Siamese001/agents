@@ -456,6 +456,58 @@ def _probe_production_purity(repo_root: Path) -> dict[str, Any]:
     }
 
 
+def _probe_vocab_symmetry_overlap_and_v2_sealing(repo_root: Path) -> dict[str, Any]:
+    """Pillar 7: Verify prompt-validator vocab symmetry, overlap/domain-literal ratchet, anti-overfitting, and V2 spine receipt sealing."""
+    gaps: list[str] = []
+
+    if (repo_root / "tools" / "lint_prompt_validator_vocab_symmetry.py").is_file():
+        from tools.lint_prompt_validator_vocab_symmetry import audit_prompt_validator_vocab_symmetry
+
+        vocab_errs = audit_prompt_validator_vocab_symmetry(repo_root)
+        gaps.extend(vocab_errs[:10])
+
+    if (repo_root / "tools" / "lint_apps_rg_domain_literals.py").is_file():
+        from tools.lint_apps_rg_domain_literals import audit_apps_rg_domain_literals
+
+        lit_errs = audit_apps_rg_domain_literals(repo_root)
+        gaps.extend(lit_errs[:10])
+
+    if (repo_root / "tools" / "lint_no_jd_overfitting.py").is_file():
+        from tools.lint_no_jd_overfitting import collect_production_files, scan_files
+
+        ov_rep = scan_files(collect_production_files(repo_root), repo_root)
+        if int(ov_rep.get("unbaselined_count", 0)) > 0:
+            gaps.append(f"lint_no_jd_overfitting detected {ov_rep.get('unbaselined_count')} unbaselined JD branches")
+
+    v2_checks = (
+        (
+            "resume_graph_engine/src/apps_rg/runtime/sections/executive_summary_v2",
+            ("write_x2_source_fact_pool_receipt", "set_authoritative_attempt", "graph_targeting_capsule", "section_metric_receipt.json"),
+        ),
+        (
+            "resume_graph_engine/src/apps_rg/runtime/sections/headline_v2",
+            ("write_x2_source_fact_pool_receipt", "set_authoritative_attempt", "section_metric_receipt.json"),
+        ),
+        (
+            "resume_graph_engine/src/apps_rg/runtime/sections/role_narrative_v2",
+            ("write_x2_source_fact_pool_receipt", "set_authoritative_attempt", "section_metric_receipt.json"),
+        ),
+    )
+    for rel_dir, markers in v2_checks:
+        d = repo_root / rel_dir
+        if d.is_dir():
+            combined = "\n".join(p.read_text(encoding="utf-8", errors="replace") for p in sorted(d.rglob("*.py")))
+            for m in markers:
+                if m not in combined:
+                    gaps.append(f"{rel_dir} missing mandatory V2 spine sealing marker '{m}'")
+
+    return {
+        "passed": len(gaps) == 0,
+        "gaps": gaps,
+        "vocab_symmetry_and_v2_sealing_verified": len(gaps) == 0,
+    }
+
+
 def run_e2e_functionality_audit(repo_root: Path | None = None, *, read_only: bool = True) -> dict[str, Any]:
     root = (repo_root or DEFAULT_REPO_ROOT).resolve()
     _ensure_paths(root)
@@ -473,6 +525,7 @@ def run_e2e_functionality_audit(repo_root: Path | None = None, *, read_only: boo
         "guardian_swallow_backlog": guardian_backlog,
     }
     p6 = _probe_production_purity(root)
+    p7 = _probe_vocab_symmetry_overlap_and_v2_sealing(root)
 
     pillars = {
         "pillar_1_research_to_outreach_handoff": p1,
@@ -481,6 +534,7 @@ def run_e2e_functionality_audit(repo_root: Path | None = None, *, read_only: boo
         "pillar_4_resume_graph_traversal": p4,
         "pillar_5_fail_closed_exception_hygiene": p5,
         "pillar_6_production_derivation_purity": p6,
+        "pillar_7_vocab_symmetry_overlap_and_v2_sealing": p7,
     }
     all_gaps: list[str] = []
     passing_count = 0

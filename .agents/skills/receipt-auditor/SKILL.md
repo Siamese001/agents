@@ -61,6 +61,9 @@ When invoked for evaluation, judge validity, or post-runtime learning flywheel a
 .venv/bin/python tools/validate_turn_gates.py --mode pre-turn
 .venv/bin/python tools/validate_eval_rubrics.py --json
 .venv/bin/python tools/audit_eval_construct_validity.py --verify-strict --include-e2e-pin
+.venv/bin/python tools/verify_fix_eval_pinning.py --json
+.venv/bin/python tools/run_diff_scoped_eval_shield.py --all
 .venv/bin/python tools/audit_multi_ssot_judge_gate_drift.py
+.venv/bin/python ops_scripts/run_ide_judge_drift.py --check-preflight
 .venv/bin/python tools/run_eval_flywheel_cycle.py --sandbox --emit-next-hitl-question
 ```

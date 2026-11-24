@@ -370,8 +370,70 @@ def audit_pillar_5_exception_hygiene(repo_root: Path) -> dict[str, Any]:
     }
 
 
+def audit_pillar_6_provider_resilience_and_sla_hierarchy(repo_root: Path) -> dict[str, Any]:
+    """Audit Pillar 6: Keyless IDE CLI transport, HTTP 429 quota circuit-breaker failover, and timeout SLA hierarchy."""
+    _ensure_paths(repo_root)
+    gaps: list[str] = []
+    checked_surfaces = 0
+
+    cli_path = repo_root / "agents" / "cli.py"
+    if cli_path.is_file():
+        checked_surfaces += 1
+        cli_text = cli_path.read_text(encoding="utf-8", errors="replace")
+        if "900" not in cli_text and "live" in cli_text:
+            gaps.append("agents/cli.py missing >=900s live resume step timeout scaling")
+
+    transport_path = repo_root / "infrastructure" / "sdks_mcps" / "agy_cli_transport.py"
+    if transport_path.is_file():
+        checked_surfaces += 1
+        t_text = transport_path.read_text(encoding="utf-8", errors="replace")
+        for sym in ("def run_agy", "def ide_cli_ready"):
+            if sym not in t_text:
+                gaps.append(f"infrastructure/sdks_mcps/agy_cli_transport.py missing '{sym}'")
+
+    for rel_path, required_markers in (
+        (
+            "resume_graph_engine/src/apps_rg/runtime/providers/ide_cli_generation.py",
+            ("DEFAULT_GENERATION_TIMEOUT_S = 300", "is_agy_quota_error", "mark_agy_model_quota_exhausted", "ide_cli"),
+        ),
+        (
+            "resume_graph_engine/src/apps_rg/runtime/judges/x1d_ide_cli.py",
+            ("DEFAULT_JUDGE_TIMEOUT_S = 300", "is_agy_quota_error", "mark_agy_model_quota_exhausted", "ide_cli"),
+        ),
+        (
+            "resume_graph_engine/src/apps_rg/runtime/providers/wallclock_http_guard.py",
+            ("DEFAULT_WHOLE_RESUME_TIMEOUT_SECONDS = 480.0", "remaining_whole_run_budget_s"),
+        ),
+        (
+            "outreach_engine/src/apps_lic/judges/ide_cli_judge.py",
+            ("quota_backup", "_run_with_failover"),
+        ),
+    ):
+        target = repo_root / rel_path
+        if target.is_file():
+            checked_surfaces += 1
+            txt = target.read_text(encoding="utf-8", errors="replace")
+            for marker in required_markers:
+                if marker not in txt:
+                    gaps.append(f"{rel_path} missing mandatory resilience/SLA marker '{marker}'")
+
+    regen_disp = repo_root / "resume_graph_engine" / "src" / "apps_rg" / "runtime" / "sections" / "executive_summary_regen_dispatch.py"
+    if regen_disp.is_file():
+        checked_surfaces += 1
+        r_txt = regen_disp.read_text(encoding="utf-8", errors="replace")
+        if re.search(r"min\(\s*[^,\n]+,\s*45(?:\.0)?\s*\)", r_txt):
+            gaps.append("executive_summary_regen_dispatch.py retains destructive 45s live regen timeout clamp")
+
+    return {
+        "passed": len(gaps) == 0,
+        "gaps": gaps,
+        "checked_surfaces": checked_surfaces,
+        "keyless_transport_and_sla_verified": len(gaps) == 0,
+    }
+
+
 def run_agent_runtime_audit(repo_root: Path | None = None) -> dict[str, Any]:
-    """Execute 5-pillar Core Agent Runtime behavioral audit."""
+    """Execute 6-pillar Core Agent Runtime & Provider SLA behavioral audit."""
     root = Path(repo_root or DEFAULT_REPO_ROOT).resolve()
 
     p1 = audit_pillar_1_delegation_contracts(root)
@@ -379,6 +441,7 @@ def run_agent_runtime_audit(repo_root: Path | None = None) -> dict[str, Any]:
     p3 = audit_pillar_3_context_budget_compaction(root)
     p4 = audit_pillar_4_persistence_event_store(root)
     p5 = audit_pillar_5_exception_hygiene(root)
+    p6 = audit_pillar_6_provider_resilience_and_sla_hierarchy(root)
 
     pillars = {
         "pillar_1_delegation_contracts": p1,
@@ -386,6 +449,7 @@ def run_agent_runtime_audit(repo_root: Path | None = None) -> dict[str, Any]:
         "pillar_3_context_budget_compaction": p3,
         "pillar_4_persistence_event_store": p4,
         "pillar_5_exception_hygiene": p5,
+        "pillar_6_provider_resilience_and_sla_hierarchy": p6,
     }
 
     all_gaps: list[str] = []

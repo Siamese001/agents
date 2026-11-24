@@ -129,11 +129,13 @@ def _handle_eval(args: argparse.Namespace) -> int:
         "status": verdict.status, "is_valid": verdict.is_valid, "violations": verdict.violations,
         "warnings": verdict.warnings, "failure_reasons": verdict.failure_reasons, "scores": verdict.scores,
     }
+    from infrastructure.config.env_loader import get_env_str
+
     overall_passed = verdict.passed
     if (
         getattr(args, "record_flywheel", True)
         and "pytest" not in sys.modules
-        and not os.environ.get("PYTEST_CURRENT_TEST")
+        and not get_env_str("PYTEST_CURRENT_TEST")
     ):
         try:
             from agents.observability.eval_flywheel import EvalFlywheelEngine

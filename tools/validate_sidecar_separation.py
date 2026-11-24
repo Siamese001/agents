@@ -38,27 +38,49 @@ EXPECTED_AGENTS_SIDECARS: dict[str, dict[str, Any]] = {
         "disposition": "CONSOLIDATED_ARCHITECTURE_COST_AGENT",
         "target_skill": "agents-governance-hygiene",
         "deterministic_entrypoint": "tools/ssot_boundary_auditor.py",
-        "secondary_entrypoints": ("tools/cost_token_budget_auditor.py",),
+        "secondary_entrypoints": (
+            "tools/cost_token_budget_auditor.py",
+            "tools/audit_governance_harmonization.py",
+            "tools/zero_bugfix_constraint_gate.py",
+        ),
         "requires_remediation_quota": True,
     },
     "agents-core-runtime-orchestration": {
         "display_name": "Agents Repo: Core Runtime & Orchestration",
         "prompt_file": "agents_core_runtime_orchestration_agent.md",
-        "cron": "CRON_TZ=America/New_York 20 5 * * *",
+        "cron": "CRON_TZ=America/New_York 15 5 * * *",
         "disposition": "CONSOLIDATE_WITH_RUNTIME_SKILL",
         "target_skill": "agent-runtime-engineering",
         "deterministic_entrypoint": "tools/agent_runtime_auditor.py",
         "secondary_entrypoints": (),
         "requires_remediation_quota": True,
     },
-    "agents-domain-pipelines-retrieval": {
-        "display_name": "Agents Repo: Domain Pipelines & Retrieval",
-        "prompt_file": "agents_domain_pipelines_retrieval_agent.md",
-        "cron": "CRON_TZ=America/New_York 40 5 * * *",
-        "disposition": "CONSOLIDATED_DOMAIN_RETRIEVAL_AGENT",
+    "agents-graph-retrieval-qrels-assurance": {
+        "display_name": "Agents Repo: Graph Retrieval, Fact Provenance & QRELS",
+        "prompt_file": "agents_graph_retrieval_qrels_agent.md",
+        "cron": "CRON_TZ=America/New_York 30 5 * * *",
+        "disposition": "CONSOLIDATED_GRAPH_RETRIEVAL_QRELS_AGENT",
+        "target_skill": "agents-domain-assurance",
+        "deterministic_entrypoint": "tools/retrieval_surface_auditor.py",
+        "secondary_entrypoints": (
+            "tools/audit_qrels_coverage.py",
+            "tools/audit_resume_fact_provenance.py",
+            "tools/verify_graph_integrity_and_embeddings.py",
+        ),
+        "requires_remediation_quota": True,
+    },
+    "agents-domain-synthesis-pipelines": {
+        "display_name": "Agents Repo: Domain Synthesis Pipelines (Resume V2 & Outreach)",
+        "prompt_file": "agents_domain_synthesis_pipelines_agent.md",
+        "cron": "CRON_TZ=America/New_York 45 5 * * *",
+        "disposition": "CONSOLIDATED_DOMAIN_SYNTHESIS_AGENT",
         "target_skill": "agents-domain-assurance",
         "deterministic_entrypoint": "tools/e2e_functionality_auditor.py",
-        "secondary_entrypoints": ("tools/retrieval_surface_auditor.py",),
+        "secondary_entrypoints": (
+            "tools/lint_prompt_validator_vocab_symmetry.py",
+            "tools/lint_apps_rg_domain_literals.py",
+            "tools/lint_no_jd_overfitting.py",
+        ),
         "requires_remediation_quota": True,
     },
     "agents-evals-flywheel-assurance": {
@@ -68,7 +90,11 @@ EXPECTED_AGENTS_SIDECARS: dict[str, dict[str, Any]] = {
         "disposition": "CONSOLIDATED_EVALS_FLYWHEEL_AGENT",
         "target_skill": "receipt-auditor",
         "deterministic_entrypoint": "tools/validate_eval_rubrics.py",
-        "secondary_entrypoints": ("tools/run_eval_flywheel_cycle.py",),
+        "secondary_entrypoints": (
+            "tools/run_eval_flywheel_cycle.py",
+            "tools/audit_eval_construct_validity.py",
+            "tools/verify_fix_eval_pinning.py",
+        ),
         "requires_remediation_quota": True,
     },
 }
@@ -78,6 +104,7 @@ RETIRED_AGENTS_SIDECARS: frozenset[str] = frozenset(
         "agents-storage-worktree-hygiene",
         "agents-ssot-boundary-governance",
         "agents-domain-applications-pipeline",
+        "agents-domain-pipelines-retrieval",
         "agents-research-retrieval-surface",
         "agents-evals-judge-assurance",
         "agents-cost-token-budget",
@@ -458,9 +485,14 @@ def validate_sidecar_separation(
             if isinstance(nee_args, list) and nee_args:
                 nee_prompt_arg = str(nee_args[-1])
                 m = PROMPT_URI_RE.search(nee_prompt_arg)
-                if not m or not m.group(1).startswith(NEE_CANONICAL_ROOT):
+                if child.name in EXPECTED_NEE_SIDECARS:
+                    if not m or not m.group(1).startswith(NEE_CANONICAL_ROOT):
+                        violations.append(
+                            f"NEE sidecar '{child.name}' no longer points to '{NEE_CANONICAL_ROOT}': {nee_prompt_arg}"
+                        )
+                elif not m or m.group(1).startswith(AGENTS_CANONICAL_ROOT):
                     violations.append(
-                        f"NEE sidecar '{child.name}' no longer points to '{NEE_CANONICAL_ROOT}': {nee_prompt_arg}"
+                        f"External sidecar '{child.name}' must point to a non-Agents external repository: {nee_prompt_arg}"
                     )
             validated_nee_count += 1
 

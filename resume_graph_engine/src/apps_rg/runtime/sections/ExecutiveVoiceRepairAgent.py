@@ -623,14 +623,15 @@ def repair_section_with_executive_voice_agent(
         comps = candidate_data.get("competencies") or []
         original_snippet = f"{len(comps)} categories"
 
+    from apps_rg.runtime.env_bootstrap import get_env_str, is_pytest_or_test_harness_env
     from apps_rg.runtime.providers.ide_cli_generation import (
         ide_cli_generation_unavailable_reason,
         uses_ide_cli_generation,
     )
 
-    is_test = bool(os.environ.get("PYTEST_CURRENT_TEST")) or ("pytest" in sys.modules) or (os.environ.get("APPS_RG_TEST_HARNESS") == "1")
-    is_ide_cli_ready = uses_ide_cli_generation(os.environ, model=DEFAULT_REPAIR_MODEL) and not ide_cli_generation_unavailable_reason(os.environ)
-    is_live_key_present = bool(os.environ.get("ANTHROPIC_API_KEY")) or is_ide_cli_ready
+    is_test = is_pytest_or_test_harness_env() or ("pytest" in sys.modules)
+    is_ide_cli_ready = uses_ide_cli_generation(model=DEFAULT_REPAIR_MODEL) and not ide_cli_generation_unavailable_reason()
+    is_live_key_present = bool(get_env_str("ANTHROPIC_API_KEY")) or is_ide_cli_ready
 
     if not mock_mode and not is_live_key_present and not is_test:
         raise RuntimeError(

@@ -80,59 +80,55 @@ def bootstrap_named_baselines(
     promoted: dict[str, dict[str, Any]] = {}
     problems_by_suite: dict[str, list[str]] = {}
 
-    prior_gate = os.environ.get("APPS_EVAL_RELEASE_GATE")
-    os.environ["APPS_EVAL_RELEASE_GATE"] = "1"
-    try:
-        with tempfile.TemporaryDirectory(prefix="apps_eval_baseline_boot_") as tmp_dir:
-            for suite_id in suites:
-                if suite_id not in registry:
-                    raise KeyError(f"unknown suite_id: {suite_id}")
-                problems = validate_suite_fixtures(suite_id)
-                if problems:
-                    problems_by_suite[suite_id] = problems
-                    continue
-                record = run_eval(
-                    EvalRequest(
-                        suite_id=suite_id,
-                        mode="snapshot",
-                        deterministic_only=True,
-                        out_dir=tmp_dir,
-                        emit_l6_handoff=True,
-                    )
+    from infrastructure.config.env_loader import temporary_env_override
+
+    with temporary_env_override({"APPS_EVAL_RELEASE_GATE": "1"}), tempfile.TemporaryDirectory(
+        prefix="apps_eval_baseline_boot_"
+    ) as tmp_dir:
+        for suite_id in suites:
+            if suite_id not in registry:
+                raise KeyError(f"unknown suite_id: {suite_id}")
+            problems = validate_suite_fixtures(suite_id)
+            if problems:
+                problems_by_suite[suite_id] = problems
+                continue
+            record = run_eval(
+                EvalRequest(
+                    suite_id=suite_id,
+                    mode="snapshot",
+                    deterministic_only=True,
+                    out_dir=tmp_dir,
+                    emit_l6_handoff=True,
                 )
-                sc_dict = record.scorecard.to_dict()
-                eligibility_errs = _check_record_baseline_eligibility(suite_id, sc_dict)
-                if eligibility_errs:
-                    problems_by_suite[suite_id] = eligibility_errs
-                    continue
-                record_path = Path(record.artifact_paths["eval_record"])
-                require_pass = suite_id not in SNAPSHOT_GRADER_ONLY_SUITES
-                target = promote_baseline(
-                    record_path,
-                    suite_id,
-                    baseline_dir=baseline_dir,
-                    require_pass=require_pass,
-                )
-                record_dict = json.loads(record_path.read_text(encoding="utf-8"))
-                baseline_dict = load_baseline(suite_id, baseline_dir)
-                comparison = compare_record_to_baseline(record_dict, baseline_dict)
-                promoted[suite_id] = {
-                    "baseline_path": target.as_posix(),
-                    "record_id": record.record_id,
-                    "verdict": record.scorecard.verdict,
-                    "score": record.scorecard.score,
-                    "finding_count": int(sc_dict.get("finding_count", 0)),
-                    "passed_findings": int(sc_dict.get("passed_findings", 0)),
-                    "scenario_count": int(sc_dict.get("scenario_count", 0)),
-                    "comparison_delta": float(comparison.delta),
-                    "regression": comparison.verdict == "regression",
-                    "comparison_verdict": str(comparison.verdict),
-                }
-    finally:
-        if prior_gate is None:
-            os.environ.pop("APPS_EVAL_RELEASE_GATE", None)
-        else:
-            os.environ["APPS_EVAL_RELEASE_GATE"] = prior_gate
+            )
+            sc_dict = record.scorecard.to_dict()
+            eligibility_errs = _check_record_baseline_eligibility(suite_id, sc_dict)
+            if eligibility_errs:
+                problems_by_suite[suite_id] = eligibility_errs
+                continue
+            record_path = Path(record.artifact_paths["eval_record"])
+            require_pass = suite_id not in SNAPSHOT_GRADER_ONLY_SUITES
+            target = promote_baseline(
+                record_path,
+                suite_id,
+                baseline_dir=baseline_dir,
+                require_pass=require_pass,
+            )
+            record_dict = json.loads(record_path.read_text(encoding="utf-8"))
+            baseline_dict = load_baseline(suite_id, baseline_dir)
+            comparison = compare_record_to_baseline(record_dict, baseline_dict)
+            promoted[suite_id] = {
+                "baseline_path": target.as_posix(),
+                "record_id": record.record_id,
+                "verdict": record.scorecard.verdict,
+                "score": record.scorecard.score,
+                "finding_count": int(sc_dict.get("finding_count", 0)),
+                "passed_findings": int(sc_dict.get("passed_findings", 0)),
+                "scenario_count": int(sc_dict.get("scenario_count", 0)),
+                "comparison_delta": float(comparison.delta),
+                "regression": comparison.verdict == "regression",
+                "comparison_verdict": str(comparison.verdict),
+            }
 
     if problems_by_suite:
         raise ValueError(f"baseline bootstrap failed: {json.dumps(problems_by_suite, sort_keys=True)}")

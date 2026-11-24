@@ -120,12 +120,16 @@ def test_retrieval_auditor_enforces_return_types_without_filename_regex_bypass(t
 def test_live_e2e_and_retrieval_auditors_pass_all_pillars() -> None:
     e2e_report = run_e2e_functionality_audit(REPO_ROOT, read_only=True)
     assert e2e_report["is_clean"] is True, e2e_report["gaps"]
-    assert e2e_report["passing_pillars"] == 6
+    assert e2e_report["passing_pillars"] == 7
     assert e2e_report["pillars"]["pillar_1_research_to_outreach_handoff"]["unauthorized_outreach_dispatch_blocked"] is True
     assert e2e_report["pillars"]["pillar_3_authoritative_e2e_smoke"]["skip_resume"] is False
+    assert e2e_report["pillars"]["pillar_7_vocab_symmetry_overlap_and_v2_sealing"]["vocab_symmetry_and_v2_sealing_verified"] is True
 
     ret_report = run_retrieval_surface_audit(REPO_ROOT, read_only=True)
     assert ret_report["is_clean"] is True, ret_report["gaps"]
-    assert ret_report["passing_pillars"] == 7
+    assert ret_report["passing_pillars"] == 8
     assert ret_report["pillars"]["pillar_5_empty_result_fail_closed_abstention"]["outreach_failure_reason"] != ""
     assert ret_report["pillars"]["pillar_7_cross_subsystem_typing_contract"]["untyped_public_callable_count"] == 0
+    assert ret_report["pillars"]["pillar_8_fact_provenance_and_qrels_calibration"]["provenance_verified"] is True
+    assert ret_report["pillars"]["pillar_8_fact_provenance_and_qrels_calibration"]["qrels_verified"] is True
+    assert ret_report["pillars"]["pillar_8_fact_provenance_and_qrels_calibration"]["cohens_kappa"] >= 0.80

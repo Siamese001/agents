@@ -215,7 +215,9 @@ def emit_post_run_trace_safe(
     repo_root: Path | None = None,
 ) -> RunTrace | None:
     """Fail-safe observer hook to emit a scrubbed RunTrace from any runtime exit seam."""
-    if os.environ.get("PYTEST_CURRENT_TEST") and traces_path is None and os.environ.get("AGENTS_TRACE_IN_PYTEST") != "1":
+    from infrastructure.config.env_loader import get_env_str
+
+    if get_env_str("PYTEST_CURRENT_TEST") and traces_path is None and get_env_str("AGENTS_TRACE_IN_PYTEST") != "1":
         return None
     try:
         trace = build_run_trace(

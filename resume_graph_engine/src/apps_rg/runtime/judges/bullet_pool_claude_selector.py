@@ -2446,17 +2446,18 @@ def run_claude_bullet_pool_selection(
 
     meta = _SELECTOR_PROVIDERS.get(provider_key) or {}
     bootstrap_apps_rg_env()
+    from apps_rg.runtime.env_bootstrap import get_env_str
     from apps_rg.runtime.providers.ide_cli_generation import (
         IDE_CLI_GENERATION_MARKER,
         ide_cli_generation_unavailable_reason,
         uses_ide_cli_generation,
     )
 
-    if provider_key == "anthropic_claude" and uses_ide_cli_generation(os.environ, model=model):
-        cli_reason = ide_cli_generation_unavailable_reason(os.environ)
+    if provider_key == "anthropic_claude" and uses_ide_cli_generation(model=model):
+        cli_reason = ide_cli_generation_unavailable_reason()
         api_key = "" if cli_reason else IDE_CLI_GENERATION_MARKER
     else:
-        api_key = os.environ.get(str(meta.get("env") or ""), "").strip()
+        api_key = get_env_str(str(meta.get("env") or ""), "").strip()
     if not api_key:
         if competencies_selector:
             provider_label = (

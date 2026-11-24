@@ -67,12 +67,14 @@ def _judging_cfg() -> dict[str, Any]:
 
 
 def judge_transport(environ: Mapping[str, str] | None = None) -> str:
+    from apps_rg.runtime.env_bootstrap import get_env_str
+
     if environ is None:
-        override = str(os.environ.get(JUDGE_TRANSPORT_ENV) or "").strip().lower()
+        override = str(get_env_str(JUDGE_TRANSPORT_ENV) or "").strip().lower()
     elif JUDGE_TRANSPORT_ENV in environ:
         override = str(environ.get(JUDGE_TRANSPORT_ENV) or "").strip().lower()
     else:
-        override = str(os.environ.get(JUDGE_TRANSPORT_ENV) or "").strip().lower()
+        override = str(get_env_str(JUDGE_TRANSPORT_ENV) or "").strip().lower()
     value = override or str(_judging_cfg().get("transport") or "external_api").strip().lower()
     if value not in _TRANSPORTS:
         raise IdeCliJudgeConfigError(f"unknown judge transport {value!r}; expected one of {sorted(_TRANSPORTS)}")
@@ -85,7 +87,9 @@ def uses_ide_cli_judges(environ: Mapping[str, str] | None = None) -> bool:
 
 def ide_cli_unavailable_reason(environ: Mapping[str, str] | None = None) -> str:
     """Empty string when the headless CLI is configured and genuine; otherwise the reason."""
-    env = os.environ if environ is None else environ
+    from apps_rg.runtime.env_bootstrap import snapshot_process_env
+
+    env = snapshot_process_env() if environ is None else environ
     var = str(_judging_cfg().get("cli_env_var") or AGY_CLI_ENV_VAR)
     ok, why = ide_cli_ready(str(env.get(var) or "") or None)
     return "" if ok else why
@@ -124,7 +128,9 @@ def second_judge_model(section_id: str) -> tuple[str, str]:
 
 
 def _timeout_s() -> int:
-    raw = str(os.environ.get(JUDGE_TIMEOUT_ENV) or "").strip()
+    from apps_rg.runtime.env_bootstrap import get_env_str
+
+    raw = str(get_env_str(JUDGE_TIMEOUT_ENV) or "").strip()
     return int(raw) if raw.isdigit() and int(raw) > 0 else DEFAULT_JUDGE_TIMEOUT_S
 
 
@@ -333,7 +339,9 @@ def call_ide_cli_judge(
 
 def pinned_ide_models_for_preflight(environ: Mapping[str, str] | None = None) -> dict[str, list[str]]:
     """Return pinned IDE models grouped by role (`judges`, `generation`) active under current transport settings."""
-    env = os.environ if environ is None else environ
+    from apps_rg.runtime.env_bootstrap import snapshot_process_env
+
+    env = snapshot_process_env() if environ is None else environ
     data = _profiles()
     out: dict[str, list[str]] = {"judges": [], "generation": []}
     if uses_ide_cli_judges(env):
@@ -375,7 +383,9 @@ def verify_ide_cli_preflight(
     agy_bin: str | None = None,
 ) -> dict[str, Any]:
     """Verify CLI sign-in and confirm every active IDE judge/generation pin is present in `agy models`."""
-    env = os.environ if environ is None else environ
+    from apps_rg.runtime.env_bootstrap import snapshot_process_env
+
+    env = snapshot_process_env() if environ is None else environ
     pins_by_role = pinned_ide_models_for_preflight(env)
     required_pins: list[str] = []
     for role_pins in pins_by_role.values():
