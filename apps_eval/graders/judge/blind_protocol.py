@@ -142,6 +142,7 @@ class BlindJudgeBundle:
     stripped_priming_keys: list[str]
     judge_input_keys: list[str]
     payload: dict[str, Any]
+    rubric_sha256: str = ""
     bundle_digest: str = ""
     created_at_utc: str = field(default_factory=utc_now_iso)
 
@@ -160,6 +161,7 @@ def build_sealed_blind_judge_bundle(
     raw_input: Mapping[str, Any],
     author_model_family: str,
     rubric_id: str,
+    rubric_sha256: str = "",
     artifact_path: Path | None = None,
     repo_root: Path | None = None,
     available_families: Sequence[str] | None = None,
@@ -185,12 +187,13 @@ def build_sealed_blind_judge_bundle(
         available_families=available_families,
     )
     return BlindJudgeBundle(
-        schema_version="agents.blind-judge-bundle.v2",
+        schema_version="agents.blind-judge-bundle.v3",
         artifact_id=artifact_id,
         artifact_sha256=artifact_sha,
         author_model_family=author_fam,
         required_judge_family=judge_fam,
         rubric_id=rubric_id,
+        rubric_sha256=str(rubric_sha256 or ""),
         cold_context_isolated=True,
         deterministic_priming_stripped=True,
         stripped_priming_keys=sorted(stripped_keys),
@@ -204,6 +207,8 @@ def build_fail_closed_missing_verdict_receipt(bundle: BlindJudgeBundle) -> dict[
     return {
         "status": "BLOCKED",
         "gate_passed": False,
+        "llm_judge_executed": False,
+        "normalized_unit_score": None,
         "reason_code": "BLIND_JUDGE_VERDICT_MISSING",
         "bundle_digest": bundle.bundle_digest,
         "artifact_sha256": bundle.artifact_sha256,
@@ -213,17 +218,27 @@ def build_fail_closed_missing_verdict_receipt(bundle: BlindJudgeBundle) -> dict[
 
 def is_borderline_judge_result(
     overall_score: float,
-    dimension_scores: Mapping[str, float],
+    dimension_scores: Mapping[str, float] | None = None,
     *,
+    pass_threshold: float = 0.80,
+    unit_margin: float = 0.08,
     lower_bound: float = 8.5,
     upper_bound: float = 9.4,
     dimension_floor: float = 8.0,
     dimension_margin: float = 0.6,
 ) -> bool:
-    """Identify borderline judge scores that require orthogonal second-family escalation."""
+    """Identify near-threshold unit scores (`[0.0, 1.0]`) requiring second-family escalation."""
+    dims = dimension_scores or {}
+    if overall_score <= 1.0 and all(float(v) <= 1.0 for v in dims.values()):
+        if (pass_threshold - unit_margin) <= overall_score < (pass_threshold + unit_margin):
+            return True
+        return any(
+            (pass_threshold - unit_margin) <= float(s) < pass_threshold
+            for s in dims.values()
+        )
     if lower_bound <= overall_score < upper_bound:
         return True
-    for score in dimension_scores.values():
+    for score in dims.values():
         if dimension_floor <= float(score) < (dimension_floor + dimension_margin):
             return True
     return False

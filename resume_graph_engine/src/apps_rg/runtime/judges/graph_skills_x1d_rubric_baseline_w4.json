@@ -9,11 +9,61 @@
         {
           "lane_id": "competencies",
           "module_path": "apps_rg.runtime.judges.competencies_x1d",
-          "rubric_version": "competencies_x1d_v2",
+          "rubric_version": "competencies_judge_v3",
           "default_threshold": 0.8,
-          "rubric_sha256": "cef191feff7ab995aa8ab218178c756acad148c0277c907fda57e34e7ab3a00c",
-          "dimension_count": 7,
-          "decisive_trigger_count": 3,
+          "rubric_sha256": "359acb092dbb70d1fde62cc68cd65332575df61c2c26f98ac1f62b037f1e8ad1",
+          "dimension_count": 4,
+          "decisive_trigger_count": 2,
+          "required_markers_present": true,
+          "missing_markers": []
+        }
+      ],
+      "masking_relaxed": false
+    },
+    "role_episode": {
+      "lane_family": "role_episode",
+      "lanes": [
+        {
+          "lane_id": "slalom_bullets",
+          "module_path": "apps_rg.runtime.judges.role_episode_x1d",
+          "rubric_version": "role_episode_judge_v3",
+          "default_threshold": 0.8,
+          "rubric_sha256": "f598d087dda80902dea769d51aa76cc9cd56a73107fd13e4f368239651496df3",
+          "dimension_count": 4,
+          "decisive_trigger_count": 2,
+          "required_markers_present": true,
+          "missing_markers": []
+        },
+        {
+          "lane_id": "insurtech_bullets",
+          "module_path": "apps_rg.runtime.judges.role_episode_x1d",
+          "rubric_version": "role_episode_judge_v3",
+          "default_threshold": 0.8,
+          "rubric_sha256": "f598d087dda80902dea769d51aa76cc9cd56a73107fd13e4f368239651496df3",
+          "dimension_count": 4,
+          "decisive_trigger_count": 2,
+          "required_markers_present": true,
+          "missing_markers": []
+        },
+        {
+          "lane_id": "slalom_narrative",
+          "module_path": "apps_rg.runtime.judges.role_episode_x1d",
+          "rubric_version": "role_episode_judge_v3",
+          "default_threshold": 0.8,
+          "rubric_sha256": "f598d087dda80902dea769d51aa76cc9cd56a73107fd13e4f368239651496df3",
+          "dimension_count": 4,
+          "decisive_trigger_count": 2,
+          "required_markers_present": true,
+          "missing_markers": []
+        },
+        {
+          "lane_id": "insurtech_narrative",
+          "module_path": "apps_rg.runtime.judges.role_episode_x1d",
+          "rubric_version": "role_episode_judge_v3",
+          "default_threshold": 0.8,
+          "rubric_sha256": "f598d087dda80902dea769d51aa76cc9cd56a73107fd13e4f368239651496df3",
+          "dimension_count": 4,
+          "decisive_trigger_count": 2,
           "required_markers_present": true,
           "missing_markers": []
         }
@@ -26,72 +76,22 @@
         {
           "lane_id": "unify_bullets",
           "module_path": "apps_rg.runtime.judges.unify_bullets_x1d",
-          "rubric_version": "unify_bullets_x1d_v4",
+          "rubric_version": "employment_bullets_judge_v3",
           "default_threshold": 0.8,
-          "rubric_sha256": "c6020c9b1265c92049407330d54265a968fe1735ce439bbe01c5cd922c9e605b",
-          "dimension_count": 9,
-          "decisive_trigger_count": 6,
+          "rubric_sha256": "8aff642442b2774873e0b32d97c7e722da030591654eb69cc4f3dc1bfea60a3f",
+          "dimension_count": 5,
+          "decisive_trigger_count": 2,
           "required_markers_present": true,
           "missing_markers": []
         },
         {
           "lane_id": "ibm_bullets",
           "module_path": "apps_rg.runtime.judges.ibm_bullets_x1d",
-          "rubric_version": "ibm_bullets_x1d_v4",
+          "rubric_version": "employment_bullets_judge_v3",
           "default_threshold": 0.8,
-          "rubric_sha256": "e1c7b3389b518e3a8a4ab4dfda87363013fe9947360a0c14c7c1eecb5fdd858d",
-          "dimension_count": 10,
-          "decisive_trigger_count": 5,
-          "required_markers_present": true,
-          "missing_markers": []
-        }
-      ],
-      "masking_relaxed": false
-    },
-    "role_episode": {
-      "lane_family": "role_episode",
-      "lanes": [
-        {
-          "lane_id": "insurtech_bullets",
-          "module_path": "apps_rg.runtime.judges.role_episode_x1d",
-          "rubric_version": "role_episode_x1d_v1",
-          "default_threshold": 0.8,
-          "rubric_sha256": "b4093a5af1f5cca2d2e46943238f0248f8b422363e956b6ea63d66733e337128",
-          "dimension_count": 4,
-          "decisive_trigger_count": 5,
-          "required_markers_present": true,
-          "missing_markers": []
-        },
-        {
-          "lane_id": "ey_bullets",
-          "module_path": "apps_rg.runtime.judges.role_episode_x1d",
-          "rubric_version": "role_episode_x1d_v1",
-          "default_threshold": 0.8,
-          "rubric_sha256": "b4093a5af1f5cca2d2e46943238f0248f8b422363e956b6ea63d66733e337128",
-          "dimension_count": 4,
-          "decisive_trigger_count": 5,
-          "required_markers_present": true,
-          "missing_markers": []
-        },
-        {
-          "lane_id": "insurtech_narrative",
-          "module_path": "apps_rg.runtime.judges.role_episode_x1d",
-          "rubric_version": "role_episode_x1d_v1",
-          "default_threshold": 0.8,
-          "rubric_sha256": "b4093a5af1f5cca2d2e46943238f0248f8b422363e956b6ea63d66733e337128",
-          "dimension_count": 4,
-          "decisive_trigger_count": 5,
-          "required_markers_present": true,
-          "missing_markers": []
-        },
-        {
-          "lane_id": "ey_narrative",
-          "module_path": "apps_rg.runtime.judges.role_episode_x1d",
-          "rubric_version": "role_episode_x1d_v1",
-          "default_threshold": 0.8,
-          "rubric_sha256": "b4093a5af1f5cca2d2e46943238f0248f8b422363e956b6ea63d66733e337128",
-          "dimension_count": 4,
-          "decisive_trigger_count": 5,
+          "rubric_sha256": "8aff642442b2774873e0b32d97c7e722da030591654eb69cc4f3dc1bfea60a3f",
+          "dimension_count": 5,
+          "decisive_trigger_count": 2,
           "required_markers_present": true,
           "missing_markers": []
         }
@@ -104,22 +104,22 @@
         {
           "lane_id": "unify_narrative",
           "module_path": "apps_rg.runtime.judges.unify_narrative_x1d",
-          "rubric_version": "unify_narrative_x1d_v3",
+          "rubric_version": "role_narrative_judge_v3",
           "default_threshold": 0.8,
-          "rubric_sha256": "3e703a9f9197ad6c82c9c24ca45cf67fd8a12e8393386540bedc21b774b20aea",
-          "dimension_count": 11,
-          "decisive_trigger_count": 5,
+          "rubric_sha256": "f598d087dda80902dea769d51aa76cc9cd56a73107fd13e4f368239651496df3",
+          "dimension_count": 4,
+          "decisive_trigger_count": 2,
           "required_markers_present": true,
           "missing_markers": []
         },
         {
           "lane_id": "ibm_narrative",
           "module_path": "apps_rg.runtime.judges.ibm_narrative_x1d",
-          "rubric_version": "ibm_narrative_x1d_v3",
+          "rubric_version": "role_narrative_judge_v3",
           "default_threshold": 0.8,
-          "rubric_sha256": "a665f093e0d07e31ba1ea1cbb096a436adb48e5b5636a1e253ba10ff9fc99387",
-          "dimension_count": 11,
-          "decisive_trigger_count": 5,
+          "rubric_sha256": "f598d087dda80902dea769d51aa76cc9cd56a73107fd13e4f368239651496df3",
+          "dimension_count": 4,
+          "decisive_trigger_count": 2,
           "required_markers_present": true,
           "missing_markers": []
         }
@@ -132,11 +132,11 @@
         {
           "lane_id": "executive_summary",
           "module_path": "apps_rg.runtime.judges.executive_summary_x1d",
-          "rubric_version": "executive_summary_x1d_v1",
+          "rubric_version": "judge_v3_atomic_binary",
           "default_threshold": 0.8,
-          "rubric_sha256": "11aae11a67300525bc10237ff399aa7e2b263b548871b5eefa9bca5d2a9c5a9b",
-          "dimension_count": 8,
-          "decisive_trigger_count": 7,
+          "rubric_sha256": "7c359856ea60e6ed498e1ef4034c9e6525c73cd94c94ab56a6e42c8494a02223",
+          "dimension_count": 5,
+          "decisive_trigger_count": 2,
           "required_markers_present": true,
           "missing_markers": []
         }
@@ -149,11 +149,11 @@
         {
           "lane_id": "headline",
           "module_path": "apps_rg.runtime.judges.headline_x1d",
-          "rubric_version": "headline_x1d_v4",
+          "rubric_version": "headline_judge_v3",
           "default_threshold": 0.8,
-          "rubric_sha256": "62df87fe81fa9889503aeb2756cfe0fd2489c8aea7deb89b06ca456d02314fbc",
-          "dimension_count": 8,
-          "decisive_trigger_count": 8,
+          "rubric_sha256": "6eb80376c8cc1dc3bb91c96b6d1a2cd6aa54c7a4774172e2971a933617898af1",
+          "dimension_count": 4,
+          "decisive_trigger_count": 2,
           "required_markers_present": true,
           "missing_markers": []
         }

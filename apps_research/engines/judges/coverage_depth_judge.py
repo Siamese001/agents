@@ -1,51 +1,44 @@
-"""apps_research.engines.judges.coverage_depth_judge — Core-backed compatibility facade.
-
-W9 BOUNDARY ENFORCEMENT
-========================
-apps_research does NOT own judge execution. All coverage_depth scoring logic
-lives in ``apps_rg.evaluation.judges.deterministic_graders``. This file is
-a compatibility facade only — it re-exports core symbols so that existing
-callers (grader_roster.yaml, AppGraderRegistry dispatch, spine alignment tests)
-continue to work without any scoring logic residing in apps_research.
-
-PROMOTION HISTORY
-=================
-- v1 original implementation (DS-D plan): local heuristic scorer in apps_research.
-- v2 (W2R, W9 closure): scoring logic migrated to
-  ``apps_rg.evaluation.judges.deterministic_graders.grade_coverage_depth_run_context``.
-  This file is now a zero-logic compatibility alias. IS_STUB=False because the
-  grader is backed by real core logic, not a raise-only stub.
-
-Integration contract
---------------------
-Callable: grade(dim, run_context) -> tuple[float | int, list[str]]
-Returns (score in [0, 1], evidence_refs) or (GRADER_UNKNOWN_SENTINEL, [])
-when abstaining. Delegated entirely to core.
-"""
-
+"""Deterministic Stage A coverage-depth helper & Judge v3 adapter (decoupled from `apps_rg`)."""
 from __future__ import annotations
 
-from apps_rg.runtime.apps_runtime_compat import (
-    grade_coverage_depth_run_context as grade,
-)
+from typing import Any, Mapping
+
+from apps_research.engines.judges.base import BaseResearchJudge
 
 IS_STUB: bool = False
-IS_CALIBRATED: bool = True
-GRADER_ID: str = "research::coverage_depth_judge::v1"
+IS_CALIBRATED: bool = False
+GRADER_ID: str = "research::coverage_depth_judge::v3"
+GRADER_UNKNOWN_SENTINEL: int = -1
 
 
-class CoverageDepthJudge:
-    """Compatibility facade. Execution is delegated to apps_rg deterministic graders.
+def grade(dim: str, run_context: object) -> tuple[float | int, list[str]]:
+    """Deterministic Stage A structural coverage ratio (never masquerades as calibrated LLM)."""
+    _ = dim
+    if not isinstance(run_context, Mapping):
+        return GRADER_UNKNOWN_SENTINEL, []
+    output = run_context.get("output")
+    if not isinstance(output, Mapping) or not output:
+        return GRADER_UNKNOWN_SENTINEL, []
+    priorities = output.get("strategic_priorities") or output.get("sections") or []
+    sources = output.get("retrieval_sources") or output.get("citations") or []
+    if not priorities and not sources:
+        return GRADER_UNKNOWN_SENTINEL, []
+    p_cov = min(1.0, len(priorities) / 3.0) if isinstance(priorities, list) else 0.5
+    s_cov = min(1.0, len(sources) / 3.0) if isinstance(sources, list) else 0.5
+    refs = [str(s) for s in (sources[:5] if isinstance(sources, list) else [])]
+    return round(0.6 * p_cov + 0.4 * s_cov, 4), refs
 
-    apps_research does not own judge execution (W9 boundary). Scoring logic
-    lives in apps_rg.evaluation.judges.deterministic_graders.
-    """
 
+class CoverageDepthJudge(BaseResearchJudge):
+    judge_id: str = GRADER_ID
+    dimension: str = "coverage_depth"
+    IS_STUB: bool = False
+    IS_CALIBRATED: bool = False
     is_stub: bool = False
     grader_id: str = GRADER_ID
 
-    def __call__(self, dim: str, run_context: object) -> object:
-        return grade(dim, run_context)  # type: ignore[arg-type]
+    def __call__(self, dim: str, run_context: object) -> Any:
+        return grade(dim, run_context)
 
 
-__all__ = ["CoverageDepthJudge", "grade", "IS_STUB", "IS_CALIBRATED", "GRADER_ID"]
+__all__ = ["CoverageDepthJudge", "GRADER_ID", "IS_CALIBRATED", "IS_STUB", "grade"]

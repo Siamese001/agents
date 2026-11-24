@@ -1,9 +1,12 @@
-"""Full-resume LLM coherence review rubric, lenses, and categorization (apps_rg)."""
+"""Full-Resume Coherence Judge v3 Binding & Lens Aggregator (`<= 140L`, zero prose wall)."""
 from __future__ import annotations
 
 from typing import Any, Sequence
 
-FULL_RESUME_COHERENCE_RUBRIC_VERSION = "full_resume_llm_coherence_v3"
+from apps_rg.runtime.judges.v3_section_judge import render_section_v3_rubric
+
+FULL_RESUME_COHERENCE_RUBRIC_VERSION = "full_resume_coherence_judge_v3"
+FULL_RESUME_COHERENCE_RUBRIC = render_section_v3_rubric("full_resume_coherence")
 
 LENS_DEFINITIONS: tuple[str, ...] = (
     "narrative_coherence",
@@ -13,146 +16,6 @@ LENS_DEFINITIONS: tuple[str, ...] = (
     "knockout_and_risk_vectors",
     "altitude_and_band_calibration",
 )
-
-
-def _categorize_finding_by_lens(finding: str) -> str:
-    low = finding.lower()
-    if any(
-        k in low
-        for k in (
-            "narrative",
-            "coherence",
-            "end-to-end",
-            "section ownership",
-            "cross-section",
-            "storyline",
-        )
-    ):
-        return "narrative_coherence"
-    if any(
-        k in low
-        for k in (
-            "6-second",
-            "recruiter",
-            "scannab",
-            "visual",
-            "first impression",
-            "white-space",
-            "headline",
-            "skimmab",
-            "readability",
-            "hierarchy",
-        )
-    ):
-        return "hr_recruiter_first_impression"
-    if any(
-        k in low
-        for k in (
-            "ats",
-            "taxonomy",
-            "cluster",
-            "nomenclature",
-            "parseab",
-            "keyword stuffing",
-            "laundry",
-            "competenc",
-        )
-    ):
-        return "ats_semantic_taxonomy"
-    if any(
-        k in low
-        for k in (
-            "briefing",
-            "jd",
-            "job description",
-            "strategic alignment",
-            "target role",
-            "market bet",
-            "co-sell",
-            "role fit",
-        )
-    ):
-        return "jd_briefing_resonance"
-    if any(
-        k in low
-        for k in (
-            "knockout",
-            "risk",
-            "red flag",
-            "believab",
-            "vanity",
-            "unverified",
-            "attribution",
-            "exaggerat",
-            "unsupported",
-            "gap",
-        )
-    ):
-        return "knockout_and_risk_vectors"
-    if any(
-        k in low
-        for k in (
-            "altitude",
-            "band",
-            "seniority",
-            "svp",
-            "cto",
-            "leveling",
-            "downgrade",
-            "junior",
-            "ic ",
-            "scope",
-        )
-    ):
-        return "altitude_and_band_calibration"
-    return "narrative_coherence"
-
-
-def build_lens_analysis(judge_outputs: Sequence[Any]) -> dict[str, Any]:
-    """Aggregate per-lens observations and blockers across judge outputs."""
-    lens_observations: dict[str, list[dict[str, Any]]] = {
-        lens: [] for lens in LENS_DEFINITIONS
-    }
-    for o in judge_outputs:
-        findings = getattr(o, "findings", None)
-        if isinstance(o, dict):
-            findings = o.get("findings")
-            jid = o.get("judge_id", "")
-            decisive = bool(o.get("decisive_failure", False))
-            pass_ = bool(o.get("pass", o.get("pass_", False)))
-        else:
-            jid = getattr(o, "judge_id", "")
-            decisive = bool(getattr(o, "decisive_failure", False))
-            pass_ = bool(getattr(o, "pass_", False))
-
-        for f in findings or []:
-            lens_key = _categorize_finding_by_lens(str(f))
-            lens_observations[lens_key].append(
-                {
-                    "judge_id": jid,
-                    "finding": str(f),
-                    "decisive": decisive,
-                    "pass": pass_,
-                }
-            )
-
-    return {
-        "rubric_version": FULL_RESUME_COHERENCE_RUBRIC_VERSION,
-        "lenses_evaluated": list(LENS_DEFINITIONS),
-        "lens_findings_count": {
-            lens: len(items) for lens, items in lens_observations.items()
-        },
-        "lens_status": {
-            lens: (
-                "BLOCKER"
-                if any(item["decisive"] for item in items)
-                else ("OBSERVATION" if items else "CLEAR")
-            )
-            for lens, items in lens_observations.items()
-        },
-        "detailed_observations": lens_observations,
-    }
-
 
 LENS_METADATA: dict[str, dict[str, str]] = {
     "narrative_coherence": {
@@ -182,117 +45,77 @@ LENS_METADATA: dict[str, dict[str, str]] = {
 }
 
 
+def _categorize_finding_by_lens(finding: str) -> str:
+    low = finding.lower()
+    if any(k in low for k in ("6-second", "recruiter", "scannab", "visual", "consistent_executive_voice")):
+        return "hr_recruiter_first_impression"
+    if any(k in low for k in ("ats", "taxonomy", "cluster", "keyword stuffing", "competenc")):
+        return "ats_semantic_taxonomy"
+    if any(k in low for k in ("briefing", "jd", "mandate", "target role", "unified_mandate_arc")):
+        return "jd_briefing_resonance"
+    if any(k in low for k in ("knockout", "risk", "believab", "attribution", "unverified", "unsupported", "hallucinat", "echo", "zero_cross_section_metric_echo")):
+        return "knockout_and_risk_vectors"
+    if any(k in low for k in ("altitude", "band", "seniority", "leveling", "junior")):
+        return "altitude_and_band_calibration"
+    return "narrative_coherence"
+
+
+def build_lens_analysis(judge_outputs: Sequence[Any]) -> dict[str, Any]:
+    lens_observations: dict[str, list[dict[str, Any]]] = {lens: [] for lens in LENS_DEFINITIONS}
+    for o in judge_outputs:
+        if isinstance(o, dict):
+            findings, jid = o.get("findings"), o.get("judge_id", "")
+            decisive, pass_ = bool(o.get("decisive_failure", False)), bool(o.get("pass", o.get("pass_", False)))
+        else:
+            findings, jid = getattr(o, "findings", None), getattr(o, "judge_id", "")
+            decisive, pass_ = bool(getattr(o, "decisive_failure", False)), bool(getattr(o, "pass_", False))
+        for f in findings or []:
+            lens_key = _categorize_finding_by_lens(str(f))
+            lens_observations[lens_key].append({"judge_id": jid, "finding": str(f), "decisive": decisive, "pass": pass_})
+
+    return {
+        "rubric_version": FULL_RESUME_COHERENCE_RUBRIC_VERSION,
+        "lenses_evaluated": list(LENS_DEFINITIONS),
+        "lens_findings_count": {lens: len(items) for lens, items in lens_observations.items()},
+        "lens_status": {
+            lens: ("BLOCKER" if any(i["decisive"] for i in items) else ("OBSERVATION" if items else "CLEAR"))
+            for lens, items in lens_observations.items()
+        },
+        "detailed_observations": lens_observations,
+    }
+
+
 def build_recruitment_readiness_scorecard(
     lens_analysis: dict[str, Any],
     criteria_scores: dict[str, float],
     full_resume_coherence_pass: bool,
 ) -> dict[str, Any]:
     lens_status = lens_analysis.get("lens_status") or {}
-    lens_findings_count = lens_analysis.get("lens_findings_count") or {}
-
-    lens_summaries = {}
-    has_blockers = False
-    for lens_key in LENS_DEFINITIONS:
-        meta = LENS_METADATA.get(lens_key, {"name": lens_key, "description": ""})
-        status = lens_status.get(lens_key, "CLEAR")
-        if status == "BLOCKER":
-            has_blockers = True
-        lens_summaries[lens_key] = {
-            "name": meta["name"],
-            "status": status,
-            "finding_count": lens_findings_count.get(lens_key, 0),
-            "description": meta["description"],
+    lens_counts = lens_analysis.get("lens_findings_count") or {}
+    has_blockers = any(lens_status.get(k) == "BLOCKER" for k in LENS_DEFINITIONS)
+    lens_summaries = {
+        k: {
+            "name": LENS_METADATA[k]["name"],
+            "status": lens_status.get(k, "CLEAR"),
+            "finding_count": lens_counts.get(k, 0),
+            "description": LENS_METADATA[k]["description"],
         }
-
+        for k in LENS_DEFINITIONS
+    }
     if full_resume_coherence_pass and not has_blockers:
-        readiness_tier = "STRONG_HIRE_INTERVIEW_READY"
-        recruiter_verdict = (
-            "Clear signal: candidate exhibits authoritative executive platform scope "
-            "with strong targeting resonance and zero critical blockers."
-        )
-    elif full_resume_coherence_pass and has_blockers:
-        readiness_tier = "QUALIFIED_WITH_FLAGGED_RISKS"
-        recruiter_verdict = (
-            "Quorum passed, but specific recruitment lenses identified non-fatal risks "
-            "that require interview probing."
-        )
+        tier, verdict = "STRONG_HIRE_INTERVIEW_READY", "Clear signal: verified executive scope with zero critical blockers."
+    elif full_resume_coherence_pass:
+        tier, verdict = "QUALIFIED_WITH_FLAGGED_RISKS", "Quorum passed with non-fatal observations."
     else:
-        readiness_tier = "NEEDS_REMEDIATION"
-        recruiter_verdict = (
-            "Resume failed coherence quorum or triggered decisive blockers; "
-            "review detailed observations before submission."
-        )
-
+        tier, verdict = "NEEDS_REMEDIATION", "Resume failed coherence quorum or triggered critical atomic check blockers."
     return {
-        "readiness_tier": readiness_tier,
+        "readiness_tier": tier,
         "full_pass": full_resume_coherence_pass,
         "mean_normalized_score": criteria_scores.get("mean_normalized_score", 0.0),
-        "recruiter_verdict": recruiter_verdict,
+        "recruiter_verdict": verdict,
         "lens_summaries": lens_summaries,
     }
 
-
-FULL_RESUME_COHERENCE_RUBRIC = """
-You are evaluating a COMPLETE assembled executive resume (all sections) for release coherence, talent acquisition resonance, and strategic target alignment.
-Deterministic X2 gates are authoritative for hard proof; your verdict informs full_resume_coherence_pass only when aggregated with quorum.
-
-Return JSON only with: score_scale, score, threshold, pass, decisive_failure, findings, cited_sentence_indexes, remediation_suggestions.
-Required pass floor on 0_to_5 scale is 4.4/5.0 (0.88 normalized on 0_to_1).
-
-EVALUATION LENSES & CORE DIMENSIONS:
-Evaluate the resume across these six distinct recruitment, screening, and strategic alignment lenses:
-
-1. narrative_coherence (Executive Leadership Storyline):
-   - End-to-end alignment: headline -> executive summary -> professional experience -> competencies tell one coherent, authoritative executive leadership story calibrated to the target role and domain mandate.
-   - Cross-section consistency: titles, dates, metrics, employers, and scope remain consistent across sections.
-   - Section ownership: credentials appear ONLY under CERTIFICATIONS & CREDENTIALS — never duplicated inside competencies.
-
-2. hr_recruiter_first_impression (6-Second Initial Screen):
-   - Visual rhythm, scannability, and cognitive ease: clear section hierarchy, no wall-of-text fatigue.
-   - Immediate value proposition: does the headline + executive summary instantly signal top-tier leadership caliber?
-   - Marquee proof points: key achievements and enterprise scale are immediately legible within a 6-second recruiter skim.
-
-3. ats_semantic_taxonomy (Machine Parseability & Structure):
-   - Standard domain nomenclature: technologies, methodologies, and platforms follow established industry taxonomies.
-   - Executive capability clustering: competencies organized in structured clusters (3–6 high-signal items per category), not unclustered keyword laundry.
-   - Non-duplication: competencies do not restate bullets or executive summary verbatim.
-
-4. jd_briefing_resonance (Strategic Alignment without Claim Invention):
-   - Strategic alignment: active resonance with the company's enterprise challenges, platform architecture, co-sell motions, or transformation imperatives outlined in the JD briefing. The resume must genuinely tailor candidate emphasis to the target role rather than defaulting to disconnected generic platform language.
-   - TARGETING CONTEXT ONLY: JD briefing informs strategic framing and altitude, NEVER candidate proof.
-   - Flag unsupported claims: reject any JD-only or briefing-only phrasing presented as candidate proof without backing in the candidate evidence packet.
-
-5. knockout_and_risk_vectors (Credibility & Skeptical Screener):
-   - Metric believability & attribution: quantifiable metrics are grounded in believable organizational scale (e.g., team size, budget, revenue impact).
-   - Absence of ungrounded vanity claims: no defensive phrasing, exaggerated solo-attribution, or unbacked buzzwords.
-   - Trajectory integrity: career progression is stable, logical, and senior.
-
-6. altitude_and_band_calibration (Executive Leveling):
-   - Calibration to target executive band: enterprise architecture, C-suite advisory, operating model transformation, GTM alliance co-sell, or runtime governance matching executive requirements of the target role.
-   - No IC downgrade: do NOT penalize maintaining senior executive leadership (Partner / SVP / CTO) rather than an individual contributor (IC) junior researcher persona. Downward title/scope distortion is strictly forbidden.
-
-CANDIDATE_EVIDENCE_PACKET is candidate proof, not targeting context. Graph IDs and source-fact IDs in that packet are the claim-authority spine. A globally unique metric or skill may be intentionally allocated to one rendered section; do not call it unsupported merely because the same wording is not duplicated in professional experience. Conversely, because C0.3 enforces strict global uniqueness across sections (`global_uniqueness_claimed=true`), marquee metrics allocated to Professional Experience bullets or the Value Bar (such as `105-person` leadership in Slalom, `6 months to 3 weeks` lifecycle compression, `$5M ACV`, and `20%` margin expansion in Unify) are intentionally reserved for their respective Experience sections rather than repeated in the Executive Summary; evaluate the Executive Summary and Professional Experience as a unified whole and NEVER penalize `executive_signal`, `synthesis_quality`, or `hr_recruiter_first_impression` because Experience-allocated metrics appear in Professional Experience rather than S1–S6, or because one of the 4 Executive Summary employer slots reflects regulated cloud/insurer control guardrails (`InsurTech`). Still flag a claim when the packet provides no candidate-evidence binding or when the rendered claim conflicts with its evidence.
-
-AUTHORITATIVE CANDIDATE PROFILE & TARGETING BAR:
-- The candidate is an executive leader with 20+ years spanning top-tier management consulting (EY Principal, IBM Partner, Slalom) and frontier technology/platform leadership (Unify SVP Engineering / CTO).
-- Dynamic Target Mandate Alignment: The resume must actively frame and weight candidate experience to answer the specific mandate of the target company and role as specified in TARGETING_CONTEXT.
-  - When targeting Management Consulting / Private Equity Advisory / Enterprise Transformation roles: The narrative must lead with partner-level advisory gravitas, operating model redesign, C-suite governance, commercial growth ($10M+ ARR), and M&A / PE value creation, with agentic AI positioned as an economic value driver.
-  - When targeting Technical Platform / Frontier Systems / AI Partnerships roles: The narrative appropriately emphasizes distributed systems architecture, runtime governance, model evaluation frameworks, partner ecosystem enablement, and technical co-sell.
-  - When targeting Forward-Deployed Engineering / Enterprise AI Activation roles in Regulated Banking or Financial Services: The candidate's executive leadership of 105+ engineers and enterprise client deliveries (`Slalom`), prototype-to-production lifecycle compression from 6 months to 3 weeks (`Unify`), governed multi-agent runtime and validation gates (`Slalom`/`Unify`), reusable cloud/AI solution accelerators and discovery-to-delivery handoff packages (`IBM`), and regulated banking/insurance AI and model-risk governance (`Unify`/`IBM`/`InsurTech`) constitute authentic, complete executive-level proof of a forward-deployed engineering deployment engine, integration playbooks, operational production readiness, and business-line AI activation. Judges MUST NOT penalize the resume on `jd_briefing_resonance`, `cross_section_narrative_spine`, or `knockout_and_risk_vectors` for omitting literal JD-only operational-support boilerplate (such as low-level API authentication config tickets or post-deployment helpdesk phrasing) that is not in `CANDIDATE_EVIDENCE_PACKET`, because anti-fabrication rules strictly forbid inventing unbacked JD terminology (`jd_used_as_proof=false`).
-  - Chronological Earlier-Career Scope vs. Top Positioning: In a full-resume review, chronological earlier-career sections (such as InsurTech 2015–2018 or Early Career / Ernst & Young 2012–2015) naturally reflect historical insurance or financial-services cloud modernization work and MUST NOT be penalized as off-domain clutter when the Headline, Executive Summary, Competencies, and recent executive roles (Slalom, Unify, IBM) lead with Applied AI Architecture, AI Partnerships, and Agentic Platform commercialization. Likewise, IBM-AWS alliance co-sell motions in financial-services modernization are valid hyperscaler alliance proof for AI Partnerships roles.
-- Evaluate role fit on how authentically executive leadership meets the specific enterprise mandate and domain scope of the role.
-- For dimension `resume_voice`: Technical platform terminology (e.g., runtime governance telemetry, control planes, model evaluation frameworks) is expected at the executive bar; do not cite it as negative jargon density unless genuinely vacuous buzzwords.
-
-Lines marked [NOT COMPLETED: <section> — <reason>] are intentional gaps — do not score as prose; judge flow/overlap only on completed sections.
-
-Decisive failure (blockers):
-- Target mandate divergence: presenting an engineering platform/systems resume for an executive management consulting, PE value creation, or organizational advisory mandate (or vice-versa)
-- Credential names duplicated in competencies
-- JD/briefing language used as primary proof for unsupported skills
-- Severe incoherence or seniority downgrade vs executive bar
-- Competencies section is keyword stuffing with no executive clusters or unaligned domain taxonomy
-- Repeated rare signature term (any named regulatory standard, compliance code, or client system such as BCBS 239, SOC 2, SR 11-7, CCAR, Basel III, Solvency II, AG43, SCADA, MEDDPICC, Salesforce, Guidewire, Maximo) or repeated numeric KPI figure (such as 99.9%, $10M, 20%) across bullets, sentences, or sections, or echoed clause structure: MUST set decisive_failure=true and pass=false (never excuse a repeated standard or figure as 'minor' even when each occurrence matches an allowed fact or allocated bundle metric).
-""".strip()
 
 __all__ = [
     "FULL_RESUME_COHERENCE_RUBRIC",

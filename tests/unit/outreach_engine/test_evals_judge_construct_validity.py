@@ -310,14 +310,19 @@ def test_x2_targeting_brief_permits_evidence_boundary_section() -> None:
 
 def test_x2_judge_receipt_validation_gate() -> None:
     """Construct validity: receipt verification fails closed on model mismatch or low score."""
+    from apps_research.integrations.apps_rg_handoff import (
+        APPS_RG_HANDOFF_JUDGE_THINKING_LEVEL,
+        _JUDGE_PIN,
+    )
+
     valid_receipt = {
         "schema_version": "apps_research.apps_rg_handoff_x2_judge_receipt.v1",
         "gate_id": "X2_RESEARCH_SEMANTIC_GATE",
         "judge_name": "gemini_pro",
-        "judge_provider": "google_gemini",
-        "judge_model_requested": "gemini-3.8-flash",
-        "judge_model": "gemini-3.8-flash",
-        "thinking_level": "high",
+        "judge_provider": _JUDGE_PIN.provider,
+        "judge_model_requested": _JUDGE_PIN.model,
+        "judge_model": _JUDGE_PIN.model,
+        "thinking_level": APPS_RG_HANDOFF_JUDGE_THINKING_LEVEL,
         "model_observation_status": "OBSERVED_PROVIDER_RESPONSE",
         "threshold": 0.75,
         "score": 0.90,

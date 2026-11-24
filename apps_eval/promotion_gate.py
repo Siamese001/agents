@@ -175,13 +175,51 @@ def verify_promotion_evidence(
         if not l6_ok:
             blocking.append(f"missing L6 shadow handoff receipt for {suite_id}")
 
-    # Resume Engine offline E2E receipt
-    if app_filter in ("all", "apps_rg") and eff_require_probes:
-        rg_e2e = manifest.get("apps_rg_e2e_receipt")
-        rg_ok = isinstance(rg_e2e, dict) and str(rg_e2e.get("status", "")) == "PASS"
-        checks["apps_rg_e2e"] = rg_ok
-        if not rg_ok:
-            blocking.append(f"apps_rg E2E receipt failed or missing: {rg_e2e}")
+    # Resume Engine offline E2E receipt & G5/G6 Planted-Defect Meta-Eval receipt
+    rg_g6_metrics: dict[str, Any] = {}
+    if app_filter in ("all", "apps_rg"):
+        if eff_require_probes:
+            rg_e2e = manifest.get("apps_rg_e2e_receipt")
+            rg_ok = isinstance(rg_e2e, dict) and str(rg_e2e.get("status", "")) == "PASS"
+            checks["apps_rg_e2e"] = rg_ok
+            if not rg_ok:
+                blocking.append(f"apps_rg E2E receipt failed or missing: {rg_e2e}")
+
+        if eff_require_probes or "apps_rg_g5_g6_receipt" in manifest:
+            rg_g56 = manifest.get("apps_rg_g5_g6_receipt")
+            if not isinstance(rg_g56, dict) or str(rg_g56.get("status", "")) != "PASS":
+                checks["apps_rg_g5_g6"] = False
+                blocking.append(f"apps_rg G5/G6 receipt failed or missing: {rg_g56}")
+            else:
+                rg_g6 = rg_g56.get("g6") or {}
+                rg_g5 = rg_g56.get("g5") or {}
+                rg_rho = float(rg_g6.get("spearman_rho", 0.0))
+                rg_kappa = float(rg_g6.get("cohens_kappa", 0.0))
+                rg_fpr = float(rg_g6.get("fpr", 1.0))
+                rg_tpr = float(rg_g6.get("tpr", 0.0))
+                rg_max_std = float(rg_g5.get("max_std", 1.0))
+                rg_g6_metrics = {
+                    "corpus_size": int(rg_g6.get("corpus_size", 0)),
+                    "spearman_rho": rg_rho,
+                    "cohens_kappa": rg_kappa,
+                    "fpr": rg_fpr,
+                    "tpr": rg_tpr,
+                    "g5_max_std": rg_max_std,
+                }
+                rg_cal_ok = (
+                    bool(rg_g6.get("passed"))
+                    and bool(rg_g5.get("passed"))
+                    and rg_rho >= MIN_G6_SPEARMAN_RHO
+                    and rg_kappa >= MIN_G6_COHENS_KAPPA
+                    and rg_fpr <= MAX_G6_CLEAN_FPR
+                    and rg_tpr >= MIN_G6_DEFECT_TPR
+                    and rg_max_std <= MAX_G5_STD_CEILING
+                )
+                checks["apps_rg_g5_g6"] = rg_cal_ok
+                if not rg_cal_ok:
+                    blocking.append(
+                        f"apps_rg G5/G6 calibration below threshold: rho={rg_rho}, kappa={rg_kappa}, fpr={rg_fpr}, tpr={rg_tpr}, max_std={rg_max_std}"
+                    )
 
     # Outreach Engine G5 repeatability + G6 meta-eval calibration receipt
     g6_metrics: dict[str, Any] = {}
@@ -298,6 +336,7 @@ def verify_promotion_evidence(
         metrics={
             "suite_scores": suite_scores,
             "g6": g6_metrics,
+            "rg_g6": rg_g6_metrics,
             "golden_flywheel": golden_metrics,
             "ide_judge_drift": drift_metrics,
             "elapsed_s": manifest.get("elapsed_s", 0.0),

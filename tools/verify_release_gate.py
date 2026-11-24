@@ -270,9 +270,12 @@ def run_outreach_rigor_parity_gate(repo_root: Path) -> CheckResult:
             allocated_fact_ids_by_touch={1: ["fact_platform_001"]},
             x2_passed=True,
         )
-        quorum = evaluate_x1d_judge_quorum(packet)
+        offline_quorum = evaluate_x1d_judge_quorum(packet)
+        quorum = evaluate_x1d_judge_quorum(packet, primary_score=0.92, secondary_score=0.88)
         if (
-            rubric.get("rubric_id") != "lic_x1d_v1"
+            rubric.get("rubric_id") != "outreach_sequence:outreach_multi_touch_sequence"
+            or offline_quorum.llm_judge_executed
+            or offline_quorum.normalized_unit_score is not None
             or not quorum.quorum_passed
             or not quorum.drafter_judge_orthogonal
             or not quorum.target_free_verified

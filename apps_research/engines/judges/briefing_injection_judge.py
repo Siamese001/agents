@@ -1,24 +1,22 @@
-"""Briefing Injection Judge — W9
-
-Evaluates whether the brief properly injects source briefing context.
-Maps to G22 (Answer Completeness).
-"""
-from typing import Any, Dict
+"""Clean-Slate Judge v3 Adapter for `briefing_injection` (`IS_STUB=True`, `IS_CALIBRATED=False` until human gold exists)."""
+from __future__ import annotations
 
 from apps_research.engines.judges.base import BaseResearchJudge, JudgeEvidence
 
+IS_STUB: bool = True
+IS_CALIBRATED: bool = False
+GRADER_ID: str = 'apps_research_briefing_injection'
+
 
 class BriefingInjectionJudge(BaseResearchJudge):
-    """Deterministic grader for briefing injection assessment."""
-    
-    judge_id: str = "apps_research_briefing_injection"
-    dimension: str = "briefing_injection"
-    version: str = "W9.0.0"
-    
-    IS_STUB = True
+    judge_id: str = GRADER_ID
+    dimension: str = 'briefing_injection'
+    version: str = "v3.0.0"
+    IS_STUB: bool = True
+    IS_CALIBRATED: bool = False
+    is_stub: bool = True
+    grader_id: str = GRADER_ID
+    v3_profile_token: str = 'company_research_brief:targeting_brief_handoff'
 
 
-# Deterministic grader interface — W9 stub (execution moved to core)
-IS_STUB = True
-IS_CALIBRATED = True
-GRADER_ID = "apps_research_briefing_injection"
+__all__ = ['BriefingInjectionJudge', "GRADER_ID", "IS_CALIBRATED", "IS_STUB", "JudgeEvidence"]

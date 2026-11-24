@@ -17,59 +17,59 @@ NON_CLAIM_NO_MASKING = (
     "Rubric port did not relax groundedness, specificity, or citation thresholds."
 )
 
-# Appendix W4 — per lane-family marker groups (any alias in a group must match).
+# Appendix W4 / Judge v3 — per lane-family marker groups (any alias in a group must match).
 FAMILY_MARKER_GROUPS: dict[str, tuple[tuple[str, ...], ...]] = {
     "executive_summary": (
-        ("factual_truth_and_non_exaggeration", "factual_support"),
-        ("claim_ledger", "claim ledger"),
-        ("jd-as-proof", "jd/briefing", "jd as proof"),
-        ("briefing-as-proof", "briefing"),
-        ("keyword", "stuffing"),
-        ("decisive_failure",),
-        ("source_fact", "source fact"),
+        ("factual_truth_and_non_exaggeration", "factual_support", "verified_claim_entailment"),
+        ("claim_ledger", "claim ledger", "source facts", "verified source"),
+        ("jd-as-proof", "jd/briefing", "jd as proof", "proof_boundary_integrity", "target-company"),
+        ("briefing-as-proof", "briefing", "mandate", "target"),
+        ("keyword", "stuffing", "clutter", "noun soup"),
+        ("decisive_failure", "[critical"),
+        ("source_fact", "source fact", "source facts"),
     ),
     "headline": (
-        ("factual_support",),
-        ("claim_ledger", "claim ledger"),
-        ("jd-as-proof", "jd ", "targeting"),
-        ("briefing",),
-        ("keyword", "stuffing"),
-        ("decisive_failure",),
-        ("source_fact", "source_fact", "bul_", "fact_"),
+        ("factual_support", "source_fact_grounding"),
+        ("claim_ledger", "claim ledger", "career facts", "verified"),
+        ("jd-as-proof", "jd ", "targeting", "no_target_as_experience", "target company"),
+        ("briefing", "mandate", "target role"),
+        ("keyword", "stuffing", "buzzword"),
+        ("decisive_failure", "[critical"),
+        ("source_fact", "bul_", "fact_", "career facts"),
     ),
     "narrative": (
-        ("factual_support", "fact_ledger_grounding"),
-        ("claim_ledger", "claim ledger"),
-        ("jd-as-proof", "jd/briefing", "jd ", "briefing"),
-        ("keyword", "stuffing", "without_stuffing", "without becoming proof", "not proof"),
-        ("decisive_failure",),
-        ("source_fact", "source fact", "bul_", "resume facts"),
+        ("factual_support", "fact_ledger_grounding", "narrative_episode_grounding"),
+        ("claim_ledger", "claim ledger", "episode facts", "verified"),
+        ("jd-as-proof", "jd/briefing", "jd ", "briefing", "episode_boundary_isolation", "mandate"),
+        ("keyword", "stuffing", "without_stuffing", "without becoming proof", "not proof", "duplicating", "artificial"),
+        ("decisive_failure", "[critical"),
+        ("source_fact", "source fact", "bul_", "resume facts", "episode facts"),
     ),
     "bullets": (
-        ("factual_support", "claim_ledger_grounding"),
-        ("claim_ledger", "claim ledger"),
-        ("jd-as-proof", "jd-as-proof"),
-        ("briefing-as-proof", "briefing"),
-        ("keyword", "stuffing"),
-        ("decisive_failure",),
-        ("source_fact", "source_fact", "bul_"),
+        ("factual_support", "claim_ledger_grounding", "episode_fact_grounding"),
+        ("claim_ledger", "claim ledger", "verified facts", "employer episode"),
+        ("jd-as-proof", "cross_employer_scope_purity", "target-company"),
+        ("briefing-as-proof", "briefing", "mandate", "scope"),
+        ("keyword", "stuffing", "non-duplicate", "boilerplate"),
+        ("decisive_failure", "[critical"),
+        ("source_fact", "bul_", "verified facts"),
     ),
     "competencies": (
-        ("factual_support",),
-        ("claim_ledger", "claim ledger"),
-        ("jd-as-proof", "jd-as-proof"),
-        ("briefing",),
-        ("keyword", "stuffing"),
-        ("decisive_failure",),
-        ("source_fact", "source_fact", "bul_"),
+        ("factual_support", "competency_source_support"),
+        ("claim_ledger", "claim ledger", "career evidence", "source facts"),
+        ("jd-as-proof", "no_unverified_domain_stretch", "unverified"),
+        ("briefing", "target_role_relevance", "mandate", "target role"),
+        ("keyword", "stuffing", "restatement", "buzzword"),
+        ("decisive_failure", "[critical"),
+        ("source_fact", "bul_", "source facts", "career evidence"),
     ),
     "role_episode": (
-        ("factual_support",),
-        ("claim_ledger", "claim ledger"),
-        ("jd-as-proof", "jd-as-proof", "jd as proof"),
-        ("briefing",),
-        ("decisive_failure",),
-        ("source_fact", "source_fact", "source fact", "bul_"),
+        ("factual_support", "episode_fact_grounding", "narrative_episode_grounding"),
+        ("claim_ledger", "claim ledger", "episode facts", "verified facts"),
+        ("jd-as-proof", "jd as proof", "episode_boundary_isolation", "cross_employer_scope_purity", "mandate"),
+        ("briefing", "mandate", "scope"),
+        ("decisive_failure", "[critical"),
+        ("source_fact", "source fact", "bul_", "episode facts", "verified facts"),
     ),
 }
 
@@ -139,10 +139,16 @@ def _sha256_text(text: str) -> str:
 
 
 def _count_dimensions(rubric: str) -> int:
+    v3_checks = re.findall(r"^\s*-\s*\w+\s*\[(?:CRITICAL|WEIGHTED)\b", rubric, flags=re.MULTILINE)
+    if v3_checks:
+        return len(v3_checks)
     return len(re.findall(r"^\s*\d+\.\s+\w+", rubric, flags=re.MULTILINE))
 
 
 def _count_decisive_triggers(rubric: str) -> int:
+    v3_crit = re.findall(r"^\s*-\s*\w+\s*\[CRITICAL\b", rubric, flags=re.MULTILINE)
+    if v3_crit:
+        return len(v3_crit)
     block = rubric.lower()
     if "decisive failure" not in block:
         return 0

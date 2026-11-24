@@ -5,6 +5,7 @@ import csv
 import hashlib
 import hmac
 import json
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -102,6 +103,46 @@ class GoldCandidateRecord:
     recipient_class: str = "hiring_manager"
     topic_family: str = ""
     nuance_profile: str = "CALIBRATED_EXEMPLARY_WITH_REAL_CONSTRAINT_TENSION"
+    target_company: str = ""
+    target_role: str = ""
+    target_mandate: str = ""
+    section_label: str = ""
+
+    def target_job_card(self) -> dict[str, str]:
+        """Return structured Target Job Mandate card fields for Card 1 in the Calibration Studio."""
+        family_labels = {
+            "headline": "Resume Headline",
+            "executive_summary": "Executive Summary",
+            "competencies": "Core Competencies",
+            "employment_bullets": "Employment Bullets",
+            "role_narrative": "Role Narrative",
+            "whole_resume_coherence": "Whole-Resume Multi-Section Excerpt",
+            "x1d_quorum": "Outreach Message Sequence",
+            "executive_judge_panel": "Executive Outreach Email / InMail",
+        }
+        sec = self.section_label or family_labels.get(self.judge_family, self.judge_family)
+        comp = self.target_company
+        role = self.target_role
+        mandate = self.target_mandate
+        if not (comp and role and mandate):
+            m = re.search(
+                r"\bfor\s+([A-Za-z0-9&\s.-]+?)\s*\(([^,)]+),\s*(?:requiring|bridging|reviewing|spanning)\s+([^)]+)\)",
+                self.target_context,
+            )
+            if m:
+                comp = comp or m.group(1).strip()
+                role = role or m.group(2).strip()
+                mandate = mandate or m.group(3).strip()
+            else:
+                comp = comp or ("Target Executive Account" if self.engine == "outreach_engine" else "Enterprise Target Employer")
+                role = role or self.recipient_class.replace("_", " ").title()
+                mandate = mandate or self.target_context.rstrip("?. ")
+        return {
+            "target_company": comp,
+            "target_role": role,
+            "target_mandate": mandate[0].upper() + mandate[1:] if mandate else "",
+            "section_label": sec,
+        }
 
     def item_digest(self) -> str:
         return canonical_sha256(
@@ -143,6 +184,7 @@ class GoldCandidateRecord:
             "expected_tier": self.expected_tier,
             "expected_pass": self.expected_pass,
             "target_context": self.target_context,
+            "target_job_card": self.target_job_card(),
             "candidate_text": self.candidate_text,
             "allowed_facts": list(self.allowed_facts),
             "subtle_defect_type": self.subtle_defect_type,
@@ -156,6 +198,7 @@ class GoldCandidateRecord:
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> GoldCandidateRecord:
+        tcard = data.get("target_job_card") if isinstance(data.get("target_job_card"), Mapping) else {}
         return cls(
             item_id=str(data["item_id"]),
             engine=str(data["engine"]),
@@ -173,6 +216,10 @@ class GoldCandidateRecord:
             nuance_profile=str(
                 data.get("nuance_profile") or "CALIBRATED_EXEMPLARY_WITH_REAL_CONSTRAINT_TENSION"
             ),
+            target_company=str(data.get("target_company") or tcard.get("target_company") or ""),
+            target_role=str(data.get("target_role") or tcard.get("target_role") or ""),
+            target_mandate=str(data.get("target_mandate") or tcard.get("target_mandate") or ""),
+            section_label=str(data.get("section_label") or tcard.get("section_label") or ""),
         )
 
 
@@ -358,6 +405,7 @@ def build_studio_blind_pool_dict(
                 "partition": partition,
                 "topic_family": r.topic_family or f"{r.engine}_{r.item_id}",
                 "prompt_text": prompt_text,
+                "target_job_card": r.target_job_card(),
                 "core_answer_text": core_body,
                 "lineage_footer_text": lineage_text,
                 "source_evidence_excerpts": excerpts,

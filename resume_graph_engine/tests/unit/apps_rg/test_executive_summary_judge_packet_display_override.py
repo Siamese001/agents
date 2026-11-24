@@ -129,13 +129,10 @@ def test_grade_only_instruction_documents_display_override_parity() -> None:
 
 def test_rubric_authorizes_override_phrases_in_factual_support_and_anti_overfit() -> None:
     rubric = GRAPH_ONLY_GRADE_ONLY_RUBRIC
-    factual_section = rubric.split("2. executive_signal", 1)[0]
-    assert "display_override_text" in factual_section, (
-        "factual_support dimension must explicitly authorize display_override_text union"
-    )
-    assert "UNION" in factual_section
-    anti_overfit_section = rubric.split("5. anti_overfit", 1)[1].split("6. synthesis_quality", 1)[0]
-    assert "display_override_text" in anti_overfit_section
+    assert "verified_claim_entailment" in rubric
+    assert "proof_boundary_integrity" in rubric
+    assert "DISPLAY_OVERRIDE PARITY" in GRADE_ONLY_INSTRUCTION
+    assert "display_override_text" in GRADE_ONLY_INSTRUCTION
 
 
 def test_full_packet_build_emits_parity_gate_in_deterministic_gate_summary() -> None:

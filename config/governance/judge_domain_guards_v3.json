@@ -1,0 +1,21 @@
+{
+  "forbidden_historical_nouns": [
+    "Chakra",
+    "Kiro",
+    "WinSurf",
+    "pineapple",
+    "abhishek"
+  ],
+  "forbidden_rubric_nouns": [
+    "BCBS 239",
+    "CCAR",
+    "Guidewire",
+    "Slalom",
+    "Unify",
+    "IBM",
+    "InsurTech"
+  ],
+  "guard_id": "agents_judge_domain_guards_v3",
+  "guards_sha256": "da8fb17e26873357870a5fc970db11197723bff72510f758199810493594f846",
+  "schema_version": "3.0.0"
+}

@@ -35,6 +35,7 @@ class JuryAggregatedVerdict:
     evaluator_kind: str
     judge_model_family: str
     bundle_digest: str
+    normalized_unit_score: float = 0.0
     external_http_call_count: int = 0
 
     def to_verdict_dict(self) -> dict[str, Any]:
@@ -107,14 +108,14 @@ def aggregate_disjoint_ide_jury_verdicts(
         raise ValueError(f"Jury members for '{case_id}' disagree on artifact_sha256.")
     canonical_sha = next(iter(shas))
     pooled_verdict, split_detected = _resolve_jury_majority(verdicts, member_verdicts, tie_breaker_fn)
-    pooled_score_10 = round(float(median(unit_scores)) * 10.0, 4)
+    pooled_unit = round(float(median(unit_scores)), 4)
     alpha = compute_krippendorffs_alpha([[v] for v in verdicts], level="nominal")
     digest_payload = {
         "case_id": case_id,
         "artifact_sha256": canonical_sha,
         "member_families": sorted(families),
         "verdict": pooled_verdict,
-        "overall_score": pooled_score_10,
+        "normalized_unit_score": pooled_unit,
     }
     bundle_digest = compute_payload_sha256(
         json.dumps(digest_payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
@@ -125,7 +126,8 @@ def aggregate_disjoint_ide_jury_verdicts(
         member_families=tuple(families),
         member_count=len(families),
         verdict=pooled_verdict,
-        overall_score=pooled_score_10,
+        overall_score=pooled_unit,
+        normalized_unit_score=pooled_unit,
         inter_judge_alpha=alpha,
         jury_split_detected=split_detected,
         evaluator_kind="antigravity_ide_blind_subagent_judge",

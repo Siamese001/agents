@@ -123,6 +123,49 @@ def _probe_apps_rg_offline_e2e(repo_root: Path, python_bin: str, probe_dir: Path
     return res
 
 
+def _probe_apps_rg_g5_g6(repo_root: Path, python_bin: str) -> dict[str, Any]:
+    script = (
+        "import json, sys\n"
+        "from pathlib import Path\n"
+        f"repo = Path({str(repo_root)!r})\n"
+        "for p in (repo, repo / 'resume_graph_engine' / 'src'):\n"
+        "    if str(p) not in sys.path:\n"
+        "        sys.path.insert(0, str(p))\n"
+        "from apps_rg.evals.planted_defect_gate import evaluate_rg_g6_planted_defects, evaluate_rg_g5_repeatability\n"
+        "g6 = evaluate_rg_g6_planted_defects()\n"
+        "g5 = evaluate_rg_g5_repeatability()\n"
+        "ok = bool(g6.passed and g5.passed)\n"
+        "print(json.dumps({\n"
+        "  'status': 'PASS' if ok else 'FAIL',\n"
+        "  'g6': {\n"
+        "    'passed': bool(g6.passed),\n"
+        "    'corpus_size': int(g6.corpus_size),\n"
+        "    'clean_item_count': int(g6.clean_item_count),\n"
+        "    'defective_item_count': int(g6.defective_item_count),\n"
+        "    'spearman_rho': round(float(g6.spearman_rho), 6),\n"
+        "    'cohens_kappa': round(float(g6.cohens_kappa), 6),\n"
+        "    'fpr': round(float(g6.fpr), 6),\n"
+        "    'tpr': round(float(g6.tpr), 6),\n"
+        "    'per_defect_class_tpr': dict(g6.per_defect_class_tpr),\n"
+        "    'violations': list(g6.violations),\n"
+        "  },\n"
+        "  'g5': {\n"
+        "    'passed': bool(g5.passed),\n"
+        "    'item_count': int(g5.item_count),\n"
+        "    'k_runs': int(g5.k_runs),\n"
+        "    'max_std': round(float(g5.max_std), 6),\n"
+        "    'mean_std': round(float(g5.mean_std), 6),\n"
+        "    'std_ceiling': float(g5.std_ceiling),\n"
+        "    'violations': list(g5.violations),\n"
+        "  },\n"
+        "}, sort_keys=True))\n"
+    )
+    t0 = time.perf_counter()
+    res = _run_subprocess_json(python_bin, script, cwd=repo_root, timeout=90)
+    res["elapsed_s"] = round(time.perf_counter() - t0, 3)
+    return res
+
+
 def _probe_apps_lic_g5_g6(repo_root: Path, python_bin: str) -> dict[str, Any]:
     script = (
         "import json, sys\n"
@@ -343,7 +386,9 @@ def run_unified_eval_harness(
 
     # Engine-level probes
     apps_rg_e2e_receipt: dict[str, Any] | None = None
+    apps_rg_g5_g6_receipt: dict[str, Any] | None = None
     if app in ("all", "apps_rg"):
+        apps_rg_g5_g6_receipt = _probe_apps_rg_g5_g6(root, python_bin)
         if fast_dev:
             apps_rg_e2e_receipt = {"status": "SKIPPED_FAST_DEV", "skipped": True}
         elif mode == "live" and rg_run_dir:
@@ -406,6 +451,7 @@ def run_unified_eval_harness(
         "suite_receipts": suite_receipts,
         "l6_shadow_handoff_receipts": l6_shadow_receipts,
         "apps_rg_e2e_receipt": apps_rg_e2e_receipt,
+        "apps_rg_g5_g6_receipt": apps_rg_g5_g6_receipt,
         "apps_lic_g5_g6_receipt": apps_lic_g5_g6_receipt,
         "apps_lic_bundle_receipt": apps_lic_bundle_receipt,
         "golden_flywheel_receipt": golden_flywheel_receipt,

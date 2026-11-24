@@ -1,5 +1,4 @@
-"""X1D judges for unify_narrative — policy-backed GRADE_ONLY JudgePacket."""
-
+"""Clean-Slate Judge v3 Binding for `unify_narrative` (`<= 55L`, domain-general narrative rubric)."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -7,47 +6,11 @@ from typing import Any
 
 from apps_rg.runtime.judges.executive_summary_x1d import JudgeOutput
 from apps_rg.runtime.judges.policy_backed_section_judges import run_policy_section_judges
-from apps_rg.runtime.quality.overlap_engine import SHARED_OVERLAP_DECISIVE_FAILURE_CLAUSE
-from apps_rg.runtime.sections.section_product_shape_ssot import NARRATIVE_MAX_CHARS, NARRATIVE_MAX_WORDS
+from apps_rg.runtime.judges.v3_section_judge import render_section_v3_rubric
 
-JUDGE_RUBRIC_VERSION = "unify_narrative_x1d_v3"
-JUDGE_RUBRIC_REF = "apps_rg/runtime/judges/unify_narrative_x1d.py#UNIFY_NARRATIVE_GRADE_ONLY_RUBRIC"
-
-NARRATIVE_RUBRIC = f"""
-You are evaluating one Unify Consulting role narrative sentence (executive thesis above six bullets).
-Return JSON only with: score_scale, score, threshold, pass, decisive_failure, findings, cited_sentence_indexes, remediation_suggestions.
-
-Score contract:
-- score_scale must be "0_to_1" or "0_to_5". Do not omit score_scale. Required pass is 4.0/5.
-
-Rubric dimensions (must score each):
-1. north_star_alignment: role-level capstone emphasizing platform roadmap, core systems architecture,
-   commercialization, reusable IP / platform economics, and enterprise deployment within consulting-firm context.
-2. fact_ledger_grounding: every material claim in the narrative is supported by companion_bullets_context and/or
-   allowed_fact_packet and maps to claim_ledger source_fact_ids. Treat every ID explicitly present in allowed_fact_packet
-   (including graph-era reb_unify_* role-episode bundles, skill_* nodes, fact_* rows, metric_* IDs, and bul_unify_* or
-   unify_narrative_base_* resume facts) as eligible proof; never reject a citation solely because of its ID prefix when
-   allowed_fact_packet supplies it (no JD/briefing/target-company-as-experience).
-3. jd_briefing_targeting: JD and briefing themes shape emphasis without becoming proof (belongs in jd_alignment object,
-   not the sentence as invented experience).
-4. complementarity_vs_bullets: states the executive thesis the bullets prove without recap, checklist, or six-bullet walk.
-5. executive_signal: SVP Engineering platform leadership — governed runtime, commercialization, regulated enterprise scale.
-6. no_metric_rehash: avoids repeating bullet metrics unless narrowly justified; prefers conceptual commercialization language.
-7. no_cross_employer_leakage: no IBM, InsurTech, EY, education, or early-career contamination.
-8. resume_voice: third person or implied subject; clean board-readable executive tone; no hype or comma-packed mechanism list.
-9. role_fit_targeting: JD/briefing influence emphasis only — never proof of experience.
-10. why_role_mattered: narrative answers why the Unify role mattered (mandate, commercialization, IP) — companion bullets answer what was delivered.
-11. executive_brevity: exactly one sentence; product shape max {NARRATIVE_MAX_WORDS} words and {NARRATIVE_MAX_CHARS} characters; JD/briefing targeting only (never proof).
-
-Decisive failure triggers:
-- merely summarizes the six bullets or mirrors bullet labels/metrics as the thesis
-- spins a different role story not entailed by the finalized bullets or claim_ledger
-- uses JD, briefing, or target company as proof of candidate experience
-- omits commercialization / reusable platform / IP angle when base anchor facts support that arc
-- lacks role-level platform mandate (reads like a delivery task list)
-- multiple sentences or bullet-list formatting
-{SHARED_OVERLAP_DECISIVE_FAILURE_CLAUSE}
-""".strip()
+JUDGE_RUBRIC_VERSION = "role_narrative_judge_v3"
+JUDGE_RUBRIC_REF = "config/governance/judge_rubrics_v3.json#resume_sections:role_narrative"
+NARRATIVE_RUBRIC = render_section_v3_rubric("role_narrative")
 
 
 def run_unify_narrative_judges(
@@ -89,4 +52,4 @@ def run_unify_narrative_judges(
     return outputs
 
 
-__all__ = ["run_unify_narrative_judges", "JUDGE_RUBRIC_VERSION", "NARRATIVE_RUBRIC"]
+__all__ = ["JUDGE_RUBRIC_VERSION", "NARRATIVE_RUBRIC", "run_unify_narrative_judges"]

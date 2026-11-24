@@ -152,8 +152,8 @@
         },
         "rubric_path": {
           "type": "string",
-          "default": "config/certification/llm_judge_rubric.md",
-          "description": "Path to judge rubric markdown file"
+          "default": "config/governance/judge_rubrics_v3.json",
+          "description": "Path to declarative Judge v3 rubric SSOT JSON file"
         },
         "max_latency_ms": {
           "type": "number",

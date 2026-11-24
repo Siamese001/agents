@@ -1,5 +1,4 @@
-"""Shared X1D rubric for proof-bound InsurTech/EY role episode lanes."""
-
+"""Clean-Slate Judge v3 Binding for Role Episode Lanes (`<= 60L`, zero prose wall)."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -7,46 +6,12 @@ from typing import Any
 
 from apps_rg.runtime.judges.executive_summary_x1d import JudgeOutput
 from apps_rg.runtime.judges.policy_backed_section_judges import run_policy_section_judges
-from apps_rg.runtime.quality.overlap_engine import SHARED_OVERLAP_DECISIVE_FAILURE_CLAUSE
-from apps_rg.runtime.sections.section_product_shape_ssot import NARRATIVE_MAX_CHARS, NARRATIVE_MAX_WORDS
+from apps_rg.runtime.judges.v3_section_judge import render_section_v3_rubric
 
-JUDGE_RUBRIC_VERSION = "role_episode_x1d_v2"
+JUDGE_RUBRIC_VERSION = "role_episode_judge_v3"
 DEFAULT_THRESHOLD = 0.80
-JUDGE_RUBRIC_REF = "apps_rg/runtime/judges/role_episode_x1d.py#ROLE_EPISODE_RUBRIC"
-
-ROLE_EPISODE_RUBRIC = f"""
-You are evaluating a proof-bound role episode lane (Slalom, InsurTech, or EY): either bullets
-or exactly one narrative sentence. Return JSON only with: score_scale, score, threshold,
-pass, decisive_failure, findings, cited_sentence_indexes, remediation_suggestions.
-
-Score contract:
-- score_scale must be "0_to_1" or "0_to_5". Do not omit score_scale.
-- threshold is 4.0 (on 0_to_5 scale, or 0.80 normalized) unless policy overrides it.
-
-Rubric dimensions:
-1. factual_support: every material claim maps to claim_ledger and source_fact_ids from the allowed proof pool.
-2. claim_ledger_grounding: claim_ledger rows have non-empty claim_text and cite only role_episode_bundle_id graph evidence.
-3. jd_briefing_targeting_discipline: JD and briefing are targeting only; never JD-as-proof or briefing-as-proof.
-4. role_fit_targeting: targeting may shape emphasis without becoming proof of experience.
-
-Role-lane product shape:
-- Bullet lanes: exactly 3 bullets (or expected bullet count matching role: Slalom 4, InsurTech 2, EY: 0 or consolidated), one high-impact thought per bullet, no embedded newline.
-- Narrative lanes: exactly one sentence (or empty when consolidated), no more than {NARRATIVE_MAX_WORDS} words and {NARRATIVE_MAX_CHARS} characters.
-- Source namespaces: Slalom uses bul_slalom_* source_fact_ids with reb_slalom_* graph bundle ids;
-  InsurTech uses bul_insurtech_* source_fact_ids with reb_insurtech_* graph bundle ids;
-  EY uses bul_ey_* source_fact_ids with reb_ey_* graph bundle ids.
-- No first-person voice and no em dash in display text.
-
-Decisive failure triggers:
-- unsupported claim, missing source_fact_ids, or claim_ledger omission
-- JD, briefing, or target company used as proof of experience
-- wrong source namespace, cross-employer leakage, mixed graph evidence, or missing role source_fact_ids
-- keyword stuffing, copied JD phrases, or ATS laundry-list phrasing
-- practice-leadership-only narrative ("led this practice / oversaw advisory") or capability-only bullet that omits what was concretely built/delivered and its graph-backed business, commercial, or operational outcome
-- internal repo/codebase micro-plumbing specs ("119-package", "32 readiness gates", "six MCP servers", "SQLite WAL", "FTS5", "1024-d BGE-M3", "Dirichlet-Laplace", "Merkle-cached", "Universal Write Gateway", "Dual-Track Live Executive Copilot", "PCM audio spooler", "MLX Whisper", "8-surface System Learning") or stuttered duplicate stems ("regulated enterprise regulatory findings")
-- wrong output shape: unexpected bullet count or multiple sentences for narrative lanes
-{SHARED_OVERLAP_DECISIVE_FAILURE_CLAUSE}
-""".strip()
+JUDGE_RUBRIC_REF = "config/governance/judge_rubrics_v3.json#resume_sections:role_narrative"
+ROLE_EPISODE_RUBRIC = render_section_v3_rubric("role_episode")
 
 
 def run_role_episode_judges(
@@ -70,12 +35,18 @@ def run_role_episode_judges(
             if isinstance(row, dict)
         )
     )
+    rubric = render_section_v3_rubric(section_id)
+    r_ref = (
+        "config/governance/judge_rubrics_v3.json#resume_sections:employment_bullets"
+        if str(section_id).endswith("_bullets")
+        else JUDGE_RUBRIC_REF
+    )
     packet_path = (artifact_base / f"{section_id}_judge_packet.json") if artifact_base else None
     outputs = run_policy_section_judges(
         section_id,
         candidate_output=candidate_output,
-        section_rubric=ROLE_EPISODE_RUBRIC,
-        rubric_ref=JUDGE_RUBRIC_REF,
+        section_rubric=rubric,
+        rubric_ref=r_ref,
         claim_ledger=claim_ledger,
         judge_keys=judge_keys,
         allowed_fact_packet=allowed_fact_packet,

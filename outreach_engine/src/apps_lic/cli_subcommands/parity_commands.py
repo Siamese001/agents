@@ -295,7 +295,10 @@ def run_doctor(*, strict: bool = False, repo_root: Path | None = None) -> tuple[
     cand = CandidateProfileLoader.load_default()
     facts_ok = len(cand.verified_facts) >= 3
     rubric = load_x1d_exit_rubric()
-    rubric_ok = str(rubric.get("rubric_id") or "") == "lic_x1d_v1"
+    rubric_ok = str(rubric.get("rubric_id") or "") in {
+        "outreach_sequence:outreach_multi_touch_sequence",
+        "lic_x1d_v1",
+    }
     targeting_dir = outreach_root / "config" / "targeting"
     briefs = list(targeting_dir.glob("*_briefing.md")) if targeting_dir.is_dir() else []
     briefs_ok = len(briefs) >= 3

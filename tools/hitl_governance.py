@@ -573,7 +573,7 @@ PLAN_ONLY_TRIGGERS = (
 )
 
 MODEL_TOKEN_PATTERN = re.compile(
-    r"\b(?:gpt-[0-9]+(?:\.[0-9]+)?(?:-[a-z0-9]+)?|claude-[a-z0-9-]+|gemini-[0-9]+(?:\.[0-9]+)?(?:-[a-z0-9]+)?)\b",
+    r"\b(?:gpt-[0-9]+(?:\.[0-9]+)?(?:-[a-z0-9]+)*|claude-[a-z0-9-]+|gemini-[0-9]+(?:\.[0-9]+)?(?:-[a-z0-9]+)*)\b",
     re.IGNORECASE,
 )
 

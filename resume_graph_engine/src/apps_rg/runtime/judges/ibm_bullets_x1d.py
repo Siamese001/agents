@@ -1,5 +1,4 @@
-"""X1D LLM judges for ibm_bullets — policy-backed GRADE_ONLY JudgePacket."""
-
+"""Clean-Slate Judge v3 Binding for `ibm_bullets` (`<= 60L`, domain-general bullet rubric)."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -11,26 +10,19 @@ from apps_rg.runtime.judges.employment_bullet_judge_rubric import (
 )
 from apps_rg.runtime.judges.executive_summary_x1d import JudgeOutput
 from apps_rg.runtime.judges.policy_backed_section_judges import run_policy_section_judges
-from apps_rg.runtime.validators.ibm_bullets_x2 import IBM_BULLET_IDS
 
-JUDGE_RUBRIC_VERSION = "ibm_bullets_x1d_v4"
-JUDGE_RUBRIC_REF = "apps_rg/runtime/judges/employment_bullet_judge_rubric.py#ibm_bullets"
+JUDGE_RUBRIC_VERSION = "employment_bullets_judge_v3"
+JUDGE_RUBRIC_REF = "config/governance/judge_rubrics_v3.json#resume_sections:employment_bullets"
 
-IBM_RUBRIC = grade_only_rubric_text(
-    "ibm_bullets",
-    bullet_count=len(IBM_BULLET_IDS),
-    bullet_id_range=", ".join(IBM_BULLET_IDS),
-)
-assert_no_exec_summary_dimensions("ibm_bullets")
+IBM_RUBRIC = grade_only_rubric_text("employment_bullets")
+assert_no_exec_summary_dimensions("employment_bullets")
 
 
 def _bullets_display_text(bullets: list[dict[str, Any]]) -> str:
-    lines = []
-    for idx, bullet in enumerate(bullets, start=1):
-        bid = bullet.get("bullet_id", f"bullet_{idx}")
-        text = bullet.get("bullet_text", "")
-        lines.append(f"[{idx}] {bid}: {text}")
-    return "\n".join(lines)
+    return "\n".join(
+        f"[{idx}] {b.get('bullet_id', f'bullet_{idx}')}: {b.get('bullet_text', '')}"
+        for idx, b in enumerate(bullets, start=1)
+    )
 
 
 def run_ibm_bullets_judges(
@@ -47,22 +39,10 @@ def run_ibm_bullets_judges(
     display = _bullets_display_text(bullets)
     candidate = {"bullets": bullets, "resume_display_text": display}
     packet_path = (artifact_base / "ibm_bullets_judge_packet.json") if artifact_base else None
-    active_bids = [str(b.get("bullet_id")) for b in bullets if b.get("bullet_id")]
-    if active_bids:
-        b_count = len(active_bids)
-        b_range = ", ".join(active_bids)
-    else:
-        b_count = len(IBM_BULLET_IDS)
-        b_range = ", ".join(IBM_BULLET_IDS)
-    rubric = grade_only_rubric_text(
-        "ibm_bullets",
-        bullet_count=b_count,
-        bullet_id_range=b_range,
-    )
     outputs = run_policy_section_judges(
         "ibm_bullets",
         candidate_output=candidate,
-        section_rubric=rubric,
+        section_rubric=IBM_RUBRIC,
         rubric_ref=JUDGE_RUBRIC_REF,
         claim_ledger=claim_ledger,
         judge_keys=judge_keys,
@@ -80,4 +60,4 @@ def run_ibm_bullets_judges(
     return outputs
 
 
-__all__ = ["run_ibm_bullets_judges", "JUDGE_RUBRIC_VERSION", "IBM_RUBRIC"]
+__all__ = ["IBM_RUBRIC", "JUDGE_RUBRIC_VERSION", "run_ibm_bullets_judges"]

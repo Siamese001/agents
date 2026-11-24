@@ -23,7 +23,10 @@ from apps_eval.graders.judge.gold_corpus import (
     load_external_stakeholder_rubric,
     load_gold_candidates_jsonl,
 )
-from apps_eval.graders.judge.human_provenance import verify_human_label_ledger
+from apps_eval.graders.judge.human_provenance import (
+    compute_weighted_stakeholder_score,
+    verify_human_label_ledger,
+)
 from infrastructure.sdks_mcps.agy_cli_transport import run_agy
 
 DEFAULT_CACHE_PATH = REPO_ROOT / "artifacts" / "eval_harness" / "ide_judge_drift_cache.json"
@@ -32,14 +35,150 @@ DEFAULT_BASELINE_PATH = REPO_ROOT / "artifacts" / "eval_harness" / "ide_judge_dr
 
 LIVE_DRIFT_SCORE_SCHEMA: dict[str, Any] = {
     "type": "object",
-    "required": ["judge_score_1_5", "judge_pass", "rationale"],
+    "required": ["rationale", "dimension_scores", "hard_fail_flags", "judge_score_1_5", "judge_pass"],
     "properties": {
+        "rationale": {"type": "string"},
+        "dimension_scores": {
+            "type": "object",
+            "additionalProperties": {"type": "integer", "minimum": 1, "maximum": 5},
+        },
+        "hard_fail_flags": {
+            "type": "object",
+            "additionalProperties": {"type": "boolean"},
+        },
         "judge_score_1_5": {"type": "number", "minimum": 1.0, "maximum": 5.0},
         "judge_pass": {"type": "boolean"},
-        "rationale": {"type": "string"},
     },
     "additionalProperties": False,
 }
+
+
+def build_v3_live_drift_score_schema(check_ids: list[str]) -> dict[str, Any]:
+    """Build Judge v3 atomic binary JSON schema (`cold_read_takeaway` + `YES`/`NO` per check)."""
+    check_props = {
+        cid: {
+            "type": "object",
+            "required": ["verdict", "evidence_span"],
+            "properties": {
+                "verdict": {"type": "string", "enum": ["YES", "NO"]},
+                "evidence_span": {"type": "string"},
+            },
+            "additionalProperties": False,
+        }
+        for cid in check_ids
+    }
+    return {
+        "type": "object",
+        "required": ["cold_read_takeaway", "checks"],
+        "properties": {
+            "cold_read_takeaway": {"type": "string"},
+            "checks": {
+                "type": "object",
+                "required": list(check_ids),
+                "properties": check_props,
+                "additionalProperties": False,
+            },
+        },
+        "additionalProperties": False,
+    }
+
+
+def compute_v3_drift_unit_score_and_pass(
+    parsed: Mapping[str, Any],
+    rubric_doc: Mapping[str, Any],
+) -> tuple[float, bool, dict[str, bool]]:
+    """Deterministically compute `(normalized_unit_score, judge_pass, atomic_bools)` for Judge v3 checks."""
+    checks_spec = rubric_doc.get("checks") or []
+    raw_checks = parsed.get("checks") if isinstance(parsed.get("checks"), Mapping) else {}
+    atomic_bools: dict[str, bool] = {}
+    unit_score = 0.0
+    crit_ok = True
+    for spec in checks_spec:
+        if not isinstance(spec, Mapping):
+            continue
+        cid = str(spec.get("id") or "")
+        entry = raw_checks.get(cid) if isinstance(raw_checks, Mapping) else None
+        verdict = str((entry or {}).get("verdict") if isinstance(entry, Mapping) else entry or "NO").strip().upper()
+        passed_check = verdict == "YES"
+        atomic_bools[cid] = passed_check
+        if passed_check:
+            unit_score += float(spec.get("weight", 0.0))
+        elif bool(spec.get("critical", False)):
+            crit_ok = False
+    unit_score = round(max(0.0, min(1.0, unit_score)), 4)
+    pass_thresh = float(rubric_doc.get("pass_threshold", 0.80))
+    return unit_score, (crit_ok and unit_score >= pass_thresh - 1e-9), atomic_bools
+
+
+def build_live_drift_score_schema(rubric_doc: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """Build strict Chain-of-Thought-first multi-dimensional JSON schema bound to `rubric_doc`."""
+    if isinstance(rubric_doc, Mapping) and isinstance(rubric_doc.get("checks"), list):
+        check_ids = [str(c["id"]) for c in rubric_doc["checks"] if isinstance(c, Mapping) and c.get("id")]
+        return build_v3_live_drift_score_schema(check_ids)
+    if not isinstance(rubric_doc, Mapping) or not isinstance(rubric_doc.get("dimensions"), list):
+        return dict(LIVE_DRIFT_SCORE_SCHEMA)
+    dim_ids = [str(d["id"]) for d in (rubric_doc.get("dimensions") or []) if isinstance(d, Mapping) and d.get("id")]
+    flag_ids = [str(f["id"]) for f in (rubric_doc.get("hard_fail_flags") or []) if isinstance(f, Mapping) and f.get("id")]
+    return {
+        "type": "object",
+        "required": ["rationale", "dimension_scores", "hard_fail_flags", "judge_score_1_5", "judge_pass"],
+        "properties": {
+            "rationale": {"type": "string"},
+            "dimension_scores": {
+                "type": "object",
+                "required": dim_ids,
+                "properties": {did: {"type": "integer", "minimum": 1, "maximum": 5} for did in dim_ids},
+                "additionalProperties": False,
+            },
+            "hard_fail_flags": {
+                "type": "object",
+                "required": flag_ids,
+                "properties": {fid: {"type": "boolean"} for fid in flag_ids},
+                "additionalProperties": False,
+            },
+            "judge_score_1_5": {"type": "number", "minimum": 1.0, "maximum": 5.0},
+            "judge_pass": {"type": "boolean"},
+        },
+        "additionalProperties": False,
+    }
+
+
+def compute_mechanical_drift_score_and_pass(
+    parsed: Mapping[str, Any],
+    rubric_doc: Mapping[str, Any],
+) -> tuple[float, bool, dict[str, int], dict[str, bool]]:
+    """Deterministically derive `(judge_score_1_5, judge_pass, dim_scores, hard_fail_flags)` from rubric grades."""
+    raw_dims = parsed.get("dimension_scores")
+    raw_flags = parsed.get("hard_fail_flags")
+    dim_scores: dict[str, int] = (
+        {str(k): max(1, min(5, int(v))) for k, v in raw_dims.items() if not isinstance(v, bool)}
+        if isinstance(raw_dims, Mapping)
+        else {}
+    )
+    hard_flags: dict[str, bool] = (
+        {str(k): bool(v) for k, v in raw_flags.items()}
+        if isinstance(raw_flags, Mapping)
+        else {}
+    )
+    raw_score = round(max(1.0, min(5.0, float(parsed.get("judge_score_1_5", 1.0)))), 4)
+    raw_pass = bool(parsed.get("judge_pass", False))
+    if dim_scores and isinstance(rubric_doc.get("dimensions"), list):
+        mech_score = compute_weighted_stakeholder_score(dim_scores, rubric_doc)
+        if mech_score > 0.0:
+            raw_score = mech_score
+        for dim_spec in rubric_doc.get("dimensions") or []:
+            if not isinstance(dim_spec, Mapping):
+                continue
+            did = str(dim_spec.get("id") or "")
+            floor = int(dim_spec.get("hard_floor", 3))
+            if did in dim_scores and dim_scores[did] < floor:
+                raw_pass = False
+    if any(hard_flags.values()):
+        raw_pass = False
+    pass_thresh = float(rubric_doc.get("pass_threshold_mean", 4.0)) if isinstance(rubric_doc, Mapping) else 4.0
+    if raw_score < pass_thresh:
+        raw_pass = False
+    return raw_score, raw_pass, dim_scores, hard_flags
 
 
 def _load_cache(cache_path: Path) -> dict[str, Any]:
@@ -92,16 +231,19 @@ def score_candidate_cached(
     res = run_agy(
         _build_live_probe_prompt(item, rubric_doc),
         model=model_slug,
-        json_schema=LIVE_DRIFT_SCORE_SCHEMA,
+        json_schema=build_live_drift_score_schema(rubric_doc),
         timeout_s=240,
         agy_bin=agy_bin,
     )
     parsed = res.structured_output if isinstance(res.structured_output, dict) else json.loads(res.response)
+    mech_score, mech_pass, dim_scores, hard_flags = compute_mechanical_drift_score_and_pass(parsed, rubric_doc)
     entry = {
         "item_id": item.item_id,
         "model_slug": res.model_reported,
-        "judge_score_1_5": round(max(1.0, min(5.0, float(parsed["judge_score_1_5"]))), 4),
-        "judge_pass": bool(parsed["judge_pass"]),
+        "judge_score_1_5": mech_score,
+        "judge_pass": mech_pass,
+        "dimension_scores": dim_scores,
+        "hard_fail_flags": hard_flags,
         "rationale": str(parsed.get("rationale") or ""),
         "conversation_id": res.conversation_id,
         "total_tokens": int((res.usage or {}).get("total_tokens", 0)),

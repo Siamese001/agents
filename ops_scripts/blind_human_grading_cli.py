@@ -15,7 +15,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from apps_eval.graders.judge.calibration_studio_server import handle_judge_calibrate_ui
+from apps_eval.graders.judge.studio_session_binder import handle_judge_calibrate_ui
 from apps_eval.graders.judge.external_rubric_store import (
     EXTERNAL_RUBRIC_DIMENSIONS,
     VALID_JUDGE_SURFACES,

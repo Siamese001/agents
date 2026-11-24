@@ -44,18 +44,14 @@ def test_x1d_ide_cli_dual_quorum_passes_with_real_receipts(monkeypatch: pytest.M
     def fake_run_agy(prompt: str, *, model: str, json_schema=None, timeout_s=240, agy_bin=None) -> AgyResult:
         calls.append(model)
         payload = {
-            "score": 0.92 if "argon" in model else 0.90,
-            "passed": True,
-            "dimension_scores": {
-                "candidate_evidence_grounding": 0.95,
-                "sequence_coherence_and_progression": 0.90,
-                "executive_altitude_and_peer_framing": 0.91,
-                "citation_and_pct_support": 0.95,
-                "cta_and_friction_calibration": 0.89,
-                "constraint_and_hygiene_compliance": 0.92,
+            "cold_read_takeaway": "Grounded peer-level sequence with clean low-friction CTA.",
+            "checks": {
+                "pct_and_fact_grounding": {"verdict": "YES", "evidence_span": ""},
+                "disjoint_cross_touch_facts": {"verdict": "YES", "evidence_span": ""},
+                "peer_altitude_without_spam": {"verdict": "YES", "evidence_span": ""},
+                "calibrated_sequence_friction": {"verdict": "YES", "evidence_span": ""},
             },
-            "rationale": "Grounded peer-level sequence with clean low-friction CTA.",
-            "violations": [],
+            "failure_tags": [],
         }
         return AgyResult(
             model_requested=model,
@@ -99,11 +95,14 @@ def test_x1d_ide_cli_routes_429_quota_to_backup_model(monkeypatch: pytest.Monkey
         if model == "gemini-4-argon-medium":
             raise AgyQuotaExhaustedError("429 RESOURCE_EXHAUSTED resets in 2m")
         payload = {
-            "score": 0.91,
-            "passed": True,
-            "dimension_scores": {"candidate_evidence_grounding": 0.94},
-            "rationale": "Passed via failover pin.",
-            "violations": [],
+            "cold_read_takeaway": "Passed via failover pin.",
+            "checks": {
+                "pct_and_fact_grounding": {"verdict": "YES", "evidence_span": ""},
+                "disjoint_cross_touch_facts": {"verdict": "YES", "evidence_span": ""},
+                "peer_altitude_without_spam": {"verdict": "YES", "evidence_span": ""},
+                "calibrated_sequence_friction": {"verdict": "YES", "evidence_span": ""},
+            },
+            "failure_tags": [],
         }
         return AgyResult(
             model_requested=model,

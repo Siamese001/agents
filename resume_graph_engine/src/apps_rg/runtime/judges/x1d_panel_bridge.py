@@ -26,9 +26,6 @@ from apps_rg.runtime.judges.executive_summary_x1d import (
     _section_x1d_judge_max_attempts,
     resolve_x1d_provider_credentials,
 )
-from apps_rg.runtime.judges.executive_summary_x1d_gate_closure_map import (
-    core_gate_closure_map,
-)
 from apps_rg.runtime.judges.section_judge_profile import resolve_section_proof_judge_model
 from apps_rg.runtime.judges.x1d_panel_adapters import build_panel_adapter
 from apps_rg.runtime.judges.x1d_panel_context import X1dPanelProviderContext
@@ -149,7 +146,7 @@ def run_grade_only_judges_via_core_panel(
         "allowed_fact_packet_ref": "allowed_fact_packet",
         "rubric_ref": judge_packet.get("rubric_ref"),
         "deterministic_gate_summary": gate_summary,
-        "gate_closure_map_version": core_gate_closure_map().version,
+        "gate_closure_map_version": "judge_v3_atomic_binary",
     }
 
     outputs: list[JudgeOutput] = []

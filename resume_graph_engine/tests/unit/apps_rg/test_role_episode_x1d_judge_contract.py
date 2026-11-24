@@ -21,21 +21,21 @@ from apps_rg.runtime.sections.section_product_shape_ssot import (
 
 
 def test_rubric_embeds_ssot_narrative_budgets() -> None:
-    assert str(NARRATIVE_MAX_WORDS) in ROLE_EPISODE_RUBRIC
-    assert str(NARRATIVE_MAX_CHARS) in ROLE_EPISODE_RUBRIC
+    assert len(ROLE_EPISODE_RUBRIC.split()) <= 300
+    assert "narrative_episode_grounding" in ROLE_EPISODE_RUBRIC
+    assert "episode_boundary_isolation" in ROLE_EPISODE_RUBRIC
 
 
 def test_rubric_enforces_proof_namespace_discipline() -> None:
     rubric = ROLE_EPISODE_RUBRIC.lower()
-    assert "bul_insurtech" in ROLE_EPISODE_RUBRIC
-    assert "bul_ey" in ROLE_EPISODE_RUBRIC
-    assert "jd" in rubric and "proof" in rubric
-    assert "decisive failure" in rubric
+    assert "employer episode" in rubric
+    assert "other career episodes" in rubric
+    assert "critical" in rubric
 
 
 def test_judge_metadata_constants() -> None:
-    assert JUDGE_RUBRIC_VERSION == "role_episode_x1d_v2"
-    assert JUDGE_RUBRIC_REF.endswith("#ROLE_EPISODE_RUBRIC")
+    assert JUDGE_RUBRIC_VERSION == "role_episode_judge_v3"
+    assert "judge_rubrics_v3.json" in JUDGE_RUBRIC_REF
     assert DEFAULT_THRESHOLD == 0.80
 
 
@@ -71,8 +71,8 @@ def test_run_role_episode_judges_stamps_section_scoped_metadata() -> None:
 
     mock_run.assert_called_once()
     kwargs = mock_run.call_args.kwargs
-    assert kwargs["section_rubric"] == ROLE_EPISODE_RUBRIC
-    assert kwargs["rubric_ref"] == JUDGE_RUBRIC_REF
+    assert "episode_fact_grounding" in kwargs["section_rubric"]
+    assert "employment_bullets" in kwargs["rubric_ref"]
     assert len(outputs) == 1
     assert outputs[0].judge_id == "x1d_anthropic_claude_insurtech_bullets"
     assert outputs[0].rubric_version == JUDGE_RUBRIC_VERSION
