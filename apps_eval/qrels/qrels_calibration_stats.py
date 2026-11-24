@@ -64,6 +64,30 @@ def compute_quadratic_weighted_kappa(
     return round(1.0 - (obs_dis / exp_dis), 4)
 
 
+def compute_bootstrap_kappa_ci95(
+    ratings_a: Sequence[int],
+    ratings_b: Sequence[int],
+    *,
+    n_boot: int = 1000,
+    seed: int = 42,
+) -> tuple[float, float]:
+    """Compute deterministic 95% non-parametric bootstrap CI for Cohen's Kappa (DIE Parity)."""
+    n = len(ratings_a)
+    if n == 0 or n != len(ratings_b):
+        return 0.0, 0.0
+    rng = random.Random(int(seed))
+    samples: list[float] = []
+    for _ in range(max(100, int(n_boot))):
+        idxs = [rng.randrange(n) for _ in range(n)]
+        sa = [int(ratings_a[i]) for i in idxs]
+        sb = [int(ratings_b[i]) for i in idxs]
+        samples.append(compute_cohens_kappa(sa, sb))
+    samples.sort()
+    lo_idx = max(0, int(0.025 * len(samples)))
+    hi_idx = min(len(samples) - 1, int(0.975 * len(samples)))
+    return round(samples[lo_idx], 4), round(samples[hi_idx], 4)
+
+
 def compute_sparse_krippendorffs_alpha(rater_matrix: Sequence[Sequence[float | int | None]]) -> float:
     """Compute interval Krippendorff's Alpha supporting sparse `None` abstentions across >= 2 raters."""
     if not rater_matrix:
@@ -198,7 +222,10 @@ def verify_kappa_calibration_receipt(
     ground_truth_data: Mapping[str, Any],
     *,
     min_anchor_passages: int = 20,
+    min_total_human_labels: int = 0,
     kappa_floor: float = 0.80,
+    ci95_lower_floor: float = 0.0,
+    expected_grader_sha256: str | None = None,
 ) -> dict[str, Any]:
     """Verify hash-bound Kappa calibration receipt fail-closed against raw evaluated_queries bytes."""
     receipt = ground_truth_data.get("kappa_calibration_receipt")
@@ -207,29 +234,53 @@ def verify_kappa_calibration_receipt(
             "is_valid": False,
             "reason": "missing_kappa_calibration_receipt",
             "anchor_passages_evaluated": 0,
+            "total_human_passage_labels": 0,
             "cohens_kappa": 0.0,
             "quadratic_weighted_kappa": 0.0,
+            "kappa_ci95_low": 0.0,
+            "kappa_ci95_high": 0.0,
         }
     human = [int(x) for x in receipt.get("human_gold_grades") or []]
     grader = [int(x) for x in receipt.get("blind_grader_grades") or []]
-    if len(human) < min_anchor_passages or len(human) != len(grader):
+    total_human_labels = int(receipt.get("total_human_passage_labels", len(human)))
+    if len(human) < min_anchor_passages or total_human_labels < min_total_human_labels or len(human) != len(grader):
         return {
             "is_valid": False,
             "reason": "insufficient_or_mismatched_anchor_grades",
             "anchor_passages_evaluated": len(human),
+            "total_human_passage_labels": total_human_labels,
             "cohens_kappa": 0.0,
             "quadratic_weighted_kappa": 0.0,
+            "kappa_ci95_low": 0.0,
+            "kappa_ci95_high": 0.0,
         }
     if float(receipt.get("external_api_cost_usd", 0.0)) > 0.0:
         return {
             "is_valid": False,
             "reason": "nonzero_external_api_cost",
             "anchor_passages_evaluated": len(human),
+            "total_human_passage_labels": total_human_labels,
             "cohens_kappa": 0.0,
             "quadratic_weighted_kappa": 0.0,
+            "kappa_ci95_low": 0.0,
+            "kappa_ci95_high": 0.0,
         }
+    if expected_grader_sha256 is not None:
+        recorded_grader_sha = str(receipt.get("grader_source_sha256") or "")
+        if recorded_grader_sha != expected_grader_sha256:
+            return {
+                "is_valid": False,
+                "reason": "grader_source_sha256_mismatch",
+                "anchor_passages_evaluated": len(human),
+                "total_human_passage_labels": total_human_labels,
+                "cohens_kappa": 0.0,
+                "quadratic_weighted_kappa": 0.0,
+                "kappa_ci95_low": 0.0,
+                "kappa_ci95_high": 0.0,
+            }
     ck = compute_cohens_kappa(human, grader)
     qwk = compute_quadratic_weighted_kappa(human, grader)
+    ci_low, ci_high = compute_bootstrap_kappa_ci95(human, grader, n_boot=500, seed=42)
     eq_sha, expected_art_sha = compute_kappa_receipt_hashes(
         ground_truth_data.get("evaluated_queries") or [],
         human,
@@ -243,13 +294,28 @@ def verify_kappa_calibration_receipt(
         and abs(float(receipt.get("cohens_kappa", 0.0)) - ck) <= 1e-4
         and abs(float(receipt.get("quadratic_weighted_kappa", 0.0)) - qwk) <= 1e-4
     )
-    passed = hashes_match and ck >= kappa_floor and qwk >= kappa_floor
+    passed = hashes_match and ck >= kappa_floor and qwk >= kappa_floor and ci_low >= ci95_lower_floor
     return {
         "is_valid": passed,
-        "reason": "verified" if passed else ("hash_tamper_detected" if not hashes_match else "kappa_below_threshold"),
+        "reason": (
+            "verified"
+            if passed
+            else (
+                "hash_tamper_detected"
+                if not hashes_match
+                else (
+                    "kappa_below_threshold"
+                    if (ck < kappa_floor or qwk < kappa_floor)
+                    else "kappa_ci95_below_threshold"
+                )
+            )
+        ),
         "anchor_passages_evaluated": len(human),
+        "total_human_passage_labels": total_human_labels,
         "cohens_kappa": ck,
         "quadratic_weighted_kappa": qwk,
+        "kappa_ci95_low": ci_low,
+        "kappa_ci95_high": ci_high,
         "evaluated_queries_sha256": eq_sha,
         "artifact_sha256": expected_art_sha,
     }
@@ -257,6 +323,7 @@ def verify_kappa_calibration_receipt(
 
 __all__ = [
     "calculate_one_sided_upper_error_bound",
+    "compute_bootstrap_kappa_ci95",
     "compute_cohens_kappa",
     "compute_kappa_receipt_hashes",
     "compute_mrr_at_k",

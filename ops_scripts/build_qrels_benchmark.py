@@ -16,6 +16,8 @@ import json
 import re
 import sqlite3
 import sys
+import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -25,7 +27,15 @@ for p in (str(REPO_ROOT), str(RG_SRC)):
     if p not in sys.path:
         sys.path.insert(0, p)
 
+from apps_eval.qrels.qrels_blind_grader import (  # noqa: E402
+    compute_grader_source_sha256,
+    grade_blind_core_statement,
+    load_human_label_ledger,
+    populate_hitl_qrels_queue_from_pool,
+    save_human_label_ledger,
+)
 from apps_eval.qrels.qrels_calibration_stats import (  # noqa: E402
+    compute_bootstrap_kappa_ci95,
     compute_cohens_kappa,
     compute_kappa_receipt_hashes,
     compute_quadratic_weighted_kappa,
@@ -48,63 +58,90 @@ from apps_rg.runtime.quad_graph_retriever import QuadGraphHybridRetriever, _rank
 from infrastructure.config.env_loader import get_main_repo_root  # noqa: E402
 from tools.audit_qrels_coverage import audit_qrels_coverage  # noqa: E402
 
+# Tier 4: Realistic near-domain unanswerable probes (plausible enterprise/tech lexical overlap,
+# zero grounded evidence in the candidate corpus — retires synthetic out-of-world probes).
 _NEGATIVE_PROBES: tuple[tuple[str, str, str, str, str], ...] = (
-    ("q_neg_01", "topic_neg_01_quantum_mining", "dev", "resume_graph_engine", "What deep-sea cobalt mining robotics firmware did the candidate ship for Arctic submarines in 2029?"),
-    ("q_neg_02", "topic_neg_02_mars_hydroponics", "dev", "outreach_engine", "Which Martian orbital hydroponics greenhouse irrigation contract did the candidate sign with JAXA?"),
-    ("q_neg_03", "topic_neg_03_tokamak_plasma", "calibration", "apps_research", "What superconducting tokamak tritium-breeding magnet thermal tolerance specification was published in Kyoto?"),
-    ("q_neg_04", "topic_neg_04_zeppelin_cargo", "final_holdout", "outreach_engine", "How many stratospheric helium cargo airships were certified for Antarctic ice-shelf logistics?"),
-    ("q_neg_05", "topic_neg_05_biolum_algae", "final_holdout", "resume_graph_engine", "Which CRISPR bioluminescent kelp biofuel refinery achieved 400MW tidal output in Patagonia?"),
+    ("q_neg_01", "topic_neg_01_fedramp_azure_dod", "dev", "resume_graph_engine", "What FedRAMP High authorization did the candidate lead for DoD defense contractors on Azure Government?"),
+    ("q_neg_02", "topic_neg_02_walmart_k8s_retail", "dev", "outreach_engine", "How did the candidate manage a large-scale retail e-commerce Kubernetes platform at Walmart?"),
+    ("q_neg_03", "topic_neg_03_hipaa_epic_ehr", "calibration", "apps_research", "What HIPAA clinical Epic EHR data migration did the candidate direct for a hospital network?"),
+    ("q_neg_04", "topic_neg_04_sap_s4hana_auto", "final_holdout", "outreach_engine", "What SAP S/4HANA ERP finance cutover did the candidate lead for European automotive manufacturing?"),
+    ("q_neg_05", "topic_neg_05_tsmc_euv_ml", "final_holdout", "resume_graph_engine", "What semiconductor EUV lithography yield-optimization ML pipeline did the candidate deploy at TSMC?"),
 )
 
-# 45 authentic, low-overlap natural-language queries anchored to verified semantic_unit records
-# across resume_graph_engine, outreach_engine, and apps_research (zero verbatim claim copy-paste).
-_CORPUS_FIRST_SPECS: tuple[tuple[str, str, str, str, str, str, str], ...] = (
-    # (query_id, topic_id, partition, surface, phrasing_type, target_record_id, query_text)
-    ("q_su_01", "topic_su_01_ibm_exec_ml", "dev", "resume_graph_engine", "executive", "engagement_episode:033ffa51f6d9cae4", "How were machine learning insights turned into C-suite decision processes for banking compliance at IBM?"),
-    ("q_su_02", "topic_su_02_slalom_105_org", "dev", "outreach_engine", "exact_identifier", "engagement_episode:0e182e2ee7e656a4", "Scale of Slalom engineering leadership across 105 builders and 33 client programs"),
-    ("q_su_03", "topic_su_03_unify_ai_pdlc", "dev", "apps_research", "engineering", "engagement_episode:108e080260a8f674", "How did Unify standardize moving AI prototypes through release readiness checks into production?"),
-    ("q_su_04", "topic_su_04_slalom_18_roles", "dev", "resume_graph_engine", "multi_hop", "engagement_episode:1a02761f468267bc", "Which Slalom multi-agent reasoning architecture coordinated 18 specialist personas for executive strategy?"),
-    ("q_su_05", "topic_su_05_ibm_aws_presales", "dev", "outreach_engine", "executive", "engagement_episode:1d0e46de892444fd", "What commercial pilot validation and technical workshops did IBM run with AWS partners?"),
-    ("q_su_06", "topic_su_06_slalom_otel_eval", "dev", "apps_research", "engineering", "engagement_episode:237d01c028d33983", "How did Slalom combine OpenTelemetry traceability with fail-closed automated evaluation harnesses?"),
-    ("q_su_07", "topic_su_07_insurtech_founder", "dev", "resume_graph_engine", "executive", "engagement_episode:2de0c4cc15e637ad", "Who drove founder-led go-to-market sales for insurance carrier cloud transitions on AWS?"),
-    ("q_su_08", "topic_su_08_insurtech_pubcloud", "dev", "outreach_engine", "multi_hop", "engagement_episode:2e7bf9e5e75251f2", "How was public AWS infrastructure positioned against on-premise hosting for regulated carriers?"),
-    ("q_su_09", "topic_su_09_ibm_nlp_risk", "dev", "apps_research", "engineering", "engagement_episode:30ecf9e00bcfdf93", "What natural language pipelines converted unstructured compliance documents into risk alerts at IBM?"),
-    ("q_su_10", "topic_su_10_unify_cfo_renew", "dev", "resume_graph_engine", "executive", "engagement_episode:312326739ee3d5d5", "How did Unify link enterprise AI usage metrics and renewals to CFO financial objectives?"),
-    ("q_su_11", "topic_su_11_insurtech_shared_resp", "dev", "outreach_engine", "engineering", "engagement_episode:3517d77d6023c899", "How were AWS shared-responsibility security boundaries structured with carrier-owned controls?"),
-    ("q_su_12", "topic_su_12_unify_hyperscaler", "dev", "apps_research", "multi_hop", "engagement_episode:3518e3bd52ad3292", "What joint cloud reference blueprints were co-developed with hyperscaler platform alliances at Unify?"),
-    ("q_su_13", "topic_su_13_slalom_bitemporal", "dev", "resume_graph_engine", "exact_identifier", "engagement_episode:3aaa2a83ae251d8b", "Slalom bi-temporal knowledge graph 3,500 governed entities 576 workstreams hybrid search"),
-    ("q_su_14", "topic_su_14_slalom_a2a_delivery", "dev", "outreach_engine", "engineering", "engagement_episode:4b1a128fae827393", "How did Slalom deliver production agent-to-agent orchestration across client engagements?"),
-    ("q_su_15", "topic_su_15_unify_cosell", "dev", "apps_research", "shorthand", "engagement_episode:521209f2517c7547", "Unify AI channel co-sell motions partner blueprints field enablement"),
-    ("q_su_16", "topic_su_16_insurtech_underwrite", "dev", "resume_graph_engine", "engineering", "engagement_episode:531a15046eb4e6d5", "How were core carrier underwriting platforms modernized for high-availability real-time processing?"),
-    ("q_su_17", "topic_su_17_slalom_gcp_claude", "dev", "outreach_engine", "exact_identifier", "engagement_episode:58af85cba66d0203", "Slalom GCP Anthropic Claude OpenAI co-innovation licensing expansion"),
-    ("q_su_18", "topic_su_18_unify_ctrl_plane", "dev", "apps_research", "engineering", "engagement_episode:591eac6ea2adafae", "How did Unify design deterministic routing policy inside a multi-layer agentic control plane?"),
-    ("q_su_19", "topic_su_19_ey_greeks", "calibration", "resume_graph_engine", "exact_identifier", "engagement_episode:5b13862bbae6d80c", "Ernst Young variable annuity hedging exotic derivatives liability Greeks capital"),
-    ("q_su_20", "topic_su_20_insurtech_econ", "calibration", "outreach_engine", "executive", "engagement_episode:5ba71c7d57622ae7", "How were carrier cloud migration business cases justified using workload economics and debt retirement?"),
-    ("q_su_21", "topic_su_21_insurtech_pricing_bi", "calibration", "apps_research", "engineering", "engagement_episode:5bd3703ab8483140", "What real-time streaming analytics powered carrier underwriting and pricing dashboards?"),
-    ("q_su_22", "topic_su_22_unify_dep_120", "calibration", "resume_graph_engine", "exact_identifier", "engagement_episode:5f908c66af9a3fdf", "Unify dependency-graph accelerator 120 services pre-merge boundary checks"),
-    ("q_su_23", "topic_su_23_ibm_exec_bi", "calibration", "outreach_engine", "executive", "engagement_episode:6fc0c1c4c43a2d13", "How did IBM link modernization delivery metrics to executive operating dashboards?"),
-    ("q_su_24", "topic_su_24_unify_ip_product", "calibration", "apps_research", "executive", "engagement_episode:758bd7066860f540", "How did Unify package internal agentic capabilities into commercial repeatable software IP?"),
-    ("q_su_25", "topic_su_25_insurtech_reg_sec", "calibration", "resume_graph_engine", "multi_hop", "engagement_episode:7c4e8a74456cede6", "How were insurance regulator anxieties regarding cloud security controls addressed during adoption?"),
-    ("q_su_26", "topic_su_26_ibm_aws_accel", "calibration", "outreach_engine", "shorthand", "engagement_episode:7dd0b69b0508bcf5", "IBM AWS partner offering reusable cloud migration accelerators streaming"),
-    ("q_su_27", "topic_su_27_insurtech_soc2", "calibration", "apps_research", "exact_identifier", "engagement_episode:7ef069ad5782fce7", "SOC 2 AWS security controls regulated insurers ML adoption"),
-    ("q_su_28", "topic_su_28_ibm_quota_lead", "calibration", "resume_graph_engine", "executive", "engagement_episode:86439ac4516af76f", "How did quota-bearing technical sales leadership expand enterprise financial accounts at IBM?"),
-    ("q_su_29", "topic_su_29_unify_dist_data", "calibration", "outreach_engine", "engineering", "engagement_episode:8706e4fffc3f6ea7", "How did Unify build resilient distributed cloud services over governed enterprise datasets?"),
-    ("q_su_30", "topic_su_30_insurtech_policy_gw", "calibration", "apps_research", "multi_hop", "engagement_episode:8dc1632def5dddcc", "How did AWS migration initiatives connect with Guidewire policy admin and carrier data schemas?"),
-    ("q_su_31", "topic_su_31_slalom_citations", "final_holdout", "resume_graph_engine", "executive", "metric_outcome_story:00bc222059e91f7a", "Which Slalom outcome demonstrates verified source attribution and clean refusal accuracy in enterprise AI?"),
-    ("q_su_32", "topic_su_32_slalom_vision_90", "final_holdout", "outreach_engine", "exact_identifier", "metric_outcome_story:0255d231b81ce295", "Slalom six-figure visual asset intelligence SOW 90% primary-field accuracy 92%"),
-    ("q_su_33", "topic_su_33_unify_margin_20", "final_holdout", "apps_research", "executive", "metric_outcome_story:02fce348f96071c9", "How much gross margin expansion did Unify achieve from its commercial platform operating model?"),
-    ("q_su_34", "topic_su_34_slalom_closed_loop", "final_holdout", "resume_graph_engine", "engineering", "metric_outcome_story:03042d306f49c268", "How does Slalom telemetry feed continuous retrieval accuracy improvements automatically?"),
-    ("q_su_35", "topic_su_35_insurtech_cutover", "final_holdout", "outreach_engine", "exact_identifier", "metric_outcome_story:0353cda03aa3a791", "InsurTech under 2.5-hour cutover downtime zero rollback incidents"),
-    ("q_su_36", "topic_su_36_insurtech_18_gw", "final_holdout", "apps_research", "multi_hop", "metric_outcome_story:04dee00e94068d8e", "How many PolicyCenter, ClaimCenter, and BillingCenter carrier workflows were decoupled during InsurTech modernization?"),
-    ("q_su_37", "topic_su_37_ey_bcbs239", "final_holdout", "resume_graph_engine", "exact_identifier", "metric_outcome_story:0523a20059c1a8af", "EY BCBS 239 risk-data aggregation lineage metadata controls"),
-    ("q_su_38", "topic_su_38_ibm_999_bcbs", "final_holdout", "outreach_engine", "engineering", "metric_outcome_story:063d5be8061718c1", "Which IBM AWS partner migration blueprints sustained 99.9% uptime under BCBS 239 governance?"),
-    ("q_su_39", "topic_su_39_unify_ready_gates", "final_holdout", "apps_research", "shorthand", "metric_outcome_story:0780947d8bb8347d", "Unify production-readiness quality gates AI lifecycle"),
-    ("q_su_40", "topic_su_40_ibm_finops_8", "final_holdout", "resume_graph_engine", "executive", "metric_outcome_story:08b8038623ae3aea", "How did IBM FinOps executive reporting connect cloud spend assumptions with delivery tracking?"),
-    ("q_su_41", "topic_su_41_unify_reg_cloud", "final_holdout", "outreach_engine", "executive", "skill_evidence_cluster:0000d65439dfae59", "What cloud-native platform engineering capabilities served regulated banking and financial firms at Unify?"),
-    ("q_su_42", "topic_su_42_ibm_unknown_fail", "final_holdout", "apps_research", "exact_identifier", "skill_evidence_cluster:00578dfe9ed8e391", "IBM fail-closed gate semantics UNKNOWN never PASS"),
-    ("q_su_43", "topic_su_43_ey_billing_uw", "final_holdout", "resume_graph_engine", "shorthand", "skill_evidence_cluster:029a147056c9e595", "EY carrier core modernization billing rating underwriting handoffs"),
-    ("q_su_44", "topic_su_44_unify_bank_ai_gov", "final_holdout", "outreach_engine", "multi_hop", "skill_evidence_cluster:0525d504380b3316", "How did Unify enforce data usage compliance during an enterprise AI launch for a major bank?"),
-    ("q_su_45", "topic_su_45_ibm_auto_release", "final_holdout", "apps_research", "shorthand", "skill_evidence_cluster:0594743cf1405a17", "IBM automated release pipelines continuous delivery engineering"),
+# 55 authentic, zero-numeric-giveaway queries across 3 answerable frontier tiers
+# (Tier 1: 15 paraphrase invariance queries across 5 topics; Tier 2: 25 cross-domain orthogonal;
+#  Tier 3: 15 adversarial hard-negative confounder traps) anchored strictly to rich substantive units.
+# Tuple format: (query_id, topic_id, partition, surface, tier, phrasing_type, target_record_id, query_text)
+_CORPUS_FIRST_SPECS: tuple[tuple[str, str, str, str, str, str, str, str], ...] = (
+    # --- TIER 1: Paraphrase Invariance Clusters (5 topics x 3 styles = 15 queries; shared topic_id within same partition) ---
+    ("q_t1_01a", "topic_t1_01_slalom_org_scale", "dev", "outreach_engine", "tier1_paraphrase_cluster", "executive", "engagement_episode:0e182e2ee7e656a4", "How large an engineering and data organization did the candidate lead across client AI programs at Slalom?"),
+    ("q_t1_01b", "topic_t1_01_slalom_org_scale", "dev", "outreach_engine", "tier1_paraphrase_cluster", "engineering", "engagement_episode:0e182e2ee7e656a4", "What multi-pod delivery structure and charter portfolio did Slalom use to run enterprise utility AI workstreams?"),
+    ("q_t1_01c", "topic_t1_01_slalom_org_scale", "dev", "outreach_engine", "tier1_paraphrase_cluster", "shorthand", "engagement_episode:0e182e2ee7e656a4", "Slalom multi-charter engineering team leadership Fortune 200 utility AI"),
+
+    ("q_t1_02a", "topic_t1_02_unify_ai_pdlc", "dev", "apps_research", "tier1_paraphrase_cluster", "executive", "engagement_episode:108e080260a8f674", "How did Unify shorten the path from experimental AI concepts to audited enterprise deployments?"),
+    ("q_t1_02b", "topic_t1_02_unify_ai_pdlc", "dev", "apps_research", "tier1_paraphrase_cluster", "engineering", "engagement_episode:108e080260a8f674", "What standardized intake, validation, monitoring, and release-readiness gates governed Unify's AI delivery lifecycle?"),
+    ("q_t1_02c", "topic_t1_02_unify_ai_pdlc", "dev", "apps_research", "tier1_paraphrase_cluster", "shorthand", "engagement_episode:108e080260a8f674", "Unify lab-to-production AI delivery lifecycle readiness gates"),
+
+    ("q_t1_03a", "topic_t1_03_insurtech_econ", "calibration", "outreach_engine", "tier1_paraphrase_cluster", "executive", "engagement_episode:5ba71c7d57622ae7", "How did the founder build financial business cases to justify insurance carrier cloud migrations on AWS?"),
+    ("q_t1_03b", "topic_t1_03_insurtech_econ", "calibration", "outreach_engine", "tier1_paraphrase_cluster", "engineering", "engagement_episode:5ba71c7d57622ae7", "How were legacy technical-debt retirement and workload economics modeled for carrier cloud transitions?"),
+    ("q_t1_03c", "topic_t1_03_insurtech_econ", "calibration", "outreach_engine", "tier1_paraphrase_cluster", "shorthand", "engagement_episode:5ba71c7d57622ae7", "InsurTech AWS migration business case workload economics cost control"),
+
+    ("q_t1_04a", "topic_t1_04_ey_greeks", "calibration", "resume_graph_engine", "tier1_paraphrase_cluster", "executive", "engagement_episode:5b13862bbae6d80c", "What quantitative capital and market-risk hedging work did the candidate lead for insurers at Ernst & Young?"),
+    ("q_t1_04b", "topic_t1_04_ey_greeks", "calibration", "resume_graph_engine", "tier1_paraphrase_cluster", "engineering", "engagement_episode:5b13862bbae6d80c", "How were exotic derivative pricing models and liability risk sensitivities applied to variable-annuity portfolios at EY?"),
+    ("q_t1_04c", "topic_t1_04_ey_greeks", "calibration", "resume_graph_engine", "tier1_paraphrase_cluster", "shorthand", "engagement_episode:5b13862bbae6d80c", "EY variable annuity hedging exotic derivatives liability Greeks"),
+
+    ("q_t1_05a", "topic_t1_05_slalom_vision", "final_holdout", "outreach_engine", "tier1_paraphrase_cluster", "executive", "metric_outcome_story:0255d231b81ce295", "What commercial computer-vision engagement automated power-plant equipment inspection into enterprise asset management?"),
+    ("q_t1_05b", "topic_t1_05_slalom_vision", "final_holdout", "outreach_engine", "tier1_paraphrase_cluster", "engineering", "metric_outcome_story:0255d231b81ce295", "How did Slalom combine vision-model extraction with deterministic adjudication for high-confidence IBM Maximo ingestion?"),
+    ("q_t1_05c", "topic_t1_05_slalom_vision", "final_holdout", "outreach_engine", "tier1_paraphrase_cluster", "shorthand", "metric_outcome_story:0255d231b81ce295", "Slalom visual asset intelligence nameplate OCR IBM Maximo"),
+
+    # --- TIER 2: Cross-Domain Orthogonal Probes (25 unique topics across all 6 employers, zero numeric giveaways) ---
+    ("q_t2_01", "topic_t2_01_slalom_decision_engine", "dev", "resume_graph_engine", "tier2_cross_domain_orthogonal", "multi_hop", "engagement_episode:1a02761f468267bc", "Which Slalom multi-agent reasoning architecture coordinated specialized personas and cross-provider judge panels for executive strategy?"),
+    ("q_t2_02", "topic_t2_02_slalom_otel_eval", "dev", "apps_research", "tier2_cross_domain_orthogonal", "engineering", "engagement_episode:237d01c028d33983", "How did Slalom combine OpenTelemetry traceability with fail-closed automated evaluation harnesses across regulated workflows?"),
+    ("q_t2_03", "topic_t2_03_insurtech_founder_gtm", "dev", "resume_graph_engine", "tier2_cross_domain_orthogonal", "executive", "engagement_episode:2de0c4cc15e637ad", "Who drove founder-led go-to-market discovery and commercial pipeline development for carrier cloud transitions on AWS?"),
+    ("q_t2_04", "topic_t2_04_unify_cfo_renewals", "dev", "resume_graph_engine", "tier2_cross_domain_orthogonal", "executive", "engagement_episode:312326739ee3d5d5", "How did Unify link enterprise AI consumption telemetry and subscription renewals to CFO financial objectives?"),
+    ("q_t2_05", "topic_t2_05_slalom_bitemporal_kg", "dev", "resume_graph_engine", "tier2_cross_domain_orthogonal", "engineering", "engagement_episode:3aaa2a83ae251d8b", "How did Slalom architect a bi-temporal enterprise knowledge graph with hybrid semantic and lexical search?"),
+    ("q_t2_06", "topic_t2_06_slalom_gcp_claude", "dev", "outreach_engine", "tier2_cross_domain_orthogonal", "executive", "engagement_episode:58af85cba66d0203", "How did Slalom structure strategic co-innovation and licensing expansion across Google Cloud, Anthropic, and OpenAI?"),
+    ("q_t2_07", "topic_t2_07_unify_ctrl_plane", "dev", "apps_research", "tier2_cross_domain_orthogonal", "engineering", "engagement_episode:591eac6ea2adafae", "How did Unify design deterministic routing policy and GraphRAG grounding inside a multi-layer agentic control plane?"),
+    ("q_t2_08", "topic_t2_08_slalom_acoustic_copilot", "dev", "resume_graph_engine", "tier2_cross_domain_orthogonal", "engineering", "engagement_episode:9da65b8aebcf5736", "How did Slalom engineer a privacy-isolated local voice capture and live executive advisory assistant?"),
+    ("q_t2_09", "topic_t2_09_insurtech_underwrite_ha", "dev", "resume_graph_engine", "tier2_cross_domain_orthogonal", "engineering", "engagement_episode:531a15046eb4e6d5", "How were core carrier underwriting and operational platforms re-architected for high-availability real-time processing?"),
+    ("q_t2_10", "topic_t2_10_insurtech_pricing_bi", "calibration", "apps_research", "tier2_cross_domain_orthogonal", "engineering", "engagement_episode:5bd3703ab8483140", "What real-time data ingestion and business intelligence analytics supported carrier underwriting and pricing decisions?"),
+    ("q_t2_11", "topic_t2_11_unify_dep_graph", "calibration", "resume_graph_engine", "tier2_cross_domain_orthogonal", "engineering", "engagement_episode:5f908c66af9a3fdf", "How did Unify build a software dependency-graph accelerator with pre-merge semantic boundary checks?"),
+    ("q_t2_12", "topic_t2_12_unify_ip_product", "calibration", "apps_research", "tier2_cross_domain_orthogonal", "executive", "engagement_episode:758bd7066860f540", "How did Unify package internal agentic capabilities into commercial repeatable software IP?"),
+    ("q_t2_13", "topic_t2_13_ibm_quota_lead", "calibration", "resume_graph_engine", "tier2_cross_domain_orthogonal", "executive", "engagement_episode:86439ac4516af76f", "How did quota-bearing technical sales leadership expand enterprise financial-services accounts at IBM?"),
+    ("q_t2_14", "topic_t2_14_unify_dist_data", "calibration", "outreach_engine", "tier2_cross_domain_orthogonal", "engineering", "engagement_episode:8706e4fffc3f6ea7", "How did Unify architect resilient distributed cloud infrastructure over governed enterprise datasets?"),
+    ("q_t2_15", "topic_t2_15_ibm_sf_arr", "calibration", "apps_research", "tier2_cross_domain_orthogonal", "executive", "metric_outcome_story:10beac6f04721010", "What commercial growth did IBM achieve from AI-powered Salesforce account scoring within its AWS alliance?"),
+    ("q_t2_16", "topic_t2_16_insurtech_naic_nydfs", "calibration", "resume_graph_engine", "tier2_cross_domain_orthogonal", "exact_identifier", "metric_outcome_story:111f620b224a0f79", "What NAIC and NYDFS insurer cloud compliance and regulator-readiness artifacts did InsurTech deliver?"),
+    ("q_t2_17", "topic_t2_17_actuarial_capital", "calibration", "outreach_engine", "tier2_cross_domain_orthogonal", "shorthand", "skill_evidence_cluster:067ad5e33196cfdf", "Towers Perrin ING Aetna early actuarial capital modeling experience"),
+    ("q_t2_18", "topic_t2_18_slalom_citations", "final_holdout", "resume_graph_engine", "tier2_cross_domain_orthogonal", "executive", "metric_outcome_story:00bc222059e91f7a", "Which Slalom outcome demonstrates verified source attribution and clean refusal precision in governed enterprise AI?"),
+    ("q_t2_19", "topic_t2_19_unify_margin", "final_holdout", "apps_research", "tier2_cross_domain_orthogonal", "executive", "metric_outcome_story:02fce348f96071c9", "How did Unify's commercial platform operating model impact gross margin performance?"),
+    ("q_t2_20", "topic_t2_20_slalom_closed_loop", "final_holdout", "resume_graph_engine", "tier2_cross_domain_orthogonal", "engineering", "metric_outcome_story:03042d306f49c268", "How does Slalom production telemetry feed continuous retrieval accuracy and routing improvements automatically?"),
+    ("q_t2_21", "topic_t2_21_insurtech_cutover", "final_holdout", "outreach_engine", "tier2_cross_domain_orthogonal", "engineering", "metric_outcome_story:0353cda03aa3a791", "What migration cutover downtime discipline and zero-rollback record did InsurTech sustain across carrier workloads?"),
+    ("q_t2_22", "topic_t2_22_ey_core_decomp", "final_holdout", "resume_graph_engine", "tier2_cross_domain_orthogonal", "multi_hop", "engagement_episode:be1c5cbefe59851f", "How did Ernst & Young decompose legacy policy and claims systems into configurable insurance rule templates?"),
+    ("q_t2_23", "topic_t2_23_ey_reg_analytics", "final_holdout", "apps_research", "tier2_cross_domain_orthogonal", "engineering", "engagement_episode:d2f282bf6def9a9a", "How did Ernst & Young link predictive risk analytics with audit controls and data lineage for global banks?"),
+    ("q_t2_24", "topic_t2_24_ibm_devsecops", "final_holdout", "apps_research", "tier2_cross_domain_orthogonal", "engineering", "engagement_episode:e4e592d5174b449d", "How did IBM engineer DevSecOps release resilience with automated security scanning and deployment blueprints?"),
+    ("q_t2_25", "topic_t2_25_unify_reg_cloud", "final_holdout", "outreach_engine", "tier2_cross_domain_orthogonal", "executive", "skill_evidence_cluster:0000d65439dfae59", "What cloud-native platform engineering capabilities served regulated financial services clients at Unify?"),
+
+    # --- TIER 3: Adversarial Hard-Negative Confounder Traps (15 unique topics testing employer/scope disambiguation) ---
+    ("q_t3_01", "topic_t3_01_ibm_exec_ml_trap", "dev", "resume_graph_engine", "tier3_adversarial_hard_negative", "executive", "engagement_episode:033ffa51f6d9cae4", "How were analytics and ML decision workflows turned into executive banking processes specifically at IBM rather than Slalom or Unify?"),
+    ("q_t3_02", "topic_t3_02_ibm_aws_presales_trap", "dev", "outreach_engine", "tier3_adversarial_hard_negative", "executive", "engagement_episode:1d0e46de892444fd", "What commercial pilot validation and executive architecture workshops did IBM run with AWS partners?"),
+    ("q_t3_03", "topic_t3_03_insurtech_pubcloud_trap", "dev", "outreach_engine", "tier3_adversarial_hard_negative", "multi_hop", "engagement_episode:2e7bf9e5e75251f2", "How was public AWS infrastructure positioned against private on-premise hosting for regulated insurance carriers?"),
+    ("q_t3_04", "topic_t3_04_ibm_nlp_risk_trap", "dev", "apps_research", "tier3_adversarial_hard_negative", "engineering", "engagement_episode:30ecf9e00bcfdf93", "What natural language pipelines converted unstructured regulatory documents into compliance action queues at IBM?"),
+    ("q_t3_05", "topic_t3_05_insurtech_shared_resp_trap", "dev", "outreach_engine", "tier3_adversarial_hard_negative", "engineering", "engagement_episode:3517d77d6023c899", "How were AWS shared-responsibility safety boundaries structured with insurer-owned controls?"),
+    ("q_t3_06", "topic_t3_06_unify_hyperscaler_trap", "dev", "apps_research", "tier3_adversarial_hard_negative", "multi_hop", "engagement_episode:3518e3bd52ad3292", "What joint cloud-native AI reference blueprints were co-architected with hyperscaler alliances at Unify?"),
+    ("q_t3_07", "topic_t3_07_slalom_a2a_trap", "dev", "outreach_engine", "tier3_adversarial_hard_negative", "engineering", "engagement_episode:4b1a128fae827393", "How did Slalom deliver production agent-to-agent multi-agent orchestration across client modernization engagements?"),
+    ("q_t3_08", "topic_t3_08_unify_cosell_trap", "dev", "apps_research", "tier3_adversarial_hard_negative", "shorthand", "engagement_episode:521209f2517c7547", "Unify AI partner co-sell channel motions joint blueprints field enablement"),
+    ("q_t3_09", "topic_t3_09_insurtech_uw_turnaround_trap", "dev", "outreach_engine", "tier3_adversarial_hard_negative", "engineering", "metric_outcome_story:08fb5523e8c3814e", "How did decoupled Guidewire workflows and real-time Multi-AZ AWS ingestion accelerate commercial underwriting turnaround at InsurTech?"),
+    ("q_t3_10", "topic_t3_10_ibm_exec_bi_trap", "calibration", "outreach_engine", "tier3_adversarial_hard_negative", "executive", "engagement_episode:6fc0c1c4c43a2d13", "How did IBM link cloud modernization delivery data models to executive BI operating decisions?"),
+    ("q_t3_11", "topic_t3_11_insurtech_reg_sec_trap", "calibration", "resume_graph_engine", "tier3_adversarial_hard_negative", "multi_hop", "engagement_episode:7c4e8a74456cede6", "How were insurance regulator concerns around cloud controls and data security resolved during carrier adoption?"),
+    ("q_t3_12", "topic_t3_12_ibm_aws_accel_trap", "calibration", "outreach_engine", "tier3_adversarial_hard_negative", "shorthand", "engagement_episode:7dd0b69b0508bcf5", "IBM AWS partner offering reusable cloud migration blueprints streaming analytics"),
+    ("q_t3_13", "topic_t3_13_insurtech_soc2_trap", "calibration", "apps_research", "tier3_adversarial_hard_negative", "exact_identifier", "engagement_episode:7ef069ad5782fce7", "SOC 2 aligned AWS security controls for regulated insurers adopting analytics and ML"),
+    ("q_t3_14", "topic_t3_14_insurtech_gw_policy_trap", "calibration", "apps_research", "tier3_adversarial_hard_negative", "multi_hop", "engagement_episode:8dc1632def5dddcc", "How did AWS modernization connect with Guidewire policy administration and core insurance data models?"),
+    ("q_t3_15", "topic_t3_15_ey_bcbs239_trap", "final_holdout", "resume_graph_engine", "tier3_adversarial_hard_negative", "engineering", "engagement_episode:e6e5daaca97485ef", "How did Ernst & Young structure three-lines-of-defense ERM accountability and BCBS 239 risk-data aggregation?"),
+    ("q_t3_16", "topic_t3_16_ibm_bcbs_uptime_trap", "final_holdout", "outreach_engine", "tier3_adversarial_hard_negative", "engineering", "metric_outcome_story:063d5be8061718c1", "Which IBM AWS partner migration blueprints sustained high production uptime under BCBS 239 governance?"),
+    ("q_t3_17", "topic_t3_17_ibm_finops_trap", "final_holdout", "resume_graph_engine", "tier3_adversarial_hard_negative", "executive", "metric_outcome_story:08b8038623ae3aea", "How did IBM FinOps executive views connect cloud budget assumptions with banking transformation delivery status?"),
+    ("q_t3_18", "topic_t3_18_unify_bank_ai_gov_trap", "final_holdout", "outreach_engine", "tier3_adversarial_hard_negative", "multi_hop", "engagement_episode:9e961f5af21f742f", "How did Unify establish regulated financial-services AI governance, model-risk controls, and automated compliance checks?"),
+    ("q_t3_19", "topic_t3_19_insurtech_gw_decouple_trap", "final_holdout", "apps_research", "tier3_adversarial_hard_negative", "multi_hop", "metric_outcome_story:04dee00e94068d8e", "How were PolicyCenter, ClaimCenter, and BillingCenter workflows decoupled during InsurTech carrier modernization?"),
+    ("q_t3_20", "topic_t3_20_unify_ready_gates_trap", "final_holdout", "apps_research", "tier3_adversarial_hard_negative", "shorthand", "metric_outcome_story:0780947d8bb8347d", "Unify production-readiness quality gates across the AI solution lifecycle"),
 )
 _STOPWORDS = frozenset(
     {
@@ -268,6 +305,226 @@ def _assign_calibrated_grade(
     return 0, "Irrelevant or off-topic confounder candidate."
 
 
+def _percentile(sorted_vals: list[float], pct: float) -> float:
+    if not sorted_vals:
+        return 0.0
+    idx = min(len(sorted_vals) - 1, max(0, int(round((pct / 100.0) * (len(sorted_vals) - 1)))))
+    return round(sorted_vals[idx], 3)
+
+
+def build_wave1_pool_and_queue(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
+    """Wave 1: Run live BGE-M3 4-channel TREC Depth-10 pooling, measure latency, freeze grader, build 50x4 queue."""
+    db_path = _resolve_sqlite_path(repo_root)
+    corpus_digest = hashlib.sha256(db_path.read_bytes()).hexdigest()
+    grader_sha = compute_grader_source_sha256()
+    now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    conn = sqlite3.connect(f"file:{db_path.as_posix()}?mode=ro", uri=True)
+    per_query_ms: list[float] = []
+    try:
+        catalog = _load_semantic_unit_catalog(conn)
+        retriever = QuadGraphHybridRetriever(conn, db_path=str(db_path))
+
+        query_set: list[dict[str, Any]] = []
+        query_embeddings: dict[str, tuple[float, ...]] = {}
+        partitions: dict[str, Any] = {
+            "schema_version": "2.0.0",
+            "partition_strategy": "topic_grouped_zero_family_leakage",
+            "topic_assignments": {"dev": [], "calibration": [], "final_holdout": []},
+            "query_partitions": {"dev": [], "calibration": [], "final_holdout": []},
+        }
+        pooled_queries: list[dict[str, Any]] = []
+
+        all_specs: list[dict[str, Any]] = []
+        for qid, tid, part, surf, tier, style, uid, qtxt in _CORPUS_FIRST_SPECS:
+            if uid not in catalog:
+                raise KeyError(f"Verified anchor unit_id missing from semantic_unit catalog: {uid}")
+            gt_core, _ = split_core_and_boilerplate(catalog[uid]["retrieval_text"])
+            all_specs.append(
+                {
+                    "query_id": qid,
+                    "topic_id": tid,
+                    "topic_family": tid,
+                    "partition": part,
+                    "surface": surf,
+                    "target_section": "executive_summary" if surf == "resume_graph_engine" else surf,
+                    "tier": tier,
+                    "phrasing_type": style,
+                    "answerable": True,
+                    "target_record_id": uid,
+                    "ground_truth_summary": gt_core,
+                    "query_text": qtxt,
+                }
+            )
+        for qid, tid, part, surf, qtxt in _NEGATIVE_PROBES:
+            all_specs.append(
+                {
+                    "query_id": qid,
+                    "topic_id": tid,
+                    "topic_family": tid,
+                    "partition": part,
+                    "surface": surf,
+                    "target_section": "abstention_probe",
+                    "tier": "tier4_near_domain_unanswerable",
+                    "phrasing_type": "negative_probe",
+                    "answerable": False,
+                    "target_record_id": None,
+                    "ground_truth_summary": "",
+                    "query_text": qtxt,
+                }
+            )
+
+        allowed_ids = set(catalog.keys())
+        model_dir = _resolve_bge_m3_model_dir(repo_root)
+        meta_row = conn.execute(
+            "SELECT graph_count_summary FROM graph_metadata ORDER BY rowid DESC LIMIT 1"
+        ).fetchone()
+        digest = str(meta_row[0]) if meta_row and meta_row[0] else ""
+        retriever.vector_cache.ensure_loaded(conn, db_path=str(db_path), digest=digest)
+        retriever.sparse_cache.ensure_loaded(conn, db_path=str(db_path), digest=digest)
+        retriever.colbert_cache.ensure_loaded(conn, db_path=str(db_path), digest=digest)
+
+        import torch
+
+        device = "mps" if hasattr(torch.backends, "mps") and torch.backends.mps.is_available() else "cpu"
+        t_enc_start = time.perf_counter()
+        query_texts = [q["query_text"] for q in all_specs]
+        _, all_dense_vecs = encode_bge_m3(
+            query_texts,
+            model_path=model_dir,
+            device=device,
+            batch_size=32,
+        )
+        encode_total_ms = round((time.perf_counter() - t_enc_start) * 1000.0, 3)
+
+        for q, dense_vec in zip(all_specs, all_dense_vecs):
+            part = q["partition"]
+            if q["topic_id"] not in partitions["topic_assignments"][part]:
+                partitions["topic_assignments"][part].append(q["topic_id"])
+            partitions["query_partitions"][part].append(q["query_id"])
+            query_embeddings[q["query_id"]] = tuple(float(v) for v in dense_vec)
+            query_set.append(q)
+
+            t0 = time.perf_counter()
+            ch_ranks, fused = _extract_quad_channel_rankings(
+                retriever, conn, q["query_text"], list(dense_vec), allowed_ids, model_dir
+            )
+            per_query_ms.append(round((time.perf_counter() - t0) * 1000.0, 3))
+
+            pooled = build_trec_depth_k_query_pool(
+                q,
+                ch_ranks,
+                catalog=catalog,
+                fused_ranking=fused,
+                top_k_per_channel=10,
+            )
+            pooled["ground_truth_summary"] = q["ground_truth_summary"]
+            pooled["phrasing_type"] = q["phrasing_type"]
+            pooled["tier"] = q["tier"]
+            pooled_queries.append(pooled)
+    finally:
+        conn.close()
+
+    strat_summary = audit_cosine_stratification(query_embeddings, query_set)
+    dominance = compute_pre_grading_dominance_audit(pooled_queries)
+    tier_dominance: dict[str, Any] = {}
+    for tier_name in ("tier1_paraphrase_cluster", "tier2_cross_domain_orthogonal", "tier3_adversarial_hard_negative"):
+        subset = [q for q in pooled_queries if q.get("tier") == tier_name]
+        if subset:
+            tier_dominance[tier_name] = compute_pre_grading_dominance_audit(subset)["channel_metrics"]
+
+    sorted_ms = sorted(per_query_ms)
+    latency_stats = {
+        "measurement_method": "live_time_perf_counter",
+        "device": device,
+        "query_count": len(per_query_ms),
+        "bge_m3_batch_encode_total_ms": encode_total_ms,
+        "bge_m3_batch_encode_avg_ms": round(encode_total_ms / max(len(per_query_ms), 1), 3),
+        "stage1_p50_ms": _percentile(sorted_ms, 50.0),
+        "stage1_p95_ms": _percentile(sorted_ms, 95.0),
+        "stage1_max_ms": round(max(sorted_ms), 3) if sorted_ms else 0.0,
+        "stage1_mean_ms": round(sum(per_query_ms) / max(len(per_query_ms), 1), 3),
+        "per_query_ms_sha256": hashlib.sha256(
+            json.dumps(per_query_ms, separators=(",", ":")).encode("utf-8")
+        ).hexdigest(),
+    }
+
+    out_dir = repo_root / "data/qrels"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    qs_path = out_dir / "qrels_query_set.v1.json"
+    part_path = out_dir / "qrels_partitions.v1.json"
+    pool_path = out_dir / "qrels_authentic_candidate_pool.v1.json"
+    ledger_path = out_dir / "qrels_human_label_ledger.v1.json"
+    queue_path = out_dir / "hitl_qrels_queue.v1.json"
+
+    qs_payload = {
+        "schema_version": "2.0.0",
+        "corpus_digest": corpus_digest,
+        "total_queries": len(query_set),
+        "answerable_count": sum(1 for q in query_set if q["answerable"]),
+        "unanswerable_count": sum(1 for q in query_set if not q["answerable"]),
+        "stratification_audit": strat_summary,
+        "queries": query_set,
+    }
+    partitions["summary"] = {
+        "total_queries": len(query_set),
+        "dev_queries": len(partitions["query_partitions"]["dev"]),
+        "calibration_queries": len(partitions["query_partitions"]["calibration"]),
+        "final_holdout_queries": len(partitions["query_partitions"]["final_holdout"]),
+    }
+    pool_payload = {
+        "schema_version": "2.0.0",
+        "surface": "multi_surface",
+        "corpus_digest": corpus_digest,
+        "presentation_seed": 42,
+        "total_queries": len(pooled_queries),
+        "total_candidates": sum(q["candidate_count"] for q in pooled_queries),
+        "live_latency_measurement": latency_stats,
+        "pre_grading_dominance_audit": dominance,
+        "queries": pooled_queries,
+    }
+
+    qs_path.write_text(json.dumps(qs_payload, indent=2) + "\n", encoding="utf-8")
+    part_path.write_text(json.dumps(partitions, indent=2) + "\n", encoding="utf-8")
+    pool_path.write_text(json.dumps(pool_payload, indent=2) + "\n", encoding="utf-8")
+
+    ledger = load_human_label_ledger(ledger_path)
+    ledger["frozen_blind_grader_sha256"] = grader_sha
+    queue, me_report = populate_hitl_qrels_queue_from_pool(
+        pool_payload,
+        ledger,
+        catalog=catalog,
+        max_anchor_queries=50,
+        batch_size=10,
+    )
+
+    save_human_label_ledger(ledger_path, ledger)
+    queue_path.write_text(json.dumps(queue, indent=2) + "\n", encoding="utf-8")
+
+    receipt = {
+        "schema_version": "1.0.0",
+        "wave": "wave1_bge_m3_qrels_pooling_and_frozen_grader",
+        "generated_at_utc": now_utc,
+        "corpus_digest": corpus_digest,
+        "grader_source_sha256": grader_sha,
+        "total_queries": len(pooled_queries),
+        "answerable_queries": qs_payload["answerable_count"],
+        "unanswerable_probes": qs_payload["unanswerable_count"],
+        "total_pooled_candidates": pool_payload["total_candidates"],
+        "hitl_queue_queries": len(queue),
+        "hitl_queue_passages": sum(len(q["candidates"]) for q in queue),
+        "batches_count": len({q["batch_index"] for q in queue}),
+        "mutual_exclusivity_audit": me_report,
+        "stratification_audit": strat_summary,
+        "live_latency_measurement": latency_stats,
+        "pre_grading_dominance_audit": dominance,
+        "per_tier_dominance": tier_dominance,
+    }
+    receipt_path = repo_root / "reports/wave1_bge_m3_qrels_pooling_receipt.json"
+    receipt_path.parent.mkdir(parents=True, exist_ok=True)
+    receipt_path.write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
+    return receipt
+
+
 def build_and_materialize_qrels_benchmark(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
     db_path = _resolve_sqlite_path(repo_root)
     corpus_digest = hashlib.sha256(db_path.read_bytes()).hexdigest()
@@ -289,7 +546,7 @@ def build_and_materialize_qrels_benchmark(repo_root: Path = REPO_ROOT) -> dict[s
         evaluated_queries: list[dict[str, Any]] = []
 
         all_specs: list[dict[str, Any]] = []
-        for qid, tid, part, surf, style, uid, qtxt in _CORPUS_FIRST_SPECS:
+        for qid, tid, part, surf, tier, style, uid, qtxt in _CORPUS_FIRST_SPECS:
             if uid not in catalog:
                 raise KeyError(f"Verified anchor unit_id missing from semantic_unit catalog: {uid}")
             all_specs.append(
@@ -300,7 +557,7 @@ def build_and_materialize_qrels_benchmark(repo_root: Path = REPO_ROOT) -> dict[s
                     "partition": part,
                     "surface": surf,
                     "target_section": "executive_summary" if surf == "resume_graph_engine" else surf,
-                    "tier": "tier1_corpus_anchored",
+                    "tier": tier,
                     "phrasing_type": style,
                     "answerable": True,
                     "target_record_id": uid,
@@ -316,7 +573,7 @@ def build_and_materialize_qrels_benchmark(repo_root: Path = REPO_ROOT) -> dict[s
                     "partition": part,
                     "surface": surf,
                     "target_section": "abstention_probe",
-                    "tier": "tier4_unanswerable_negative",
+                    "tier": "tier4_near_domain_unanswerable",
                     "phrasing_type": "negative_probe",
                     "answerable": False,
                     "target_record_id": None,
@@ -398,6 +655,11 @@ def build_and_materialize_qrels_benchmark(repo_root: Path = REPO_ROOT) -> dict[s
 
     strat_summary = audit_cosine_stratification(query_embeddings, query_set)
     dominance = compute_pre_grading_dominance_audit(pooled_queries)
+    tier_dominance: dict[str, Any] = {}
+    for tier_name in ("tier1_paraphrase_cluster", "tier2_cross_domain_orthogonal", "tier3_adversarial_hard_negative"):
+        subset = [q for q in pooled_queries if q.get("tier") == tier_name]
+        if subset:
+            tier_dominance[tier_name] = compute_pre_grading_dominance_audit(subset)["channel_metrics"]
 
     human_gold = [3, 1, 0, 0, 3, 2, 1, 0, 3, 1, 0, 0, 3, 2, 1, 0, 3, 1, 1, 0]
     blind_grader = [3, 1, 0, 0, 3, 2, 1, 0, 3, 1, 0, 0, 3, 1, 1, 0, 3, 1, 1, 0]
@@ -488,6 +750,10 @@ def build_and_materialize_qrels_benchmark(repo_root: Path = REPO_ROOT) -> dict[s
 
 
 def main() -> int:
+    if "--wave1-only" in sys.argv:
+        receipt = build_wave1_pool_and_queue(REPO_ROOT)
+        print(json.dumps(receipt, indent=2))
+        return 0
     summary = build_and_materialize_qrels_benchmark(REPO_ROOT)
     print(json.dumps(summary, indent=2))
     return 0 if summary["status"] == "PASS" else 1

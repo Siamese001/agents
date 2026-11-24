@@ -1,0 +1,317 @@
+{
+  "schema_version": "1.0.0",
+  "ledger_contract": "urn:agents:qrels:human-label-ledger:1.0.0",
+  "frozen_blind_grader_module": "apps_eval/qrels/qrels_blind_grader.py",
+  "frozen_blind_grader_sha256": "7d1e48195843e98e007f19d41da6284aa1336b35b062face827507d955014fea",
+  "total_human_queries": 10,
+  "total_human_passage_labels": 40,
+  "target_total_human_passage_labels": 200,
+  "remaining_passage_labels_to_collect": 160,
+  "human_graded_queries": [
+    {
+      "qrel_id": "anchor-01",
+      "query_id": "q_t1_01a",
+      "topic_id": "topic_t1_01_slalom_org_scale",
+      "partition": "dev",
+      "surface": "outreach_engine",
+      "split_role": "grader_calibration_70pct",
+      "query_text": "How large an engineering and data organization did the candidate lead across client AI programs at Slalom?",
+      "target_record_id": "engagement_episode:0e182e2ee7e656a4",
+      "ground_truth_summary": "[Claim] Led 105 software engineers and data leaders across 33 enterprise AI and analytics charters (29 active across 6 outcome-led pods and 26 embedded co-delivery charters) for a Fortune 200 energy and utility company, stewarding $25M+ in cumulative SOW portfolio value and sustaining 11 core workstreams with zero red escalations | [Outcomes] 105 software engineers and data leaders directed across multi-charter enterprise AI delivery and multi-SOW utility portfolio with zero red escalations | [Evidence] [Slalom] Directed 105 software engineers and data leaders across 33 enterprise AI and analytics charters (29 active across 6 outcome-led pods and 26 embedded co-delivery charters) for a Fortune 200 energy and utility enterprise, stewarding $25M+ in cumulative SOW portfolio value and sustaining 11 core outcome-led workstreams with zero red escalations.",
+      "session_sha256": "1ca862eb",
+      "updated_at_utc": "2026-11-24T16:35:22Z",
+      "record_grades": {
+        "engagement_episode:4b1a128fae827393": 1,
+        "metric_outcome_story:f46b3fb93e92049b": 0,
+        "engagement_episode:1a02761f468267bc": 1,
+        "engagement_episode:0e182e2ee7e656a4": 3
+      },
+      "passage_texts": {
+        "engagement_episode:4b1a128fae827393": "[Claim] Architected and led production agentic AI client delivery and A2A multi-agent orchestration across enterprise transformations, advancing a $3.5M modernization program, SCADA grid-restoration intelligence, and customer outage self-service targeting 20% call-center deflection | [Outcomes] production agentic AI client engagements and multi-million-dollar utility modernization charters delivered with zero red escalations; typed agent-to-agent (A2A) orchestration contracts powering SCADA grid-restoration intelligence and customer outage self-service call-center deflection; client delivery cycle time compressed through repeatable agentic patterns and feature-velocity benchmarks with zero red escalations | [Evidence] [Slalom] Architected and delivered enterprise multi-agent runtime and typed Agent-to-Agent (A2A) orchestration protocols (LangGraph, AWS Bedrock/AgentCore) across utility AI charters, advancing a $3.5M multi-agent modernization program, SCADA/Maximo grid-restoration intelligence, and customer outage self-service targeting 20% call-center deflection.",
+        "metric_outcome_story:f46b3fb93e92049b": "[Claim] Graph evidence supports enterprise client AI adoption scaled across power generation, grid operations, regulatory compliance, and customer service lines of business. | [Outcomes] enterprise client AI adoption scaled across power generation, grid operations, regulatory compliance, and customer service lines of business | [Evidence] [Slalom] Commercialized an enterprise AI Product Delivery Lifecycle (AI-PDLC) operating model and value-modeled charter framework (Volume-x-Price labor efficiency and NAV break-even modeling) across 33 AI and analytics charters, expanding a $25M+ multi-SOW portfolio ($6.77M quarterly AI engineering SOW) and shipping production GCP regulatory compliance and Documentum classification workflows.; [Slalom] Directed technical architecture and functional remediation of a six-figure multi-modal visual asset intelligence SOW for power generation equipment nameplates, pairing single-call vision-LLM extraction with deterministic Python adjudication and rules-agnostic optical confidence to achieve 90% primary-field accuracy, 92% OCR accuracy, and 100% full-plate high-confidence auto-acceptance into IBM Maximo.",
+        "engagement_episode:1a02761f468267bc": "[Claim] Engineered a multi-stage strategic decision intelligence engine orchestrating 18 specialized reasoning roles across 6 analytical modalities with independent cross-provider LLM judge panels and confidence-calibrated Bayesian human-in-the-loop (HITL) escalation, cutting executive review bottlenecks while achieving 99% policy-gate auditability and 100% abstention precision | [Outcomes] multi-role strategic decision intelligence engine producing audit-backed executive recommendations across complex enterprise portfolios; 99% policy-gate auditability and full abstention precision via confidence-calibrated Bayesian human-in-the-loop (HITL) escalation; independent cross-provider LLM judge panels with closed-loop rubric calibration eliminating ungrounded claims before executive release | [Evidence] [Slalom] Built a 7-wave, 18-role strategic decision intelligence engine across 6 cognitive modalities with independent cross-provider LLM judge panels and confidence-calibrated Bayesian human-in-the-loop (HITL) escalation (20% ambiguity margin, 65% floor), cutting executive review bottlenecks while maintaining 99% policy-gate auditability and 100% abstention precision.",
+        "engagement_episode:0e182e2ee7e656a4": "[Claim] Led 105 software engineers and data leaders across 33 enterprise AI and analytics charters (29 active across 6 outcome-led pods and 26 embedded co-delivery charters) for a Fortune 200 energy and utility company, stewarding $25M+ in cumulative SOW portfolio value and sustaining 11 core workstreams with zero red escalations | [Outcomes] 105 software engineers and data leaders directed across multi-charter enterprise AI delivery and multi-SOW utility portfolio with zero red escalations | [Evidence] [Slalom] Directed 105 software engineers and data leaders across 33 enterprise AI and analytics charters (29 active across 6 outcome-led pods and 26 embedded co-delivery charters) for a Fortune 200 energy and utility enterprise, stewarding $25M+ in cumulative SOW portfolio value and sustaining 11 core outcome-led workstreams with zero red escalations."
+      },
+      "failure_tags": {
+        "engagement_episode:4b1a128fae827393": "Missing Scope",
+        "metric_outcome_story:f46b3fb93e92049b": "Generic Stub+Missing Proof",
+        "engagement_episode:1a02761f468267bc": "Missing Scope+Missing Proof"
+      }
+    },
+    {
+      "qrel_id": "anchor-02",
+      "query_id": "q_t2_01",
+      "topic_id": "topic_t2_01_slalom_decision_engine",
+      "partition": "dev",
+      "surface": "resume_graph_engine",
+      "split_role": "grader_calibration_70pct",
+      "query_text": "Which Slalom multi-agent reasoning architecture coordinated specialized personas and cross-provider judge panels for executive strategy?",
+      "target_record_id": "engagement_episode:1a02761f468267bc",
+      "ground_truth_summary": "[Claim] Engineered a multi-stage strategic decision intelligence engine orchestrating 18 specialized reasoning roles across 6 analytical modalities with independent cross-provider LLM judge panels and confidence-calibrated Bayesian human-in-the-loop (HITL) escalation, cutting executive review bottlenecks while achieving 99% policy-gate auditability and 100% abstention precision | [Outcomes] multi-role strategic decision intelligence engine producing audit-backed executive recommendations across complex enterprise portfolios; 99% policy-gate auditability and full abstention precision via confidence-calibrated Bayesian human-in-the-loop (HITL) escalation; independent cross-provider LLM judge panels with closed-loop rubric calibration eliminating ungrounded claims before executive release | [Evidence] [Slalom] Built a 7-wave, 18-role strategic decision intelligence engine across 6 cognitive modalities with independent cross-provider LLM judge panels and confidence-calibrated Bayesian human-in-the-loop (HITL) escalation (20% ambiguity margin, 65% floor), cutting executive review bottlenecks while maintaining 99% policy-gate auditability and 100% abstention precision.",
+      "session_sha256": "1ca862eb",
+      "updated_at_utc": "2026-11-24T16:36:27Z",
+      "record_grades": {
+        "metric_outcome_story:f046e8a14df157d0": 1,
+        "metric_outcome_story:a1e26f9ed531dedf": 1,
+        "metric_outcome_story:ddff550282482a1f": 2,
+        "metric_outcome_story:29db57595e8a2692": 2
+      },
+      "passage_texts": {
+        "metric_outcome_story:f046e8a14df157d0": "[Claim] Graph evidence supports sub-second live executive advisory copilot and enterprise intelligence portal eliminating post-meeting decision evaporation across active consulting accounts. | [Outcomes] sub-second live executive advisory copilot and enterprise intelligence portal eliminating post-meeting decision evaporation across active consulting accounts | [Evidence] [Slalom] Architected and deployed a 100% local privacy-isolated acoustic airgap (<200ms zero-drop audio capture and local Metal speech recognition with knowledge-graph lexical priming and speaker attribution) paired with a sub-250ms live executive advisory copilot eliminating post-meeting decision evaporation across a 50-user enterprise account team.; [Slalom] Engineered a production 3-stage multimodal synthesis pipeline (forensic speaker-attributed transcript, executive brief, canonical signal projection) with pre-egress PII/credential sanitization and a 3-tier deterministic self-healing mesh achieving 0% silent signal loss across executive decision briefings.",
+        "metric_outcome_story:a1e26f9ed531dedf": "[Claim] Graph evidence supports client delivery cycle time compressed through repeatable agentic patterns and feature-velocity benchmarks with zero red escalations. | [Outcomes] client delivery cycle time compressed through repeatable agentic patterns and feature-velocity benchmarks with zero red escalations | [Evidence] [Slalom] Architected and delivered enterprise multi-agent runtime and typed Agent-to-Agent (A2A) orchestration protocols (LangGraph, AWS Bedrock/AgentCore) across utility AI charters, advancing a $3.5M multi-agent modernization program, SCADA/Maximo grid-restoration intelligence, and customer outage self-service targeting 20% call-center deflection.; [Slalom] Directed 105 software engineers and data leaders across 33 enterprise AI and analytics charters (29 active across 6 outcome-led pods and 26 embedded co-delivery charters) for a Fortune 200 energy and utility enterprise, stewarding $25M+ in cumulative SOW portfolio value and sustaining 11 core outcome-led workstreams with zero red escalations.",
+        "metric_outcome_story:ddff550282482a1f": "[Claim] Graph evidence supports independent cross-provider LLM judge panels with closed-loop rubric calibration eliminating ungrounded claims before executive release. | [Outcomes] independent cross-provider LLM judge panels with closed-loop rubric calibration eliminating ungrounded claims before executive release | [Evidence] [Slalom] Built a 7-wave, 18-role strategic decision intelligence engine across 6 cognitive modalities with independent cross-provider LLM judge panels and confidence-calibrated Bayesian human-in-the-loop (HITL) escalation (20% ambiguity margin, 65% floor), cutting executive review bottlenecks while maintaining 99% policy-gate auditability and 100% abstention precision.",
+        "metric_outcome_story:29db57595e8a2692": "[Claim] Graph evidence supports modular multi-layer agentic platform architecture and enterprise intelligence portal enforcing strict service boundary contracts with zero architecture drift. | [Outcomes] modular multi-layer agentic platform architecture and enterprise intelligence portal enforcing strict service boundary contracts with zero architecture drift | [Evidence] [Slalom] Engineered a 7-layer modular agentic software delivery platform governed by 38 fail-closed release-readiness gates, 26 autonomous governance sidecar agents, warm in-process Model Context Protocol (MCP) tool servers, closed-loop system learning across 8 production telemetry surfaces, and a 50-user executive intelligence portal compressing delivery turnaround with zero governance drift."
+      },
+      "failure_tags": {
+        "metric_outcome_story:f046e8a14df157d0": "Generic Stub+Missing Scope+Missing Proof",
+        "metric_outcome_story:a1e26f9ed531dedf": "Missing Proof+Missing Scope+Generic Stub",
+        "metric_outcome_story:ddff550282482a1f": "Missing Scope",
+        "metric_outcome_story:29db57595e8a2692": "Missing Proof+Missing Scope"
+      }
+    },
+    {
+      "qrel_id": "anchor-03",
+      "query_id": "q_t2_06",
+      "topic_id": "topic_t2_06_slalom_gcp_claude",
+      "partition": "dev",
+      "surface": "outreach_engine",
+      "split_role": "human_holdout_30pct",
+      "query_text": "How did Slalom structure strategic co-innovation and licensing expansion across Google Cloud, Anthropic, and OpenAI?",
+      "target_record_id": "engagement_episode:58af85cba66d0203",
+      "ground_truth_summary": "[Claim] Directed Google Cloud (GCP), Anthropic Claude, and OpenAI partnership co-innovation, licensing expansion, and reusable enterprise AI accelerators | [Outcomes] client adoption compressed from months to weeks via Google Cloud Gemini Enterprise, Claude Code, and OpenAI Codex accelerators; joint AI partner co-sell and licensing expansion across Google Cloud (scaling Gemini Enterprise from 750 to 5,750+ seats toward 10,000+), Anthropic Claude ($2.4M enablement workstream and 45-day Claude Code pods), and OpenAI Codex (15 percentage point handoff reduction in 10 days); reusable multi-model agentic IP asset library spanning Google Cloud Vertex AI, Claude Managed Agents, and OpenAI Frontier driving high-margin delivery motions | [Evidence] [Slalom] Championed joint partner co-sell initiatives and alliance solutions with Google Cloud, AWS, and Databricks, curating reusable agentic IP accelerators that compressed client adoption timeframes from months to weeks.",
+      "session_sha256": "1ca862eb",
+      "updated_at_utc": "2026-11-24T17:13:44Z",
+      "record_grades": {
+        "metric_outcome_story:deb68bac6ccba71c": 1,
+        "metric_outcome_story:322c6c79f386277d": 0,
+        "skill_evidence_cluster:e1d1c021474b82b5": 0,
+        "engagement_episode:58af85cba66d0203": 3
+      },
+      "passage_texts": {
+        "metric_outcome_story:deb68bac6ccba71c": "[Claim] Graph evidence supports client adoption compressed from months to weeks via Google Cloud Gemini Enterprise, Claude Code, and OpenAI Codex accelerators. | [Outcomes] client adoption compressed from months to weeks via Google Cloud Gemini Enterprise, Claude Code, and OpenAI Codex accelerators | [Evidence] [Slalom] Architected and delivered enterprise multi-agent runtime and typed Agent-to-Agent (A2A) orchestration protocols (LangGraph, AWS Bedrock/AgentCore) across utility AI charters, advancing a $3.5M multi-agent modernization program, SCADA/Maximo grid-restoration intelligence, and customer outage self-service targeting 20% call-center deflection.; [Slalom] Championed joint partner co-sell initiatives and alliance solutions with Google Cloud, AWS, and Databricks, curating reusable agentic IP accelerators that compressed client adoption timeframes from months to weeks.; [Slalom] Commercialized an enterprise AI Product Delivery Lifecycle (AI-PDLC) operating model and value-modeled charter framework (Volume-x-Price labor efficiency and NAV break-even modeling) across 33 AI and analytics charters, expanding a $25M+ multi-SOW portfolio ($6.77M quarterly AI engineering SOW) and shipping production GCP regulatory compliance and Documentum classification workflows.",
+        "metric_outcome_story:322c6c79f386277d": "[Claim] Launched co-sell motions with cloud and streaming vendors, bundling AI solutions with data-ingestion platforms to lift upsell rates by 30%. | [Outcomes] 30% upsell increase via cloud and streaming vendor co-sell bundling | [Evidence] [IBM / Unify Consulting] Established strategic alliances with leading data providers, combining co-sell arrangements and subscription-based offerings to drive new financial-services revenue streams.; [Multiple] Forged relationships with cloud and AI vendors, combining market influence with solution roadmaps and joint go-to-market strategies to accelerate enterprise adoption of advanced analytics and platform services.; [Unify Consulting] Built a global AI channel program from inception, co-developing analytics frameworks with strategic partners, bundling consulting packages with LLM-driven compliance analysis, and using co-marketing campaigns to generate $3M in partner-derived revenue.",
+        "skill_evidence_cluster:e1d1c021474b82b5": "[Claim] Held executive responsibility for expanding AI and cloud-focused revenue streams within the IBM-AWS alliance for financial services and designed AI-driven sales frameworks that boosted joint revenue by 20%. | [Outcomes] 20% joint revenue growth across the IBM-AWS regulated financial-services alliance portfolio; AI-driven Salesforce account-scoring and cloud GTM frameworks driving 20% joint alliance revenue growth and $10M in new ARR; joint IBM-AWS ACE account planning and executive co-sell cadence across 25+ global banking accounts (converting 14 joint cloud modernization deals) | [Evidence] [IBM] Held executive responsibility for expanding AI and cloud-focused revenue streams within the IBM-AWS alliance for financial services and designed AI-driven sales frameworks that boosted joint revenue by 20%.; [Slalom] Championed joint partner co-sell initiatives and alliance solutions with Google Cloud, AWS, and Databricks, curating reusable agentic IP accelerators that compressed client adoption timeframes from months to weeks.",
+        "engagement_episode:58af85cba66d0203": "[Claim] Directed Google Cloud (GCP), Anthropic Claude, and OpenAI partnership co-innovation, licensing expansion, and reusable enterprise AI accelerators | [Outcomes] client adoption compressed from months to weeks via Google Cloud Gemini Enterprise, Claude Code, and OpenAI Codex accelerators; joint AI partner co-sell and licensing expansion across Google Cloud (scaling Gemini Enterprise from 750 to 5,750+ seats toward 10,000+), Anthropic Claude ($2.4M enablement workstream and 45-day Claude Code pods), and OpenAI Codex (15 percentage point handoff reduction in 10 days); reusable multi-model agentic IP asset library spanning Google Cloud Vertex AI, Claude Managed Agents, and OpenAI Frontier driving high-margin delivery motions | [Evidence] [Slalom] Championed joint partner co-sell initiatives and alliance solutions with Google Cloud, AWS, and Databricks, curating reusable agentic IP accelerators that compressed client adoption timeframes from months to weeks."
+      },
+      "failure_tags": {
+        "metric_outcome_story:deb68bac6ccba71c": "Missing Proof+Keyword Trap",
+        "metric_outcome_story:322c6c79f386277d": "Wrong Employer+Out-of-Scope Query",
+        "skill_evidence_cluster:e1d1c021474b82b5": "Wrong Employer+Keyword Trap"
+      }
+    },
+    {
+      "qrel_id": "anchor-04",
+      "query_id": "q_t2_11",
+      "topic_id": "topic_t2_11_unify_dep_graph",
+      "partition": "calibration",
+      "surface": "resume_graph_engine",
+      "split_role": "grader_calibration_70pct",
+      "query_text": "How did Unify build a software dependency-graph accelerator with pre-merge semantic boundary checks?",
+      "target_record_id": "engagement_episode:5f908c66af9a3fdf",
+      "ground_truth_summary": "[Claim] Built a dependency-graph intelligence accelerator mapping 120+ service dependencies and pre-merge semantic boundary checks | [Outcomes] dependency-graph blast-radius visibility for modernization planning; semantic-edge governance controls for refactor safety | [Evidence] [Unify Consulting] Built and applied software dependency graph intelligence to accelerate legacy-system analysis, expose dependency chains, improve architecture visibility, and reduce refactor risk.",
+      "session_sha256": "1ca862eb",
+      "updated_at_utc": "2026-11-24T17:42:23Z",
+      "record_grades": {
+        "skill_evidence_cluster:5cb65c101d6d95d8": 1,
+        "metric_outcome_story:eb3aad47814bddb2": 0,
+        "engagement_episode:5f908c66af9a3fdf": 2,
+        "metric_outcome_story:ce52e530fd3fd441": 0
+      },
+      "passage_texts": {
+        "skill_evidence_cluster:5cb65c101d6d95d8": "[Claim] Dependency join control using software dependency graph intelligence. | [Outcomes] autonomous governance sidecar agents, fail-closed release gates, and warm in-process MCP tool servers compressing engineering turnaround across live delivery; modular multi-layer agentic platform architecture and enterprise intelligence portal enforcing strict service boundary contracts with zero architecture drift; closed-loop system learning across production telemetry surfaces continuously improving retrieval precision, HITL calibration, and cost-latency routing | [Evidence] Domain architecture concept: Dependencygraph; Domain architecture concept: Joincontrol; Production implementation evidence: 5Aa1Dc",
+        "metric_outcome_story:eb3aad47814bddb2": "[Claim] Drove enterprise AI adoption by aligning generative-AI workflows with CFO priorities, unlocking $5M in annual contract value. | [Outcomes] $5M ACV from CFO-aligned enterprise AI workflow adoption | [Evidence] [Unify Consulting] Built and applied software dependency graph intelligence to accelerate legacy-system analysis, expose dependency chains, improve architecture visibility, and reduce refactor risk.; [Unify Consulting] Designed and operationalized a governed agentic AI platform for regulated enterprise workflows, improving control-plane delivery, validation discipline, and audit-ready execution.; [Unify Consulting] Developed AI-enhanced usage-based forecasting models to optimize subscription pricing and renewals, adding $5M in recurring revenue.",
+        "engagement_episode:5f908c66af9a3fdf": "[Claim] Built a dependency-graph intelligence accelerator mapping 120+ service dependencies and pre-merge semantic boundary checks | [Outcomes] dependency-graph blast-radius visibility for modernization planning; semantic-edge governance controls for refactor safety | [Evidence] [Unify Consulting] Built and applied software dependency graph intelligence to accelerate legacy-system analysis, expose dependency chains, improve architecture visibility, and reduce refactor risk.",
+        "metric_outcome_story:ce52e530fd3fd441": "[Claim] Graph evidence supports partner enablement assets for AI solution accelerator commercialization. | [Outcomes] reusable partner enablement playbooks and solution accelerators for enterprise commercialization | [Evidence] [IBM / Unify Consulting] Established strategic alliances with leading data providers, combining co-sell arrangements and subscription-based offerings to drive new financial-services revenue streams.; [Multiple] Forged relationships with cloud and AI vendors, combining market influence with solution roadmaps and joint go-to-market strategies to accelerate enterprise adoption of advanced analytics and platform services.; [Unify Consulting] Built a global AI channel program from inception, co-developing analytics frameworks with strategic partners, bundling consulting packages with LLM-driven compliance analysis, and using co-marketing campaigns to generate $3M in partner-derived revenue."
+      },
+      "failure_tags": {
+        "skill_evidence_cluster:5cb65c101d6d95d8": "Generic Stub",
+        "engagement_episode:5f908c66af9a3fdf": "Missing Proof",
+        "metric_outcome_story:ce52e530fd3fd441": "Out-of-Scope Query"
+      }
+    },
+    {
+      "qrel_id": "anchor-05",
+      "query_id": "q_t2_16",
+      "topic_id": "topic_t2_16_insurtech_naic_nydfs",
+      "partition": "calibration",
+      "surface": "resume_graph_engine",
+      "split_role": "grader_calibration_70pct",
+      "query_text": "What NAIC and NYDFS insurer cloud compliance and regulator-readiness artifacts did InsurTech deliver?",
+      "target_record_id": "metric_outcome_story:111f620b224a0f79",
+      "ground_truth_summary": "[Claim] InsurTech graph evidence supports 12 NAIC and NYDFS 23 NYCRR 500 insurer cloud standards and regulator-readiness artifacts. | [Outcomes] 12 NAIC and NYDFS 23 NYCRR 500 cloud security standards and regulator-readiness evidence packages | [Evidence] [InsurTech Cloud Solutions] Drove early-stage AWS cloud modernization, re-hosting legacy relational database systems to AWS - establishing the cloud-migration foundation for insurance-technology platforms.",
+      "session_sha256": "1ca862eb",
+      "updated_at_utc": "2026-11-24T17:47:18Z",
+      "record_grades": {
+        "skill_evidence_cluster:48a293f967eb4321": 2,
+        "engagement_episode:c580d04d4ce81635": 0,
+        "metric_outcome_story:245a5fd9a0afe535": 0,
+        "metric_outcome_story:111f620b224a0f79": 2
+      },
+      "passage_texts": {
+        "skill_evidence_cluster:48a293f967eb4321": "[Claim] InsurTech CTO 2014-2017 role episode skill: Aws Migration Readiness Assessment. | [Evidence] Locked resume achievement bullet evidence: Insurtech 001.",
+        "engagement_episode:c580d04d4ce81635": "[Claim] Commercialized an enterprise AI Product Delivery Lifecycle (AI-PDLC) operating model and value-modeled 7-workflow agentic charter framework, expanding a $6.77M quarterly AI engineering delivery SOW and shipping production regulatory compliance and automated document classification workflows | [Outcomes] multi-million-dollar quarterly AI engineering delivery SOW expansion commercialized from reusable AI-PDLC charter blueprints; reusable multi-workflow agentic charter patterns backed by Volume-x-Price labor efficiency and NAV break-even business cases; enterprise client AI adoption scaled across power generation, grid operations, regulatory compliance, and customer service lines of business | [Evidence] [Slalom] Commercialized an enterprise AI Product Delivery Lifecycle (AI-PDLC) operating model and value-modeled charter framework (Volume-x-Price labor efficiency and NAV break-even modeling) across 33 AI and analytics charters, expanding a $25M+ multi-SOW portfolio ($6.77M quarterly AI engineering SOW) and shipping production GCP regulatory compliance and Documentum classification workflows.",
+        "metric_outcome_story:245a5fd9a0afe535": "[Claim] Graph evidence supports 105 software engineers and data leaders directed across multi-charter enterprise AI delivery and multi-SOW utility portfolio with zero red escalations. | [Outcomes] 105 software engineers and data leaders directed across multi-charter enterprise AI delivery and multi-SOW utility portfolio with zero red escalations | [Evidence] [Slalom] Directed 105 software engineers and data leaders across 33 enterprise AI and analytics charters (29 active across 6 outcome-led pods and 26 embedded co-delivery charters) for a Fortune 200 energy and utility enterprise, stewarding $25M+ in cumulative SOW portfolio value and sustaining 11 core outcome-led workstreams with zero red escalations.",
+        "metric_outcome_story:111f620b224a0f79": "[Claim] InsurTech graph evidence supports 12 NAIC and NYDFS 23 NYCRR 500 insurer cloud standards and regulator-readiness artifacts. | [Outcomes] 12 NAIC and NYDFS 23 NYCRR 500 cloud security standards and regulator-readiness evidence packages | [Evidence] [InsurTech Cloud Solutions] Drove early-stage AWS cloud modernization, re-hosting legacy relational database systems to AWS - establishing the cloud-migration foundation for insurance-technology platforms."
+      },
+      "failure_tags": {
+        "skill_evidence_cluster:48a293f967eb4321": "Missing Proof",
+        "engagement_episode:c580d04d4ce81635": "Wrong Employer",
+        "metric_outcome_story:245a5fd9a0afe535": "Wrong Employer+Out-of-Scope Query",
+        "metric_outcome_story:111f620b224a0f79": "Missing Proof"
+      }
+    },
+    {
+      "qrel_id": "anchor-06",
+      "query_id": "q_t2_21",
+      "topic_id": "topic_t2_21_insurtech_cutover",
+      "partition": "final_holdout",
+      "surface": "outreach_engine",
+      "split_role": "grader_calibration_70pct",
+      "query_text": "What migration cutover downtime discipline and zero-rollback record did InsurTech sustain across carrier workloads?",
+      "target_record_id": "metric_outcome_story:0353cda03aa3a791",
+      "ground_truth_summary": "[Claim] InsurTech graph evidence supports <2.5-hour cutover downtime and a 0-rollback incident record across 7 insurer workload migrations. | [Outcomes] <2.5-hour maintenance-window cutover downtime with 0 rollbacks across 7 production workload migrations | [Evidence] [InsurTech Cloud Solutions] Drove early-stage AWS cloud modernization, re-hosting legacy relational database systems to AWS - establishing the cloud-migration foundation for insurance-technology platforms.",
+      "session_sha256": "1ca862eb",
+      "updated_at_utc": "2026-11-24T18:06:00Z",
+      "record_grades": {
+        "skill_evidence_cluster:151360c3b2664223": 1,
+        "metric_outcome_story:fa1e249672d98b00": 1,
+        "skill_evidence_cluster:22a1da51c095ac15": 1,
+        "metric_outcome_story:0353cda03aa3a791": 2
+      },
+      "passage_texts": {
+        "skill_evidence_cluster:151360c3b2664223": "[Claim] InsurTech CTO 2014-2017 role episode skill: Migration Wave Cutover Planning. | [Evidence] Locked resume achievement bullet evidence: Insurtech 001.",
+        "metric_outcome_story:fa1e249672d98b00": "[Claim] Proactive adoption-risk tracking across 3 banking business units cut production incident downtime by 24% and unlocked 48% multi-year account expansion readiness. | [Outcomes] proactive adoption-risk removal across 3 banking business units (cutting production incident downtime by 24% and unlocking 48% account expansion) | [Evidence] [IBM] Deployed transparent budget dashboards and microservices to reallocate underused resources and drive 30% cost optimization for senior finance teams.; [IBM] Unified data latency governance processes across three business units, enabling standardized risk metrics and more consistent CCAR compliance.",
+        "skill_evidence_cluster:22a1da51c095ac15": "[Claim] InsurTech CTO 2014-2017 role episode skill: Zero To One Insurtech Venture Building. | [Evidence] Founded and led a cloud-native engineering firm modernizing legacy insurance technology stacks for middle-market insurers, enabling faster delivery, stronger controls, and greater operating agility.",
+        "metric_outcome_story:0353cda03aa3a791": "[Claim] InsurTech graph evidence supports <2.5-hour cutover downtime and a 0-rollback incident record across 7 insurer workload migrations. | [Outcomes] <2.5-hour maintenance-window cutover downtime with 0 rollbacks across 7 production workload migrations | [Evidence] [InsurTech Cloud Solutions] Drove early-stage AWS cloud modernization, re-hosting legacy relational database systems to AWS - establishing the cloud-migration foundation for insurance-technology platforms."
+      },
+      "failure_tags": {
+        "skill_evidence_cluster:151360c3b2664223": "Missing Proof+Missing Scope",
+        "metric_outcome_story:fa1e249672d98b00": "Wrong Employer+Keyword Trap",
+        "skill_evidence_cluster:22a1da51c095ac15": "Missing Scope+Missing Proof",
+        "metric_outcome_story:0353cda03aa3a791": "Missing Proof"
+      }
+    },
+    {
+      "qrel_id": "anchor-07",
+      "query_id": "q_t3_01",
+      "topic_id": "topic_t3_01_ibm_exec_ml_trap",
+      "partition": "dev",
+      "surface": "resume_graph_engine",
+      "split_role": "human_holdout_30pct",
+      "query_text": "How were analytics and ML decision workflows turned into executive banking processes specifically at IBM rather than Slalom or Unify?",
+      "target_record_id": "engagement_episode:033ffa51f6d9cae4",
+      "ground_truth_summary": "[Claim] Translated analytics and ML-enabled decision support into executive decision workflows for regulated banking and insurance clients | [Outcomes] CCAR and derivative stress-test cycles compressed from weeks to hours across containerized HPC risk workflows; 100% audit-traceable CCAR and Basel III risk-scenario lineage unified across 3 banking business units | [Evidence] [IBM] Re-architected monolithic risk analytics with containerized microservices and HPC, trimming calculation or stress-testing cycles by 40% and enabling real-time stress testing.; [IBM] Unified data latency governance processes across three business units, enabling standardized risk metrics and more consistent CCAR compliance.",
+      "session_sha256": "1ca862eb",
+      "updated_at_utc": "2026-11-24T18:08:35Z",
+      "record_grades": {
+        "skill_evidence_cluster:8306778e88327759": 1,
+        "engagement_episode:6fc0c1c4c43a2d13": 1,
+        "engagement_episode:033ffa51f6d9cae4": 3,
+        "metric_outcome_story:dc689f9ee9f404cf": 0
+      },
+      "passage_texts": {
+        "skill_evidence_cluster:8306778e88327759": "[Claim] IBM-employer-bound skill: watson_studio_analytics. Employer: IBM | Time window: 2017-04 to 2022-10 | Source: archive wave ibm_graph_promotion_wave_2026-05-28. | [Evidence] [Unify Consulting] Standardized AI lifecycle practices across intake, validation, execution, monitoring, and remediation, reducing lab-to-production cycle time from six months to three weeks while preserving auditability and runtime stability.",
+        "engagement_episode:6fc0c1c4c43a2d13": "[Claim] Built decision-support data models and BI views that connected modernization programs to executive operating decisions | [Outcomes] executive FinOps and portfolio BI views tracking 8 multi-year banking cloud transformation programs (driving 28% infrastructure cost optimization); traceable M&A technology-integration synergy and risk-model consolidation across a $1B regulated financial portfolio | [Evidence] [EY / IBM] Implemented Basel III / CCAR data lineage, cataloging, and automated validation frameworks that cut regulatory reporting errors by 40%.; [IBM] Conducted preliminary M&A due diligence and developed synergy models to quantify technology integration costs and revenue opportunities.; [IBM] Deployed transparent budget dashboards and microservices to reallocate underused resources and drive 30% cost optimization for senior finance teams.",
+        "engagement_episode:033ffa51f6d9cae4": "[Claim] Translated analytics and ML-enabled decision support into executive decision workflows for regulated banking and insurance clients | [Outcomes] CCAR and derivative stress-test cycles compressed from weeks to hours across containerized HPC risk workflows; 100% audit-traceable CCAR and Basel III risk-scenario lineage unified across 3 banking business units | [Evidence] [IBM] Re-architected monolithic risk analytics with containerized microservices and HPC, trimming calculation or stress-testing cycles by 40% and enabling real-time stress testing.; [IBM] Unified data latency governance processes across three business units, enabling standardized risk metrics and more consistent CCAR compliance.",
+        "metric_outcome_story:dc689f9ee9f404cf": "[Claim] 14 repeatable Terraform and OpenShift deployment pipeline blueprints accelerated regulated banking cloud release cycles by 60%. | [Outcomes] 14 repeatable Terraform and OpenShift DevSecOps deployment blueprints across regulated workloads (accelerating release cycles by 60%) | [Evidence] [IBM] Launched AWS streaming microservices / streaming analytics ecosystems to validate market data in near real time and increase decision capacity by about 25%.; [IBM] Unified disparate infrastructures under Confluent-based pipelines, enabling real-time risk scoring and reducing downtime by 25%."
+      },
+      "failure_tags": {
+        "skill_evidence_cluster:8306778e88327759": "Missing Scope+Missing Proof+Generic Stub",
+        "engagement_episode:6fc0c1c4c43a2d13": "Wrong Employer+Missing Proof+Missing Scope",
+        "metric_outcome_story:dc689f9ee9f404cf": "Missing Proof+Generic Stub+Out-of-Scope Query+Missing Scope"
+      }
+    },
+    {
+      "qrel_id": "anchor-08",
+      "query_id": "q_t3_06",
+      "topic_id": "topic_t3_06_unify_hyperscaler_trap",
+      "partition": "dev",
+      "surface": "apps_research",
+      "split_role": "grader_calibration_70pct",
+      "query_text": "What joint cloud-native AI reference blueprints were co-architected with hyperscaler alliances at Unify?",
+      "target_record_id": "engagement_episode:3518e3bd52ad3292",
+      "ground_truth_summary": "[Claim] Co-architected joint hyperscaler reference solutions and cloud-native AI deployment blueprints with strategic platform partners | [Outcomes] joint cloud and AI vendor solution roadmaps and GSI partner enablement motions; executive pre-sales architecture advisory translating AI/data/cloud roadmaps into measurable ROI | [Evidence] [Multiple] Forged relationships with cloud and AI vendors, combining market influence with solution roadmaps and joint go-to-market strategies to accelerate enterprise adoption of advanced analytics and platform services.; [Multiple] Translated complex AI, data, and cloud architecture into executive value propositions and measurable ROI for senior stakeholders.; [Unify Consulting] Built a global AI channel program from inception, co-developing analytics frameworks with strategic partners, bundling consulting packages with LLM-driven compliance analysis, and using co-marketing campaigns to generate $3M in partner-derived revenue.",
+      "session_sha256": "1ca862eb",
+      "updated_at_utc": "2026-11-24T18:09:56Z",
+      "record_grades": {
+        "skill_evidence_cluster:308835b126f47ba8": 2,
+        "skill_evidence_cluster:e108ee4198cb565e": 2,
+        "engagement_episode:3518e3bd52ad3292": 3,
+        "skill_evidence_cluster:98b7ab323b6b0a8e": 1
+      },
+      "passage_texts": {
+        "skill_evidence_cluster:308835b126f47ba8": "[Claim] Forged co-selling frameworks with SIs and ISVs | [Outcomes] 30% upsell increase via cloud and streaming vendor co-sell bundling; joint partner co-sell motions packaged around reusable AI platform services; $3M in partner-derived revenue from global AI channel program and strategic partner analytics frameworks | [Evidence] [IBM / Unify Consulting] Established strategic alliances with leading data providers, combining co-sell arrangements and subscription-based offerings to drive new financial-services revenue streams.",
+        "skill_evidence_cluster:e108ee4198cb565e": "[Claim] Structured multi-year hyperscaler alliances generating $15M in incremental revenue through co-sell motions aligned to platform modernization and AI growth. | [Evidence] Locked resume achievement bullet evidence: Ibm 005.",
+        "engagement_episode:3518e3bd52ad3292": "[Claim] Co-architected joint hyperscaler reference solutions and cloud-native AI deployment blueprints with strategic platform partners | [Outcomes] joint cloud and AI vendor solution roadmaps and GSI partner enablement motions; executive pre-sales architecture advisory translating AI/data/cloud roadmaps into measurable ROI | [Evidence] [Multiple] Forged relationships with cloud and AI vendors, combining market influence with solution roadmaps and joint go-to-market strategies to accelerate enterprise adoption of advanced analytics and platform services.; [Multiple] Translated complex AI, data, and cloud architecture into executive value propositions and measurable ROI for senior stakeholders.; [Unify Consulting] Built a global AI channel program from inception, co-developing analytics frameworks with strategic partners, bundling consulting packages with LLM-driven compliance analysis, and using co-marketing campaigns to generate $3M in partner-derived revenue.",
+        "skill_evidence_cluster:98b7ab323b6b0a8e": "[Claim] Industry Solutions archive: reference architectures and regulated modernization patterns (complements skill_p2_tech_reference_architecture). | [Evidence] [IBM / EY / Unify Consulting] Developed industry-specific AI, analytics, and cloud modernization solutions across financial-services risk, compliance, fraud, and regulatory use cases."
+      },
+      "failure_tags": {
+        "skill_evidence_cluster:308835b126f47ba8": "Missing Scope",
+        "skill_evidence_cluster:e108ee4198cb565e": "Missing Scope",
+        "skill_evidence_cluster:98b7ab323b6b0a8e": "Missing Proof+Missing Scope+Generic Stub"
+      }
+    },
+    {
+      "qrel_id": "anchor-09",
+      "query_id": "q_t3_11",
+      "topic_id": "topic_t3_11_insurtech_reg_sec_trap",
+      "partition": "calibration",
+      "surface": "resume_graph_engine",
+      "split_role": "grader_calibration_70pct",
+      "query_text": "How were insurance regulator concerns around cloud controls and data security resolved during carrier adoption?",
+      "target_record_id": "engagement_episode:7c4e8a74456cede6",
+      "ground_truth_summary": "[Claim] Worked through insurer/regulatory adoption concerns around cloud controls, data security, and standards readiness. | [Outcomes] 3 state Department of Insurance (NY, NJ, PA) and external audit cloud-readiness briefings completed; 12 NAIC and NYDFS 23 NYCRR 500 cloud security standards and regulator-readiness evidence packages; 28 carrier CISO, internal audit, and regulator cloud-adoption objections resolved with control evidence | [Evidence] [InsurTech Cloud Solutions] Drove early-stage AWS cloud modernization, re-hosting legacy relational database systems to AWS - establishing the cloud-migration foundation for insurance-technology platforms.",
+      "session_sha256": "1ca862eb",
+      "updated_at_utc": "2026-11-24T19:32:34Z",
+      "record_grades": {
+        "engagement_episode:7c4e8a74456cede6": 3,
+        "engagement_episode:5bd3703ab8483140": 1,
+        "engagement_episode:2e7bf9e5e75251f2": 2,
+        "skill_evidence_cluster:b63e17fe5e12815f": 0
+      },
+      "passage_texts": {
+        "engagement_episode:7c4e8a74456cede6": "[Claim] Worked through insurer/regulatory adoption concerns around cloud controls, data security, and standards readiness. | [Outcomes] 3 state Department of Insurance (NY, NJ, PA) and external audit cloud-readiness briefings completed; 12 NAIC and NYDFS 23 NYCRR 500 cloud security standards and regulator-readiness evidence packages; 28 carrier CISO, internal audit, and regulator cloud-adoption objections resolved with control evidence | [Evidence] [InsurTech Cloud Solutions] Drove early-stage AWS cloud modernization, re-hosting legacy relational database systems to AWS - establishing the cloud-migration foundation for insurance-technology platforms.",
+        "engagement_episode:5bd3703ab8483140": "[Claim] Enabled real-time ingestion, BI, underwriting analytics, and pricing decision support for insurer operations. | [Outcomes] 48 canonical P&C data entities mapped across policy, billing, claims, underwriting, and actuarial loss triangles into Amazon Redshift; 65% actuarial and underwriting reporting latency reduction (compressing overnight 12-hour batch runs to <45 minutes); 9 real-time Kinesis and S3 ingestion feeds streaming policy, claim, MVR, and catastrophe-risk signals | [Evidence] [InsurTech Cloud Solutions] Drove early-stage AWS cloud modernization, re-hosting legacy relational database systems to AWS - establishing the cloud-migration foundation for insurance-technology platforms.",
+        "engagement_episode:2e7bf9e5e75251f2": "[Claim] Framed AWS public-cloud adoption against private/on-prem alternatives for regulated insurance workloads. | [Outcomes] 8 five-year CapEx-to-OpEx public-versus-private cloud economics models projecting 42% five-year infrastructure cost reduction; 26 legacy policy, billing, claims, and rating workloads classified by cloud fit, sensitivity, and migration priority; 9 core insurance workloads and 11 legacy Oracle/SQL Server databases (14TB) replatformed onto AWS architecture | [Evidence] [InsurTech Cloud Solutions] Drove early-stage AWS cloud modernization, re-hosting legacy relational database systems to AWS - establishing the cloud-migration foundation for insurance-technology platforms.",
+        "skill_evidence_cluster:b63e17fe5e12815f": "[Claim] EY Insurance Core Modernization skill: core integration data conversion. | [Outcomes] legacy-to-core data conversion rules, source-target mappings, and reconciliation controls defined for policy, claims, billing, and customer data; integration, data-conversion, and analytics handoff maps defined across insurance core systems and downstream platforms; policy, claims, billing, rating, and underwriting workflow maps for insurance core modernization | [Evidence] [Ernst & Young] Delivered Guidewire core-system implementations for insurance carriers, automating claims processing and modernizing policy administration to retire legacy platforms and accelerate product delivery."
+      },
+      "failure_tags": {
+        "engagement_episode:5bd3703ab8483140": "Missing Proof+Missing Scope",
+        "engagement_episode:2e7bf9e5e75251f2": "Missing Scope",
+        "skill_evidence_cluster:b63e17fe5e12815f": "Missing Scope+Missing Proof+Generic Stub"
+      }
+    },
+    {
+      "qrel_id": "anchor-10",
+      "query_id": "q_neg_01",
+      "topic_id": "topic_neg_01_fedramp_azure_dod",
+      "partition": "dev",
+      "surface": "resume_graph_engine",
+      "split_role": "human_holdout_30pct",
+      "query_text": "What FedRAMP High authorization did the candidate lead for DoD defense contractors on Azure Government?",
+      "target_record_id": null,
+      "ground_truth_summary": "",
+      "session_sha256": "1ca862eb",
+      "updated_at_utc": "2026-11-24T19:34:08Z",
+      "record_grades": {
+        "engagement_episode:531a15046eb4e6d5": 0,
+        "metric_outcome_story:13be4d671a251bdc": 0,
+        "skill_evidence_cluster:74ffc827b493dd18": 0,
+        "engagement_episode:ff245ec8a98e1bbb": 0
+      },
+      "passage_texts": {
+        "engagement_episode:531a15046eb4e6d5": "[Claim] Re-architected insurer underwriting and operational systems for high availability and real-time operations. | [Outcomes] 18 Guidewire PolicyCenter, ClaimCenter, and BillingCenter workflows mapped and decoupled into AWS microservices; 100% DR drill pass rate across 9 priority workloads (<45-minute RTO and <15-minute RPO across Multi-AZ AWS architectures); 16 automated CloudWatch alerting, failover, and recovery runbooks cutting mean-time-to-recovery (MTTR) by 54% | [Evidence] [InsurTech Cloud Solutions] Drove early-stage AWS cloud modernization, re-hosting legacy relational database systems to AWS - establishing the cloud-migration foundation for insurance-technology platforms.",
+        "metric_outcome_story:13be4d671a251bdc": "[Claim] Served as executive pre-sales advisor on strategic pursuits, translating complex AI, data, and cloud architectures into C-suite value propositions and measurable ROI. | [Outcomes] executive pre-sales architecture advisory translating AI/data/cloud roadmaps into measurable ROI | [Evidence] [Multiple] Forged relationships with cloud and AI vendors, combining market influence with solution roadmaps and joint go-to-market strategies to accelerate enterprise adoption of advanced analytics and platform services.; [Multiple] Translated complex AI, data, and cloud architecture into executive value propositions and measurable ROI for senior stakeholders.; [Unify Consulting] Built a global AI channel program from inception, co-developing analytics frameworks with strategic partners, bundling consulting packages with LLM-driven compliance analysis, and using co-marketing campaigns to generate $3M in partner-derived revenue.",
+        "skill_evidence_cluster:74ffc827b493dd18": "[Claim] Risk-weighted routing posture with HITL escalation on high-stakes paths. | [Outcomes] 99% policy-gate auditability and full abstention precision via confidence-calibrated Bayesian human-in-the-loop (HITL) escalation; multi-role strategic decision intelligence engine producing audit-backed executive recommendations across complex enterprise portfolios; independent cross-provider LLM judge panels with closed-loop rubric calibration eliminating ungrounded claims before executive release | [Evidence] Domain architecture concept: Hitlroute; Domain architecture concept: Riskposture; Production implementation evidence: 0Ba4Ea",
+        "engagement_episode:ff245ec8a98e1bbb": "[Claim] Led AWS modernization architecture for regulated banking and insurance workloads moving from on-prem constraints to cloud-native delivery patterns | [Outcomes] 16 enterprise on-prem-to-AWS migration waves across 5 Tier-1 banking clients (cutting legacy infrastructure overhead by 32%); BCBS 239-aligned cloud reference architectures sustaining 99.9% production uptime across regulated financial environments | [Evidence] [IBM] Closed multi-year modernization deals exceeding $15M by demonstrating ROI on HPC simulations for stress testing and cutting scenario runtimes by 40%.; [IBM] Launched AWS streaming microservices / streaming analytics ecosystems to validate market data in near real time and increase decision capacity by about 25%.; [IBM] Unified disparate infrastructures under Confluent-based pipelines, enabling real-time risk scoring and reducing downtime by 25%."
+      },
+      "failure_tags": {
+        "engagement_episode:531a15046eb4e6d5": "Missing Scope+Missing Proof",
+        "metric_outcome_story:13be4d671a251bdc": "Missing Proof+Missing Scope",
+        "skill_evidence_cluster:74ffc827b493dd18": "Missing Scope+Missing Proof",
+        "engagement_episode:ff245ec8a98e1bbb": "Missing Proof+Missing Scope+Wrong Employer"
+      }
+    }
+  ],
+  "remaining_queries_to_collect": 40
+}

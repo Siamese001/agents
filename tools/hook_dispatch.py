@@ -583,11 +583,61 @@ def _is_technical_engineering_artifact(target_file: str) -> bool:
     return "/plans/" in f"/{norm}" or "/docs/plans/" in f"/{norm}"
 
 
+_ADHOC_LABELING_HTML_NAME_RE = re.compile(
+    r"(?:qrels|calibration|labeling|human_eval|grade_batch)",
+    re.IGNORECASE,
+)
+_ADHOC_LABELING_HTML_CONTENT_RE = re.compile(
+    r"(?:Blind\s+QRELS|Copy\s+Batch\s+\d+\s+Grades|id=['\"]qrelsRoot['\"]|Why\s*<\s*3\s*:)",
+    re.IGNORECASE,
+)
+
+
+def evaluate_centralized_labeling_studio_guard(
+    target_path_str: str,
+    content_blob: str = "",
+) -> Tuple[bool, str]:
+    """Enforce INV-CENTRALIZED-LABELING-STUDIO-ONLY and INV-HTML-ARTIFACT-IMMUTABLE-CACHE on HTML writes."""
+    if not target_path_str:
+        return False, ""
+    norm = str(target_path_str).replace("\\", "/")
+    low = norm.lower()
+    if not low.endswith(".html"):
+        return False, ""
+    if "/plugins/core-governance/mcp/" in low or "/scratch/" in low or "/browser_sandbox/" in low:
+        return False, ""
+    basename = Path(norm).name
+    if _ADHOC_LABELING_HTML_NAME_RE.search(basename) or _ADHOC_LABELING_HTML_CONTENT_RE.search(content_blob or ""):
+        return True, (
+            f"CENTRALIZED_LABELING_STUDIO_REQUIRED (INV-CENTRALIZED-LABELING-STUDIO-ONLY): "
+            f"One-off HTML labeling and QRELS files ('{basename}') are prohibited across all projects. "
+            "Launch the centralized Pure-White 14px Human Labeling Studio MCP App via 'open_labeling_studio' "
+            "(core-governance plugin) so clicks persist straight to disk with zero webview cache."
+        )
+    if "/brain/" in low:
+        try:
+            if Path(target_path_str).exists():
+                return True, (
+                    f"HTML_ARTIFACT_IMMUTABLE_CACHE_BLOCK (INV-HTML-ARTIFACT-IMMUTABLE-CACHE): "
+                    f"Refusing to overwrite existing HTML artifact '{basename}' in place because IDE webviews "
+                    "cache by URI path. Write a new content-hashed filename ('<stem>_<8hex>.html') instead."
+                )
+        except OSError:
+            pass
+    return False, ""
+
+
 def handle_pre_file_write(payload: Dict[str, Any], repo_root: Path) -> int:
     """PreToolUse combined file-write guard: main-branch isolation + stage/subagent telemetry."""
     tool_call = payload.get("toolCall") if isinstance(payload.get("toolCall"), dict) else payload
     args = tool_call.get("args") if isinstance(tool_call.get("args"), dict) else (tool_call if isinstance(tool_call, dict) else {})
     target_file = str(args.get("TargetFile") or args.get("Path") or args.get("path") or "").strip()
+    content_blob = str(args.get("CodeContent") or args.get("Content") or args.get("Replacement") or "")
+
+    html_blocked, html_reason = evaluate_centralized_labeling_studio_guard(target_file, content_blob)
+    if html_blocked:
+        sys.stderr.write(f"\n[Antigravity Hook BLOCK] {html_reason}\n")
+        return emit_decision("deny", reason=html_reason)
 
     blocked, reason = evaluate_main_worktree_write(target_file, repo_root)
     if blocked:

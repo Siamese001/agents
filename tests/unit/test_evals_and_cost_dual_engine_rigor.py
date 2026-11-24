@@ -21,11 +21,11 @@ def test_validate_eval_rubrics_covers_all_five_config_roots_and_314_data_files()
     assert rep["is_clean"] is True, rep["violations"]
     assert rep["config_roots_audited"] == list(CONFIG_ROOTS)
     assert rep["data_counts_by_root"] == {
-        "data": 161,
+        "data": 163,
         "outreach_engine/data": 10,
-        "resume_graph_engine/data": 152,
+        "resume_graph_engine/data": 153,
     }
-    assert rep["data_file_count"] == 323
+    assert rep["data_file_count"] == 326
     assert rep["eval_module_count"] >= 250
     assert rep["validated_schema_count"] >= 30
 
