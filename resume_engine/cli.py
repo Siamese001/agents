@@ -297,26 +297,50 @@ def main(argv: list[str] | None = None, prog: str | None = None) -> int:
         return gate_rc
 
     if action == "run":
+        import time as _time
+
         from apps_rg.__main__ import (
             _print_json_result,
             _print_result,
             _run_product_from_cli,
         )
 
+        _t0 = _time.perf_counter()
         result = _run_product_from_cli(args)
+        _elapsed_ms = round((_time.perf_counter() - _t0) * 1000.0, 2)
         if getattr(args, "json", False):
             _print_json_result(result)
         else:
             _print_result(result)
-        if "pytest" not in sys.modules and not os.environ.get("PYTEST_CURRENT_TEST"):
+        from infrastructure.config.env_loader import get_env_str
+
+        if ("pytest" not in sys.modules and not os.environ.get("PYTEST_CURRENT_TEST")) or get_env_str("AGENTS_TRACE_IN_PYTEST") == "1":
             try:
-                from agents.observability.trace_collector import emit_post_run_trace_safe
+                from agents.observability.flywheel_sync_hook import sync_flywheel_after_run
+                from agents.observability.trace_collector import compute_scenario_fingerprint, emit_post_run_trace_safe
 
                 run_dir_str = str(result.get("artifact_dir") or result.get("run_dir") or "")
+                is_smoke = bool(getattr(args, "offline_smoke", False) or getattr(args, "demo", False))
+                raw_in = {
+                    "company": str(getattr(args, "company", "") or result.get("company") or ""),
+                    "role": str(getattr(args, "role", "") or result.get("role") or ""),
+                    "jd_path": str(getattr(args, "jd", "") or getattr(args, "jd_path", "") or ""),
+                    "offline_smoke": is_smoke,
+                }
+                scen_fp = compute_scenario_fingerprint(
+                    app_id="apps_rg",
+                    raw_input=raw_in,
+                    is_smoke_or_demo=is_smoke,
+                )
+                checks_map = result.get("checks") if isinstance(result.get("checks"), dict) else {}
+                x2_map = {str(k): bool(v) for k, v in checks_map.items()} if checks_map else {
+                    "terminal_success": result.get("status") == "SUCCESS"
+                }
                 gate_outcomes: dict[str, Any] = {
                     "status": result.get("status"),
                     "outcome_label": str(result.get("outcome_label") or ""),
                     "x3_disposition": str(result.get("x3_disposition") or ""),
+                    "x2_gates": x2_map,
                 }
                 if result.get("fault"):
                     gate_outcomes["fault"] = str(result.get("fault"))
@@ -328,29 +352,46 @@ def main(argv: list[str] | None = None, prog: str | None = None) -> int:
                     app_id="apps_rg",
                     run_id=str(result.get("run_id") or "resume_run"),
                     terminal_status="PASS" if result.get("status") == "SUCCESS" else "FAIL",
+                    raw_input=raw_in,
                     output_summary={
                         "run_dir": run_dir_str,
                         "outcome_label": str(result.get("outcome_label") or ""),
+                        "scenario_fingerprint": scen_fp,
                     },
                     gate_outcomes=gate_outcomes,
+                    telemetry={"latency_ms": float(result.get("latency_ms") or _elapsed_ms)},
+                    scenario_fingerprint=scen_fp,
+                    is_smoke_or_demo=is_smoke,
                 )
+                sync_flywheel_after_run()
             except (ImportError, OSError, ValueError, RuntimeError):  # guardian: allow-silent-swallow -- observer-only trace hook must never fail resume run
                 pass
         return 0 if result.get("status") == "SUCCESS" else 1
 
     if action == "eval":
+        import time as _time
+
         from apps_rg.__main__ import _evaluate_product_run, _print_evaluation
 
+        _t0 = _time.perf_counter()
         run_path = Path(args.run_dir).expanduser().resolve()
         report = _evaluate_product_run(run_path)
+        _elapsed_ms = round((_time.perf_counter() - _t0) * 1000.0, 2)
         report["run_dir"] = str(run_path)
         if getattr(args, "json", False):
             print(json.dumps(report, indent=2, sort_keys=True))
         else:
             _print_evaluation(report)
-        if getattr(args, "record_flywheel", True) and "pytest" not in sys.modules and not os.environ.get("PYTEST_CURRENT_TEST"):
+        from infrastructure.config.env_loader import get_env_str
+
+        if getattr(args, "record_flywheel", True) and (
+            ("pytest" not in sys.modules and not os.environ.get("PYTEST_CURRENT_TEST"))
+            or get_env_str("AGENTS_TRACE_IN_PYTEST") == "1"
+        ):
             try:
                 from agents.observability.eval_flywheel import EvalFlywheelEngine
+                from agents.observability.flywheel_sync_hook import sync_flywheel_after_run
+                from agents.observability.trace_collector import compute_scenario_fingerprint, emit_post_run_trace_safe
 
                 passed = report.get("status") == "PASS"
                 observed_x3 = str(report.get("x3_disposition") or "").strip()
@@ -362,6 +403,10 @@ def main(argv: list[str] | None = None, prog: str | None = None) -> int:
                 reasons = [str(r) for r in (report.get("failure_reasons") or ()) if str(r).strip()]
                 if not passed and not reasons:
                     reasons = [f"evaluation_status:{report.get('evaluation_status') or 'BLOCKED'}"]
+                scen_fp = compute_scenario_fingerprint(
+                    app_id="apps_rg",
+                    raw_input={"run_id": run_path.name, "company": str(report.get("company") or "")},
+                )
                 EvalFlywheelEngine().ingest_product_run(
                     app_id="apps_rg",
                     run_id=run_path.name,
@@ -369,7 +414,24 @@ def main(argv: list[str] | None = None, prog: str | None = None) -> int:
                     passed=passed,
                     failure_reasons=reasons,
                     score=1.0 if passed else 0.0,
+                    scenario_fingerprint=scen_fp,
                 )
+                checks_map = report.get("checks") if isinstance(report.get("checks"), dict) else {}
+                emit_post_run_trace_safe(
+                    app_id="apps_rg",
+                    run_id=run_path.name,
+                    terminal_status="PASS" if passed else "FAIL",
+                    raw_input={"run_dir": str(run_path), "scenario_fingerprint": scen_fp},
+                    output_summary={"run_dir": str(run_path), "x3_disposition": effective_x3},
+                    gate_outcomes={
+                        "x3_disposition": effective_x3,
+                        "failure_reasons": reasons,
+                        "x2_gates": {str(k): bool(v) for k, v in checks_map.items()} if checks_map else {"eval_passed": passed},
+                    },
+                    telemetry={"latency_ms": _elapsed_ms},
+                    scenario_fingerprint=scen_fp,
+                )
+                sync_flywheel_after_run()
             except (ImportError, OSError, ValueError, RuntimeError):  # guardian: allow-silent-swallow -- observer-only flywheel hook must never fail resume eval
                 pass
         return 0 if report.get("status") == "PASS" else 1

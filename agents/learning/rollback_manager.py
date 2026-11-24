@@ -63,7 +63,16 @@ def execute_bidirectional_rollback(
 
         target_path = Path(handle["resolved_target_path"]).resolve()
         pre_raw_text = handle.get("pre_apply_raw_text")
-        if isinstance(pre_raw_text, str):
+        if bool(handle.get("git_promoted")) and isinstance(pre_raw_text, str) and handle.get("repo_root"):
+            from agents.learning.worktree_promoter import commit_rollback_in_ephemeral_worktree
+
+            commit_rollback_in_ephemeral_worktree(
+                repo_root=Path(str(handle["repo_root"])),
+                rel_target_path=str(handle.get("target_path") or receipt.target_path),
+                restored_text=pre_raw_text,
+                proposal_id=receipt.proposal_id,
+            )
+        elif isinstance(pre_raw_text, str):
             # Exact byte restoration guarantees pre_apply_file_sha256 == restored_file_sha256 even for YAML comments.
             tmp = target_path.with_suffix(target_path.suffix + ".rb.tmp")
             tmp.write_text(pre_raw_text, encoding="utf-8")

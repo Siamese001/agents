@@ -22,6 +22,7 @@ from apps_eval.adapters.outreach_engine import OutreachEngineEvalAdapter
 from apps_eval.baselines import DEFAULT_BASELINE_DIR, baseline_path, load_baseline
 from apps_eval.bootstrap_baselines import CORE_BASELINE_SUITES, SNAPSHOT_GRADER_ONLY_SUITES
 from apps_eval.contracts import EvalRequest
+from apps_eval.golden_suite_runner import evaluate_golden_flywheel_suite
 from apps_eval.runner.core import compare_record_to_baseline, run_eval
 from apps_eval.trends import emit_release_gate, emit_trend_dashboard
 
@@ -386,6 +387,11 @@ def run_unified_eval_harness(
         emit_l6_shadow=True,
     )
 
+    golden_flywheel_receipt = evaluate_golden_flywheel_suite(
+        repo_root=root,
+        app_filter=app,
+    )
+
     manifest: dict[str, Any] = {
         "schema_version": EVIDENCE_MANIFEST_SCHEMA_VERSION,
         "generated_at": _utc_now(),
@@ -402,6 +408,7 @@ def run_unified_eval_harness(
         "apps_rg_e2e_receipt": apps_rg_e2e_receipt,
         "apps_lic_g5_g6_receipt": apps_lic_g5_g6_receipt,
         "apps_lic_bundle_receipt": apps_lic_bundle_receipt,
+        "golden_flywheel_receipt": golden_flywheel_receipt,
         "trend_dashboard": trend_summary.to_dict() if hasattr(trend_summary, "to_dict") else dict(trend_summary),
         "release_gate_receipt": (
             release_gate_lic.to_dict() if hasattr(release_gate_lic, "to_dict") else dict(release_gate_lic)

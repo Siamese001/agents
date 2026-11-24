@@ -431,18 +431,25 @@ class EvalFlywheelEngine:
         passed: bool,
         failure_reasons: Sequence[str] = (),
         score: float = 1.0,
+        scenario_fingerprint: str = "",
+        is_smoke_or_demo: bool = False,
     ) -> dict[str, Any]:
         """Observer-only ingestion of a completed Resume or Outreach product run."""
         fb_store = self._open_feedback_store()
         traj_engine = self._open_trajectory_engine()
         staged: list[str] = []
         harvested: list[str] = []
+        norm_scen = str(scenario_fingerprint or "").strip()
+        eff_smoke = bool(is_smoke_or_demo or norm_scen.endswith("::smoke_or_demo"))
         try:
             if not passed or x3_disposition in ("X3B_ESCALATE_HITL", "X3E_SAFE_ABSTAIN"):
                 reasons = list(failure_reasons) or [f"x3:{x3_disposition}"]
                 for reason in reasons:
                     kind = map_failure_mode_to_kind(reason)
-                    sig_hash = fb_store.record_failure(kind, f"{app_id}:{reason}", run_id=run_id)
+                    constraint_key = (
+                        f"{app_id}:{norm_scen}:{reason}" if norm_scen else f"{app_id}:{reason}"
+                    )
+                    sig_hash = fb_store.record_failure(kind, constraint_key, run_id=run_id)
                     harvested.append(sig_hash)
                     pkt = self._stage_triage_candidate(
                         app_id=app_id,
@@ -451,6 +458,10 @@ class EvalFlywheelEngine:
                         run_id=run_id,
                         description=f"Product run observation ({app_id}/{run_id}): {reason}",
                         expected_x3=x3_disposition or "X3B_ESCALATE_HITL",
+                        metadata={
+                            "scenario_fingerprint": norm_scen,
+                            "is_smoke_or_demo": eff_smoke,
+                        },
                     )
                     staged.append(pkt.as_posix())
             elif score >= 0.80:
@@ -463,12 +474,24 @@ class EvalFlywheelEngine:
                     step_sequence=steps,
                     key_decisions=("ACCEPT", x3_disposition or "X3D_ALLOW_FINISH"),
                     summary_text=f"Observed passing product run {run_id} for {app_id}.",
-                    metadata={"x3_disposition": x3_disposition, "source": "product_run_observer"},
+                    metadata={
+                        "x3_disposition": x3_disposition,
+                        "source": "product_run_observer",
+                        "scenario_fingerprint": norm_scen,
+                        "is_smoke_or_demo": eff_smoke,
+                    },
                 )
                 traj_engine.record_exemplar(ex)
-                for row in fb_store.get_failure_statistics():
-                    constraint = str(row.get("normalized_constraint") or "")
-                    if constraint.startswith(f"{app_id.lower()}:") and float(row.get("success_rate") or 0.0) < 1.0:
+                if not eff_smoke:
+                    for row in fb_store.get_failure_statistics():
+                        constraint = str(row.get("normalized_constraint") or "")
+                        if not constraint.startswith(f"{app_id.lower()}:") or float(row.get("success_rate") or 0.0) >= 1.0:
+                            continue
+                        if norm_scen:
+                            # Scope auto-resolution strictly to matching scenario fingerprint or unscoped legacy app signatures.
+                            rest = constraint[len(f"{app_id.lower()}:") :]
+                            if "::" in rest and not rest.startswith(f"{norm_scen.lower()}:"):
+                                continue
                         fb_store.record_resolution(
                             str(row["signature_hash"]),
                             run_id=run_id,
@@ -476,7 +499,11 @@ class EvalFlywheelEngine:
                             repair_hint=f"Verified passing product run {run_id} for {app_id}.",
                             outcome="SUCCESS",
                         )
-                self.resolve_triage_candidates(app_id=app_id, resolved_by_run_id=run_id)
+                    self.resolve_triage_candidates(
+                        app_id=app_id,
+                        resolved_by_run_id=run_id,
+                        scenario_fingerprint=norm_scen or None,
+                    )
         finally:
             fb_store.close()
         self._update_calibration_history([(f"{app_id}:product_run_score", float(score), run_id)])
@@ -484,6 +511,8 @@ class EvalFlywheelEngine:
             "status": "OBSERVED",
             "app_id": app_id,
             "run_id": run_id,
+            "scenario_fingerprint": norm_scen,
+            "is_smoke_or_demo": eff_smoke,
             "harvested_signatures": harvested,
             "staged_candidates": staged,
         }
@@ -494,6 +523,7 @@ class EvalFlywheelEngine:
         app_id: str,
         resolved_by_run_id: str = "",
         failure_mode_filter: str | None = None,
+        scenario_fingerprint: str | None = None,
     ) -> list[str]:
         """Transition PENDING_REVIEW triage packets for app_id to RESOLVED once verified."""
         app_dir = self.triage_root / app_id
@@ -508,6 +538,11 @@ class EvalFlywheelEngine:
             if failure_mode_filter is not None:
                 pkt_mode = str(pkt.get("trigger_reason") or pkt.get("trigger_signal") or "")
                 if failure_mode_filter not in pkt_mode:
+                    continue
+            if scenario_fingerprint is not None:
+                pkt_meta = pkt.get("metadata") if isinstance(pkt.get("metadata"), Mapping) else {}
+                pkt_scen = str(pkt_meta.get("scenario_fingerprint") or "").strip()
+                if pkt_scen and pkt_scen != scenario_fingerprint:
                     continue
             pkt["status"] = "RESOLVED"
             pkt["resolved_at"] = now

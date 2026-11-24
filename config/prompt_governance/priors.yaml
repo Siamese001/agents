@@ -1,0 +1,7 @@
+# Canonical Tier B Prompt & Routing Critique Priors (SSOT)
+# Governs diagnostic critique guidance under INV-NO-POST-LLM-PROSE-MUTATORS and INV-FLYWHEEL-AUTO-REMEDIATE.
+# Literal prose prefixes/suffixes and candidate fact mutations are strictly prohibited.
+
+schema_version: "1.0.0"
+policy_id: "agents::prompt_governance_priors::v1"
+flywheel_priors: {}

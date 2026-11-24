@@ -94,8 +94,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     flywheel_summary: dict[str, Any] | None = None
     if bool(args.ingest_flywheel) and manifest_path.is_file():
         from agents.observability.eval_flywheel import EvalFlywheelEngine
+        from agents.observability.flywheel_sync_hook import sync_flywheel_after_run
 
         flywheel_summary = EvalFlywheelEngine().ingest_manifest(manifest_payload or manifest_path)
+        sync_res = sync_flywheel_after_run(
+            repo_root=repo_root,
+            manifest_payload=manifest_payload or manifest_path,
+        )
+        if sync_res is not None:
+            flywheel_summary["unified_sync"] = sync_res
 
     report = gate_res.to_dict()
     if flywheel_summary is not None:

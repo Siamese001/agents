@@ -134,19 +134,45 @@ def _handle_eval(args: argparse.Namespace) -> int:
     overall_passed = verdict.passed
     if (
         getattr(args, "record_flywheel", True)
-        and "pytest" not in sys.modules
-        and not get_env_str("PYTEST_CURRENT_TEST")
+        and (
+            ("pytest" not in sys.modules and not get_env_str("PYTEST_CURRENT_TEST"))
+            or get_env_str("AGENTS_TRACE_IN_PYTEST") == "1"
+        )
     ):
         try:
             from agents.observability.eval_flywheel import EvalFlywheelEngine
+            from agents.observability.trace_collector import compute_scenario_fingerprint, emit_post_run_trace_safe
 
+            raw_in = {
+                "company": str(opportunity.company_name or ""),
+                "role": str(opportunity.role_title or ""),
+                "channel": str(draft.channel.value),
+            }
+            scen_fp = compute_scenario_fingerprint(app_id="apps_lic", raw_input=raw_in)
+            eff_x3 = "X3D_ALLOW_FINISH" if overall_passed else "X3B_ESCALATE_HITL"
+            reasons = [str(r) for r in (verdict.failure_reasons or verdict.violations or ())]
             EvalFlywheelEngine().ingest_product_run(
                 app_id="apps_lic",
                 run_id=run_dir.name,
-                x3_disposition="X3D_ALLOW_FINISH" if overall_passed else "X3B_ESCALATE_HITL",
+                x3_disposition=eff_x3,
                 passed=overall_passed,
-                failure_reasons=[str(r) for r in (verdict.failure_reasons or verdict.violations or ())],
+                failure_reasons=reasons,
                 score=float(getattr(eval_report, "composite_score", 1.0 if overall_passed else 0.0)),
+                scenario_fingerprint=scen_fp,
+            )
+            emit_post_run_trace_safe(
+                app_id="apps_lic",
+                run_id=run_dir.name,
+                terminal_status="PASS" if overall_passed else "FAIL",
+                raw_input=raw_in,
+                output_summary={"run_dir": str(run_dir), "status": verdict.status, "scenario_fingerprint": scen_fp},
+                gate_outcomes={
+                    "x3_disposition": eff_x3,
+                    "failure_reasons": reasons,
+                    "x2_gates": {"is_valid": bool(verdict.is_valid), "passed": bool(overall_passed)},
+                },
+                telemetry={"latency_ms": 1.0},
+                scenario_fingerprint=scen_fp,
             )
         except (ImportError, OSError, ValueError, RuntimeError):  # guardian: allow-silent-swallow -- observer-only flywheel hook must never fail outreach eval
             pass

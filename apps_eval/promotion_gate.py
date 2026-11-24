@@ -244,6 +244,20 @@ def verify_promotion_evidence(
         else:
             checks["release_gate"] = True
 
+    # Golden flywheel shadow-to-blocking receipt check (OPEN cases shadow-run; VERIFIED cases block on regression)
+    golden_metrics: dict[str, Any] = {}
+    golden_rec = manifest.get("golden_flywheel_receipt")
+    if isinstance(golden_rec, dict):
+        golden_metrics = dict(golden_rec)
+        blocking_failures = list(golden_rec.get("blocking_failures") or [])
+        golden_ok = bool(golden_rec.get("passed", True)) and len(blocking_failures) == 0
+        checks["golden_flywheel_blocking"] = golden_ok
+        if not golden_ok:
+            failed_ids = [str(f.get("case_id") or "") for f in blocking_failures if isinstance(f, dict)]
+            regressions.append(
+                f"verified golden flywheel case regression ({len(blocking_failures)} failed): {failed_ids}"
+            )
+
     # IDE LLM-as-a-Judge human calibration & drift receipt gate (fast offline verification)
     drift_metrics: dict[str, Any] = {}
     drift_ref = ide_judge_drift_receipt_path or (
@@ -284,6 +298,7 @@ def verify_promotion_evidence(
         metrics={
             "suite_scores": suite_scores,
             "g6": g6_metrics,
+            "golden_flywheel": golden_metrics,
             "ide_judge_drift": drift_metrics,
             "elapsed_s": manifest.get("elapsed_s", 0.0),
         },
