@@ -325,4 +325,22 @@ policies:
     enforcer: "tools/lint_prompt_validator_vocab_symmetry.py"
     rule_reference: ".agents/rules/resume-graph-engine.md"
 
+  - id: "INV-ZERO-DRIFT-CROSS-REPO-PARITY"
+    title: "Centralized 5-Way Workspace/IDE & 4-Way Policy/Studio Zero-Drift Parity"
+    category: "ai_sdlc"
+    threshold: 0
+    unit: "violations"
+    description: "Enforces centralized 5-way Workspace/Git/Remote-Ref/Worktree/IDE bijection and 4-way Policy/Config/Rule/AST/Studio SSOT parity via core-governance."
+    enforcer: "tools/audit_governance_harmonization.py"
+    rule_reference: ".agents/rules/conformance-map.md"
+
+  - id: "INV-CENTRALIZED-LABELING-STUDIO-ONLY"
+    title: "Centralized Pure-White 18px 2x2 Human Labeling Studio MCP App Only"
+    category: "ai_sdlc"
+    threshold: 0
+    unit: "violations"
+    description: "Routes all human QRELS (3-2-1-0) and AI output review (Pass/Fail) sessions through core-governance open_labeling_studio (ui://labeling-studio/app.html)."
+    enforcer: "tools/audit_governance_harmonization.py"
+    rule_reference: ".agents/rules/conformance-map.md"
+
 

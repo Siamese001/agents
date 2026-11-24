@@ -58,7 +58,7 @@ Cross-subsystem direct imports are blocked by `tools/ssot_boundary_auditor.py` a
 
 Repo-owned governance assets live under `.agents/`, `.antigravity/`, `.githooks/`, `config/governance/`, and `tools/`:
 
-- **Rules & Skills**: `.agents/rules/*.md` and `.agents/skills/*/SKILL.md`.
+- **Rules & Skills**: `.agents/rules/*.md` and `.agents/skills/*/SKILL.md` (`AGENTS.md <= 200 lines`, skill descriptions `<= 4000 tokens`).
 - **Lifecycle Hooks**: `.agents/hooks.json` dispatched via `tools/hook_dispatch.py`.
 - **Turn & Commit Gates**: `tools/validate_turn_gates.py`, Tier 1 `tools/verify_commit.py`, and Tier 2 `tools/verify_main_readiness.py` (10 risk-tiered stages including `tools/audit_governance_harmonization.py` and `tools/testing_gaps_auditor.py`).
 - **MCP & Runtime Boundary**: Root `.mcp.json` and `.antigravity/runtime-boundary.json`.
