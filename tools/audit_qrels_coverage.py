@@ -65,6 +65,10 @@ def audit_qrels_coverage(
     min_unanswerable_probes: int = 5,
     min_candidates_judged: int = 1000,
     kappa_floor: float = 0.80,
+    min_total_human_labels: int = 0,
+    min_holdout_passages: int = 20,
+    ci95_lower_floor: float = 0.0,
+    expected_grader_sha256: str | None = None,
 ) -> dict[str, Any]:
     """Audit QRELS family leakage, 0-3 grade distribution, synthetic IDs, and SHA-256 Kappa receipt."""
     partitions_data = json.loads(partitions_path.read_text(encoding="utf-8"))
@@ -77,7 +81,14 @@ def audit_qrels_coverage(
     scan = _scan_judged_candidates(evaluated_queries)
     grade_counts = scan["grade_counts"]
     denom = max(scan["total_candidates"], 1)
-    kappa_audit = verify_kappa_calibration_receipt(gt_data, kappa_floor=kappa_floor)
+    kappa_audit = verify_kappa_calibration_receipt(
+        gt_data,
+        min_anchor_passages=min_holdout_passages,
+        min_total_human_labels=min_total_human_labels,
+        kappa_floor=kappa_floor,
+        ci95_lower_floor=ci95_lower_floor,
+        expected_grader_sha256=expected_grader_sha256,
+    )
 
     dev_c = leakage["dev_topics_count"]
     cal_c = leakage["calibration_topics_count"]
@@ -145,7 +156,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--output", "--receipt", dest="receipt", type=Path, default=None)
     parser.add_argument("--min-queries", type=int, default=50)
     parser.add_argument("--min-candidates", type=int, default=1000)
+    parser.add_argument("--strict-200", action="store_true", help="Enforce DIE 200-human-label, 60-holdout, CI95 >= 0.70, and frozen grader SHA-256")
     args = parser.parse_args(argv)
+    expected_grader_sha = None
+    if args.strict_200:
+        from apps_eval.qrels.qrels_blind_grader import compute_grader_source_sha256
+
+        expected_grader_sha = compute_grader_source_sha256()
     report = audit_qrels_coverage(
         args.partitions,
         args.ground_truth,
@@ -153,6 +170,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         receipt_output_path=args.receipt,
         min_total_queries=args.min_queries,
         min_candidates_judged=args.min_candidates,
+        min_total_human_labels=200 if args.strict_200 else 0,
+        min_holdout_passages=60 if args.strict_200 else 20,
+        ci95_lower_floor=0.70 if args.strict_200 else 0.0,
+        expected_grader_sha256=expected_grader_sha,
     )
     print(json.dumps(report, indent=2))
     return 0 if report["gate_status"] == "PASS" else 1

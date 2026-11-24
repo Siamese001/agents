@@ -42,12 +42,12 @@ QRELS_STUDIO_HTML = """<!DOCTYPE html>
       display: flex; align-items: center; justify-content: space-between; gap: 12px;
       padding: 12px 22px; background: #ffffff; border-bottom: 1px solid var(--border);
     }
-    .title-wrap h1 { margin: 0; font-size: 16px; font-weight: 700; color: var(--text); }
-    .title-wrap p { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+    .title-wrap h1 { margin: 0; font-size: 19px; font-weight: 700; color: var(--text); }
+    .title-wrap p { margin: 2px 0 0; font-size: 13.5px; color: var(--muted); }
     .pill-nav { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; max-width: 62%; justify-content: flex-end; }
     .item-pill {
-      padding: 5px 10px; border-radius: 999px; border: 1px solid var(--border);
-      background: #ffffff; color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer;
+      padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border);
+      background: #ffffff; color: var(--muted); font-size: 13.5px; font-weight: 600; cursor: pointer;
     }
     .item-pill.active { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); border-width: 2px; }
     .item-pill.done { border-color: var(--pass); color: var(--pass); background: var(--pass-bg); }
@@ -90,11 +90,19 @@ QRELS_STUDIO_HTML = """<!DOCTYPE html>
       color: var(--accent); margin-bottom: 4px;
     }
     .box-guide { font-size: 12px; color: var(--muted); margin: 3px 0 8px; line-height: 1.4; }
-    .prompt-text { font-size: 14.5px; font-weight: 600; color: var(--text); }
+    .prompt-text { font-size: 19px; font-weight: 700; color: var(--text); line-height: 1.4; }
     .candidate-box {
-      background: #ffffff; border: 1px solid var(--border-strong); border-radius: 8px; padding: 14px;
-      white-space: pre-wrap; font-size: 13.5px; max-height: 38vh; overflow-y: auto; color: var(--text);
+      background: #ffffff; border: 1px solid var(--border-strong); border-radius: 8px; padding: 16px;
+      white-space: pre-wrap; font-size: 17px; line-height: 1.65; max-height: 44vh; overflow-y: auto; color: var(--text);
     }
+    .cand-section-tag {
+      display: inline-block; padding: 2px 7px; border-radius: 5px; background: #f1f5f9;
+      color: var(--text); font-size: 11px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 4px;
+    }
+    .cand-claim { font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+    .cand-outcomes { margin: 8px 0 10px; padding-left: 20px; font-size: 16px; font-weight: 600; color: var(--text); }
+    .cand-outcomes li { margin-bottom: 4px; }
+    .cand-evidence { font-size: 15px; color: var(--muted); margin-top: 6px; }
     .evidence-panel {
       margin-top: 12px; background: #ffffff; border: 1px solid var(--border);
       border-radius: 8px; padding: 10px 12px;
@@ -127,11 +135,11 @@ QRELS_STUDIO_HTML = """<!DOCTYPE html>
     .chip-btn.no { background: var(--fail); color: #ffffff; border-color: var(--fail); }
     .grade-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 6px; }
     .grade-btn {
-      padding: 10px 6px; border-radius: 8px; border: 1px solid var(--border-strong);
-      background: #ffffff; color: var(--text); font-size: 12.5px; font-weight: 700; cursor: pointer;
-      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      padding: 12px 8px; border-radius: 8px; border: 1px solid var(--border-strong);
+      background: #ffffff; color: var(--text); font-size: 15px; font-weight: 700; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
     }
-    .grade-btn span.sub { font-size: 10.5px; font-weight: 500; color: var(--muted); }
+    .grade-btn span.sub { font-size: 12px; font-weight: 500; color: var(--muted); }
     .grade-btn.selected { background: var(--accent); color: #ffffff; border-color: var(--accent); }
     .grade-btn.selected span.sub { color: #e2e8f0; }
     .grade-btn:disabled { opacity: 0.38; cursor: not-allowed; }
@@ -281,6 +289,45 @@ QRELS_STUDIO_HTML = """<!DOCTYPE html>
         ban.innerHTML = `<strong>Completed ${done} QRELS grade(s) and ${quar} quarantined item(s).</strong> Sealed store: <code>${STATE.store_path}</code>`;
       } else { ban.style.display = "none"; }
     }
+    function cleanSyntheticPrefix(t) {
+      const s = String(t || "").trim().replace(/^(?:(?:InsurTech|EY|IBM|Slalom|Unify)\\s+)?graph\\s+evidence\\s+supports\\s+/i, "");
+      return s ? (s.charAt(0).toUpperCase() + s.slice(1)) : "";
+    }
+    function renderStructuredCandidate(container, rawText) {
+      container.innerHTML = "";
+      const segs = String(rawText || "").split(/\\s*\\|\\s*(?=\\[(?:Claim|Outcomes|Evidence)\\])/i);
+      let matched = false;
+      let claimLower = "";
+      segs.forEach(seg => {
+        const p = seg.trim();
+        if (/^\\[claim\\]/i.test(p)) {
+          matched = true;
+          const cleanClaim = cleanSyntheticPrefix(p.replace(/^\\[claim\\]\\s*/i, ""));
+          claimLower = cleanClaim.toLowerCase();
+          const tag = document.createElement("div"); tag.className = "cand-section-tag"; tag.textContent = "Claim";
+          const body = document.createElement("div"); body.className = "cand-claim"; body.textContent = cleanClaim;
+          container.appendChild(tag); container.appendChild(body);
+        } else if (/^\\[outcomes\\]/i.test(p)) {
+          matched = true;
+          const items = p.replace(/^\\[outcomes\\]\\s*/i, "").split(";").map(s => cleanSyntheticPrefix(s.replace(/\\.$/, ""))).filter(s => s && s.toLowerCase() !== claimLower);
+          if (items.length > 0) {
+            const tag = document.createElement("div"); tag.className = "cand-section-tag"; tag.textContent = "Outcomes";
+            const ul = document.createElement("ul"); ul.className = "cand-outcomes";
+            items.forEach(o => { const li = document.createElement("li"); li.textContent = o; ul.appendChild(li); });
+            container.appendChild(tag); container.appendChild(ul);
+          }
+        } else if (/^\\[evidence\\]/i.test(p)) {
+          matched = true;
+          const evText = p.replace(/^\\[evidence\\]\\s*/i, "").trim();
+          if (evText && evText.toLowerCase() !== claimLower) {
+            const tag = document.createElement("div"); tag.className = "cand-section-tag"; tag.textContent = "Evidence";
+            const ev = document.createElement("div"); ev.className = "cand-evidence"; ev.textContent = evText;
+            container.appendChild(tag); container.appendChild(ev);
+          }
+        }
+      });
+      if (!matched) { container.textContent = cleanSyntheticPrefix(rawText); }
+    }
     function isCappedAt1() {
       return (STATE.atomic_checks || []).some(c => c.caps_grade_at_1_when_false && DRAFT.atomic[c.id] === false);
     }
@@ -292,7 +339,7 @@ QRELS_STUDIO_HTML = """<!DOCTYPE html>
         `<span class="badge">section: ${it.target_section || "general"}</span>` +
         `<span class="badge">sha256: ${(it.artifact_sha256 || "").slice(0, 14)}...</span>`;
       document.getElementById("promptBox").textContent = it.query_text || "(No query)";
-      document.getElementById("candidateBox").textContent = it.core_statement || "(Empty core statement)";
+      renderStructuredCandidate(document.getElementById("candidateBox"), it.core_statement || "(Empty core statement)");
       const evList = document.getElementById("evidenceList"); evList.innerHTML = "";
       const excerpts = it.source_evidence_excerpts || [];
       if (excerpts.length === 0) {

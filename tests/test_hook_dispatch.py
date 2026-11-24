@@ -1009,6 +1009,47 @@ Tweak compiler.py without artificial pipeline-bundling rejection.
         self.assertEqual(res_boost.returncode, 0)
         self.assertEqual(json.loads(res_boost.stdout.strip()).get("injectSteps"), [])
 
+    def test_pre_file_write_blocks_adhoc_labeling_html_and_in_place_brain_html_overwrite(self) -> None:
+        """handle_pre_file_write must enforce INV-CENTRALIZED-LABELING-STUDIO-ONLY and INV-HTML-ARTIFACT-IMMUTABLE-CACHE."""
+        import tempfile
+        from tools.hook_dispatch import evaluate_centralized_labeling_studio_guard
+
+        # 1. One-off QRELS/calibration HTML file is blocked anywhere outside core-governance/mcp/
+        blocked_qrels, reason_qrels = evaluate_centralized_labeling_studio_guard(
+            "/Users/amitayer/.gemini/antigravity/brain/conv-1/qrels_batch_1_of_5.html",
+            "<html><body>Blind QRELS Batch 1</body></html>",
+        )
+        self.assertTrue(blocked_qrels)
+        self.assertIn("CENTRALIZED_LABELING_STUDIO_REQUIRED", reason_qrels)
+
+        # 2. Canonical core-governance MCP App bundle is allowed
+        allowed_mcp, _ = evaluate_centralized_labeling_studio_guard(
+            "/Users/amitayer/.gemini/config/plugins/core-governance/mcp/ui/studio_app.html",
+            "<html><body>Human Labeling Studio</body></html>",
+        )
+        self.assertFalse(allowed_mcp)
+
+        # 3. Overwriting an existing non-labeling HTML file in /brain/ is blocked; new filename is allowed
+        with tempfile.TemporaryDirectory() as tmp:
+            brain_dir = Path(tmp) / ".gemini" / "antigravity" / "brain" / "conv-test"
+            brain_dir.mkdir(parents=True, exist_ok=True)
+            existing_html = brain_dir / "architecture_diagram.html"
+            existing_html.write_text("<html>v1</html>", encoding="utf-8")
+
+            blocked_overwrite, reason_ov = evaluate_centralized_labeling_studio_guard(
+                str(existing_html),
+                "<html>v2</html>",
+            )
+            self.assertTrue(blocked_overwrite)
+            self.assertIn("HTML_ARTIFACT_IMMUTABLE_CACHE_BLOCK", reason_ov)
+
+            new_html = brain_dir / "architecture_diagram_a1b2c3d4.html"
+            allowed_new, _ = evaluate_centralized_labeling_studio_guard(
+                str(new_html),
+                "<html>v2</html>",
+            )
+            self.assertFalse(allowed_new)
+
 
 if __name__ == "__main__":
     unittest.main()
