@@ -345,7 +345,12 @@ def finalize_wave2_and_wave3(repo_root: Path) -> dict[str, Any]:
     }
 
 
-def cmd_bind_studio(repo_root: Path, batch_index: int = 1) -> dict[str, Any]:
+def cmd_bind_studio(
+    repo_root: Path,
+    batch_index: int = 1,
+    *,
+    plugin_data_dirs: Sequence[Path] | None = None,
+) -> dict[str, Any]:
     """Bind the active repository QRELS queue and ledger to the centralized core-governance Human Labeling Studio."""
     qdir = repo_root / "data/qrels"
     queue_path = (qdir / "hitl_qrels_queue.v1.json").resolve()
@@ -355,21 +360,40 @@ def cmd_bind_studio(repo_root: Path, batch_index: int = 1) -> dict[str, Any]:
     fp = compute_batch_fingerprint(batch_items, batch_index=batch_index)
 
     cfg = {
+        "project_id": "agents",
         "mode": "qrels_4up",
-        "repo_label": "agents",
+        "repo_label": "Agents",
         "queue_path": str(queue_path),
         "ledger_path": str(ledger_path),
         "batch_index": int(batch_index),
         "session_sha256": fp,
     }
-    plugin_data_dirs = [
+    target_dirs = list(plugin_data_dirs) if plugin_data_dirs is not None else [
+        Path.home() / ".gemini/antigravity/plugin_data/core-governance",
         Path.home() / ".gemini/config/plugins/core-governance/.local_data",
         Path.home() / ".gemini/antigravity/plugins/core-governance",
     ]
     written_paths: list[str] = []
-    for d in plugin_data_dirs:
+    for d in target_dirs:
         try:
             d.mkdir(parents=True, exist_ok=True)
+            sessions_path = d / "sessions.json"
+            registry: dict[str, Any] = {
+                "schema_version": "2.0.0",
+                "last_active_project_id": "agents",
+                "projects": {},
+            }
+            if sessions_path.is_file():
+                try:
+                    loaded = json.loads(sessions_path.read_text(encoding="utf-8"))
+                    if isinstance(loaded, dict) and isinstance(loaded.get("projects"), dict):
+                        registry["projects"] = dict(loaded["projects"])
+                except (OSError, ValueError, TypeError):
+                    pass
+            registry["projects"]["agents"] = dict(cfg)
+            registry["last_active_project_id"] = "agents"
+            sessions_path.write_text(json.dumps(registry, indent=2) + "\n", encoding="utf-8")
+
             target = d / "active_session.json"
             target.write_text(json.dumps(cfg, indent=2) + "\n", encoding="utf-8")
             written_paths.append(str(target))
@@ -378,6 +402,7 @@ def cmd_bind_studio(repo_root: Path, batch_index: int = 1) -> dict[str, Any]:
     return {
         "status": "PASS",
         "studio_resource_uri": "ui://labeling-studio/app.html",
+        "project_id": "agents",
         "batch_index": int(batch_index),
         "session_sha256": fp,
         "queue_path": str(queue_path),
