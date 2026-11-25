@@ -2,8 +2,8 @@
 
 Verifies:
 1. tools/verify_release_gate.py executes and emits canonical release receipts and manifests.
-2. tools/lint_architecture_boundaries.py enforces domain storage isolation, sys.path purity, and file budgets.
-3. AST detection correctly catches synthetic violations of concrete storage imports and sys.path mutations.
+2. tools/lint_architecture_boundaries.py enforces domain storage isolation, sys.path purity, and layer boundaries.
+3. AST detection correctly catches synthetic violations of concrete storage imports, layer leaks, and sys.path mutations.
 4. Repository configuration runs warning-free without Pydantic deprecation or pytest config warnings.
 5. All 6 Wave test suites exist and maintain full architectural convergence.
 """
@@ -18,6 +18,7 @@ import pytest
 from tools.lint_architecture_boundaries import (
     FORBIDDEN_STORAGE_MODULES,
     check_domain_storage_isolation,
+    check_layer_boundaries,
     check_sys_path_purity,
     run_architecture_linter,
 )
@@ -54,8 +55,26 @@ def test_lint_architecture_boundaries_clean_repo() -> None:
     assert results["status"] == "PASS"
     assert results["total_violation_count"] == 0
     assert results["checks"]["domain_storage_isolation"]["status"] == "PASS"
+    assert results["checks"]["layer_boundaries"]["status"] == "PASS"
     assert results["checks"]["sys_path_purity"]["status"] == "PASS"
-    assert results["checks"]["file_budgets"]["status"] == "PASS"
+    assert "file_budgets" not in results["checks"]
+
+
+def test_lint_layer_boundaries_catches_leaks(tmp_path: Path) -> None:
+    """Verify AST scanner detects CLI framework and concrete persistence leaks in orchestration services."""
+    services_dir = tmp_path / "agents" / "orchestration" / "services"
+    services_dir.mkdir(parents=True)
+    bad_file = services_dir / "bad_layer.py"
+    bad_file.write_text(
+        "import argparse\n"
+        "import sqlite3\n",
+        encoding="utf-8",
+    )
+
+    violations = check_layer_boundaries(services_dir)
+    assert len(violations) == 2
+    assert any("argparse" in v for v in violations)
+    assert any("sqlite3" in v for v in violations)
 
 
 def test_lint_domain_storage_isolation_catches_violations(tmp_path: Path) -> None:
