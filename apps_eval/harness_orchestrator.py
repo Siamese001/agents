@@ -221,6 +221,15 @@ def _probe_apps_lic_bundle(
     target_dir = existing_bundle_dir
     if target_dir is None:
         bundle_dir.mkdir(parents=True, exist_ok=True)
+        py_parts = [
+            str(repo_root),
+            str(repo_root / "outreach_engine" / "src"),
+            str(repo_root / "resume_graph_engine" / "src"),
+        ]
+        existing_py = os.environ.get("PYTHONPATH", "").strip()
+        if existing_py:
+            py_parts.append(existing_py)
+        sub_env = {**os.environ, "PYTHONPATH": os.pathsep.join(py_parts)}
         proc = subprocess.run(
             [
                 python_bin,
@@ -235,6 +244,7 @@ def _probe_apps_lic_bundle(
                 "--json",
             ],
             cwd=str(repo_root),
+            env=sub_env,
             capture_output=True,
             text=True,
             timeout=60,

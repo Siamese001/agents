@@ -45,7 +45,8 @@ from apps_lic.runtime.whole_run_exit import evaluate_whole_run_exit
 class OutreachDraftAndValidationBase:
     """Base orchestrator implementing briefing resolution, draft generation, and validation."""
 
-    def __init__(self) -> None:
+    def __init__(self, *, offline_smoke: bool = False) -> None:
+        self.offline_smoke = bool(offline_smoke)
         self.compiler = PromptCompiler()
         self.sequence_planner = TouchSequencePlanner()
         self.spam_validator = SpamTriggerValidator()
@@ -440,7 +441,7 @@ class OutreachDraftAndValidationBase:
 
         verdict = self.judge.evaluate_authoritative(draft, candidate, opportunity)
         ide_cli_payload: dict[str, Any] | None = None
-        if verdict.hard_gate_passed and resolve_lic_judge_transport() == "ide_cli":
+        if verdict.hard_gate_passed and not self.offline_smoke and resolve_lic_judge_transport() == "ide_cli":
             ide_cli_payload = dict(self.judge.evaluate_ide_cli(draft, candidate, opportunity))
             draft.metadata["ide_cli_judge"] = ide_cli_payload
             if not bool(ide_cli_payload.get("passed", False)):

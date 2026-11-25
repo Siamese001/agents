@@ -1038,6 +1038,7 @@
     let activeConfidenceFilter = "ALL";
     let enabledTypes = new Set(Object.keys(TYPE_META));
     let isolateHopDepth = 1; // 0 = Off, 1 = 1-Hop, 2 = 2-Hop, 3 = 3-Hop
+    let userLockedHopDepth = false;
     let graphShowFullTopology = false;
     let selectedNode = null;
     let selectedEdge = null;
@@ -1057,6 +1058,28 @@
     let simSleeping = true;
     let rafId = null;
     const labelWidthCache = new Map();
+
+    const SCOPE_DEFAULT_HUB = {
+      all: ROOT_NODE_ID,
+      backbone: ROOT_NODE_ID,
+      policy_guardrails: "policy_external_claim_policy",
+      projections_layer: "section_executive_summary",
+      track_genai_agentic: "track_genai_agentic",
+      track_data_tech_cloud_ml: "track_data_tech_cloud_ml",
+      track_actuarial_risk_derivatives: "track_actuarial_risk_derivatives",
+      epoch_ai_platform_commercialization: "epoch_ai_platform_commercialization",
+      epoch_agentic_ai_runtime_architecture: "epoch_agentic_ai_runtime_architecture",
+      epoch_partner_gtm_revenue_leadership: "epoch_partner_gtm_revenue_leadership",
+      epoch_cloud_data_platform_engineering: "epoch_cloud_data_platform_engineering",
+      epoch_enterprise_risk_governance: "epoch_enterprise_risk_governance",
+      epoch_actuarial_financial_engineering: "epoch_actuarial_financial_engineering",
+      emp_slalom: "employment_exp_slalom_001",
+      emp_unify: "employment_exp_unify_001",
+      emp_ibm: "employment_exp_ibm_001",
+      emp_insurtech: "employment_exp_insurtech_001",
+      emp_ey: "employment_exp_ey_001",
+      emp_early: "employment_exp_early_career_001"
+    };
 
     function initialPosition(idx) {
       const golden = Math.PI * (3 - Math.sqrt(5));
@@ -1095,6 +1118,7 @@
         const ex = dirMap.get(key);
         if (rawE.mat === "critical") ex.mat = "critical";
         if (rawE.traversable !== false) ex.traversable = true;
+        if (ex.role === "backbone_governance" && rawE.role !== "backbone_governance") ex.role = rawE.role;
         if (rawE.confidence > ex.confidence) ex.confidence = rawE.confidence;
         if (rawE.label && !ex.label.includes(rawE.label) && ex.label.split(" / ").length < 2) {
           ex.label = `${ex.label} / ${rawE.label}`;
@@ -1223,6 +1247,8 @@
       return (
         activeLayout === "hierarchy" &&
         !graphShowFullTopology &&
+        !userLockedHopDepth &&
+        egoPinnedIds.size === 0 &&
         (state.scope === "all" || state.scope === "backbone") &&
         !state.search.trim() &&
         activeConfidenceFilter === "ALL" &&
@@ -1240,8 +1266,9 @@
     function canExpandIntermediateHop(centerNode, curNode, edgeObj, hopIndex) {
       if (!centerNode || !curNode) return false;
       if (hopIndex <= 1 || curNode.id === centerNode.id) return true;
-      // Never bounce at hop >= 2 through root identity or non-traversable broadcast hubs (e.g. Executive Summary w/ 339 edges)
-      if (curNode.id === ROOT_NODE_ID || NON_TRAVERSABLE_BRIDGE_RAW_TYPES.has(curNode.rawType)) return false;
+      if (curNode.id === ROOT_NODE_ID) return false;
+      if (edgeObj && edgeObj.role === "backbone_governance") return false;
+      if (NON_TRAVERSABLE_BRIDGE_RAW_TYPES.has(curNode.rawType)) return false;
       if (edgeObj && edgeObj.traversable === false) return false;
       // When inspecting a specific pillar/domain/skill/engagement/evidence node, do not bounce up into a broad track/epoch/employer and back down into unrelated career eras
       if (!BROAD_CONTAINER_RAW_TYPES.has(centerNode.rawType) && centerNode.id !== ROOT_NODE_ID) {
@@ -1255,8 +1282,11 @@
     function getVisibleNodes() {
       const q = state.search.trim().toLowerCase();
       const useCleanBackbone =
-        (state.scope === "all" || state.scope === "backbone") &&
+        activeLayout === "hierarchy" &&
         !graphShowFullTopology &&
+        !userLockedHopDepth &&
+        egoPinnedIds.size === 0 &&
+        (state.scope === "all" || state.scope === "backbone") &&
         !q &&
         enabledTypes.size === Object.keys(TYPE_META).length &&
         (!selectedNode || selectedNode.id === ROOT_NODE_ID) &&
@@ -1266,39 +1296,127 @@
         return nodes.filter((n) => n.coreBackbone);
       }
 
-      const isAllowedNode = (n) => {
+      const expandBackboneBeyondSpine =
+        state.scope === "backbone" &&
+        (userLockedHopDepth || activeLayout !== "hierarchy" || (selectedNode && selectedNode.id !== ROOT_NODE_ID));
+
+      const isBridgeAllowed = (n) => {
         if (activeShortestPathNodeIds.has(n.id) || egoPinnedIds.has(n.id)) return true;
-        if (selectedNode && n.id === selectedNode.id) return true;
+        if (selectedNode && n.id === selectedNode.id && (!q || userLockedHopDepth)) return true;
         if (!q && mainConnectedIds.size > 0 && !mainConnectedIds.has(n.id)) return false;
-        if (!enabledTypes.has(n.type)) return false;
-        if (state.scope === "backbone") return n.coreBackbone;
-        if (state.scope !== "all" && !n.cluster.includes(state.scope) && n.id !== state.scope) return false;
-        if (q) {
-          const hay = `${n.label} ${n.id} ${n.rawType} ${n.employer} ${n.pillar} ${n.desc}`.toLowerCase();
-          if (!hay.includes(q)) return false;
+        if (state.scope === "backbone") {
+          return expandBackboneBeyondSpine ? true : Boolean(n.coreBackbone);
         }
+        if (state.scope !== "all" && !n.cluster.includes(state.scope) && n.id !== state.scope) return false;
         return true;
       };
 
-      const allowedList = nodes.filter(isAllowedNode);
-      const allowedSet = new Set(allowedList.map((n) => n.id));
+      const bridgeList = nodes.filter(isBridgeAllowed);
+      const bridgeSet = new Set(bridgeList.map((n) => n.id));
 
-      // Apply multi-hop neighborhood isolation strictly over allowedSet so zero nodes can ever become stranded/disconnected
-      if (selectedNode && isolateHopDepth > 0 && !q) {
-        const keep = new Set([selectedNode.id, ...activeShortestPathNodeIds]);
-        egoPinnedIds.forEach((id) => { if (allowedSet.has(id)) keep.add(id); });
+      // Active free-text search in #searchInput (without dropdown node pick)
+      if (q) {
+        const seedMatches = bridgeList.filter((n) => {
+          const hay = `${n.label} ${n.id} ${n.rawType} ${n.employer} ${n.pillar} ${n.desc}`.toLowerCase();
+          return hay.includes(q);
+        });
+        if (!userLockedHopDepth || isolateHopDepth === 0 || !seedMatches.length) {
+          return seedMatches.filter((n) => enabledTypes.has(n.type) || activeShortestPathNodeIds.has(n.id) || egoPinnedIds.has(n.id));
+        }
+        const visitedSearch = new Set(seedMatches.map((n) => n.id));
+        const parentSearch = new Map();
+        let searchFrontier = new Set(visitedSearch);
+        const anchorNode = seedMatches[0];
+        for (let h = 1; h <= isolateHopDepth; h++) {
+          const nextF = new Set();
+          for (const cid of searchFrontier) {
+            const curNode = nodeById.get(cid);
+            for (const { otherId, edge } of fullAdjEdges.get(cid) || []) {
+              if (!bridgeSet.has(otherId) || visitedSearch.has(otherId)) continue;
+              if (h >= 2) {
+                if (otherId === ROOT_NODE_ID || (edge && edge.role === "backbone_governance")) continue;
+                if (!canExpandIntermediateHop(anchorNode, curNode, edge, h)) continue;
+                const tNode = nodeById.get(otherId);
+                if (tNode && NON_TRAVERSABLE_BRIDGE_RAW_TYPES.has(tNode.rawType)) continue;
+              }
+              visitedSearch.add(otherId);
+              parentSearch.set(otherId, cid);
+              nextF.add(otherId);
+            }
+          }
+          searchFrontier = nextF;
+          if (!searchFrontier.size) break;
+        }
+        const searchKeep = new Set();
+        seedMatches.forEach((n) => searchKeep.add(n.id));
+        for (const nid of visitedSearch) {
+          const nd = nodeById.get(nid);
+          if (nd && enabledTypes.has(nd.type)) {
+            let curAnc = nid;
+            while (curAnc && !searchKeep.has(curAnc)) {
+              searchKeep.add(curAnc);
+              curAnc = parentSearch.get(curAnc) || null;
+            }
+          }
+        }
+        return bridgeList.filter((n) => searchKeep.has(n.id));
+      }
+
+      // Bridge-first multi-hop BFS around selectedNode, retaining minimal intermediate bridges when type pills are filtered
+      if (selectedNode && isolateHopDepth > 0) {
+        const visitedBfs = new Set([selectedNode.id, ...activeShortestPathNodeIds]);
+        const parentOf = new Map();
+        egoPinnedIds.forEach((id) => {
+          if (bridgeSet.has(id)) {
+            visitedBfs.add(id);
+            parentOf.set(id, selectedNode.id);
+          }
+        });
         let frontier = new Set([selectedNode.id]);
+        const centerIsGovOrProj = NON_TRAVERSABLE_BRIDGE_RAW_TYPES.has(selectedNode.rawType);
+
         for (let h = 1; h <= isolateHopDepth; h++) {
           const nextF = new Set();
           for (const cid of frontier) {
             const curNode = nodeById.get(cid);
-            for (const { otherId, edge } of fullAdjEdges.get(cid) || []) {
-              if (!allowedSet.has(otherId) || keep.has(otherId)) continue;
-              if (!canExpandIntermediateHop(selectedNode, curNode, edge, h)) continue;
-              // At hop >= 2, also avoid pulling leaf role_family / section / policy broadcast targets unless explicitly pinned
-              const targetNode = nodeById.get(otherId);
-              if (h >= 2 && targetNode && NON_TRAVERSABLE_BRIDGE_RAW_TYPES.has(targetNode.rawType)) continue;
-              keep.add(otherId);
+            if (!curNode) continue;
+            const inc = fullAdjEdges.get(cid) || [];
+
+            if (h >= 2 && cid !== selectedNode.id && centerIsGovOrProj && NON_TRAVERSABLE_BRIDGE_RAW_TYPES.has(curNode.rawType)) {
+              const govSibs = [];
+              const govTargets = [];
+              for (const { otherId, edge } of inc) {
+                if (!bridgeSet.has(otherId) || visitedBfs.has(otherId) || otherId === ROOT_NODE_ID) continue;
+                if (edge && edge.role === "backbone_governance") continue;
+                const tNode = nodeById.get(otherId);
+                if (!tNode) continue;
+                if (NON_TRAVERSABLE_BRIDGE_RAW_TYPES.has(tNode.rawType)) {
+                  govSibs.push(otherId);
+                } else {
+                  govTargets.push(tNode);
+                }
+              }
+              govTargets.sort((a, b) => (b.confidence - a.confidence) || ((b.degree || 0) - (a.degree || 0)) || a.id.localeCompare(b.id));
+              const chosen = [...govSibs, ...govTargets.slice(0, 24).map((t) => t.id)];
+              for (const nbId of chosen) {
+                if (visitedBfs.has(nbId)) continue;
+                visitedBfs.add(nbId);
+                parentOf.set(nbId, cid);
+                nextF.add(nbId);
+              }
+              continue;
+            }
+
+            for (const { otherId, edge } of inc) {
+              if (!bridgeSet.has(otherId) || visitedBfs.has(otherId)) continue;
+              if (h >= 2 && cid !== selectedNode.id) {
+                if (otherId === ROOT_NODE_ID || (edge && edge.role === "backbone_governance")) continue;
+                if (!canExpandIntermediateHop(selectedNode, curNode, edge, h)) continue;
+                const targetNode = nodeById.get(otherId);
+                if (targetNode && NON_TRAVERSABLE_BRIDGE_RAW_TYPES.has(targetNode.rawType)) continue;
+              }
+              visitedBfs.add(otherId);
+              parentOf.set(otherId, cid);
               nextF.add(otherId);
             }
           }
@@ -1306,9 +1424,24 @@
           if (!frontier.size) break;
         }
 
+        // Apply enabledTypes after BFS while retaining minimal ancestor bridges so zero nodes float disconnected
+        const keep = new Set([selectedNode.id, ...activeShortestPathNodeIds]);
+        egoPinnedIds.forEach((id) => { if (bridgeSet.has(id)) keep.add(id); });
+        for (const nid of visitedBfs) {
+          const nd = nodeById.get(nid);
+          if (!nd) continue;
+          if (nid === selectedNode.id || enabledTypes.has(nd.type)) {
+            let curAnc = nid;
+            while (curAnc && !keep.has(curAnc)) {
+              keep.add(curAnc);
+              curAnc = parentOf.get(curAnc) || null;
+            }
+          }
+        }
+
         // Enforce strict connected-component closure from selectedNode over visible edges
         const connected = new Set([selectedNode.id, ...activeShortestPathNodeIds]);
-        const cq = [selectedNode.id];
+        const cq = [selectedNode.id, ...activeShortestPathNodeIds];
         while (cq.length) {
           const cur = cq.shift();
           for (const nb of fullAdj.get(cur) || []) {
@@ -1318,10 +1451,16 @@
             }
           }
         }
-        return allowedList.filter((n) => connected.has(n.id));
+        return bridgeList.filter((n) => connected.has(n.id));
       }
 
-      return allowedList;
+      // Depth: Off (isolateHopDepth === 0)
+      const soloTypeMode = enabledTypes.size === 1;
+      return bridgeList.filter((n) => {
+        if (activeShortestPathNodeIds.has(n.id) || egoPinnedIds.has(n.id)) return true;
+        if (!soloTypeMode && selectedNode && n.id === selectedNode.id) return true;
+        return enabledTypes.has(n.type);
+      });
     }
 
     function getVisibleEdges(visSet) {
@@ -1400,111 +1539,269 @@
       });
     }
 
+    function resolveCollisions(vis, minPad, pinNode, passes = 2) {
+      const nLen = vis.length;
+      for (let pass = 0; pass < passes; pass++) {
+        let maxOverlap = 0;
+        for (let i = 0; i < nLen; i++) {
+          const a = vis[i];
+          for (let j = i + 1; j < nLen; j++) {
+            const b = vis[j];
+            let dx = b.x - a.x;
+            let dy = b.y - a.y;
+            if (Math.abs(dx) < 0.05 && Math.abs(dy) < 0.05) {
+              const ang = ((i * 37 + j * 91) % 360) * (Math.PI / 180);
+              dx = Math.cos(ang) * 0.5;
+              dy = Math.sin(ang) * 0.5;
+            }
+            const dist = Math.hypot(dx, dy) || 0.1;
+            const minSep = (a.r || 10) + (b.r || 10) + minPad;
+            if (dist < minSep) {
+              const overlap = minSep - dist;
+              if (overlap > maxOverlap) maxOverlap = overlap;
+              const push = overlap * 0.58;
+              const ux = dx / dist;
+              const uy = dy / dist;
+              const aPinned = (draggingNode && draggingNode.id === a.id) || (pinNode && pinNode.id === a.id);
+              const bPinned = (draggingNode && draggingNode.id === b.id) || (pinNode && pinNode.id === b.id);
+              if (!aPinned && !bPinned) {
+                a.x -= ux * push; a.y -= uy * push;
+                b.x += ux * push; b.y += uy * push;
+              } else if (!aPinned) {
+                a.x -= ux * push * 2; a.y -= uy * push * 2;
+              } else if (!bPinned) {
+                b.x += ux * push * 2; b.y += uy * push * 2;
+              }
+            }
+          }
+        }
+        if (maxOverlap < 0.25) break;
+      }
+    }
+
+    function spreadFocusedNeighborhood(vis, visEdges) {
+      if (!vis.length) return;
+      const center = (selectedNode && vis.some((n) => n.id === selectedNode.id))
+        ? selectedNode
+        : (vis.find((n) => n.id === ROOT_NODE_ID) || vis[0]);
+      if (!center) return;
+
+      const visAdj = new Map(vis.map((n) => [n.id, []]));
+      for (const e of visEdges) {
+        visAdj.get(e.source.id)?.push(e.target.id);
+        visAdj.get(e.target.id)?.push(e.source.id);
+      }
+
+      const hopOf = new Map([[center.id, 0]]);
+      const parentOf = new Map([[center.id, null]]);
+      const ringBuckets = new Map([[0, [center]]]);
+      const q = [center.id];
+      while (q.length) {
+        const cur = q.shift();
+        const d = hopOf.get(cur);
+        for (const nb of visAdj.get(cur) || []) {
+          if (!hopOf.has(nb)) {
+            const nd = nodeById.get(nb);
+            if (!nd) continue;
+            hopOf.set(nb, d + 1);
+            parentOf.set(nb, cur);
+            if (!ringBuckets.has(d + 1)) ringBuckets.set(d + 1, []);
+            ringBuckets.get(d + 1).push(nd);
+            q.push(nb);
+          }
+        }
+      }
+
+      const c1 = (ringBuckets.get(1) || []).length;
+      const c2 = (ringBuckets.get(2) || []).length;
+      const c3 = Array.from(ringBuckets.entries()).reduce((acc, [k, arr]) => acc + (k >= 3 ? arr.length : 0), 0);
+      const r1 = Math.max(190, 165 + Math.min(180, c1 * 2.8));
+      const r2 = Math.max(345, r1 + 155 + Math.min(220, c2 * 1.25));
+      const r3 = Math.max(505, r2 + 160 + Math.min(260, c3 * 0.72));
+      const ringRadiusFor = (h) => (h <= 0 ? 0 : (h === 1 ? r1 : (h === 2 ? r2 : r3 + (h - 3) * 135)));
+
+      center.x = 0; center.y = 0; center.vx = 0; center.vy = 0;
+      center._pinnedX = 0; center._pinnedY = 0;
+      center._hopRing = 0; center._targetRadius = 0; center._seedAng = 0;
+
+      const ring1 = (ringBuckets.get(1) || []).slice().sort((a, b) => a.type.localeCompare(b.type) || a.label.localeCompare(b.label) || a.id.localeCompare(b.id));
+      ring1.forEach((n, idx) => {
+        const ang = (idx / Math.max(1, ring1.length)) * Math.PI * 2 - Math.PI / 2;
+        const rad = r1 + (idx % 2) * 14;
+        n.x = Math.cos(ang) * rad;
+        n.y = Math.sin(ang) * rad;
+        n.vx = 0; n.vy = 0;
+        n._hopRing = 1;
+        n._targetRadius = r1;
+        n._seedAng = ang;
+      });
+
+      const maxRing = Math.max(0, ...ringBuckets.keys());
+      for (let h = 2; h <= maxRing; h++) {
+        const arr = ringBuckets.get(h) || [];
+        const tgtR = ringRadiusFor(h);
+        // Order each ring by the mean angle of its neighbors in the inner ring so multi-hop subtrees fan outward without crossing
+        const scored = arr.map((n) => {
+          const innerAngles = [];
+          for (const nbId of visAdj.get(n.id) || []) {
+            if ((hopOf.get(nbId) ?? 99) < h) {
+              const nbNode = nodeById.get(nbId);
+              if (nbNode && typeof nbNode._seedAng === "number") innerAngles.push(nbNode._seedAng);
+            }
+          }
+          let meanAng = 0;
+          if (innerAngles.length) {
+            const sx = innerAngles.reduce((s, a) => s + Math.cos(a), 0);
+            const sy = innerAngles.reduce((s, a) => s + Math.sin(a), 0);
+            meanAng = Math.atan2(sy, sx);
+          } else {
+            const pNode = parentOf.get(n.id) ? nodeById.get(parentOf.get(n.id)) : null;
+            meanAng = pNode && typeof pNode._seedAng === "number" ? pNode._seedAng : 0;
+          }
+          return { node: n, meanAng };
+        }).sort((a, b) => (a.meanAng - b.meanAng) || a.node.type.localeCompare(b.node.type) || a.node.id.localeCompare(b.node.id));
+
+        const sectorSpan = Math.min(Math.PI * 2, Math.max(0.5, arr.length * 0.08));
+        scored.forEach((entry, idx) => {
+          const n = entry.node;
+          const evenAng = (idx / Math.max(1, scored.length)) * Math.PI * 2 - Math.PI / 2;
+          // Blend parent sector angle with uniform angular rank so dense 2-hop/3-hop rings never bunch on one spoke
+          const blend = scored.length > 28 ? 0.58 : 0.25;
+          const sx = Math.cos(entry.meanAng) * (1 - blend) + Math.cos(evenAng) * blend;
+          const sy = Math.sin(entry.meanAng) * (1 - blend) + Math.sin(evenAng) * blend;
+          const ang = Math.atan2(sy, sx) + ((idx % 3) - 1) * (sectorSpan / Math.max(12, scored.length * 2));
+          const rad = tgtR + ((idx % 3) - 1) * 16;
+          n.x = Math.cos(ang) * rad;
+          n.y = Math.sin(ang) * rad;
+          n.vx = 0; n.vy = 0;
+          n._hopRing = h;
+          n._targetRadius = tgtR;
+          n._seedAng = ang;
+        });
+      }
+
+      // Place any disconnected nodes (e.g. solo type-pill filter in Depth: Off) on outer phyllotaxis spiral
+      let orphanIdx = 0;
+      const outerBase = ringRadiusFor(Math.max(2, maxRing)) + 140;
+      vis.forEach((n) => {
+        if (hopOf.has(n.id)) return;
+        const golden = Math.PI * (3 - Math.sqrt(5));
+        const ang = orphanIdx * golden;
+        const rad = outerBase + Math.sqrt(orphanIdx + 1) * 52;
+        orphanIdx++;
+        n.x = Math.cos(ang) * rad;
+        n.y = Math.sin(ang) * rad;
+        n.vx = 0; n.vy = 0;
+        n._hopRing = maxRing + 1;
+        n._targetRadius = rad;
+        n._seedAng = ang;
+      });
+    }
+
     function stepForce(vis, visEdges) {
       const nLen = vis.length;
       if (nLen <= 1) return 0;
-      const repulse = nLen > 300 ? 1900 : 3400;
-      const stepJ = nLen > 240 ? Math.ceil(nLen / 180) : 1;
+      const focusedMode = Boolean(selectedNode && isolateHopDepth > 0 && vis.some((n) => n.id === selectedNode.id));
+      const pinCenter = focusedMode ? selectedNode : null;
+      const repulse = nLen > 450 ? 2500 : (nLen > 200 ? 3200 : 3800);
+      const minPad = nLen > 450 ? 9 : 14;
+
+      const visDeg = new Map();
+      for (const e of visEdges) {
+        visDeg.set(e.source.id, (visDeg.get(e.source.id) || 0) + 1);
+        visDeg.set(e.target.id, (visDeg.get(e.target.id) || 0) + 1);
+      }
+
+      // All-pairs repulsion (stepJ = 1) + coincident jitter + radial concentric restoring shell
       for (let i = 0; i < nLen; i++) {
         const a = vis[i];
-        a.vx += -a.x * 0.0022;
-        a.vy += -a.y * 0.0022;
-        for (let j = i + 1; j < nLen; j += stepJ) {
+        if (focusedMode && a.id !== selectedNode.id) {
+          const rCur = Math.hypot(a.x, a.y) || 1;
+          const rTgt = a._targetRadius || 190;
+          a.vx += ((a.x / rCur) * rTgt - a.x) * 0.024;
+          a.vy += ((a.y / rCur) * rTgt - a.y) * 0.024;
+        } else if (!focusedMode) {
+          a.vx += -a.x * 0.0020;
+          a.vy += -a.y * 0.0020;
+        }
+        for (let j = i + 1; j < nLen; j++) {
           const b = vis[j];
-          const dx = b.x - a.x;
-          const dy = b.y - a.y;
-          const d2 = dx * dx + dy * dy + 16;
-          const f = repulse / d2;
-          const d = Math.sqrt(d2);
-          const fx = (dx / d) * f;
-          const fy = (dy / d) * f;
+          let dx = b.x - a.x;
+          let dy = b.y - a.y;
+          if (Math.abs(dx) < 0.05 && Math.abs(dy) < 0.05) {
+            const jitterAng = ((i * 37 + j * 91) % 360) * (Math.PI / 180);
+            dx = Math.cos(jitterAng) * 0.5;
+            dy = Math.sin(jitterAng) * 0.5;
+          }
+          const d2 = dx * dx + dy * dy;
+          const dist = Math.sqrt(d2) || 0.1;
+          const f = repulse / (d2 + 36);
+          const fx = (dx / dist) * f;
+          const fy = (dy / dist) * f;
           a.vx -= fx; a.vy -= fy;
           b.vx += fx; b.vy += fy;
+
+          const minSep = (a.r || 10) + (b.r || 10) + minPad;
+          if (dist < minSep) {
+            const push = (minSep - dist) * 0.28;
+            const ux = dx / dist;
+            const uy = dy / dist;
+            a.vx -= ux * push; a.vy -= uy * push;
+            b.vx += ux * push; b.vy += uy * push;
+          }
         }
       }
-      const springLen = nLen > 250 ? 105 : 128;
+
+      // Hop-ring and degree-normalized springs (D3-style hub attenuation prevents super-hub pileups)
       for (const e of visEdges) {
         const dx = e.target.x - e.source.x;
         const dy = e.target.y - e.source.y;
         const d = Math.hypot(dx, dy) || 1;
-        const f = (d - springLen) * 0.020;
+        const dS = visDeg.get(e.source.id) || 1;
+        const dT = visDeg.get(e.target.id) || 1;
+        const degBoost = Math.min(70, Math.sqrt(dS + dT) * 6.5);
+        const hubAtten = 1 / Math.max(1, Math.pow(Math.max(dS, dT), 0.38));
+        let restLen = (nLen > 350 ? 135 : 145) + degBoost;
+        let k = 0.022 * hubAtten;
+        if (focusedMode) {
+          const hS = e.source._hopRing ?? 1;
+          const hT = e.target._hopRing ?? 1;
+          if (hS === 0 || hT === 0) {
+            restLen = Math.max(185, e.source._targetRadius || e.target._targetRadius || 190);
+            k = 0.022;
+          } else if (hS !== hT) {
+            restLen = Math.max(140, Math.abs((e.target._targetRadius || 345) - (e.source._targetRadius || 190))) + degBoost * 0.35;
+            k = 0.018 * hubAtten;
+          } else {
+            restLen = 115 + degBoost * 0.45;
+            k = 0.004 * hubAtten;
+          }
+        }
+        const f = (d - restLen) * k;
         const fx = (dx / d) * f;
         const fy = (dy / d) * f;
         e.source.vx += fx; e.source.vy += fy;
         e.target.vx -= fx; e.target.vy -= fy;
       }
+
       let energy = 0;
       for (const n of vis) {
         if (draggingNode && draggingNode.id === n.id) continue;
-        if (selectedNode && isolateHopDepth > 0 && n.id === selectedNode.id) {
-          n.x = 0; n.y = 0; n.vx = 0; n.vy = 0;
+        if (pinCenter && n.id === pinCenter.id) {
+          n.x = n._pinnedX ?? 0;
+          n.y = n._pinnedY ?? 0;
+          n.vx = 0; n.vy = 0;
           continue;
         }
-        n.vx *= 0.80;
-        n.vy *= 0.80;
-        n.x += Math.max(-24, Math.min(24, n.vx));
-        n.y += Math.max(-24, Math.min(24, n.vy));
+        n.vx *= 0.78;
+        n.vy *= 0.78;
+        n.x += Math.max(-22, Math.min(22, n.vx));
+        n.y += Math.max(-22, Math.min(22, n.vy));
         energy += Math.abs(n.vx) + Math.abs(n.vy);
       }
-      return energy / nLen;
-    }
 
-    function seedConnectedForcePositions(vis) {
-      const center = (selectedNode && vis.some((n) => n.id === selectedNode.id))
-        ? selectedNode
-        : (vis.find((n) => n.id === ROOT_NODE_ID) || vis[0]);
-      if (!center) return;
-      const visSet = new Set(vis.map((n) => n.id));
-      const parentOf = new Map([[center.id, null]]);
-      const hopOf = new Map([[center.id, 0]]);
-      const childrenOf = new Map();
-      const q = [center.id];
-      while (q.length) {
-        const cur = q.shift();
-        const d = hopOf.get(cur);
-        for (const nb of fullAdj.get(cur) || []) {
-          if (visSet.has(nb) && !hopOf.has(nb)) {
-            hopOf.set(nb, d + 1);
-            parentOf.set(nb, cur);
-            if (!childrenOf.has(cur)) childrenOf.set(cur, []);
-            childrenOf.get(cur).push(nb);
-            q.push(nb);
-          }
-        }
-      }
-      center.x = 0; center.y = 0; center.vx = 0; center.vy = 0;
-      const h1 = childrenOf.get(center.id) || [];
-      h1.forEach((id, i) => {
-        const ang = (i / Math.max(1, h1.length)) * Math.PI * 2 - Math.PI / 2;
-        const rad = 185 + Math.min(90, h1.length * 1.6);
-        const nd = nodeById.get(id);
-        nd.x = Math.cos(ang) * rad;
-        nd.y = Math.sin(ang) * rad;
-        nd.vx = 0; nd.vy = 0;
-        nd._seedAng = ang;
-      });
-      // Place 2-hop and 3-hop children radially outward in a fan around their 1-hop parent bridge
-      vis.forEach((n) => {
-        if (n.id === center.id || hopOf.get(n.id) === 1) return;
-        const pId = parentOf.get(n.id);
-        const pNode = pId ? nodeById.get(pId) : null;
-        if (pNode) {
-          const sibs = childrenOf.get(pId) || [n.id];
-          const sIdx = sibs.indexOf(n.id);
-          const baseAng = typeof pNode._seedAng === "number" ? pNode._seedAng : Math.atan2(pNode.y, pNode.x);
-          const spread = Math.min(Math.PI * 0.85, Math.max(0.35, sibs.length * 0.14));
-          const offset = sibs.length > 1 ? ((sIdx / (sibs.length - 1)) - 0.5) * spread : 0;
-          const ang = baseAng + offset;
-          const dist = 135 + (sIdx % 3) * 26;
-          n.x = pNode.x + Math.cos(ang) * dist;
-          n.y = pNode.y + Math.sin(ang) * dist;
-          n.vx = 0; n.vy = 0;
-          n._seedAng = ang;
-        } else {
-          const pos = initialPosition(0);
-          n.x = pos.x; n.y = pos.y; n.vx = 0; n.vy = 0;
-        }
-      });
+      resolveCollisions(vis, minPad, pinCenter, 1);
+      return energy / nLen;
     }
 
     function applyCurrentLayout({ fit = true } = {}) {
@@ -1518,9 +1815,12 @@
         simSleeping = true;
         applyRadialLayout(vis);
       } else {
-        seedConnectedForcePositions(vis);
-        const warm = vis.length > 350 ? 40 : 110;
+        spreadFocusedNeighborhood(vis, visEdges);
+        const warm = vis.length > 450 ? 52 : (vis.length > 180 ? 74 : 96);
         for (let i = 0; i < warm; i++) stepForce(vis, visEdges);
+        const focusedMode = Boolean(selectedNode && isolateHopDepth > 0 && vis.some((n) => n.id === selectedNode.id));
+        const minPad = vis.length > 450 ? 9 : 14;
+        resolveCollisions(vis, minPad, focusedMode ? selectedNode : null, 8);
         simSleeping = false;
         wakeSimulation();
       }
@@ -2218,8 +2518,11 @@
       });
       document.getElementById("btnExpandNeighbors")?.addEventListener("click", () => {
         for (const nb of fullAdj.get(node.id) || []) egoPinnedIds.add(nb);
-        activeLayout = "radial";
-        document.getElementById("layoutSelect").value = "radial";
+        userLockedHopDepth = true;
+        if (activeLayout === "hierarchy") {
+          activeLayout = "radial";
+          document.getElementById("layoutSelect").value = "radial";
+        }
         applyCurrentLayout({ fit: true });
         updateInspector(node);
       });
@@ -2283,6 +2586,27 @@
       return null;
     }
 
+    function zoomAroundPoint(sx, sy, factor) {
+      const nextZoom = Math.max(0.10, Math.min(3.5, camera.zoom * factor));
+      camera.x = sx - ((sx - camera.x) / camera.zoom) * nextZoom;
+      camera.y = sy - ((sy - camera.y) / camera.zoom) * nextZoom;
+      camera.zoom = nextZoom;
+      renderGraph();
+    }
+
+    function zoomAroundCenter(factor) {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      zoomAroundPoint((rect.width || 960) / 2, (rect.height || 640) / 2, factor);
+    }
+
+    function refreshInspectorQuietly() {
+      if (!selectedNode) return;
+      const prevSuppress = suppressHistoryPush;
+      suppressHistoryPush = true;
+      updateInspector(selectedNode);
+      suppressHistoryPush = prevSuppress;
+    }
+
     canvas.addEventListener("pointerdown", (e) => {
       const rect = canvas.getBoundingClientRect();
       const sx = e.clientX - rect.left, sy = e.clientY - rect.top;
@@ -2291,11 +2615,15 @@
       const hit = hitTestNode(w.x, w.y);
       if (hit) {
         draggingNode = hit;
-        canvas.setPointerCapture(e.pointerId);
+        if (typeof canvas.setPointerCapture === "function" && e.pointerId != null) {
+          try { canvas.setPointerCapture(e.pointerId); } catch (_err) {}
+        }
       } else {
         isPanning = true;
         panStart = { x: sx - camera.x, y: sy - camera.y };
-        canvas.setPointerCapture(e.pointerId);
+        if (typeof canvas.setPointerCapture === "function" && e.pointerId != null) {
+          try { canvas.setPointerCapture(e.pointerId); } catch (_err) {}
+        }
       }
     });
 
@@ -2306,6 +2634,13 @@
       if (draggingNode) {
         draggingNode.x = w.x;
         draggingNode.y = w.y;
+        draggingNode.vx = 0;
+        draggingNode.vy = 0;
+        if (selectedNode && draggingNode.id === selectedNode.id) {
+          draggingNode._pinnedX = w.x;
+          draggingNode._pinnedY = w.y;
+        }
+        if (activeLayout === "force") wakeSimulation();
         renderGraph();
         return;
       }
@@ -2347,9 +2682,14 @@
       if (moved < 6) {
         const w = screenToWorld(sx, sy);
         if (clickedNode) {
+          const wasPillOverview = isBackbonePillOverview(getVisibleNodes());
           selectedEdge = null;
           selectedNode = clickedNode;
-          applyCurrentLayout({ fit: false });
+          if (isolateHopDepth > 0 || wasPillOverview) {
+            applyCurrentLayout({ fit: wasPillOverview });
+          } else {
+            renderGraph();
+          }
           updateInspector(clickedNode);
         } else {
           const hitE = hitTestEdge(w.x, w.y);
@@ -2362,16 +2702,30 @@
       }
     });
 
+    canvas.addEventListener("dblclick", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const sx = e.clientX - rect.left, sy = e.clientY - rect.top;
+      const w = screenToWorld(sx, sy);
+      const hit = hitTestNode(w.x, w.y);
+      if (hit) {
+        selectedEdge = null;
+        selectedNode = hit;
+        if (isolateHopDepth === 0) {
+          isolateHopDepth = 1;
+          userLockedHopDepth = true;
+          document.getElementById("btnIsolateSubgraph").textContent = "Depth: 1-Hop";
+        }
+        applyCurrentLayout({ fit: true });
+        updateInspector(hit);
+      }
+    });
+
     canvas.addEventListener("wheel", (e) => {
       e.preventDefault();
       const rect = canvas.getBoundingClientRect();
       const sx = e.clientX - rect.left, sy = e.clientY - rect.top;
       const factor = e.deltaY < 0 ? 1.12 : 0.89;
-      const nextZoom = Math.max(0.10, Math.min(3.5, camera.zoom * factor));
-      camera.x = sx - ((sx - camera.x) / camera.zoom) * nextZoom;
-      camera.y = sy - ((sy - camera.y) / camera.zoom) * nextZoom;
-      camera.zoom = nextZoom;
-      renderGraph();
+      zoomAroundPoint(sx, sy, factor);
     }, { passive: false });
 
     canvas.addEventListener("keydown", (e) => {
@@ -2380,19 +2734,30 @@
       else if (e.key === "ArrowRight") { camera.x -= 45; renderGraph(); }
       else if (e.key === "ArrowUp") { camera.y += 45; renderGraph(); }
       else if (e.key === "ArrowDown") { camera.y -= 45; renderGraph(); }
-      else if (e.key === "+" || e.key === "=") { camera.zoom = Math.min(3.5, camera.zoom * 1.15); renderGraph(); }
-      else if (e.key === "-") { camera.zoom = Math.max(0.10, camera.zoom * 0.86); renderGraph(); }
+      else if (e.key === "+" || e.key === "=") { zoomAroundCenter(1.15); }
+      else if (e.key === "-") { zoomAroundCenter(0.86); }
       else if (e.key === "]" || e.key === "[") {
         if (!vis.length) return;
         const idx = selectedNode ? vis.findIndex((n) => n.id === selectedNode.id) : -1;
         const next = vis[(idx + (e.key === "]" ? 1 : -1) + vis.length) % vis.length];
         focusNode(next.id);
+      } else if (e.key === "Enter" && selectedNode) {
+        e.preventDefault();
+        for (const nb of fullAdj.get(selectedNode.id) || []) egoPinnedIds.add(nb);
+        userLockedHopDepth = true;
+        if (activeLayout === "hierarchy") {
+          activeLayout = "radial";
+          document.getElementById("layoutSelect").value = "radial";
+        }
+        applyCurrentLayout({ fit: true });
+        updateInspector(selectedNode);
       } else if (e.key === "Escape") {
-        selectedNode = nodeById.get(ROOT_NODE_ID) || nodes[0];
+        selectedNode = nodeById.get(SCOPE_DEFAULT_HUB[state.scope] || ROOT_NODE_ID) || nodes[0];
         selectedEdge = null;
         activeShortestPathNodeIds.clear();
         activeShortestPathEdgeIds.clear();
         egoPinnedIds.clear();
+        if (state.scope === "all" && !graphShowFullTopology) userLockedHopDepth = false;
         applyCurrentLayout({ fit: true });
         updateInspector(selectedNode);
       }
@@ -2805,6 +3170,7 @@
     }
 
     function setScope(scopeVal) {
+      const prevScope = state.scope;
       state.scope = scopeVal || "all";
       const sel = document.getElementById("clusterSelect");
       if (sel && sel.value !== state.scope) sel.value = state.scope;
@@ -2813,11 +3179,31 @@
       if (state.scope === "all") {
         badge.classList.add("hidden");
         clearBtn.classList.add("hidden");
+        if (prevScope !== "all" && selectedNode && selectedNode.id === (SCOPE_DEFAULT_HUB[prevScope] || prevScope)) {
+          selectedNode = nodeById.get(ROOT_NODE_ID) || nodes[0];
+        }
       } else {
         const opt = document.querySelector(`#clusterSelect option[value="${state.scope}"]`);
         badge.textContent = `Scope: ${opt ? opt.textContent : state.scope}`;
         badge.classList.remove("hidden");
         clearBtn.classList.remove("hidden");
+        const hubId = SCOPE_DEFAULT_HUB[state.scope] || state.scope;
+        const inChosenScope =
+          state.scope === "backbone"
+            ? Boolean(selectedNode && selectedNode.coreBackbone)
+            : Boolean(
+                selectedNode &&
+                selectedNode.id !== ROOT_NODE_ID &&
+                (selectedNode.id === hubId || selectedNode.cluster.includes(state.scope) || selectedNode.id === state.scope)
+              );
+        if (!inChosenScope || (prevScope !== state.scope && selectedNode && selectedNode.id === (SCOPE_DEFAULT_HUB[prevScope] || prevScope))) {
+          const hubNode = nodeById.get(hubId) || nodes.find((n) => n.cluster.includes(state.scope));
+          if (hubNode) {
+            selectedNode = hubNode;
+            enabledTypes.add(hubNode.type);
+            syncTypeFilterButtons();
+          }
+        }
       }
       refreshActiveWorkspace();
     }
@@ -2884,15 +3270,22 @@
     function handleSearchInput(val) {
       state.search = val;
       btnClearSearch.classList.toggle("hidden", !val.trim());
+      const matchBadge = document.getElementById("graphSearchMatchBadge");
       const q = val.trim().toLowerCase();
       if (!q) {
         searchDropdown.classList.add("hidden");
         document.getElementById("activeSearchChip").classList.add("hidden");
+        if (matchBadge) matchBadge.classList.add("hidden");
       } else {
         const chip = document.getElementById("activeSearchChip");
         chip.textContent = `Search: "${val.trim()}"`;
         chip.classList.remove("hidden");
-        const hits = nodes.filter((n) => `${n.label} ${n.id} ${n.rawType} ${n.employer} ${n.desc}`.toLowerCase().includes(q)).slice(0, 14);
+        const allHits = nodes.filter((n) => `${n.label} ${n.id} ${n.rawType} ${n.employer} ${n.pillar} ${n.desc}`.toLowerCase().includes(q));
+        if (matchBadge) {
+          matchBadge.textContent = String(allHits.length);
+          matchBadge.classList.remove("hidden");
+        }
+        const hits = allHits.slice(0, 14);
         searchDropdown.innerHTML = hits.length
           ? hits.map((h) => `
               <button type="button" data-pick-node="${esc(h.id)}" style="background:transparent;border:none;border-bottom:1px solid var(--border-col);width:100%;text-align:left;padding:7px 10px;" class="jump-btn flex items-center justify-between gap-2">
@@ -2904,8 +3297,18 @@
         searchDropdown.classList.remove("hidden");
         searchDropdown.querySelectorAll("[data-pick-node]").forEach((b) => {
           b.addEventListener("click", () => {
+            const pickedId = b.getAttribute("data-pick-node");
+            searchInput.value = "";
+            state.search = "";
+            btnClearSearch.classList.add("hidden");
+            document.getElementById("activeSearchChip").classList.add("hidden");
+            if (matchBadge) matchBadge.classList.add("hidden");
             searchDropdown.classList.add("hidden");
-            focusNode(b.getAttribute("data-pick-node"), { switchTab: true });
+            if (isolateHopDepth === 0 && !userLockedHopDepth) {
+              isolateHopDepth = 1;
+              document.getElementById("btnIsolateSubgraph").textContent = "Depth: 1-Hop";
+            }
+            focusNode(pickedId, { switchTab: true });
           });
         });
       }
@@ -2923,35 +3326,52 @@
       enabledTypes = new Set(Object.keys(TYPE_META));
       syncTypeFilterButtons();
       applyCurrentLayout({ fit: true });
+      refreshInspectorQuietly();
     });
     document.querySelectorAll(".type-pill").forEach((btn) => {
       const t = btn.getAttribute("data-type");
-      btn.addEventListener("click", () => {
-        if (enabledTypes.has(t)) {
+      btn.addEventListener("click", (e) => {
+        if (e && e.detail >= 2) return;
+        if (enabledTypes.size === 1 && enabledTypes.has(t)) {
+          // Solo-pill restore: clicking the isolated pill restores all entity categories
+          enabledTypes = new Set(Object.keys(TYPE_META));
+        } else if (enabledTypes.has(t)) {
           if (enabledTypes.size > 1) enabledTypes.delete(t);
         } else {
           enabledTypes.add(t);
         }
         syncTypeFilterButtons();
         applyCurrentLayout({ fit: true });
+        refreshInspectorQuietly();
       });
       btn.addEventListener("dblclick", () => {
-        enabledTypes = new Set([t]);
-        graphShowFullTopology = true;
-        document.getElementById("btnToggleFullTopology").textContent = `Full Graph (${nodes.length})`;
+        if (enabledTypes.size === 1 && enabledTypes.has(t)) {
+          enabledTypes = new Set(Object.keys(TYPE_META));
+        } else {
+          enabledTypes = new Set([t]);
+          graphShowFullTopology = true;
+          isolateHopDepth = 0;
+          document.getElementById("btnIsolateSubgraph").textContent = "Depth: Off";
+          document.getElementById("btnToggleFullTopology").textContent = `Full Graph (${nodes.length})`;
+        }
         syncTypeFilterButtons();
         applyCurrentLayout({ fit: true });
+        refreshInspectorQuietly();
       });
     });
 
     document.getElementById("btnIsolateSubgraph").addEventListener("click", (e) => {
+      userLockedHopDepth = true;
       isolateHopDepth = (isolateHopDepth + 1) % 4;
       e.currentTarget.textContent = isolateHopDepth === 0 ? "Depth: Off" : `Depth: ${isolateHopDepth}-Hop`;
+      e.currentTarget.setAttribute("aria-pressed", isolateHopDepth > 0 ? "true" : "false");
       applyCurrentLayout({ fit: true });
+      refreshInspectorQuietly();
     });
     document.getElementById("layoutSelect").addEventListener("change", (e) => {
       activeLayout = e.target.value;
       applyCurrentLayout({ fit: true });
+      refreshInspectorQuietly();
     });
     document.getElementById("sizeSelect").addEventListener("change", (e) => {
       activeSizeMode = e.target.value;
@@ -2967,12 +3387,17 @@
       e.currentTarget.textContent = graphShowFullTopology ? `Full Graph (${nodes.length})` : "Career Backbone";
       if (graphShowFullTopology) {
         isolateHopDepth = 0;
+        userLockedHopDepth = false;
         document.getElementById("btnIsolateSubgraph").textContent = "Depth: Off";
+        document.getElementById("btnIsolateSubgraph").setAttribute("aria-pressed", "false");
         activeLayout = "force";
         document.getElementById("layoutSelect").value = "force";
       } else {
         isolateHopDepth = 1;
+        userLockedHopDepth = false;
+        egoPinnedIds.clear();
         document.getElementById("btnIsolateSubgraph").textContent = "Depth: 1-Hop";
+        document.getElementById("btnIsolateSubgraph").setAttribute("aria-pressed", "true");
         activeLayout = "hierarchy";
         document.getElementById("layoutSelect").value = "hierarchy";
         selectedNode = nodeById.get(ROOT_NODE_ID) || nodes[0];
@@ -2981,8 +3406,8 @@
       if (selectedNode) updateInspector(selectedNode);
     });
     document.getElementById("fitToScreenBtn").addEventListener("click", () => fitVisibleToScreen());
-    document.getElementById("zoomInBtn").addEventListener("click", () => { camera.zoom = Math.min(3.5, camera.zoom * 1.18); renderGraph(); });
-    document.getElementById("zoomOutBtn").addEventListener("click", () => { camera.zoom = Math.max(0.10, camera.zoom * 0.84); renderGraph(); });
+    document.getElementById("zoomInBtn").addEventListener("click", () => zoomAroundCenter(1.18));
+    document.getElementById("zoomOutBtn").addEventListener("click", () => zoomAroundCenter(0.84));
     document.getElementById("resetBtn").addEventListener("click", () => {
       state.scope = "all";
       document.getElementById("clusterSelect").value = "all";
@@ -2990,10 +3415,13 @@
       document.getElementById("activeScopeBadge").classList.add("hidden");
       document.getElementById("btnClearSsotScope").classList.add("hidden");
       document.getElementById("activeSearchChip").classList.add("hidden");
+      document.getElementById("graphSearchMatchBadge")?.classList.add("hidden");
       graphShowFullTopology = false;
+      userLockedHopDepth = false;
       document.getElementById("btnToggleFullTopology").textContent = "Career Backbone";
       isolateHopDepth = 1;
       document.getElementById("btnIsolateSubgraph").textContent = "Depth: 1-Hop";
+      document.getElementById("btnIsolateSubgraph").setAttribute("aria-pressed", "true");
       activeLayout = "hierarchy";
       document.getElementById("layoutSelect").value = "hierarchy";
       activeConfidenceFilter = "ALL";
@@ -3022,6 +3450,7 @@
         activeConfidenceFilter = btn.getAttribute("data-conf-band") || "ALL";
         syncConfidenceButtons();
         renderGraph();
+        refreshInspectorQuietly();
       });
     });
 

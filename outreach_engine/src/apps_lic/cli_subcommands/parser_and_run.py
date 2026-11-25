@@ -224,7 +224,7 @@ def _handle_run(args: argparse.Namespace, prog: str = "python -m outreach_engine
         return _emit_error(args, f"Cannot create artifact directory '{artifact_dir}': {exc}")
     channel = ChannelType(args.channel)
     persona = AudiencePersona.EXECUTIVE_CONTACT if getattr(args, "audience", "executive") == "executive" else AudiencePersona.EXECUTIVE_RECRUITER
-    orchestrator = OutreachOrchestrator()
+    orchestrator = OutreachOrchestrator(offline_smoke=with_offline)
 
     t_total_start = time.perf_counter()
     try:

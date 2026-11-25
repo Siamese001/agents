@@ -176,16 +176,8 @@ class AgentsGraphRequestHandler(http.server.BaseHTTPRequestHandler):
                 hops = int(raw_hops)
             except ValueError:
                 hops = 1
-            if hops >= 2:
-                sub = compute_multihop_subgraph(snap.bundle, node_id, hops=hops)
-                self._send_json(200, {"node": node_obj, **sub}, head_only=head_only)
-                return
-            connected = [
-                e
-                for e in snap.bundle.get("edges", [])
-                if e.get("from") == node_id or e.get("to") == node_id
-            ]
-            self._send_json(200, {"node": node_obj, "edges": connected}, head_only=head_only)
+            sub = compute_multihop_subgraph(snap.bundle, node_id, hops=max(1, min(3, hops)))
+            self._send_json(200, {"node": node_obj, **sub}, head_only=head_only)
             return
 
         if clean_path == "/api/v1/search":

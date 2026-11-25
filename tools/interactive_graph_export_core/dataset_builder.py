@@ -357,6 +357,17 @@ def build_agents_explorer_dataset(graph_path: Path | str | None = None) -> dict[
         role_projections_raw = conn.execute(
             "SELECT * FROM role_family_projection ORDER BY role_family_id"
         ).fetchall()
+        rf_proj_by_id: dict[str, dict[str, Any]] = {
+            str(r["role_family_id"]): dict(r) for r in role_projections_raw
+        }
+        rf_top_skills_by_id: dict[str, list[tuple[str, float]]] = defaultdict(list)
+        for sid, wlist in skill_rf_weights.items():
+            for w_entry in wlist:
+                rf_top_skills_by_id[str(w_entry["role_family"])].append(
+                    (sid, float(w_entry["weight"]))
+                )
+        for rf_key in rf_top_skills_by_id:
+            rf_top_skills_by_id[rf_key].sort(key=lambda item: (-item[1], item[0]))
 
         # Pre-compute degree, evidence counts, and cluster propagation via edges
         node_degree: dict[str, int] = defaultdict(int)
@@ -371,6 +382,7 @@ def build_agents_explorer_dataset(graph_path: Path | str | None = None) -> dict[
             nid = str(d["node_id"])
             raw_nodes_by_id[nid] = d
 
+        seen_undirected_pairs: set[tuple[str, str]] = set()
         for r in raw_edge_rows:
             src = str(r["source_node_id"])
             tgt = str(r["target_node_id"])
@@ -378,6 +390,8 @@ def build_agents_explorer_dataset(graph_path: Path | str | None = None) -> dict[
             eid = str(r["edge_id"])
             if src not in raw_nodes_by_id or tgt not in raw_nodes_by_id or src == tgt:
                 continue
+            pair_key = (src, tgt) if src < tgt else (tgt, src)
+            seen_undirected_pairs.add(pair_key)
             node_degree[src] += 1
             node_degree[tgt] += 1
             ev_cnt = edge_evidence_counts.get(eid, 0)
@@ -406,7 +420,106 @@ def build_agents_explorer_dataset(graph_path: Path | str | None = None) -> dict[
                 if len(edge_stories_by_node[tgt]) < 8:
                     edge_stories_by_node[tgt].append(rec)
 
-        # Assign scope clusters (tracks, epochs, employers, pillars, policy)
+        # Derive read-only structural spine & role_family projection edges (zero SQLite writes)
+        derived_edges_spec: list[dict[str, Any]] = []
+        if IDENTITY_ROOT_ID in raw_nodes_by_id:
+            for target_id in BACKBONE_POLICY_IDS:
+                if target_id not in raw_nodes_by_id or target_id == IDENTITY_ROOT_ID:
+                    continue
+                pair_key = (
+                    (IDENTITY_ROOT_ID, target_id)
+                    if IDENTITY_ROOT_ID < target_id
+                    else (target_id, IDENTITY_ROOT_ID)
+                )
+                if pair_key in seen_undirected_pairs:
+                    continue
+                seen_undirected_pairs.add(pair_key)
+                edge_lbl = (
+                    "identity_governed_by_policy"
+                    if target_id.startswith("policy_")
+                    else "identity_surfaces_in_section"
+                )
+                derived_edges_spec.append(
+                    {
+                        "edgeId": f"derived_backbone_{target_id}",
+                        "from": IDENTITY_ROOT_ID,
+                        "to": target_id,
+                        "label": edge_lbl,
+                        "family": "backbone_governance",
+                        "mat": "critical",
+                        "desc": "Read-only structural spine link binding root identity to canonical governance/section hub.",
+                        "role": "backbone_governance",
+                        "evidenceCount": 0,
+                        "traversable": False,
+                        "confidence": 0.96,
+                    }
+                )
+
+        for rf_id, nd in sorted(raw_nodes_by_id.items()):
+            if str(nd["node_type"]) != "role_family" or rf_id == IDENTITY_ROOT_ID:
+                continue
+            proj_row = rf_proj_by_id.get(rf_id)
+            if proj_row is not None:
+                kw_pillars = _safe_json_loads(proj_row.get("targeting_keywords"), [])
+                for entry in kw_pillars if isinstance(kw_pillars, list) else []:
+                    if not isinstance(entry, dict) or not entry.get("pillar_id"):
+                        continue
+                    pid = str(entry["pillar_id"])
+                    if pid not in raw_nodes_by_id or pid == rf_id:
+                        continue
+                    pair_key = (rf_id, pid) if rf_id < pid else (pid, rf_id)
+                    if pair_key in seen_undirected_pairs:
+                        continue
+                    seen_undirected_pairs.add(pair_key)
+                    w_val = max(0.0, min(1.0, float(entry.get("weight") or 0.8)))
+                    c_val = round(max(0.75, min(0.96, 0.78 + 0.16 * w_val)), 2)
+                    derived_edges_spec.append(
+                        {
+                            "edgeId": f"derived_rf_pillar_{rf_id}_{pid}",
+                            "from": rf_id,
+                            "to": pid,
+                            "label": "role_family_weights_pillar",
+                            "family": "routing_projection",
+                            "mat": "high",
+                            "desc": f"Read-only SQLite role_family_projection pillar weight ({w_val:.2f}).",
+                            "role": "routing_projection",
+                            "evidenceCount": 0,
+                            "traversable": False,
+                            "confidence": c_val,
+                        }
+                    )
+            for sid, w_val in rf_top_skills_by_id.get(rf_id, [])[:8]:
+                if sid not in raw_nodes_by_id or sid == rf_id:
+                    continue
+                pair_key = (rf_id, sid) if rf_id < sid else (sid, rf_id)
+                if pair_key in seen_undirected_pairs:
+                    continue
+                seen_undirected_pairs.add(pair_key)
+                w_clamped = max(0.0, min(1.0, w_val))
+                c_val = round(max(0.75, min(0.96, 0.76 + 0.18 * w_clamped)), 2)
+                derived_edges_spec.append(
+                    {
+                        "edgeId": f"derived_rf_skill_{rf_id}_{sid}",
+                        "from": rf_id,
+                        "to": sid,
+                        "label": "role_family_prioritizes_skill",
+                        "family": "routing_projection",
+                        "mat": "high",
+                        "desc": f"Read-only SQLite c03_role_family_skill_weights routing weight ({w_val:.2f}).",
+                        "role": "routing_projection",
+                        "evidenceCount": 0,
+                        "traversable": False,
+                        "confidence": c_val,
+                    }
+                )
+
+        for de in derived_edges_spec:
+            node_degree[de["from"]] += 1
+            node_degree[de["to"]] += 1
+            adj_by_type[de["from"]].append((de["label"], de["to"], "out"))
+            adj_by_type[de["to"]].append((de["label"], de["from"], "in"))
+
+        # Assign scope clusters (tracks, epochs, employers, pillars, policy, projections)
         backbone_ids: set[str] = {
             IDENTITY_ROOT_ID,
             *BACKBONE_PILLAR_IDS,
@@ -434,17 +547,19 @@ def build_agents_explorer_dataset(graph_path: Path | str | None = None) -> dict[
                     node_clusters[nid].add(es)
             if rt in ("policy", "policy_rule"):
                 node_clusters[nid].add("policy_guardrails")
-            if rt in ("role_family", "section"):
+            if rt in ("role_family", "section", "pillar", "capability_domain") or nid in skill_rf_weights:
                 node_clusters[nid].add("projections_layer")
 
-        # Propagate track, epoch, pillar, and employer clusters along direct structural edges
+        # Propagate track, epoch, pillar, policy, and employer clusters along direct structural edges
         for r in raw_edge_rows:
             src = str(r["source_node_id"])
             tgt = str(r["target_node_id"])
             if src not in raw_nodes_by_id or tgt not in raw_nodes_by_id:
                 continue
-            src_t = str(raw_nodes_by_id[src]["node_type"])
-            tgt_t = str(raw_nodes_by_id[tgt]["node_type"])
+            src_nd = raw_nodes_by_id[src]
+            tgt_nd = raw_nodes_by_id[tgt]
+            src_t = str(src_nd["node_type"])
+            tgt_t = str(tgt_nd["node_type"])
             if src_t == "career_track":
                 node_clusters[tgt].add(src)
             if tgt_t == "career_track":
@@ -453,22 +568,28 @@ def build_agents_explorer_dataset(graph_path: Path | str | None = None) -> dict[
                 node_clusters[tgt].add(src)
             if tgt_t == "career_epoch":
                 node_clusters[src].add(tgt)
-            if src_t == "employment":
-                node_clusters[tgt].add(src)
-                es = _employer_slug(str(raw_nodes_by_id[src].get("employer") or ""))
+            if src_t in ("employment", "engagement"):
+                if src_t == "employment":
+                    node_clusters[tgt].add(src)
+                es = _employer_slug(str(src_nd.get("employer") or ""))
                 if es:
                     node_clusters[tgt].add(es)
-            if tgt_t == "employment":
-                node_clusters[src].add(tgt)
-                es = _employer_slug(str(raw_nodes_by_id[tgt].get("employer") or ""))
+            if tgt_t in ("employment", "engagement"):
+                if tgt_t == "employment":
+                    node_clusters[src].add(tgt)
+                es = _employer_slug(str(tgt_nd.get("employer") or ""))
                 if es:
                     node_clusters[src].add(es)
             if src_t == "pillar":
                 node_clusters[tgt].add(src)
             if tgt_t == "pillar":
                 node_clusters[src].add(tgt)
+            if src_t in ("policy", "policy_rule"):
+                node_clusters[tgt].add("policy_guardrails")
+            if tgt_t in ("policy", "policy_rule"):
+                node_clusters[src].add("policy_guardrails")
 
-        # Second pass: inherit track from skill_features and epoch->track mapping
+        # Second pass: inherit track, epoch, domain, and pillar bridges from skill_features and skill->evidence edges
         epoch_to_track: dict[str, set[str]] = defaultdict(set)
         for r in raw_edge_rows:
             if str(r["edge_type"]) == "career_track_contains_epoch":
@@ -480,6 +601,39 @@ def build_agents_explorer_dataset(graph_path: Path | str | None = None) -> dict[
                 node_clusters[nid].add(str(sf["career_epoch"]))
             if sf.get("pillar"):
                 node_clusters[nid].add(str(sf["pillar"]))
+
+        # Propagate scope memberships from skills to their parent capability_domain & pillar so every scope has multi-hop depth
+        inheritable_prefixes = ("emp_", "epoch_", "track_")
+        for nid, sf in skill_features.items():
+            dom_id = str(sf.get("domain_id") or "")
+            pil_id = str(sf.get("pillar") or "")
+            inherited = {
+                c
+                for c in node_clusters.get(nid, set())
+                if c.startswith(inheritable_prefixes) or c in ("policy_guardrails", "projections_layer")
+            }
+            if dom_id and dom_id in raw_nodes_by_id:
+                node_clusters[dom_id].update(inherited)
+            if pil_id and pil_id in raw_nodes_by_id:
+                node_clusters[pil_id].update(inherited)
+
+        # Also propagate epoch/track from skills to their direct grounded facts/metrics so epoch/track scopes reach 3-hop evidence
+        for r in raw_edge_rows:
+            src = str(r["source_node_id"])
+            tgt = str(r["target_node_id"])
+            if src not in raw_nodes_by_id or tgt not in raw_nodes_by_id:
+                continue
+            src_t = str(raw_nodes_by_id[src]["node_type"])
+            tgt_t = str(raw_nodes_by_id[tgt]["node_type"])
+            if src_t == "skill" and tgt_t in ("fact", "metric_outcome", "repo_evidence", "locked_bullet"):
+                for c in list(node_clusters[src]):
+                    if c.startswith(("epoch_", "track_")):
+                        node_clusters[tgt].add(c)
+            elif tgt_t == "skill" and src_t in ("fact", "metric_outcome", "repo_evidence", "locked_bullet"):
+                for c in list(node_clusters[tgt]):
+                    if c.startswith(("epoch_", "track_")):
+                        node_clusters[src].add(c)
+
         for nid, cset in list(node_clusters.items()):
             for cid in list(cset):
                 if cid in epoch_to_track:
@@ -489,6 +643,7 @@ def build_agents_explorer_dataset(graph_path: Path | str | None = None) -> dict[
         graph_nodes: list[dict[str, Any]] = []
         for nid, nd in raw_nodes_by_id.items():
             raw_type = str(nd["node_type"])
+            display_raw_type = "identity" if nid == IDENTITY_ROOT_ID else raw_type
             ui_type = "backbone" if nid == IDENTITY_ROOT_ID else RAW_TO_UI_TYPE.get(raw_type, "evidence")
             deg = node_degree.get(nid, 0)
             ev_cnt = node_ev_count.get(nid, 0)
@@ -502,18 +657,19 @@ def build_agents_explorer_dataset(graph_path: Path | str | None = None) -> dict[
                 ev_cnt,
                 deg,
             )
-            label = _clean_label(str(nd.get("label") or ""), nid, raw_type)
-            desc = str(nd.get("description") or "").strip() or f"Canonical {raw_type.replace('_', ' ')} node in Agents Career & Skills Graph."
+            label = _clean_label(str(nd.get("label") or ""), nid, display_raw_type)
+            desc = str(nd.get("description") or "").strip() or f"Canonical {display_raw_type.replace('_', ' ')} node in Agents Career & Skills Graph."
             updated = _format_mmddyyyy(nd.get("updated_at") or nd.get("created_at"), snapshot_date)
-            clusters = sorted(node_clusters[nid])
             if nid in backbone_ids:
-                clusters.append("backbone")
+                node_clusters[nid].add("backbone")
+            clusters = sorted(node_clusters[nid])
 
             node_entry: dict[str, Any] = {
                 "id": nid,
                 "label": label,
                 "type": ui_type,
-                "rawType": raw_type,
+                "rawType": display_raw_type,
+                "sqliteNodeType": raw_type,
                 "layer": node_type_layers.get(raw_type, "knowledge"),
                 "cluster": clusters,
                 "desc": desc,
@@ -601,6 +757,23 @@ def build_agents_explorer_dataset(graph_path: Path | str | None = None) -> dict[
                     "evidenceCount": ev_cnt,
                     "traversable": bool(r["traversable"]),
                     "confidence": c_val,
+                    "confidenceTier": _confidence_tier(c_val),
+                    "confidenceBand": _confidence_band(c_val),
+                }
+            )
+
+        for de in derived_edges_spec:
+            src, tgt, et = str(de["from"]), str(de["to"]), str(de["label"])
+            if src not in node_by_id or tgt not in node_by_id or src == tgt:
+                continue
+            key = (src, tgt, et)
+            if key in seen_edges:
+                continue
+            seen_edges.add(key)
+            c_val = float(de["confidence"])
+            graph_edges.append(
+                {
+                    **de,
                     "confidenceTier": _confidence_tier(c_val),
                     "confidenceBand": _confidence_band(c_val),
                 }
@@ -916,37 +1089,77 @@ def compute_multihop_subgraph(
     node_by_id = {str(n["id"]): n for n in nodes}
     center_node = node_by_id.get(center_id)
     if center_node is None:
-        return {"center_id": center_id, "hops": max_hops, "nodes": [], "edges": []}
+        return {
+            "center_id": center_id,
+            "hops": max_hops,
+            "node_count": 0,
+            "edge_count": 0,
+            "nodes": [],
+            "edges": [],
+        }
 
-    allowed_ids = {
-        str(n["id"])
-        for n in nodes
-        if str(n["id"]) == center_id
-        or enabled_types is None
-        or str(n.get("type") or "") in enabled_types
-    }
     adj_edges: dict[str, list[tuple[str, dict[str, Any]]]] = defaultdict(list)
     for e in edges:
         u, v = str(e["from"]), str(e["to"])
-        if u in allowed_ids and v in allowed_ids and u != v:
+        if u in node_by_id and v in node_by_id and u != v:
             adj_edges[u].append((v, e))
             adj_edges[v].append((u, e))
 
-    keep: set[str] = {center_id}
+    visited_bfs: set[str] = {center_id}
     hop_dist: dict[str, int] = {center_id: 0}
+    parent_of: dict[str, str] = {}
     frontier: list[str] = [center_id]
     center_raw = str(center_node.get("rawType") or "")
+    center_is_gov_or_proj = center_raw in _NON_TRAVERSABLE_BRIDGE_RAW_TYPES
 
     for h in range(1, max_hops + 1):
         next_f: list[str] = []
         for cid in frontier:
             cur_node = node_by_id[cid]
             cur_raw = str(cur_node.get("rawType") or "")
-            for nb_id, edge_obj in adj_edges.get(cid, []):
-                if nb_id in keep:
+            candidates = adj_edges.get(cid, [])
+            if h >= 2 and cid != center_id and center_is_gov_or_proj and cur_raw in _NON_TRAVERSABLE_BRIDGE_RAW_TYPES:
+                # Controlled 2-hop expansion for focused policy/rule/section/role_family nodes:
+                # allow sibling governance/projection nodes plus top-ranked governed targets without root bounce
+                gov_siblings: list[str] = []
+                governed_targets: list[tuple[float, int, str]] = []
+                for nb_id, edge_obj in candidates:
+                    if nb_id in visited_bfs or nb_id == IDENTITY_ROOT_ID:
+                        continue
+                    if edge_obj.get("role") == "backbone_governance":
+                        continue
+                    nb_node = node_by_id[nb_id]
+                    nb_raw = str(nb_node.get("rawType") or "")
+                    if nb_raw in _NON_TRAVERSABLE_BRIDGE_RAW_TYPES:
+                        gov_siblings.append(nb_id)
+                    else:
+                        governed_targets.append(
+                            (
+                                -float(nb_node.get("confidence") or 0.0),
+                                -int(nb_node.get("degree") or 0),
+                                nb_id,
+                            )
+                        )
+                governed_targets.sort()
+                chosen_ids = gov_siblings + [nb_id for _, _, nb_id in governed_targets[:24]]
+                for nb_id in chosen_ids:
+                    if nb_id in visited_bfs:
+                        continue
+                    visited_bfs.add(nb_id)
+                    hop_dist[nb_id] = h
+                    parent_of[nb_id] = cid
+                    next_f.append(nb_id)
+                continue
+
+            for nb_id, edge_obj in candidates:
+                if nb_id in visited_bfs:
                     continue
                 if h >= 2 and cid != center_id:
-                    if cid == IDENTITY_ROOT_ID or cur_raw in _NON_TRAVERSABLE_BRIDGE_RAW_TYPES:
+                    if cid == IDENTITY_ROOT_ID or nb_id == IDENTITY_ROOT_ID:
+                        continue
+                    if edge_obj.get("role") == "backbone_governance":
+                        continue
+                    if cur_raw in _NON_TRAVERSABLE_BRIDGE_RAW_TYPES:
                         continue
                     if edge_obj.get("traversable") is False:
                         continue
@@ -958,12 +1171,25 @@ def compute_multihop_subgraph(
                     nb_raw = str(node_by_id[nb_id].get("rawType") or "")
                     if nb_raw in _NON_TRAVERSABLE_BRIDGE_RAW_TYPES:
                         continue
-                keep.add(nb_id)
+                visited_bfs.add(nb_id)
                 hop_dist[nb_id] = h
+                parent_of[nb_id] = cid
                 next_f.append(nb_id)
         frontier = next_f
         if not frontier:
             break
+
+    # Apply enabled_types after BFS while retaining minimal ancestor bridges so zero nodes float disconnected
+    if enabled_types is None:
+        keep = set(visited_bfs)
+    else:
+        keep = {center_id}
+        for nid in visited_bfs:
+            if nid == center_id or str(node_by_id[nid].get("type") or "") in enabled_types:
+                cur_anc: str | None = nid
+                while cur_anc is not None and cur_anc not in keep:
+                    keep.add(cur_anc)
+                    cur_anc = parent_of.get(cur_anc)
 
     # Strict connected-component verification over induced edges
     connected: set[str] = {center_id}
@@ -980,6 +1206,7 @@ def compute_multihop_subgraph(
         for nid in connected
         if nid in node_by_id
     ]
+    sub_nodes.sort(key=lambda n: (int(n.get("hopDistance") or 0), -int(n.get("degree") or 0), str(n["id"])))
     sub_edges = [e for e in edges if str(e["from"]) in connected and str(e["to"]) in connected]
     return {
         "center_id": center_id,

@@ -151,3 +151,31 @@ def test_x1d_ide_cli_blocks_on_non_quota_transport_error(monkeypatch: pytest.Mon
     assert res.provider_blocked is True
     assert res.passed is False
     assert res.evaluator_mode == "BLOCKED_PROVIDER_UNAVAILABLE"
+
+
+def test_offline_smoke_orchestrator_skips_ide_cli_judge_transport(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify OutreachOrchestrator(offline_smoke=True) runs deterministically without invoking headless agy CLI."""
+    from apps_lic.domain.models import CandidateProfileLoader, ChannelType, TargetOpportunity
+    from apps_lic.pipeline.orchestrator import OutreachOrchestrator
+
+    monkeypatch.setattr(lic_ide, "resolve_lic_judge_transport", lambda *a, **kw: "ide_cli")
+    orchestrator = OutreachOrchestrator(offline_smoke=True)
+    candidate = CandidateProfileLoader.load_default(overrides={"candidate_id": "cand_smoke"})
+    opportunity = TargetOpportunity(
+        opportunity_id="opp_smoke_01",
+        company_name="Truist Enterprise Technology",
+        role_title="Head of Engineering, Core Platforms",
+        industry="Financial Services & Banking",
+        recipient_name="Sarah Jenkins",
+        recipient_title="Senior Director of Talent Acquisition",
+    )
+    draft, verdict = orchestrator.generate_single_draft(
+        candidate,
+        opportunity,
+        ChannelType.LINKEDIN_INMAIL,
+        auto_research=False,
+    )
+    assert verdict.passed is True
+    assert "IDE_CLI_JUDGE_V3_FAILED" not in verdict.failure_reasons
+    assert "ide_cli_judge" not in draft.metadata
+
