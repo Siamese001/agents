@@ -1,0 +1,2923 @@
+<!DOCTYPE html>
+<html lang="en" class="light" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agents Repo - Career, Skills &amp; Evidence Knowledge Graph Explorer</title>
+  <link rel="icon" href="data:," />
+  <style>
+    :root, html.light, html[data-theme="light"] {
+      color-scheme: light;
+      --bg-main: #f1f5f9;
+      --bg-card: #ffffff;
+      --bg-panel: #e2e8f0;
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --border-col: #cbd5e1;
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --muted-surface: #f8fafc;
+      --hover-surface: #eff6ff;
+      --border: #cbd5e1;
+      --fg: #0f172a;
+      --muted: #475569;
+      --primary: #1d4ed8;
+      --primary-fg: #ffffff;
+      --accent-link: #1d4ed8;
+      --fte-bg: #dbeafe;
+      --fte-border: #93c5fd;
+      --fte-fg: #1e3a8a;
+      --open-bg: #fff0e6;
+      --open-border: #ea580c;
+      --open-fg: #9a3412;
+      --ctr-bg: #f1f5f9;
+      --ctr-border: #94a3b8;
+      --ctr-fg: #0f172a;
+      --ctr-verified-bg: #ede9fe;
+      --ctr-verified-border: #c4b5fd;
+      --ctr-verified-fg: #4c1d95;
+      --slalom-bg: #bbf7d0;
+      --slalom-border: #10b981;
+      --slalom-fg: #064e3b;
+      --off-bg: #fee2e2;
+      --off-border: #fca5a5;
+      --off-fg: #7f1d1d;
+      --band-verified-fg: #065f46;
+      --band-high-fg: #075985;
+      --band-est-fg: #3730a3;
+      --band-prov-fg: #9a3412;
+      --band-low-fg: #991b1b;
+      --exec-ring-fg: #9a3412;
+      --opm-lane-t1: #eef4ff;
+      --opm-lane-t2: #fff7ed;
+      --opm-lane-t3: #ecfdf5;
+      --opm-lane-gov: #f5f3ff;
+      --opm-bar-tech-bg: #fcfaff;
+      --opm-bar-tech-title: #2e1065;
+      --opm-bar-tech-stroke: #6b21a8;
+      --opm-bar-corp-bg: #ffffff;
+      --opm-bar-corp-title: #0f172a;
+      --opm-bar-corp-stroke: #475569;
+      --opm-bar-sub: #334155;
+      --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI Variable Display", Inter, system-ui, sans-serif;
+      --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", Inter, system-ui, sans-serif;
+      --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      --fs-2xs: clamp(11px, 0.72vw, 12px);
+      --fs-xs: clamp(11.8px, 0.78vw, 12.8px);
+      --fs-sm: clamp(12.5px, 0.84vw, 13.6px);
+      --fs-base: clamp(13.2px, 0.90vw, 14.2px);
+      --fs-md: clamp(14.5px, 1.00vw, 16px);
+      --fs-lg: clamp(16.5px, 1.15vw, 18.5px);
+      --fs-kpi-label: clamp(11px, 0.72vw, 11.8px);
+      --fs-kpi-value: clamp(17px, 1.12vw, 20px);
+      --fs-kpi-sub: clamp(11.4px, 0.75vw, 12.3px);
+      --lh-tight: 1.25;
+      --lh-snug: 1.38;
+      --lh-body: 1.46;
+      --ctrl-h-sm: 27px;
+      --ctrl-h-md: 31px;
+      --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.05), 0 2px 6px rgba(15, 23, 42, 0.03);
+      --shadow-elevated: 0 10px 28px rgba(15, 23, 42, 0.16);
+    }
+    html.dark, html[data-theme="dark"], html:not(.light) {
+      color-scheme: dark;
+      --bg-main: #0b1120;
+      --bg-card: #111827;
+      --bg-panel: #1e293b;
+      --text-main: #f8fafc;
+      --text-muted: #cbd5e1;
+      --border-col: #334155;
+      --bg: #0b1120;
+      --card: #111827;
+      --muted-surface: #1e293b;
+      --hover-surface: #172554;
+      --border: #334155;
+      --fg: #f8fafc;
+      --muted: #d9e2ec;
+      --primary: #2563eb;
+      --primary-fg: #ffffff;
+      --accent-link: #60a5fa;
+      --fte-bg: rgba(59, 130, 246, 0.24);
+      --fte-border: #60a5fa;
+      --fte-fg: #eff6ff;
+      --open-bg: rgba(234, 88, 12, 0.24);
+      --open-border: #fb923c;
+      --open-fg: #ffedd5;
+      --ctr-bg: #1e293b;
+      --ctr-border: #64748b;
+      --ctr-fg: #f1f5f9;
+      --ctr-verified-bg: rgba(139, 92, 246, 0.26);
+      --ctr-verified-border: #a78bfa;
+      --ctr-verified-fg: #f5f3ff;
+      --slalom-bg: rgba(16, 185, 129, 0.28);
+      --slalom-border: #10b981;
+      --slalom-fg: #ecfdf5;
+      --off-bg: rgba(239, 68, 68, 0.24);
+      --off-border: #f87171;
+      --off-fg: #fef2f2;
+      --band-verified-fg: #34d399;
+      --band-high-fg: #38bdf8;
+      --band-est-fg: #a5b4fc;
+      --band-prov-fg: #fbbf24;
+      --band-low-fg: #f87171;
+      --exec-ring-fg: #fbbf24;
+      --opm-lane-t1: #10203d;
+      --opm-lane-t2: #29180e;
+      --opm-lane-t3: #0c2921;
+      --opm-lane-gov: #1d1436;
+      --opm-bar-tech-bg: #1d1436;
+      --opm-bar-tech-title: #f5f3ff;
+      --opm-bar-tech-stroke: #a855f7;
+      --opm-bar-corp-bg: #151e2e;
+      --opm-bar-corp-title: #f8fafc;
+      --opm-bar-corp-stroke: #94a3b8;
+      --opm-bar-sub: #cbd5e1;
+      --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.28);
+      --shadow-elevated: 0 12px 32px rgba(0, 0, 0, 0.55);
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      background-color: var(--bg-main) !important;
+      color: var(--text-main) !important;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      flex-direction: column;
+      font-family: var(--font-sans);
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+    h1, h2, h3, h4, strong, th, td, label, button, input, select, option { color: var(--text-main); }
+    h1, h2, h3, h4, .mode-tab { font-family: var(--font-display); letter-spacing: -0.015em; }
+    select option { background-color: var(--bg-card); color: var(--text-main); }
+    .hidden { display: none !important; }
+    .block { display: block; }
+    .flex { display: flex; }
+    .flex-col { flex-direction: column; }
+    .flex-wrap { flex-wrap: wrap; }
+    .flex-1 { flex: 1 1 0%; min-height: 0; }
+    .items-center { align-items: center; }
+    .justify-between { justify-content: space-between; }
+    .shrink-0 { flex-shrink: 0; }
+    .gap-1 { gap: 0.25rem; }
+    .gap-1\.5 { gap: 0.375rem; }
+    .gap-2 { gap: 0.5rem; }
+    .gap-2\.5 { gap: 0.625rem; }
+    .px-1\.5 { padding-left: 0.375rem; padding-right: 0.375rem; }
+    .px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
+    .px-2\.5 { padding-left: 0.625rem; padding-right: 0.625rem; }
+    .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+    .px-3\.5 { padding-left: 0.875rem; padding-right: 0.875rem; }
+    .px-4 { padding-left: 1rem; padding-right: 1rem; }
+    .py-0\.5 { padding-top: 0.125rem; padding-bottom: 0.125rem; }
+    .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+    .py-1\.5 { padding-top: 0.375rem; padding-bottom: 0.375rem; }
+    .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+    .p-2 { padding: 0.5rem; }
+    .p-2\.5 { padding: 0.625rem; }
+    .pb-3 { padding-bottom: 0.75rem; }
+    .pr-1 { padding-right: 0.25rem; }
+    .mt-0\.5 { margin-top: 0.125rem; }
+    .mt-1 { margin-top: 0.25rem; }
+    .mb-0\.5 { margin-bottom: 0.125rem; }
+    .mb-1\.5 { margin-bottom: 0.375rem; }
+    .ml-3 { margin-left: 0.75rem; }
+    .w-2\.5 { width: 0.625rem; }
+    .h-2\.5 { height: 0.625rem; }
+    .w-full { width: 100%; }
+    .h-full { height: 100%; }
+    .rounded { border-radius: 0.25rem; }
+    .rounded-md { border-radius: 0.375rem; }
+    .rounded-lg { border-radius: 0.5rem; }
+    .rounded-xl { border-radius: 0.75rem; }
+    .rounded-full { border-radius: 9999px; }
+    .text-xs { font-size: var(--fs-xs); line-height: var(--lh-snug); }
+    .text-sm { font-size: var(--fs-sm); line-height: var(--lh-snug); }
+    .text-base { font-size: var(--fs-md); line-height: 1.35; }
+    .text-left { text-align: left; }
+    .font-medium { font-weight: 500; }
+    .font-semibold { font-weight: 600; }
+    .font-bold { font-weight: 700; }
+    .font-mono { font-family: var(--font-mono); }
+    .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .overflow-hidden { overflow: hidden; }
+    .overflow-y-auto { overflow-y: auto; }
+    .relative { position: relative; }
+    .absolute { position: absolute; }
+    .bottom-4 { bottom: 1rem; }
+    .left-4 { left: 1rem; }
+    .right-4 { right: 1rem; }
+    .max-w-xl { max-width: 36rem; }
+    .pointer-events-none { pointer-events: none; }
+    .cursor-grab { cursor: grab; }
+    .grid { display: grid; }
+    .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-cols-12 { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+    .col-span-12 { grid-column: span 12 / span 12; }
+    .col-span-8 { grid-column: span 8 / span 8; }
+    .col-span-4 { grid-column: span 4 / span 4; }
+    @media (min-width: 1024px) {
+      .lg\:col-span-9 { grid-column: span 9 / span 9; }
+      .lg\:col-span-8 { grid-column: span 8 / span 8; }
+      .lg\:col-span-4 { grid-column: span 4 / span 4; }
+      .lg\:col-span-3 { grid-column: span 3 / span 3; }
+    }
+    @media (min-width: 1280px) {
+      .xl\:col-span-9 { grid-column: span 9 / span 9; }
+      .xl\:col-span-3 { grid-column: span 3 / span 3; }
+    }
+    button {
+      cursor: pointer;
+      color: var(--text-main);
+      background: var(--bg-panel);
+      border: 1px solid var(--border-col);
+      font-family: inherit;
+    }
+    button:focus-visible, select:focus-visible, input:focus-visible {
+      outline: 2px solid var(--accent-link);
+      outline-offset: 2px;
+    }
+    canvas { touch-action: none; user-select: none; display: block; background-color: var(--bg-main); }
+    .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.45); border-radius: 3px; }
+    .mode-tab {
+      font-family: var(--font-display);
+      font-size: var(--fs-xs);
+      min-height: var(--ctrl-h-md);
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 7px;
+      border: 1px solid var(--border-col);
+      background: var(--bg-panel);
+      color: var(--text-main) !important;
+      transition: all 0.14s ease;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+    }
+    .mode-tab:hover { background: var(--hover-surface); }
+    .mode-tab.active {
+      background: var(--primary) !important;
+      color: var(--primary-fg) !important;
+      border-color: var(--primary) !important;
+    }
+    .container { max-width: 1860px; margin: 0 auto; display: flex; flex-direction: column; gap: 8px; font-size: var(--fs-base); line-height: var(--lh-body); color: var(--fg) !important; }
+    .card {
+      background: var(--card);
+      color: var(--fg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 9px 13px;
+      box-shadow: var(--shadow-card);
+    }
+    .subcard { background: var(--muted-surface); color: var(--fg); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+    .subcard ul { margin: 4px 0 0 16px; padding: 0; font-size: var(--fs-xs); color: var(--muted); display: flex; flex-direction: column; gap: 3px; }
+    .header-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .container button, .overlay button, #ssotScopeBar button, #panelGuideWrap button {
+      font-family: inherit;
+      font-size: var(--fs-xs);
+      min-height: var(--ctrl-h-sm);
+      cursor: pointer;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--fg) !important;
+      padding: 3px 9px;
+      font-weight: 600;
+      transition: background 0.14s ease, border-color 0.14s ease;
+    }
+    .container button:hover, .overlay button:hover, #ssotScopeBar button:hover { background: var(--muted-surface); }
+    button.btn-primary, .container button.btn-primary, .overlay button.btn-primary {
+      background: var(--primary) !important;
+      color: var(--primary-fg) !important;
+      border-color: var(--primary) !important;
+    }
+    .pill { border-radius: 999px; padding: 3px 10px; min-height: 25px; font-weight: 600; font-size: var(--fs-xs); display: inline-flex; align-items: center; }
+    .pill.active { background: var(--primary) !important; color: var(--primary-fg) !important; border-color: var(--primary) !important; }
+    .pill-group { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(170px, 1fr)); gap: 8px; }
+    @media (max-width: 960px) { .kpi-grid { grid-template-columns: repeat(2, minmax(150px, 1fr)); } }
+    .kpi-label { font-family: var(--font-display); font-size: var(--fs-kpi-label); line-height: var(--lh-tight); font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; color: var(--muted) !important; }
+    .kpi-value { font-family: var(--font-display); font-size: var(--fs-kpi-value); line-height: 1.2; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; color: var(--fg) !important; }
+    .kpi-sub { font-size: var(--fs-kpi-sub); line-height: var(--lh-snug); color: var(--muted) !important; margin-top: 2px; }
+    .container input[type="text"], .container select, #ssotScopeBar select {
+      font-family: inherit;
+      font-size: var(--fs-xs);
+      min-height: var(--ctrl-h-sm);
+      padding: 3px 8px;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      background: var(--bg) !important;
+      color: var(--fg) !important;
+      outline: none;
+    }
+    .table-card { background: var(--card); color: var(--fg); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; box-shadow: var(--shadow-card); }
+    .table-scroll { overflow-x: auto; overflow-y: auto; max-height: calc(100vh - 220px); }
+    .container table { width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; color: var(--fg); }
+    .container thead th {
+      position: sticky;
+      top: 0;
+      z-index: 15;
+      background: var(--muted-surface) !important;
+      color: var(--fg) !important;
+      font-size: var(--fs-xs);
+      font-weight: 700;
+      padding: 6px 9px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+    .container thead th.sortable { cursor: pointer; user-select: none; }
+    .container thead th.sortable:hover { color: var(--accent-link) !important; }
+    .container tbody td {
+      padding: 6px 9px;
+      vertical-align: top;
+      border-bottom: 1px solid var(--border);
+      font-size: var(--fs-xs);
+      line-height: var(--lh-snug);
+      color: var(--fg) !important;
+    }
+    .table-compact tbody td { padding: 3px 6px !important; }
+    .container tbody tr.data-row { cursor: pointer; background: var(--card); }
+    .container tbody tr.data-row:hover td { background: var(--hover-surface) !important; }
+    .container tbody tr.group-row td { background: var(--muted-surface) !important; font-weight: 700; padding: 6px 10px; border-bottom: 1px solid var(--border); }
+    .chips { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+    .chip { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 6px; font-size: var(--fs-2xs); line-height: 1.3; font-weight: 600; white-space: nowrap; }
+    .chip-fte { background: var(--fte-bg) !important; border: 1px solid var(--fte-border) !important; color: var(--fte-fg) !important; }
+    .chip-open { background: var(--open-bg) !important; border: 1px solid var(--open-border) !important; color: var(--open-fg) !important; }
+    .chip-ctr { background: var(--ctr-bg) !important; border: 1px solid var(--ctr-border) !important; color: var(--ctr-fg) !important; }
+    .chip-verified { background: var(--slalom-bg) !important; border: 1px solid var(--slalom-border) !important; color: var(--slalom-fg) !important; }
+    .chip-purple { background: var(--ctr-verified-bg) !important; border: 1px solid var(--ctr-verified-border) !important; color: var(--ctr-verified-fg) !important; }
+    .chip-off { background: var(--off-bg) !important; border: 1px solid var(--off-border) !important; color: var(--off-fg) !important; }
+    .legend-chip { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 5px; font-size: var(--fs-2xs); font-weight: 600; color: var(--muted); background: var(--muted-surface); border: 1px dashed var(--border); white-space: nowrap; }
+    .exec-agenda-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(410px, 1fr)); gap: 8px; align-items: start; }
+    .exec-agenda-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-col);
+      border-radius: 9px;
+      padding: 8px 11px;
+      box-shadow: var(--shadow-card);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .exec-agenda-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; padding-bottom: 5px; border-bottom: 1px solid var(--border-col); }
+    .exec-agenda-name { font-family: var(--font-display); font-size: var(--fs-md); font-weight: 700; line-height: 1.2; }
+    .exec-agenda-title { font-size: var(--fs-2xs); color: var(--text-muted); margin-top: 2px; }
+    .track-bar { display: flex; height: 8px; border-radius: 999px; overflow: hidden; background: var(--bg-panel); }
+    .overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10050;
+      backdrop-filter: blur(2px);
+      background: rgba(15, 23, 42, 0.55);
+      display: flex;
+      justify-content: flex-end;
+    }
+    .drawer {
+      width: min(700px, 100vw);
+      height: 100%;
+      background: var(--card) !important;
+      color: var(--fg) !important;
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      box-shadow: -8px 0 28px rgba(0, 0, 0, 0.24);
+    }
+    .drawer-head { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .drawer-body { padding: 14px 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+    .drawer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .box { border: 1px solid var(--border); border-radius: 8px; padding: 9px 11px; background: var(--muted-surface); }
+    .box-label { font-size: var(--fs-xs); font-weight: 800; color: var(--fg); margin-bottom: 4px; }
+    #archMatrixSvg { font-family: var(--font-sans); text-rendering: geometricPrecision; }
+    #archMatrixSvg .matrix-node { cursor: pointer; transition: opacity 0.15s ease, filter 0.15s ease; }
+    #archMatrixSvg .matrix-node:hover { filter: brightness(1.04) drop-shadow(0 2px 5px rgba(15, 23, 42, 0.14)); }
+    .jump-btn:hover { background: var(--hover-surface) !important; border-color: var(--accent-link) !important; }
+    .type-pill { transition: all 0.12s ease; }
+    .type-pill.inactive { opacity: 0.42; }
+  </style>
+</head>
+<body class="antialiased flex flex-col">
+
+  <!-- ROW 1: Persistent 48px Global Header -->
+  <header style="min-height: 46px; background: var(--bg-card); border-bottom: 1px solid var(--border-col); padding: 4px 12px;" class="global-header flex items-center justify-between gap-2 shrink-0 flex-wrap">
+    <div class="flex items-center gap-2 shrink-0">
+      <div class="w-2.5 h-2.5 rounded-full shrink-0" style="background:#10b981;"></div>
+      <div class="flex items-center gap-1.5 shrink-0">
+        <h1 class="font-bold" style="margin:0; font-size: var(--fs-sm); white-space: nowrap;">Agents Repo - Career &amp; Skills Graph</h1>
+        <span style="background: var(--bg-panel); border: 1px solid var(--border-col); font-size: var(--fs-2xs); white-space: nowrap; padding: 2px 6px; font-weight: 600;" class="rounded-md">
+          Live SQLite
+        </span>
+        <span id="headerSnapBadge" title="__SNAPSHOT_DATE__ · __GENERATION_SHORT__ | __ACTIVE_NODE_TOTAL__ Nodes · __CANONICAL_EDGE_TOTAL__ Edges · __EVIDENCE_LINK_TOTAL__ Evidence Links" style="background: var(--bg-panel); border: 1px solid var(--border-col); font-size: var(--fs-2xs); white-space: nowrap; padding: 2px 6px;" class="rounded-md font-mono">
+          __SNAPSHOT_DATE__
+        </span>
+      </div>
+    </div>
+
+    <!-- Center: 6 Top-Level Workspace Tabs (Exact DIE Cockpit Structure) -->
+    <nav role="tablist" aria-label="Explorer Workspaces" class="flex items-center gap-1 shrink-0 flex-wrap">
+      <button id="modeOpModelBtn" type="button" role="tab" aria-selected="false" data-mode="opmodel" data-view="opmodel" class="mode-tab">
+        1. Architecture Map
+      </button>
+      <button id="modePortfolioBtn" type="button" role="tab" aria-selected="false" data-mode="portfolio" data-view="portfolio" class="mode-tab">
+        2. Skills &amp; Pillars
+      </button>
+      <button id="modeSignalsBtn" type="button" role="tab" aria-selected="false" data-mode="signals" data-view="signals" class="mode-tab">
+        3. Evidence &amp; Outcomes
+      </button>
+      <span style="width:1px;height:18px;background:var(--border-col);margin:0 2px;display:inline-block;" aria-hidden="true"></span>
+      <button id="modeDeliveryBtn" type="button" role="tab" aria-selected="false" data-mode="delivery" data-view="delivery" class="mode-tab">
+        4. Engagements
+      </button>
+      <button id="modeAgendasBtn" type="button" role="tab" aria-selected="false" data-mode="agendas" data-view="agendas" class="mode-tab">
+        5. Role Projections
+      </button>
+      <button id="modeGraphBtn" type="button" role="tab" aria-selected="true" data-mode="graph" data-view="graph" class="mode-tab active">
+        6. Network Graph
+      </button>
+    </nav>
+
+    <!-- Right: Always-Visible Global Search + Guide + Theme Toggle -->
+    <div class="flex items-center gap-1.5 shrink-0">
+      <div class="relative" style="min-width: 0;">
+        <input
+          id="searchInput"
+          type="text"
+          autocomplete="off"
+          aria-label="Global search across skills, pillars, engagements, metrics, facts, and graph nodes"
+          placeholder="Search all 847 nodes..."
+          style="background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border-col); padding: 4px 26px 4px 10px; font-size: var(--fs-xs); height: var(--ctrl-h-md); width: clamp(160px, 13vw, 235px);"
+          class="rounded-lg"
+        />
+        <span id="graphSearchMatchBadge" class="hidden absolute font-mono" style="right:26px;top:6px;font-size:var(--fs-2xs);padding:1px 5px;border-radius:999px;background:var(--primary);color:var(--primary-fg);"></span>
+        <button id="btnClearSearch" type="button" aria-label="Clear search" title="Clear search" class="hidden absolute" style="right:4px;top:5px;font-size:var(--fs-xs);padding:1px 6px;border-radius:999px;line-height:1;">&times;</button>
+        <div id="graphSearchDropdown" class="hidden custom-scroll" style="position:absolute;top:100%;right:0;width:360px;max-height:280px;overflow-y:auto;background:var(--bg-card);border:1px solid var(--border-col);border-radius:8px;margin-top:4px;z-index:85;box-shadow:var(--shadow-elevated);"></div>
+      </div>
+      <button id="btnToggleGuide" type="button" style="background: var(--bg-panel); border: 1px solid var(--border-col); padding: 4px 9px; min-height: var(--ctrl-h-md); white-space: nowrap;" class="rounded-lg text-xs font-semibold">
+        Graph Guide
+      </button>
+      <button id="themeBtn" type="button" style="background: var(--bg-panel); border: 1px solid var(--border-col); padding: 4px 9px; min-height: var(--ctrl-h-md); white-space: nowrap;" class="rounded-lg text-xs font-semibold">
+        Dark Theme
+      </button>
+    </div>
+  </header>
+
+  <!-- ROW 2: Persistent 40px Sticky SSOT Scope Filter Spine -->
+  <div id="ssotScopeBar" style="min-height: 38px; background: var(--muted-surface); border-bottom: 1px solid var(--border-col); padding: 4px 14px;" class="flex flex-wrap items-center justify-between gap-2 shrink-0">
+    <div class="flex flex-wrap items-center gap-2">
+      <label for="clusterSelect" style="font-size:var(--fs-xs);font-weight:700;color:var(--muted);">Graph Scope:</label>
+      <select id="clusterSelect" aria-label="Select Career & Skills Graph Scope" style="max-width: 340px;">
+        <optgroup label="1. Graph &amp; Governance Rollups">
+          <option value="all">Full Career Graph (All Nodes)</option>
+          <option value="backbone">Career Architecture Backbone (Identity, Tracks, Epochs, Employers)</option>
+          <option value="policy_guardrails">Policy &amp; Claim Guardrails</option>
+          <option value="projections_layer">Role Projections &amp; Resume Sections</option>
+        </optgroup>
+        <optgroup label="2. Career Tracks (3 Spines)">
+          <option value="track_genai_agentic">Track 3: GenAI &amp; Agentic AI Platforms (2022-Present)</option>
+          <option value="track_data_tech_cloud_ml">Track 2: Data, Cloud, ML &amp; Partner GTM (2010-2022)</option>
+          <option value="track_actuarial_risk_derivatives">Track 1: Actuarial, Risk &amp; Derivatives (2002-2010)</option>
+        </optgroup>
+        <optgroup label="3. Career Epochs (6 Phases)">
+          <option value="epoch_ai_platform_commercialization">Phase 6: AI Platform Commercialization</option>
+          <option value="epoch_agentic_ai_runtime_architecture">Phase 5: Agentic AI Runtime Architecture</option>
+          <option value="epoch_partner_gtm_revenue_leadership">Phase 4: Partner GTM &amp; Revenue Leadership</option>
+          <option value="epoch_cloud_data_platform_engineering">Phase 3: Cloud &amp; Data Platform Engineering</option>
+          <option value="epoch_enterprise_risk_governance">Phase 2: Enterprise Risk &amp; Governance</option>
+          <option value="epoch_actuarial_financial_engineering">Phase 1: Actuarial &amp; Financial Engineering</option>
+        </optgroup>
+        <optgroup label="4. Formal Employments (6 Tenures)">
+          <option value="emp_slalom">Slalom — Senior Director (2026-Present)</option>
+          <option value="emp_unify">Unify Consulting — SVP Engineering (2023-2026)</option>
+          <option value="emp_ibm">IBM — Partner (2017-2022)</option>
+          <option value="emp_insurtech">InsurTech Cloud Solutions — CTO (2014-2017)</option>
+          <option value="emp_ey">Ernst &amp; Young — Principal (2009-2014)</option>
+          <option value="emp_early">Early Career Roles — Actuarial &amp; Quant (2002-2009)</option>
+        </optgroup>
+      </select>
+      <span id="activeScopeBadge" class="chip chip-fte hidden">Scope: Full Graph</span>
+      <button id="btnClearSsotScope" type="button" class="hidden" style="padding:2px 8px;border-radius:999px;">&times; Reset Scope</button>
+      <span id="activeSearchChip" class="hidden chip chip-open"></span>
+    </div>
+    <div class="flex items-center gap-2">
+      <span id="ssotScopePulse" class="font-mono" style="font-size:var(--fs-xs);color:var(--muted);">__ACTIVE_NODE_TOTAL__ Nodes &middot; __CANONICAL_EDGE_TOTAL__ Edges &middot; __EVIDENCE_LINK_TOTAL__ Evidence Links &middot; __SEMANTIC_UNIT_TOTAL__ Semantic Units</span>
+    </div>
+  </div>
+
+  <!-- Collapsible Graph Architecture Guide Drawer -->
+  <div id="panelGuideWrap" style="background: var(--bg-card); border-bottom: 1px solid var(--border-col);" class="hidden px-4 py-2 shrink-0">
+    <div style="max-width:1860px;margin:0 auto;font-size:var(--fs-xs);line-height:var(--lh-body);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <strong style="font-size:var(--fs-base);">Agents Repo Knowledge Graph Architecture &amp; Controls Guide</strong>
+        <button id="btnCloseGuide" type="button">Close</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;">
+        <div class="subcard">
+          <div class="box-label">5 Authoritative SQLite Layers</div>
+          <ul>
+            <li><strong>Knowledge Layer:</strong> 3 Career Tracks, 29 Pillars, 49 Capability Domains, 251 Skills, 16 Metric Buckets, 22 Metrics.</li>
+            <li><strong>Temporal Layer:</strong> 9 Career Epochs ordering progression from Actuarial Engineering (Phase 1) to AI Commercialization (Phase 6).</li>
+            <li><strong>Evidence Layer:</strong> 6 Formal Employments, 47 Role-Episode Engagements, 60 Grounded Facts, 129 Metric Outcomes, 120 Concepts, 32 Repo Artifacts, 4 Locked Bullets, 1 Certification.</li>
+            <li><strong>Projection &amp; Policy Layers:</strong> 31 Role Families (18 weighted projections), 17 Resume Sections, 20 Governance Policy Guardrails.</li>
+          </ul>
+        </div>
+        <div class="subcard">
+          <div class="box-label">5-Band Confidence &amp; Visual Encoding</div>
+          <ul>
+            <li><strong>Verified (95-100%):</strong> Solid emerald ring; multi-evidence backed backbone, facts, or engagements.</li>
+            <li><strong>High (90-94%):</strong> Solid sky-blue ring; confirmed canonical skills and quantified outcomes.</li>
+            <li><strong>Established (85-89%):</strong> Dashed indigo ring; source-backed claims and domain linkages.</li>
+            <li><strong>Provisional (70-84%) / Low (&lt;70%):</strong> Amber/rose ring; draft, pending-source, or blocked guardrails.</li>
+          </ul>
+        </div>
+        <div class="subcard">
+          <div class="box-label">Interactive Canvas Controls &amp; Shortcuts</div>
+          <ul>
+            <li><strong>Click Node / Edge:</strong> Inspect full provenance, semantic units, and connected neighbors in the right panel.</li>
+            <li><strong>Double-Click Type Pill:</strong> Isolate a single entity category; click again or press <strong>All</strong> to restore.</li>
+            <li><strong>Trace Shortest Path:</strong> Select any destination entity in the Inspector to compute live BFS hops across all 4,785 edges.</li>
+            <li><strong>Keyboard:</strong> Arrow keys pan, <code>[</code>/<code>]</code> cycle nodes, <code>+</code>/<code>-</code> zoom, <code>Enter</code> expand 1-hop ring, <code>Esc</code> reset spotlight.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- WORKSPACE 1: Architecture Map (#opmodel)                              -->
+  <!-- ===================================================================== -->
+  <div id="viewOpModelWorkspace" class="flex-1 overflow-y-auto custom-scroll hidden" style="padding: 8px 14px; background: var(--bg);">
+    <div class="container">
+      <div class="kpi-grid">
+        <div class="card">
+          <div class="kpi-label">Authoritative Graph Topology</div>
+          <div id="kpiArchNodes" class="kpi-value">847 Nodes &middot; 4,785 Edges</div>
+          <div id="kpiArchNodesSub" class="kpi-sub">5 Layers &middot; 20 Node Types &middot; 46 Edge Types &middot; 0 Orphan Links</div>
+        </div>
+        <div class="card">
+          <div class="kpi-label">Skills &amp; Capability Arsenal</div>
+          <div id="kpiArchSkills" class="kpi-value">251 Skills &middot; 29 Pillars</div>
+          <div id="kpiArchSkillsSub" class="kpi-sub">49 Capability Domains &middot; 3 Career Tracks &middot; 6 Core Phases</div>
+        </div>
+        <div class="card">
+          <div class="kpi-label">Grounded Proof &amp; Evidence</div>
+          <div id="kpiArchEvidence" class="kpi-value">8,751 Evidence Links</div>
+          <div id="kpiArchEvidenceSub" class="kpi-sub">47 Engagements &middot; 129 Metric Outcomes &middot; 60 Facts &middot; 376 Semantic Units</div>
+        </div>
+        <div class="card">
+          <div class="kpi-label">Projection &amp; Policy Governance</div>
+          <div id="kpiArchGov" class="kpi-value">18 Role Projections &middot; 20 Policies</div>
+          <div id="kpiArchGovSub" class="kpi-sub">17 Resume Sections &middot; 3,108 Precomputed Paths &middot; 6,216 Neighborhoods</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-12 gap-2.5" style="align-items: start;">
+        <div class="col-span-12 lg:col-span-8 xl:col-span-9 card" style="display:flex;flex-direction:column;gap:6px;">
+          <div class="flex flex-wrap items-center justify-between gap-2" style="border-bottom:1px solid var(--border);padding-bottom:5px;">
+            <strong style="font-size: var(--fs-md);">Agents Repo Knowledge Graph Architecture: 3 Career Tracks, 6 Epochs, 6 Tenures &amp; Horizontal Governance</strong>
+            <span style="font-size: var(--fs-xs); color: var(--muted);">Click any track, epoch, employer, or governance bar to filter across all 6 workspaces</span>
+          </div>
+          <div style="width:100%;overflow-x:auto;">
+            <svg id="archMatrixSvg" viewBox="0 0 1200 620" style="width:100%;height:auto;min-width:780px;max-height:calc(100vh - 300px);display:block;"></svg>
+          </div>
+        </div>
+
+        <div id="opModelUnitFocusCard" class="col-span-12 lg:col-span-4 xl:col-span-3 card" style="display:flex;flex-direction:column;gap:8px;">
+          <div style="border-bottom:1px solid var(--border);padding-bottom:5px;">
+            <div class="kpi-label">Active Scope Inspector</div>
+            <div id="archFocusTitle" class="font-bold text-base mt-0.5">Full Career Graph</div>
+            <div id="archFocusDesc" class="text-xs mt-0.5" style="color:var(--muted);"></div>
+          </div>
+          <div id="archFocusStats" class="grid grid-cols-2 gap-1.5 text-xs"></div>
+          <div id="archFocusList" class="flex flex-col gap-1.5 text-xs custom-scroll" style="max-height:290px;overflow-y:auto;"></div>
+          <div class="flex flex-wrap gap-1.5" style="padding-top:6px;border-top:1px solid var(--border);">
+            <button type="button" id="btnArchToGraph" class="btn-primary">Open in Network Graph</button>
+            <button type="button" id="btnArchToSkills">Inspect Skills</button>
+            <button type="button" id="btnArchToEngagements">View Engagements</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- WORKSPACE 2: Skills & Pillars (#portfolio)                            -->
+  <!-- ===================================================================== -->
+  <div id="viewPortfolioWorkspace" class="flex-1 overflow-y-auto custom-scroll hidden" style="padding: 8px 14px; background: var(--bg);">
+    <div class="container">
+      <div class="kpi-grid">
+        <div class="card">
+          <div class="kpi-label">Active Skills Scope</div>
+          <div id="kpiPortTotal" class="kpi-value">251 / 251 Skills</div>
+          <div id="kpiPortTotalSub" class="kpi-sub">Across 29 Pillars &amp; 49 Capability Domains</div>
+        </div>
+        <div class="card">
+          <div class="kpi-label">External Claim Eligible</div>
+          <div id="kpiPortExt" class="kpi-value">0 External Eligible</div>
+          <div id="kpiPortExtSub" class="kpi-sub">Cleared for external resume &amp; executive surfacing</div>
+        </div>
+        <div class="card">
+          <div class="kpi-label">Evidence-Backed Proof Density</div>
+          <div id="kpiPortProof" class="kpi-value">0 Linked Facts</div>
+          <div id="kpiPortProofSub" class="kpi-sub">Direct fact, metric outcome, and engagement anchors</div>
+        </div>
+        <div class="card">
+          <div class="kpi-label">Average Calibrated Confidence</div>
+          <div id="kpiPortConf" class="kpi-value">0%</div>
+          <div id="kpiPortConfSub" class="kpi-sub">Grounded in SQLite skill selection features</div>
+        </div>
+      </div>
+
+      <div class="card" style="padding: 5px 10px;">
+        <div class="header-row">
+          <div id="skillsQuickFilterBar" class="pill-group">
+            <button type="button" data-sk-qf="all" class="sk-qf-btn pill active">All</button>
+            <button type="button" data-sk-qf="external" class="sk-qf-btn pill">External Eligible</button>
+            <button type="button" data-sk-qf="confirmed" class="sk-qf-btn pill">Active Confirmed</button>
+            <button type="button" data-sk-qf="high_conf" class="sk-qf-btn pill">Confidence &ge;90%</button>
+            <button type="button" data-sk-qf="internal" class="sk-qf-btn pill">Internal Only</button>
+            <button type="button" data-sk-qf="blocked" class="sk-qf-btn pill">Blocked / Draft</button>
+          </div>
+          <div class="toolbar">
+            <label for="skillsSortSelect" style="font-size:var(--fs-2xs);font-weight:700;color:var(--muted);">Sort:</label>
+            <select id="skillsSortSelect" aria-label="Sort skills">
+              <option value="conf_desc">Confidence: High to Low</option>
+              <option value="facts_desc">Linked Facts: High to Low</option>
+              <option value="label_asc">Skill Name: A to Z</option>
+              <option value="pillar_asc">Pillar: A to Z</option>
+            </select>
+            <label style="display:inline-flex;align-items:center;gap:4px;font-size:var(--fs-2xs);color:var(--muted);cursor:pointer;">
+              <input id="chkGroupPillar" type="checkbox" />
+              <span>Group Pillar</span>
+            </label>
+            <button id="btnToggleSkillsDensity" type="button">Density: Standard</button>
+            <button id="btnExportSkillsCsv" type="button">CSV</button>
+            <button id="btnResetSkills" type="button">Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <div style="padding:5px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <div style="font-size:var(--fs-sm);font-weight:700;">Skills &amp; Capability Domains Arsenal (Click any row for full evidence drawer)</div>
+          <span id="skillsRowTelemetry" class="legend-chip font-mono">Showing 251 of 251 Skills</span>
+        </div>
+        <div class="table-scroll">
+          <table id="skillsTable">
+            <thead>
+              <tr>
+                <th>Skill</th>
+                <th>Pillar &amp; Capability Domain</th>
+                <th>Epoch &amp; Status</th>
+                <th>Confidence</th>
+                <th>Proof Anchors</th>
+                <th>Top Role Projections</th>
+              </tr>
+            </thead>
+            <tbody id="skillsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- WORKSPACE 3: Evidence & Outcomes (#signals)                           -->
+  <!-- ===================================================================== -->
+  <div id="viewSignalsWorkspace" class="flex-1 overflow-y-auto custom-scroll hidden" style="padding: 8px 14px; background: var(--bg);">
+    <div class="container">
+      <div class="kpi-grid">
+        <div class="card">
+          <div class="kpi-label">Quantified Metric Outcomes</div>
+          <div id="kpiEvMetrics" class="kpi-value">129 Outcomes</div>
+          <div class="kpi-sub">Employer-bound business &amp; technical impact claims</div>
+        </div>
+        <div class="card">
+          <div class="kpi-label">Grounded Facts &amp; Bullets</div>
+          <div id="kpiEvFacts" class="kpi-value">65 Anchors</div>
+          <div class="kpi-sub">60 Facts &middot; 4 Locked Bullets &middot; 1 Certification</div>
+        </div>
+        <div class="card">
+          <div class="kpi-label">Repo Implementation Proof</div>
+          <div id="kpiEvRepo" class="kpi-value">32 Repo Artifacts</div>
+          <div class="kpi-sub">Code-level architecture &amp; production verification</div>
+        </div>
+        <div class="card">
+          <div class="kpi-label">Governance Policy Guardrails</div>
+          <div id="kpiEvPolicy" class="kpi-value">20 Policy Rules</div>
+          <div class="kpi-sub">Fail-closed claim provenance &amp; external eligibility gates</div>
+        </div>
+      </div>
+
+      <div class="card" style="padding: 5px 10px;">
+        <div class="header-row">
+          <div id="evidenceCatBar" class="pill-group">
+            <span style="font-size:var(--fs-xs);font-weight:700;color:var(--muted);">Category:</span>
+            <button type="button" data-ev-cat="all" class="ev-cat-btn pill active">All</button>
+            <button type="button" data-ev-cat="metric_outcome" class="ev-cat-btn pill">Metric Outcomes</button>
+            <button type="button" data-ev-cat="grounded_fact" class="ev-cat-btn pill">Grounded Facts</button>
+            <button type="button" data-ev-cat="repo_evidence" class="ev-cat-btn pill">Repo Evidence</button>
+            <button type="button" data-ev-cat="policy" class="ev-cat-btn pill">Policy Guardrails</button>
+          </div>
+          <div class="toolbar">
+            <span id="evidenceRowTelemetry" class="legend-chip font-mono">Showing 0 items</span>
+            <button id="btnResetEvidence" type="button">Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-scroll">
+          <table id="evidenceTable">
+            <thead>
+              <tr>
+                <th style="width:130px;">Category</th>
+                <th style="width:240px;">Evidence / Rule Label</th>
+                <th style="width:140px;">Employer &amp; Confidence</th>
+                <th>Grounded Statement &amp; Linked Skills</th>
+              </tr>
+            </thead>
+            <tbody id="evidenceTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card" style="padding: 8px 12px;">
+        <div style="font-size:var(--fs-sm);font-weight:700;margin-bottom:3px;">Evidence &amp; Graph Lineage</div>
+        <div id="evidenceLineageText" style="font-size:var(--fs-xs);color:var(--muted);"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- WORKSPACE 4: Engagements & Employments (#delivery)                    -->
+  <!-- ===================================================================== -->
+  <div id="viewDeliveryWorkspace" class="flex-1 overflow-y-auto custom-scroll hidden" style="padding: 8px 14px; background: var(--bg);">
+    <div class="container">
+      <div class="kpi-grid">
+        <div class="card">
+          <div class="kpi-label">Role-Episode Engagements</div>
+          <div id="kpiEngTotal" class="kpi-value">47 Engagements</div>
+          <div id="kpiEngTotalSub" class="kpi-sub">First-class delivery episodes across 6 tenures</div>
+        </div>
+        <div class="card">
+          <div class="kpi-label">Skills Exercised</div>
+          <div id="kpiEngSkills" class="kpi-value">0 Links</div>
+          <div class="kpi-sub">Direct engagement-to-skill graph edges</div>
+        </div>
+        <div class="card">
+          <div class="kpi-label">Verified Fact Grounding</div>
+          <div id="kpiEngFacts" class="kpi-value">0 Facts</div>
+          <div class="kpi-sub">Auditable source claims bound per engagement</div>
+        </div>
+        <div class="card">
+          <div class="kpi-label">Quantified Outcomes</div>
+          <div id="kpiEngMetrics" class="kpi-value">0 Outcomes</div>
+          <div class="kpi-sub">Reified business &amp; platform impact stories</div>
+        </div>
+      </div>
+
+      <div class="card" style="padding: 5px 10px;">
+        <div class="header-row">
+          <div id="engEmpBar" class="pill-group">
+            <button type="button" data-eng-emp="all" class="eng-emp-btn pill active">All Employers</button>
+            <button type="button" data-eng-emp="emp_slalom" class="eng-emp-btn pill">Slalom</button>
+            <button type="button" data-eng-emp="emp_unify" class="eng-emp-btn pill">Unify Consulting</button>
+            <button type="button" data-eng-emp="emp_ibm" class="eng-emp-btn pill">IBM</button>
+            <button type="button" data-eng-emp="emp_insurtech" class="eng-emp-btn pill">InsurTech Cloud</button>
+            <button type="button" data-eng-emp="emp_ey" class="eng-emp-btn pill">Ernst &amp; Young</button>
+            <button type="button" data-eng-emp="emp_early" class="eng-emp-btn pill">Early Career</button>
+          </div>
+          <div class="toolbar">
+            <span id="engRowTelemetry" class="legend-chip font-mono">Showing 47 of 47</span>
+            <button id="btnExportEngCsv" type="button">CSV</button>
+            <button id="btnResetEng" type="button">Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-scroll">
+          <table id="engagementsTable">
+            <thead>
+              <tr>
+                <th style="width:140px;">Employer &amp; Epoch</th>
+                <th style="width:240px;">Engagement Episode</th>
+                <th style="width:110px;">Confidence</th>
+                <th>Summary &amp; Exercised Skills</th>
+              </tr>
+            </thead>
+            <tbody id="engagementsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- WORKSPACE 5: Role Projections (#agendas)                              -->
+  <!-- ===================================================================== -->
+  <div id="viewAgendasWorkspace" class="flex-1 overflow-y-auto custom-scroll hidden" style="padding: 8px 14px; background: var(--bg);">
+    <div class="container">
+      <div class="card" style="padding: 6px 10px;">
+        <div class="header-row">
+          <div id="projGroupPills" class="pill-group">
+            <button type="button" data-proj-group="ALL" class="proj-group-btn pill active">All Role Families (18)</button>
+            <button type="button" data-proj-group="Executive &amp; Platform Engineering" class="proj-group-btn pill">Executive &amp; Platform</button>
+            <button type="button" data-proj-group="Partner GTM &amp; Commercial" class="proj-group-btn pill">Partner GTM &amp; Commercial</button>
+            <button type="button" data-proj-group="Regulated FS &amp; Risk" class="proj-group-btn pill">Regulated FS &amp; Risk</button>
+            <button type="button" data-proj-group="Multi-Track Generalist" class="proj-group-btn pill">Multi-Track</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="chip chip-purple">Graph Routing Only &middot; Claims Grounded Strictly in Fact Ledger</span>
+            <span id="projCountBadge" class="legend-chip font-mono">18 Projections</span>
+          </div>
+        </div>
+      </div>
+      <div id="roleProjectionsGrid" class="exec-agenda-grid"></div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- WORKSPACE 6: Interactive Network Graph (#graph)                       -->
+  <!-- ===================================================================== -->
+  <div id="viewGraphWorkspace" class="flex-1 flex flex-col overflow-hidden">
+    <div style="background: var(--bg-card); border-bottom: 1px solid var(--border-col);" class="px-4 py-1.5 flex flex-wrap items-center justify-between gap-2 text-xs shrink-0">
+      <div class="flex flex-wrap items-center gap-1" id="typeFilters">
+        <button id="btnAllTypes" type="button" aria-pressed="true" style="background: var(--primary); color: var(--primary-fg); border: 1px solid var(--primary);" class="flex items-center gap-1 px-2.5 py-1 rounded-full font-semibold">
+          All
+        </button>
+        <button data-type="backbone" aria-pressed="true" title="Click to toggle; Double-click to isolate" style="background: var(--bg-main); border: 1px solid var(--border-col);" class="type-pill flex items-center gap-1 px-2 py-1 rounded-full">
+          <span class="w-2.5 h-2.5 rounded-full" style="background:#0f172a"></span> Tracks
+        </button>
+        <button data-type="epoch" aria-pressed="true" title="Click to toggle; Double-click to isolate" style="background: var(--bg-main); border: 1px solid var(--border-col);" class="type-pill flex items-center gap-1 px-2 py-1 rounded-full">
+          <span class="w-2.5 h-2.5 rounded-full" style="background:#1d4ed8"></span> Epochs
+        </button>
+        <button data-type="employment" aria-pressed="true" title="Click to toggle; Double-click to isolate" style="background: var(--bg-main); border: 1px solid var(--border-col);" class="type-pill flex items-center gap-1 px-2 py-1 rounded-full">
+          <span class="w-2.5 h-2.5 rounded-full" style="background:#047857"></span> Employers
+        </button>
+        <button data-type="pillar" aria-pressed="true" title="Click to toggle; Double-click to isolate" style="background: var(--bg-main); border: 1px solid var(--border-col);" class="type-pill flex items-center gap-1 px-2 py-1 rounded-full">
+          <span class="w-2.5 h-2.5 rounded-full" style="background:#6b21a8"></span> Pillars
+        </button>
+        <button data-type="domain" aria-pressed="true" title="Click to toggle; Double-click to isolate" style="background: var(--bg-main); border: 1px solid var(--border-col);" class="type-pill flex items-center gap-1 px-2 py-1 rounded-full">
+          <span class="w-2.5 h-2.5 rounded-full" style="background:#4338ca"></span> Domains
+        </button>
+        <button data-type="skill" aria-pressed="true" title="Click to toggle; Double-click to isolate" style="background: var(--bg-main); border: 1px solid var(--border-col);" class="type-pill flex items-center gap-1 px-2 py-1 rounded-full">
+          <span class="w-2.5 h-2.5 rounded-full" style="background:#0891b2"></span> Skills
+        </button>
+        <button data-type="engagement" aria-pressed="true" title="Click to toggle; Double-click to isolate" style="background: var(--bg-main); border: 1px solid var(--border-col);" class="type-pill flex items-center gap-1 px-2 py-1 rounded-full">
+          <span class="w-2.5 h-2.5 rounded-full" style="background:#d97706"></span> Engagements
+        </button>
+        <button data-type="evidence" aria-pressed="true" title="Click to toggle; Double-click to isolate" style="background: var(--bg-main); border: 1px solid var(--border-col);" class="type-pill flex items-center gap-1 px-2 py-1 rounded-full">
+          <span class="w-2.5 h-2.5 rounded-full" style="background:#0284c7"></span> Evidence
+        </button>
+        <button data-type="metric" aria-pressed="true" title="Click to toggle; Double-click to isolate" style="background: var(--bg-main); border: 1px solid var(--border-col);" class="type-pill flex items-center gap-1 px-2 py-1 rounded-full">
+          <span class="w-2.5 h-2.5 rounded-full" style="background:#0e7490"></span> Metrics
+        </button>
+        <button data-type="projection" aria-pressed="true" title="Click to toggle; Double-click to isolate" style="background: var(--bg-main); border: 1px solid var(--border-col);" class="type-pill flex items-center gap-1 px-2 py-1 rounded-full">
+          <span class="w-2.5 h-2.5 rounded-full" style="background:#6366f1"></span> Projections
+        </button>
+        <button data-type="policy" aria-pressed="true" title="Click to toggle; Double-click to isolate" style="background: var(--bg-main); border: 1px solid var(--border-col);" class="type-pill flex items-center gap-1 px-2 py-1 rounded-full">
+          <span class="w-2.5 h-2.5 rounded-full" style="background:#b91c1c"></span> Policies
+        </button>
+        <button id="btnIsolateSubgraph" type="button" aria-pressed="true" title="Cycle neighborhood depth filter: Off, 1-Hop, 2-Hop, 3-Hop" style="background: var(--bg-main); color: var(--primary); border: 1.5px solid var(--primary);" class="flex items-center gap-1 px-2.5 py-1 rounded-full font-semibold">
+          Depth: 1-Hop
+        </button>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-1.5" id="graphTopControls" style="color: var(--text-muted);">
+        <select id="layoutSelect" aria-label="Select graph layout algorithm" style="background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border-col);" class="rounded-lg px-2 py-1 text-xs">
+          <option value="hierarchy">Layout: Hierarchy</option>
+          <option value="radial">Layout: Rings</option>
+          <option value="force">Layout: Force</option>
+        </select>
+        <select id="sizeSelect" aria-label="Select node sizing mode" style="background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border-col);" class="rounded-lg px-2 py-1 text-xs">
+          <option value="evidence">Size: Hybrid</option>
+          <option value="facts">Size: Evidence</option>
+          <option value="degree">Size: Connections</option>
+          <option value="confidence">Size: Confidence</option>
+          <option value="uniform">Size: Uniform</option>
+        </select>
+        <select id="colorSelect" aria-label="Select node color encoding" style="background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border-col);" class="rounded-lg px-2 py-1 text-xs">
+          <option value="category">Color: Category &amp; Layer</option>
+          <option value="confidence">Color: Confidence Band (5-Tier)</option>
+        </select>
+        <button id="btnToggleFullTopology" type="button" title="Switch between Career Architecture Backbone and Full 847-Node Knowledge Graph" style="background: var(--primary); color: var(--primary-fg); border: 1px solid var(--primary);" class="px-2 py-0.5 rounded font-semibold">Career Backbone</button>
+        <span id="visibleStats" aria-live="polite" style="font-size:var(--fs-2xs);">Loading...</span>
+        <span class="flex items-center gap-1 shrink-0">
+          <button id="fitToScreenBtn" type="button" title="Fit all visible nodes to screen" style="background: var(--bg-main); border: 1px solid var(--border-col);" class="px-2 py-0.5 rounded font-medium">Fit</button>
+          <button id="zoomInBtn" type="button" aria-label="Zoom In" style="background: var(--bg-main); border: 1px solid var(--border-col);" class="px-2 py-0.5 rounded font-bold">+</button>
+          <button id="zoomOutBtn" type="button" aria-label="Zoom Out" style="background: var(--bg-main); border: 1px solid var(--border-col);" class="px-2 py-0.5 rounded font-bold">&minus;</button>
+          <button id="resetBtn" type="button" style="background: var(--bg-panel); border: 1px solid var(--border-col);" class="px-2.5 py-0.5 rounded font-medium">Reset</button>
+        </span>
+      </div>
+    </div>
+
+    <div class="flex-1 grid grid-cols-12 overflow-hidden">
+      <div class="col-span-8 lg:col-span-9 relative h-full w-full overflow-hidden">
+        <canvas id="graphCanvas" tabindex="0" role="application" aria-label="Interactive Agents Knowledge Graph Canvas" class="w-full h-full block cursor-grab"></canvas>
+        <div id="canvasLegendOverlay" role="toolbar" aria-label="5-Band Confidence Filter and Visual Key" style="background: var(--bg-card); border: 1px solid var(--border-col); opacity: 0.96; position: absolute; top: 10px; left: 10px; right: 10px; max-width: calc(100% - 20px); border-radius: 10px; padding: 5px 10px; font-size: var(--fs-xs); z-index: 10;" class="flex flex-wrap items-center gap-1.5">
+          <button type="button" data-conf-band="ALL" aria-pressed="true" style="background: var(--primary); color: var(--primary-fg); border: 1px solid var(--primary); padding: 2px 8px; border-radius: 999px; font-weight: 600;" class="conf-band-pill">All Bands</button>
+          <button type="button" data-conf-band="VERIFIED" aria-pressed="false" style="background: var(--bg-main); border: 1px solid var(--border-col); padding: 2px 8px; border-radius: 999px;" class="conf-band-pill"><strong style="color:var(--band-verified-fg);">&#9679;</strong> Verified 95-100% <span data-band-count="VERIFIED" style="opacity:0.78;"></span></button>
+          <button type="button" data-conf-band="HIGH" aria-pressed="false" style="background: var(--bg-main); border: 1px solid var(--border-col); padding: 2px 8px; border-radius: 999px;" class="conf-band-pill"><strong style="color:var(--band-high-fg);">&#9679;</strong> High 90-94% <span data-band-count="HIGH" style="opacity:0.78;"></span></button>
+          <button type="button" data-conf-band="ESTABLISHED" aria-pressed="false" style="background: var(--bg-main); border: 1px solid var(--border-col); padding: 2px 8px; border-radius: 999px;" class="conf-band-pill"><strong style="color:var(--band-est-fg);">&#9676;</strong> Established 85-89% <span data-band-count="ESTABLISHED" style="opacity:0.78;"></span></button>
+          <button type="button" data-conf-band="PROVISIONAL" aria-pressed="false" style="background: var(--bg-main); border: 1px solid var(--border-col); padding: 2px 8px; border-radius: 999px;" class="conf-band-pill"><strong style="color:var(--band-prov-fg);">&#9676;</strong> Provisional 70-84% <span data-band-count="PROVISIONAL" style="opacity:0.78;"></span></button>
+          <button type="button" data-conf-band="LOW" aria-pressed="false" style="background: var(--bg-main); border: 1px solid var(--border-col); padding: 2px 8px; border-radius: 999px;" class="conf-band-pill"><strong style="color:var(--band-low-fg);">&middot;</strong> Low &lt;70% <span data-band-count="LOW" style="opacity:0.78;"></span></button>
+        </div>
+        <div id="hoverBanner" style="background: var(--bg-card); border: 1px solid var(--border-col);" class="hidden absolute bottom-4 left-4 right-4 max-w-xl pointer-events-none rounded-xl px-3.5 py-2 text-xs flex items-center justify-between">
+          <span id="hoverText" class="font-semibold truncate"></span>
+          <span id="hoverSub" style="color: var(--text-muted);" class="ml-3 shrink-0"></span>
+        </div>
+      </div>
+
+      <aside style="background: var(--bg-card); border-left: 1px solid var(--border-col); min-width: 0;" class="col-span-4 lg:col-span-3 h-full p-2.5 flex flex-col justify-between overflow-hidden">
+        <div id="inspectorContent" aria-live="polite" style="padding-bottom: 18px;" class="overflow-y-auto custom-scroll pr-1 flex flex-col gap-2 h-full"></div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- Shared Slide-Over Detail Drawer -->
+  <div id="detailOverlay" role="dialog" aria-modal="true" aria-labelledby="drawerTitle" class="overlay hidden">
+    <div class="drawer">
+      <div class="drawer-head">
+        <div>
+          <div id="drawerKicker" class="kpi-label">Entity Detail</div>
+          <h2 id="drawerTitle" style="margin:2px 0 0 0;font-size:var(--fs-lg);"></h2>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <button id="btnDrawerFocusGraph" type="button" class="btn-primary">Focus in Network Graph</button>
+          <button id="btnCloseDrawer" type="button">&times; Close</button>
+        </div>
+      </div>
+      <div id="drawerBody" class="drawer-body custom-scroll"></div>
+    </div>
+  </div>
+
+  <script>
+    const __AGENTS_BOOT_DATA__ = {}; // END_AGENTS_BOOT_DATA
+
+    const DATA = __AGENTS_BOOT_DATA__ || {};
+    const GRAPH_NODES = Array.isArray(DATA.nodes) ? DATA.nodes : [];
+    const GRAPH_EDGES = Array.isArray(DATA.edges) ? DATA.edges : [];
+    const SKILLS = Array.isArray(DATA.skills) ? DATA.skills : [];
+    const EVIDENCE = Array.isArray(DATA.evidence) ? DATA.evidence : [];
+    const ENGAGEMENTS = Array.isArray(DATA.engagements) ? DATA.engagements : [];
+    const ROLE_PROJECTIONS = Array.isArray(DATA.role_projections) ? DATA.role_projections : [];
+    const EMPLOYMENTS = Array.isArray(DATA.employments) ? DATA.employments : [];
+    const ROOT_NODE_ID = "identity_amit_ayer_governed_ai_platform_leader";
+
+    function esc(s) {
+      return String(s == null ? "" : s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    const TYPE_META = {
+      backbone:   { label: "Identity & Tracks",      radius: 17, color: "#0f172a", colorLight: "#0f172a", colorDark: "#38bdf8", rimLight: "#020617", rimDark: "#e0f2fe", fgLight: "#0f172a", fgDark: "#f8fafc" },
+      epoch:      { label: "Career Epochs",          radius: 14, color: "#1d4ed8", colorLight: "#1d4ed8", colorDark: "#3b82f6", rimLight: "#1e3a8a", rimDark: "#bfdbfe", fgLight: "#1d4ed8", fgDark: "#93c5fd" },
+      employment: { label: "Formal Employments",     radius: 15, color: "#047857", colorLight: "#047857", colorDark: "#10b981", rimLight: "#064e3b", rimDark: "#a7f3d0", fgLight: "#047857", fgDark: "#6ee7b7" },
+      pillar:     { label: "Capability Pillars",     radius: 13, color: "#6b21a8", colorLight: "#6b21a8", colorDark: "#a855f7", rimLight: "#3b0764", rimDark: "#e9d5ff", fgLight: "#6b21a8", fgDark: "#d8b4fe" },
+      domain:     { label: "Capability Domains",     radius: 11, color: "#4338ca", colorLight: "#4338ca", colorDark: "#818cf8", rimLight: "#312e81", rimDark: "#c7d2fe", fgLight: "#4338ca", fgDark: "#a5b4fc" },
+      skill:      { label: "Skills",                 radius: 10, color: "#0891b2", colorLight: "#0891b2", colorDark: "#22d3ee", rimLight: "#164e63", rimDark: "#a5f3fc", fgLight: "#0e7490", fgDark: "#67e8f9" },
+      engagement: { label: "Engagements",            radius: 12, color: "#d97706", colorLight: "#d97706", colorDark: "#f59e0b", rimLight: "#78350f", rimDark: "#fde68a", fgLight: "#b45309", fgDark: "#fcd34d" },
+      evidence:   { label: "Grounded Evidence",      radius: 9,  color: "#0284c7", colorLight: "#0284c7", colorDark: "#38bdf8", rimLight: "#075985", rimDark: "#bae6fd", fgLight: "#0369a1", fgDark: "#7dd3fc" },
+      metric:     { label: "Metric Outcomes",        radius: 10, color: "#0e7490", colorLight: "#0e7490", colorDark: "#2dd4bf", rimLight: "#155e75", rimDark: "#99f6e4", fgLight: "#0f766e", fgDark: "#5eead4" },
+      projection: { label: "Projections & Sections", radius: 11, color: "#6366f1", colorLight: "#6366f1", colorDark: "#818cf8", rimLight: "#3730a3", rimDark: "#e0e7ff", fgLight: "#4338ca", fgDark: "#c7d2fe" },
+      policy:     { label: "Policy Guardrails",      radius: 12, color: "#b91c1c", colorLight: "#b91c1c", colorDark: "#f87171", rimLight: "#7f1d1d", rimDark: "#fecaca", fgLight: "#b91c1c", fgDark: "#fca5a5" }
+    };
+
+    const CONFIDENCE_BANDS = {
+      VERIFIED:    { key: "VERIFIED",    label: "Verified",    min: 0.95, colorLight: "#047857", colorDark: "#10b981", bgLight: "#dcfce7", bgDark: "rgba(16,185,129,0.22)", edgeRgbaLight: "rgba(4,120,87,0.34)",   edgeRgbaDark: "rgba(16,185,129,0.34)", dash: [] },
+      HIGH:        { key: "HIGH",        label: "High",        min: 0.90, colorLight: "#0369a1", colorDark: "#38bdf8", bgLight: "#e0f2fe", bgDark: "rgba(56,189,248,0.20)", edgeRgbaLight: "rgba(3,105,161,0.30)",  edgeRgbaDark: "rgba(56,189,248,0.30)", dash: [] },
+      ESTABLISHED: { key: "ESTABLISHED", label: "Established", min: 0.85, colorLight: "#4338ca", colorDark: "#818cf8", bgLight: "#e0e7ff", bgDark: "rgba(129,140,248,0.22)",edgeRgbaLight: "rgba(67,56,202,0.28)",  edgeRgbaDark: "rgba(129,140,248,0.28)", dash: [4, 2] },
+      PROVISIONAL: { key: "PROVISIONAL", label: "Provisional", min: 0.70, colorLight: "#c2410c", colorDark: "#fbbf24", bgLight: "#ffedd5", bgDark: "rgba(251,191,36,0.20)", edgeRgbaLight: "rgba(194,65,12,0.26)",  edgeRgbaDark: "rgba(251,191,36,0.26)", dash: [3, 3] },
+      LOW:         { key: "LOW",         label: "Low",         min: 0.00, colorLight: "#b91c1c", colorDark: "#f87171", bgLight: "#fee2e2", bgDark: "rgba(248,113,113,0.22)",edgeRgbaLight: "rgba(185,28,28,0.28)",  edgeRgbaDark: "rgba(248,113,113,0.28)", dash: [2, 3] }
+    };
+
+    function getConfidenceBand(score) {
+      const s = typeof score === "number" ? score : 0.88;
+      if (s >= 0.95) return CONFIDENCE_BANDS.VERIFIED;
+      if (s >= 0.90) return CONFIDENCE_BANDS.HIGH;
+      if (s >= 0.85) return CONFIDENCE_BANDS.ESTABLISHED;
+      if (s >= 0.70) return CONFIDENCE_BANDS.PROVISIONAL;
+      return CONFIDENCE_BANDS.LOW;
+    }
+
+    const state = {
+      mode: (typeof __DEFAULT_INITIAL_MODE__ !== "undefined" ? __DEFAULT_INITIAL_MODE__ : "graph"),
+      scope: "all",
+      search: "",
+      skillQf: "all",
+      skillSort: "conf_desc",
+      skillGroupPillar: false,
+      skillCompact: false,
+      evidenceCat: "all",
+      engEmployer: "all",
+      projGroup: "ALL",
+      drawerNodeId: null
+    };
+
+    // Graph Canvas State
+    const canvas = document.getElementById("graphCanvas");
+    const ctx = canvas.getContext("2d");
+    const inspectorContent = document.getElementById("inspectorContent");
+    const hoverBanner = document.getElementById("hoverBanner");
+    const hoverText = document.getElementById("hoverText");
+    const hoverSub = document.getElementById("hoverSub");
+    const visibleStats = document.getElementById("visibleStats");
+
+    let activeLayout = "hierarchy";
+    let activeSizeMode = "evidence";
+    let activeColorMode = "category";
+    let activeConfidenceFilter = "ALL";
+    let enabledTypes = new Set(Object.keys(TYPE_META));
+    let isolateHopDepth = 1; // 0 = Off, 1 = 1-Hop, 2 = 2-Hop, 3 = 3-Hop
+    let graphShowFullTopology = false;
+    let selectedNode = null;
+    let selectedEdge = null;
+    let hoveredNode = null;
+    let hoveredEdge = null;
+    let draggingNode = null;
+    let pointerDownPos = null;
+    let isPanning = false;
+    let panStart = { x: 0, y: 0 };
+    let camera = { x: 0, y: 0, zoom: 0.85 };
+    let navHistory = [];
+    let navHistoryIdx = -1;
+    let suppressHistoryPush = false;
+    let activeShortestPathNodeIds = new Set();
+    let activeShortestPathEdgeIds = new Set();
+    let egoPinnedIds = new Set();
+    let simSleeping = true;
+    let rafId = null;
+    const labelWidthCache = new Map();
+
+    function initialPosition(idx) {
+      const golden = Math.PI * (3 - Math.sqrt(5));
+      const ang = idx * golden;
+      const dist = 120 + Math.sqrt(idx + 1) * 72;
+      return { x: Math.cos(ang) * dist, y: Math.sin(ang) * dist };
+    }
+
+    const nodes = GRAPH_NODES.map((n, idx) => {
+      const pos = initialPosition(idx);
+      const conf = typeof n.confidence === "number" ? n.confidence : 0.90;
+      const band = getConfidenceBand(conf).key;
+      return {
+        ...n,
+        confidence: conf,
+        confidenceBand: band,
+        cluster: Array.isArray(n.cluster) ? n.cluster : ["all"],
+        x: pos.x,
+        y: pos.y,
+        vx: 0,
+        vy: 0,
+        r: (TYPE_META[n.type] || TYPE_META.evidence).radius
+      };
+    });
+    const nodeById = new Map(nodes.map((n) => [n.id, n]));
+
+    // Consolidate parallel directed edges
+    const edges = [];
+    const dirMap = new Map();
+    for (const rawE of GRAPH_EDGES) {
+      const s = nodeById.get(rawE.from);
+      const t = nodeById.get(rawE.to);
+      if (!s || !t || s.id === t.id) continue;
+      const key = `${s.id}-->${t.id}`;
+      if (dirMap.has(key)) {
+        const ex = dirMap.get(key);
+        if (rawE.mat === "critical") ex.mat = "critical";
+        if (rawE.confidence > ex.confidence) ex.confidence = rawE.confidence;
+        if (rawE.label && !ex.label.includes(rawE.label) && ex.label.split(" / ").length < 2) {
+          ex.label = `${ex.label} / ${rawE.label}`;
+        }
+        ex.evidenceCount = (ex.evidenceCount || 0) + (rawE.evidenceCount || 0);
+      } else {
+        const obj = {
+          ...rawE,
+          id: `edge_${edges.length}`,
+          source: s,
+          target: t,
+          confidence: typeof rawE.confidence === "number" ? rawE.confidence : 0.90,
+          curveOffset: 0
+        };
+        dirMap.set(key, obj);
+        edges.push(obj);
+      }
+    }
+    const pairCounts = new Map();
+    const pairSeen = new Map();
+    edges.forEach((e) => {
+      const k = [e.source.id, e.target.id].sort().join("::");
+      pairCounts.set(k, (pairCounts.get(k) || 0) + 1);
+    });
+    edges.forEach((e) => {
+      const k = [e.source.id, e.target.id].sort().join("::");
+      const c = pairCounts.get(k) || 1;
+      const s = pairSeen.get(k) || 0;
+      pairSeen.set(k, s + 1);
+      e.curveOffset = c > 1 ? (s - (c - 1) / 2) * 24 : 0;
+    });
+
+    const nodeDegree = new Map();
+    const fullAdj = new Map(nodes.map((n) => [n.id, []]));
+    edges.forEach((e) => {
+      nodeDegree.set(e.source.id, (nodeDegree.get(e.source.id) || 0) + 1);
+      nodeDegree.set(e.target.id, (nodeDegree.get(e.target.id) || 0) + 1);
+      fullAdj.get(e.source.id).push(e.target.id);
+      fullAdj.get(e.target.id).push(e.source.id);
+    });
+
+    function computeNodeRadius(n) {
+      const base = (TYPE_META[n.type] || TYPE_META.evidence).radius;
+      if (activeSizeMode === "uniform") return 11;
+      if (activeSizeMode === "facts") return base + Math.min(7, Math.sqrt(n.evidenceCount || n.facts || 1) * 0.65);
+      if (activeSizeMode === "degree") return Math.max(8, base * 0.8 + Math.min(9, Math.sqrt(nodeDegree.get(n.id) || 1) * 1.35));
+      if (activeSizeMode === "confidence") return Math.max(7, base * (0.55 + Math.pow(n.confidence, 2) * 0.95));
+      return base + Math.min(6.5, Math.sqrt((n.evidenceCount || 1) + (nodeDegree.get(n.id) || 1)) * 0.45);
+    }
+    nodes.forEach((n) => { n.r = computeNodeRadius(n); });
+
+    function drawRoundedPill(c, x, y, w, h, r, fill, stroke, lw) {
+      const rr = Math.min(r, w / 2, h / 2);
+      c.beginPath();
+      c.moveTo(x + rr, y);
+      c.lineTo(x + w - rr, y);
+      c.quadraticCurveTo(x + w, y, x + w, y + rr);
+      c.lineTo(x + w, y + h - rr);
+      c.quadraticCurveTo(x + w, y + h, x + w - rr, y + h);
+      c.lineTo(x + rr, y + h);
+      c.quadraticCurveTo(x, y + h, x, y + h - rr);
+      c.lineTo(x, y + rr);
+      c.quadraticCurveTo(x, y, x + rr, y);
+      c.closePath();
+      if (fill) { c.fillStyle = fill; c.fill(); }
+      if (stroke) { c.strokeStyle = stroke; c.lineWidth = lw || 1; c.stroke(); }
+    }
+
+    function measureCachedTextWidth(c, fontKey, text) {
+      const k = `${fontKey}::${text}`;
+      let w = labelWidthCache.get(k);
+      if (w === undefined) {
+        c.font = fontKey;
+        w = c.measureText(text).width;
+        if (labelWidthCache.size > 4000) labelWidthCache.clear();
+        labelWidthCache.set(k, w);
+      }
+      return w;
+    }
+
+    function getEdgeControlPoint(e) {
+      const mx = (e.source.x + e.target.x) / 2;
+      const my = (e.source.y + e.target.y) / 2;
+      if (!e.curveOffset) return { cx: mx, cy: my };
+      const dx = e.target.x - e.source.x;
+      const dy = e.target.y - e.source.y;
+      const len = Math.hypot(dx, dy) || 1;
+      return { cx: mx - (dy / len) * e.curveOffset, cy: my + (dx / len) * e.curveOffset };
+    }
+
+    function drawArrowhead(c, fromX, fromY, toX, toY, targetR, zoom, color) {
+      const ang = Math.atan2(toY - fromY, toX - fromX);
+      const tipX = toX - Math.cos(ang) * (targetR + 2.2 / zoom);
+      const tipY = toY - Math.sin(ang) * (targetR + 2.2 / zoom);
+      const len = Math.max(5.5, 8 / Math.pow(zoom, 0.75));
+      const wid = len * 0.48;
+      c.beginPath();
+      c.moveTo(tipX, tipY);
+      c.lineTo(tipX - Math.cos(ang) * len + Math.sin(ang) * wid, tipY - Math.sin(ang) * len - Math.cos(ang) * wid);
+      c.lineTo(tipX - Math.cos(ang) * len - Math.sin(ang) * wid, tipY - Math.sin(ang) * len + Math.cos(ang) * wid);
+      c.closePath();
+      c.fillStyle = color;
+      c.fill();
+    }
+
+    function isBackbonePillOverview(vis) {
+      return (
+        activeLayout === "hierarchy" &&
+        !graphShowFullTopology &&
+        (state.scope === "all" || state.scope === "backbone") &&
+        !state.search.trim() &&
+        activeConfidenceFilter === "ALL" &&
+        activeShortestPathNodeIds.size === 0 &&
+        (!selectedNode || selectedNode.id === ROOT_NODE_ID) &&
+        vis.length <= 32 &&
+        vis.some((n) => n.id === ROOT_NODE_ID)
+      );
+    }
+
+    function getVisibleNodes() {
+      const q = state.search.trim().toLowerCase();
+      const useCleanBackbone =
+        (state.scope === "all" || state.scope === "backbone") &&
+        !graphShowFullTopology &&
+        !q &&
+        enabledTypes.size === Object.keys(TYPE_META).length &&
+        (!selectedNode || selectedNode.id === ROOT_NODE_ID) &&
+        activeShortestPathNodeIds.size === 0;
+
+      if (useCleanBackbone) {
+        return nodes.filter((n) => n.coreBackbone);
+      }
+
+      // Base scope filtering
+      let base = nodes.filter((n) => {
+        if (activeShortestPathNodeIds.has(n.id) || egoPinnedIds.has(n.id)) return true;
+        if (selectedNode && n.id === selectedNode.id) return true;
+        if (state.scope === "backbone") return n.coreBackbone;
+        if (state.scope !== "all" && !n.cluster.includes(state.scope) && n.id !== state.scope) return false;
+        if (q) {
+          const hay = `${n.label} ${n.id} ${n.rawType} ${n.employer} ${n.pillar} ${n.desc}`.toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+
+      // Apply hop isolation when focused on a node (unless user switched to Full Topology with Depth Off)
+      if (selectedNode && isolateHopDepth > 0 && !q) {
+        const keep = new Set([selectedNode.id, ...activeShortestPathNodeIds, ...egoPinnedIds]);
+        let frontier = new Set([selectedNode.id]);
+        for (let h = 1; h <= isolateHopDepth; h++) {
+          const nextF = new Set();
+          for (const cid of frontier) {
+            for (const nb of fullAdj.get(cid) || []) {
+              if (!keep.has(nb)) {
+                keep.add(nb);
+                nextF.add(nb);
+              }
+            }
+          }
+          frontier = nextF;
+          if (!frontier.size) break;
+        }
+        const hopFiltered = nodes.filter((n) => keep.has(n.id) && (state.scope === "all" || n.cluster.includes(state.scope) || keep.has(n.id)));
+        if (hopFiltered.length > 0) base = hopFiltered;
+      }
+
+      // Apply category type filter pills
+      return base.filter((n) => enabledTypes.has(n.type) || (selectedNode && n.id === selectedNode.id) || activeShortestPathNodeIds.has(n.id));
+    }
+
+    function getVisibleEdges(visSet) {
+      return edges.filter((e) => visSet.has(e.source.id) && visSet.has(e.target.id));
+    }
+
+    // Deterministic hierarchical coordinates for Career Architecture Backbone & generic subgraphs
+    function applyHierarchyLayout(vis) {
+      const tiers = [
+        vis.filter((n) => n.id === ROOT_NODE_ID),
+        vis.filter((n) => n.rawType === "career_track"),
+        vis.filter((n) => n.rawType === "career_epoch").sort((a, b) => (a.phaseOrdinal || 99) - (b.phaseOrdinal || 99)),
+        vis.filter((n) => n.rawType === "employment").sort((a, b) => String(a.startDate || "").localeCompare(String(b.startDate || ""))),
+        vis.filter((n) => n.rawType === "pillar"),
+        vis.filter((n) => n.rawType === "capability_domain"),
+        vis.filter((n) => n.rawType === "skill" || n.rawType === "engagement"),
+        vis.filter((n) => ["fact", "metric_outcome", "metric", "metric_bucket", "concept", "repo_evidence", "locked_bullet", "certification"].includes(n.rawType)),
+        vis.filter((n) => ["policy", "policy_rule", "section", "role_family", "graph_ref"].includes(n.rawType) && n.id !== ROOT_NODE_ID)
+      ].filter((row) => row.length > 0);
+
+      const isPill = isBackbonePillOverview(vis);
+      const rowGap = isPill ? 128 : (vis.length > 120 ? 150 : 120);
+      const startY = -((tiers.length - 1) * rowGap) / 2;
+
+      tiers.forEach((row, rIdx) => {
+        const y = startY + rIdx * rowGap;
+        const maxPerLine = isPill ? 10 : (vis.length > 120 ? 22 : 12);
+        const stepX = isPill ? 245 : (vis.length > 120 ? 118 : 165);
+        row.forEach((n, i) => {
+          const subRow = Math.floor(i / maxPerLine);
+          const col = i % maxPerLine;
+          const colsInThisSub = Math.min(maxPerLine, row.length - subRow * maxPerLine);
+          n.x = (col - (colsInThisSub - 1) / 2) * stepX;
+          n.y = y + subRow * 46;
+          n.vx = 0;
+          n.vy = 0;
+        });
+      });
+    }
+
+    function applyRadialLayout(vis) {
+      const center = (selectedNode && vis.some((n) => n.id === selectedNode.id))
+        ? selectedNode
+        : (vis.find((n) => n.id === ROOT_NODE_ID) || vis[0]);
+      if (!center) return;
+      center.x = 0; center.y = 0;
+      const distMap = new Map([[center.id, 0]]);
+      const q = [center.id];
+      const visSet = new Set(vis.map((n) => n.id));
+      while (q.length) {
+        const cur = q.shift();
+        const d = distMap.get(cur);
+        for (const nb of fullAdj.get(cur) || []) {
+          if (visSet.has(nb) && !distMap.has(nb)) {
+            distMap.set(nb, d + 1);
+            q.push(nb);
+          }
+        }
+      }
+      const rings = new Map();
+      vis.forEach((n) => {
+        if (n.id === center.id) return;
+        const ring = distMap.get(n.id) || 3;
+        if (!rings.has(ring)) rings.set(ring, []);
+        rings.get(ring).push(n);
+      });
+      Array.from(rings.keys()).sort((a, b) => a - b).forEach((ringIdx) => {
+        const arr = rings.get(ringIdx);
+        const rad = 145 * ringIdx + Math.max(0, arr.length - 12) * 4.5;
+        arr.forEach((n, i) => {
+          const ang = (i / Math.max(1, arr.length)) * Math.PI * 2 - Math.PI / 2;
+          n.x = Math.cos(ang) * rad;
+          n.y = Math.sin(ang) * rad;
+          n.vx = 0; n.vy = 0;
+        });
+      });
+    }
+
+    function stepForce(vis, visEdges) {
+      const nLen = vis.length;
+      if (nLen <= 1) return 0;
+      const repulse = nLen > 300 ? 1900 : 3400;
+      const stepJ = nLen > 240 ? Math.ceil(nLen / 180) : 1;
+      for (let i = 0; i < nLen; i++) {
+        const a = vis[i];
+        a.vx += -a.x * 0.0022;
+        a.vy += -a.y * 0.0022;
+        for (let j = i + 1; j < nLen; j += stepJ) {
+          const b = vis[j];
+          const dx = b.x - a.x;
+          const dy = b.y - a.y;
+          const d2 = dx * dx + dy * dy + 16;
+          const f = repulse / d2;
+          const d = Math.sqrt(d2);
+          const fx = (dx / d) * f;
+          const fy = (dy / d) * f;
+          a.vx -= fx; a.vy -= fy;
+          b.vx += fx; b.vy += fy;
+        }
+      }
+      const springLen = nLen > 250 ? 110 : 145;
+      for (const e of visEdges) {
+        const dx = e.target.x - e.source.x;
+        const dy = e.target.y - e.source.y;
+        const d = Math.hypot(dx, dy) || 1;
+        const f = (d - springLen) * 0.012;
+        const fx = (dx / d) * f;
+        const fy = (dy / d) * f;
+        e.source.vx += fx; e.source.vy += fy;
+        e.target.vx -= fx; e.target.vy -= fy;
+      }
+      let energy = 0;
+      for (const n of vis) {
+        if (draggingNode && draggingNode.id === n.id) continue;
+        n.vx *= 0.82;
+        n.vy *= 0.82;
+        n.x += Math.max(-24, Math.min(24, n.vx));
+        n.y += Math.max(-24, Math.min(24, n.vy));
+        energy += Math.abs(n.vx) + Math.abs(n.vy);
+      }
+      return energy / nLen;
+    }
+
+    function applyCurrentLayout({ fit = true } = {}) {
+      const vis = getVisibleNodes();
+      const visSet = new Set(vis.map((n) => n.id));
+      const visEdges = getVisibleEdges(visSet);
+      if (activeLayout === "hierarchy") {
+        simSleeping = true;
+        applyHierarchyLayout(vis);
+      } else if (activeLayout === "radial") {
+        simSleeping = true;
+        applyRadialLayout(vis);
+      } else {
+        vis.forEach((n, idx) => {
+          const p = initialPosition(idx);
+          n.x = p.x; n.y = p.y; n.vx = 0; n.vy = 0;
+        });
+        const warm = vis.length > 350 ? 35 : 95;
+        for (let i = 0; i < warm; i++) stepForce(vis, visEdges);
+        simSleeping = false;
+        wakeSimulation();
+      }
+      updateBandCounts(vis);
+      if (fit) fitVisibleToScreen();
+      else renderGraph();
+    }
+
+    function wakeSimulation() {
+      if (activeLayout !== "force") return;
+      simSleeping = false;
+      if (rafId === null) rafId = requestAnimationFrame(animateLoop);
+    }
+
+    function animateLoop() {
+      rafId = null;
+      if (simSleeping || state.mode !== "graph") return;
+      const vis = getVisibleNodes();
+      const visSet = new Set(vis.map((n) => n.id));
+      const visEdges = getVisibleEdges(visSet);
+      const avgV = stepForce(vis, visEdges);
+      renderGraph();
+      if (avgV > 0.14 || draggingNode) {
+        rafId = requestAnimationFrame(animateLoop);
+      } else {
+        simSleeping = true;
+      }
+    }
+
+    function updateBandCounts(vis) {
+      const counts = { VERIFIED: 0, HIGH: 0, ESTABLISHED: 0, PROVISIONAL: 0, LOW: 0 };
+      vis.forEach((n) => { counts[n.confidenceBand] = (counts[n.confidenceBand] || 0) + 1; });
+      Object.entries(counts).forEach(([k, v]) => {
+        const el = document.querySelector(`[data-band-count="${k}"]`);
+        if (el) el.textContent = `(${v})`;
+      });
+    }
+
+    function fitVisibleToScreen() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      const vis = getVisibleNodes();
+      if (!rect.width || !rect.height || !vis.length) return;
+      const isPill = isBackbonePillOverview(vis);
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      vis.forEach((n) => {
+        const padX = isPill ? 130 : (n.r + 75);
+        const padY = isPill ? 36 : (n.r + 48);
+        if (n.x - padX < minX) minX = n.x - padX;
+        if (n.x + padX > maxX) maxX = n.x + padX;
+        if (n.y - padY < minY) minY = n.y - padY;
+        if (n.y + padY > maxY) maxY = n.y + padY;
+      });
+      const legEl = document.getElementById("canvasLegendOverlay");
+      if (legEl) legEl.classList.toggle("hidden", isPill);
+      const topInset = (!isPill && legEl && legEl.offsetHeight) ? (legEl.offsetHeight + 20) : 16;
+      const availW = Math.max(240, rect.width - 44);
+      const availH = Math.max(200, rect.height - topInset - 36);
+      const spanW = Math.max(240, maxX - minX);
+      const spanH = Math.max(200, maxY - minY);
+      camera.zoom = Math.max(0.14, Math.min(1.25, Math.min(availW / spanW, availH / spanH)));
+      camera.x = rect.width / 2 - ((minX + maxX) / 2) * camera.zoom;
+      camera.y = topInset + availH / 2 - ((minY + maxY) / 2) * camera.zoom;
+      renderGraph();
+    }
+
+    function resizeCanvas() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      renderGraph();
+    }
+
+    function rectsOverlap(a, b, pad) {
+      return !(a.x + a.w + pad < b.x || b.x + b.w + pad < a.x || a.y + a.h + pad < b.y || b.y + b.h + pad < a.y);
+    }
+
+    function renderGraph() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      const isLight = document.documentElement.classList.contains("light");
+      ctx.clearRect(0, 0, rect.width, rect.height);
+
+      const vis = getVisibleNodes();
+      const visSet = new Set(vis.map((n) => n.id));
+      const visEdges = getVisibleEdges(visSet);
+      updateBandCounts(vis);
+
+      const isPill = isBackbonePillOverview(vis);
+      visibleStats.textContent = isPill
+        ? `${vis.length} Backbone Nodes (${nodes.length.toLocaleString()} Total) · ${visEdges.length} Spine Links`
+        : `Showing ${vis.length.toLocaleString()} of ${nodes.length.toLocaleString()} Nodes · ${visEdges.length.toLocaleString()} Links`;
+
+      const legEl = document.getElementById("canvasLegendOverlay");
+      if (legEl) legEl.classList.toggle("hidden", isPill);
+
+      ctx.save();
+      ctx.translate(camera.x, camera.y);
+      ctx.scale(camera.zoom, camera.zoom);
+
+      if (isPill) {
+        // DIE-style Palantir / Datadog Service-Map Pill Cards for Career Backbone Overview
+        const cardDims = new Map();
+        const cardH = 40;
+        const dotR = 7.5;
+        const padL = 12;
+        const padR = 14;
+        const dotGap = 9;
+        const fsPx = 15.5;
+        for (const n of vis) {
+          const isRoot = n.id === ROOT_NODE_ID;
+          const shortLbl = n.label.length > 30 ? (n.label.split("—")[0].split("(")[0].trim().slice(0, 28)) : n.label;
+          const fk = `${isRoot ? "700" : "600"} ${fsPx}px Inter, system-ui, sans-serif`;
+          const tw = measureCachedTextWidth(ctx, fk, shortLbl);
+          cardDims.set(n.id, { w: Math.min(228, padL + dotR * 2 + dotGap + tw + padR), h: isRoot ? 46 : cardH, lbl: shortLbl, fk, isRoot });
+        }
+        const intersectBox = (cx, cy, w, h, tx, ty, pad) => {
+          const dx = tx - cx, dy = ty - cy;
+          if (Math.abs(dx) < 1e-6 && Math.abs(dy) < 1e-6) return { x: cx, y: cy };
+          const sx = Math.abs(dx) > 1e-6 ? (w / 2 + pad) / Math.abs(dx) : Infinity;
+          const sy = Math.abs(dy) > 1e-6 ? (h / 2 + pad) / Math.abs(dy) : Infinity;
+          const t = Math.min(sx, sy);
+          return { x: cx + dx * t, y: cy + dy * t };
+        };
+        // Edges first
+        for (const e of visEdges) {
+          const sDim = cardDims.get(e.source.id);
+          const tDim = cardDims.get(e.target.id);
+          if (!sDim || !tDim) continue;
+          const p1 = intersectBox(e.source.x, e.source.y, sDim.w, sDim.h, e.target.x, e.target.y, 3);
+          const p2 = intersectBox(e.target.x, e.target.y, tDim.w, tDim.h, e.source.x, e.source.y, 5);
+          const isGov = e.source.type === "policy" || e.target.type === "policy" || e.source.type === "projection" || e.target.type === "projection";
+          const isPillar = e.source.type === "pillar" || e.target.type === "pillar";
+          const col = isGov ? (isLight ? "#b91c1c" : "#f87171") : (isPillar ? (isLight ? "#7e22ce" : "#c084fc") : (isLight ? "#64748b" : "#94a3b8"));
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(p1.x, p1.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.strokeStyle = col;
+          ctx.lineWidth = 2.0;
+          if (isGov) ctx.setLineDash([6, 4]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          const ang = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+          ctx.beginPath();
+          ctx.moveTo(p2.x, p2.y);
+          ctx.lineTo(p2.x - Math.cos(ang) * 9 + Math.sin(ang) * 4.5, p2.y - Math.sin(ang) * 9 - Math.cos(ang) * 4.5);
+          ctx.lineTo(p2.x - Math.cos(ang) * 9 - Math.sin(ang) * 4.5, p2.y - Math.sin(ang) * 9 + Math.cos(ang) * 4.5);
+          ctx.closePath();
+          ctx.fillStyle = col;
+          ctx.fill();
+          ctx.restore();
+        }
+        // Pill cards
+        for (const n of vis) {
+          const d = cardDims.get(n.id);
+          const meta = TYPE_META[n.type] || TYPE_META.evidence;
+          const accent = isLight ? meta.colorLight : meta.colorDark;
+          const rx = n.x - d.w / 2, ry = n.y - d.h / 2;
+          drawRoundedPill(
+            ctx, rx, ry, d.w, d.h, 11,
+            d.isRoot ? (isLight ? "#0f172a" : "#1e293b") : (isLight ? "#ffffff" : "#0f172a"),
+            d.isRoot ? (isLight ? "#1d4ed8" : "#60a5fa") : accent,
+            d.isRoot ? 3.2 : 2.1
+          );
+          const dotCx = rx + padL + dotR;
+          ctx.beginPath();
+          ctx.arc(dotCx, n.y, dotR, 0, Math.PI * 2);
+          ctx.fillStyle = d.isRoot ? "#38bdf8" : accent;
+          ctx.fill();
+          ctx.font = d.fk;
+          ctx.fillStyle = d.isRoot ? "#ffffff" : (isLight ? "#0f172a" : "#f8fafc");
+          ctx.textAlign = "left";
+          ctx.textBaseline = "middle";
+          ctx.fillText(d.lbl, dotCx + dotR + dotGap, n.y + 0.5, d.w - (padL + dotR * 2 + dotGap + padR));
+        }
+        ctx.restore();
+        // Bottom-left semantic edge legend
+        ctx.save();
+        const lgY = rect.height - 20;
+        drawRoundedPill(ctx, 10, lgY - 12, 540, 24, 7, isLight ? "rgba(255,255,255,0.92)" : "rgba(15,23,42,0.92)", isLight ? "#cbd5e1" : "#334155", 1);
+        const items = [
+          { col: isLight ? "#64748b" : "#94a3b8", txt: "Career Track / Epoch / Tenure", dashed: false },
+          { col: isLight ? "#7e22ce" : "#c084fc", txt: "Pillar & Capability Flow", dashed: false },
+          { col: isLight ? "#b91c1c" : "#f87171", txt: "Policy / Section Gate", dashed: true }
+        ];
+        ctx.font = "600 11.5px Inter, system-ui, sans-serif";
+        let lx = 20;
+        for (const it of items) {
+          ctx.save();
+          if (it.dashed) ctx.setLineDash([4, 2]);
+          ctx.beginPath(); ctx.moveTo(lx, lgY); ctx.lineTo(lx + 14, lgY);
+          ctx.strokeStyle = it.col; ctx.lineWidth = 2.2; ctx.stroke();
+          ctx.restore();
+          ctx.fillStyle = isLight ? "#334155" : "#e2e8f0";
+          ctx.textAlign = "left"; ctx.textBaseline = "middle";
+          ctx.fillText(it.txt, lx + 18, lgY + 0.5);
+          lx += 30 + ctx.measureText(it.txt).width;
+        }
+        ctx.restore();
+        return;
+      }
+
+      // Full Interactive Circle Graph Rendering (Pass 1 Edges -> Pass 2 Nodes -> Pass 3 Collision-Free Labels -> Pass 4 Highlighted Edge Labels)
+      const activeFocusNode = selectedNode || hoveredNode;
+      const activeFocusEdge = selectedEdge || hoveredEdge;
+      const neighborSet = new Set();
+      if (activeFocusNode) {
+        neighborSet.add(activeFocusNode.id);
+        visEdges.forEach((e) => {
+          if (e.source.id === activeFocusNode.id) neighborSet.add(e.target.id);
+          if (e.target.id === activeFocusNode.id) neighborSet.add(e.source.id);
+        });
+      }
+      activeShortestPathNodeIds.forEach((id) => neighborSet.add(id));
+
+      const highlightedEdges = [];
+      const bgEdges = [];
+      for (const e of visEdges) {
+        const isHi = (activeFocusEdge && activeFocusEdge.id === e.id) ||
+          activeShortestPathEdgeIds.has(e.id) ||
+          (activeFocusNode && (e.source.id === activeFocusNode.id || e.target.id === activeFocusNode.id));
+        if (isHi) highlightedEdges.push(e);
+        else bgEdges.push(e);
+      }
+
+      // Pass 1A: Background edges
+      for (const e of bgEdges) {
+        const eBand = getConfidenceBand(e.confidence);
+        const dim = Boolean(activeFocusNode || activeFocusEdge || activeShortestPathNodeIds.size) ||
+          (activeConfidenceFilter !== "ALL" && eBand.key !== activeConfidenceFilter);
+        const { cx, cy } = getEdgeControlPoint(e);
+        ctx.beginPath();
+        ctx.moveTo(e.source.x, e.source.y);
+        if (e.curveOffset) ctx.quadraticCurveTo(cx, cy, e.target.x, e.target.y);
+        else ctx.lineTo(e.target.x, e.target.y);
+        ctx.strokeStyle = dim
+          ? (isLight ? "rgba(100,116,139,0.12)" : "rgba(148,163,184,0.12)")
+          : (isLight ? eBand.edgeRgbaLight : eBand.edgeRgbaDark);
+        ctx.lineWidth = (0.65 / Math.pow(camera.zoom, 0.72));
+        ctx.stroke();
+      }
+
+      // Pass 1B: Highlighted spoke & shortest-path edges
+      for (const e of highlightedEdges) {
+        const isPath = activeShortestPathEdgeIds.has(e.id);
+        const isSel = (activeFocusEdge && activeFocusEdge.id === e.id) || isPath;
+        const eBand = getConfidenceBand(e.confidence);
+        const { cx, cy } = getEdgeControlPoint(e);
+        const col = isPath
+          ? (isLight ? "#047857" : "#10b981")
+          : (e.mat === "critical" ? (isLight ? "#b45309" : "#f59e0b") : (isLight ? eBand.colorLight : eBand.colorDark));
+        ctx.beginPath();
+        ctx.moveTo(e.source.x, e.source.y);
+        if (e.curveOffset) ctx.quadraticCurveTo(cx, cy, e.target.x, e.target.y);
+        else ctx.lineTo(e.target.x, e.target.y);
+        ctx.strokeStyle = col;
+        ctx.lineWidth = (isSel ? 2.1 : 1.3) / Math.pow(camera.zoom, 0.75);
+        ctx.stroke();
+        drawArrowhead(ctx, cx, cy, e.target.x, e.target.y, e.target.r, camera.zoom, col);
+      }
+
+      // Pass 2: Nodes with opaque under-disc, 5-band confidence ring, WCAG inner symbols
+      const occupiedRects = [];
+      const labelCandidates = [];
+      const sortedVis = [...vis].sort((a, b) => {
+        const af = activeFocusNode && activeFocusNode.id === a.id ? 2 : (neighborSet.has(a.id) ? 1 : 0);
+        const bf = activeFocusNode && activeFocusNode.id === b.id ? 2 : (neighborSet.has(b.id) ? 1 : 0);
+        return af - bf;
+      });
+
+      for (const n of sortedVis) {
+        const meta = TYPE_META[n.type] || TYPE_META.evidence;
+        const nBand = getConfidenceBand(n.confidence);
+        const isFocus = Boolean((activeFocusNode && activeFocusNode.id === n.id) || (hoveredNode && hoveredNode.id === n.id));
+        const isPath = activeShortestPathNodeIds.has(n.id);
+        const isNb = neighborSet.has(n.id);
+        const bandMismatch = activeConfidenceFilter !== "ALL" && nBand.key !== activeConfidenceFilter;
+        const isDim = bandMismatch || (Boolean(activeFocusNode || activeShortestPathNodeIds.size) && !isNb);
+
+        ctx.save();
+        ctx.globalAlpha = isDim ? 0.30 : 1.0;
+
+        // Backing disc
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, n.r + 1.2 / camera.zoom, 0, Math.PI * 2);
+        ctx.fillStyle = isLight ? "#f1f5f9" : "#0b1120";
+        ctx.fill();
+
+        // Focus / path halo
+        if (isFocus || isPath) {
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, n.r + 5.5 / camera.zoom, 0, Math.PI * 2);
+          ctx.fillStyle = isPath
+            ? (isLight ? "rgba(4,120,87,0.22)" : "rgba(16,185,129,0.28)")
+            : (isLight ? "rgba(29,78,216,0.20)" : "rgba(59,130,246,0.28)");
+          ctx.fill();
+        }
+
+        // 5-Band confidence outer ring
+        ctx.save();
+        if (nBand.dash && nBand.dash.length) {
+          ctx.setLineDash([nBand.dash[0] / camera.zoom, nBand.dash[1] / camera.zoom]);
+        }
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, n.r + 2.2 / camera.zoom, 0, Math.PI * 2);
+        ctx.lineWidth = 1.25 / camera.zoom;
+        ctx.strokeStyle = isLight ? nBand.colorLight : nBand.colorDark;
+        ctx.stroke();
+        ctx.restore();
+
+        const fillCol = activeColorMode === "confidence"
+          ? (isLight ? nBand.colorLight : nBand.colorDark)
+          : (isLight ? meta.colorLight : meta.colorDark);
+        const rimCol = isLight ? meta.rimLight : meta.rimDark;
+
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+        ctx.fillStyle = fillCol;
+        ctx.fill();
+        ctx.lineWidth = (isFocus ? 1.8 : 0.9) / camera.zoom;
+        ctx.strokeStyle = rimCol;
+        ctx.stroke();
+
+        // Redundant shape badge for accessibility
+        if (n.r * camera.zoom >= 8) {
+          const sr = n.r * 0.38;
+          ctx.strokeStyle = "rgba(255,255,255,0.9)";
+          ctx.lineWidth = 0.95 / camera.zoom;
+          if (n.type === "policy") {
+            ctx.beginPath();
+            ctx.moveTo(n.x, n.y - sr); ctx.lineTo(n.x + sr, n.y + sr * 0.85); ctx.lineTo(n.x - sr, n.y + sr * 0.85);
+            ctx.closePath(); ctx.stroke();
+          } else if (n.type === "pillar") {
+            ctx.beginPath();
+            ctx.moveTo(n.x, n.y - sr); ctx.lineTo(n.x + sr, n.y); ctx.lineTo(n.x, n.y + sr); ctx.lineTo(n.x - sr, n.y);
+            ctx.closePath(); ctx.stroke();
+          } else if (n.type === "metric") {
+            ctx.strokeRect(n.x - sr * 0.72, n.y - sr * 0.72, sr * 1.44, sr * 1.44);
+          }
+        }
+        ctx.restore();
+
+        if (!isDim) {
+          const rp = n.r + 3 / camera.zoom;
+          occupiedRects.push({ x: n.x - rp, y: n.y - rp, w: rp * 2, h: rp * 2 });
+        }
+
+        const wantLbl = isFocus || isPath || isNb || (!isDim && (n.coreBackbone || vis.length <= 55 || camera.zoom >= 0.75));
+        if (wantLbl) {
+          const prio = isFocus ? 1000 : (isPath ? 900 : (isNb ? 700 : (n.coreBackbone ? 500 : 100 + (n.degree || 0))));
+          labelCandidates.push({ node: n, isFocus, prio, mandatory: isFocus || isPath || vis.length <= 35 });
+        }
+      }
+
+      // Pass 3: Collision-free node labels
+      labelCandidates.sort((a, b) => b.prio - a.prio);
+      const colPad = 3 / camera.zoom;
+      for (const item of labelCandidates) {
+        const n = item.node;
+        const screenPx = Math.max(11, Math.min(14, (item.isFocus ? 13 : 11.5) * Math.pow(camera.zoom, 0.1)));
+        const fontSize = screenPx / camera.zoom;
+        const fontKey = `${item.isFocus ? "700" : "600"} ${fontSize.toFixed(2)}px Inter, system-ui, sans-serif`;
+        const txt = n.label.length > 34 && !item.isFocus ? (n.label.slice(0, 32) + "...") : n.label;
+        const tw = measureCachedTextWidth(ctx, fontKey, txt);
+        const padX = 5 / camera.zoom, padY = 2.6 / camera.zoom;
+        const bw = tw + padX * 2, bh = fontSize + padY * 2;
+        const gap = 5 / Math.sqrt(camera.zoom);
+        const anchors = [
+          { cx: n.x, cy: n.y + n.r + gap + bh / 2 },
+          { cx: n.x, cy: n.y - n.r - gap - bh / 2 },
+          { cx: n.x + n.r + gap + bw / 2, cy: n.y },
+          { cx: n.x - n.r - gap - bw / 2, cy: n.y }
+        ];
+        let chosen = null;
+        for (const a of anchors) {
+          const r = { x: a.cx - bw / 2, y: a.cy - bh / 2, w: bw, h: bh };
+          if (!occupiedRects.some((o) => rectsOverlap(r, o, colPad))) { chosen = r; break; }
+        }
+        if (!chosen && item.mandatory) chosen = { x: anchors[0].cx - bw / 2, y: anchors[0].cy - bh / 2, w: bw, h: bh };
+        if (!chosen) continue;
+        occupiedRects.push(chosen);
+        const meta = TYPE_META[n.type] || TYPE_META.evidence;
+        drawRoundedPill(
+          ctx, chosen.x, chosen.y, chosen.w, chosen.h, 4 / camera.zoom,
+          isLight ? "rgba(255,255,255,0.94)" : "rgba(15,23,42,0.92)",
+          item.isFocus ? meta.color : (isLight ? "rgba(148,163,184,0.45)" : "rgba(71,85,105,0.55)"),
+          (item.isFocus ? 1.5 : 0.9) / camera.zoom
+        );
+        ctx.font = fontKey;
+        ctx.fillStyle = isLight ? "#0f172a" : "#f8fafc";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(txt, chosen.x + chosen.w / 2, chosen.y + chosen.h / 2);
+      }
+
+      // Pass 4: Highlighted edge labels on selection/path
+      if (camera.zoom >= 0.45 && highlightedEdges.length > 0 && highlightedEdges.length <= 24) {
+        for (const e of highlightedEdges) {
+          const isPath = activeShortestPathEdgeIds.has(e.id);
+          const isSel = (activeFocusEdge && activeFocusEdge.id === e.id) || isPath;
+          if (!isSel && highlightedEdges.length > 10) continue;
+          const { cx, cy } = getEdgeControlPoint(e);
+          const fontSize = 10.5 / camera.zoom;
+          const fontKey = `600 ${fontSize.toFixed(2)}px Inter, system-ui, sans-serif`;
+          const lbl = e.label.replace(/_/g, " ");
+          const tw = measureCachedTextWidth(ctx, fontKey, lbl);
+          const bw = tw + 8 / camera.zoom, bh = fontSize + 4 / camera.zoom;
+          const r = { x: cx - bw / 2, y: cy - bh / 2, w: bw, h: bh };
+          if (!isSel && occupiedRects.some((o) => rectsOverlap(r, o, 2 / camera.zoom))) continue;
+          occupiedRects.push(r);
+          drawRoundedPill(ctx, r.x, r.y, r.w, r.h, 3 / camera.zoom, isLight ? "rgba(255,255,255,0.92)" : "rgba(15,23,42,0.92)", isPath ? "#10b981" : "#64748b", 0.9 / camera.zoom);
+          ctx.font = fontKey;
+          ctx.fillStyle = isLight ? "#334155" : "#e2e8f0";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(lbl, cx, cy);
+        }
+      }
+
+      ctx.restore();
+    }
+
+    function computeShortestPath(startId, endId) {
+      if (!startId || !endId || startId === endId) return null;
+      const queue = [[startId]];
+      const visited = new Set([startId]);
+      const parentEdge = new Map();
+      while (queue.length > 0) {
+        const path = queue.shift();
+        const curr = path[path.length - 1];
+        if (curr === endId) {
+          const edgeIds = [];
+          for (let i = 0; i < path.length - 1; i++) {
+            const k = `${path[i]}::${path[i + 1]}`;
+            if (parentEdge.has(k)) edgeIds.push(parentEdge.get(k));
+          }
+          return { nodeIds: path, edgeIds };
+        }
+        for (const e of edges) {
+          let nextId = null;
+          if (e.source.id === curr) nextId = e.target.id;
+          else if (e.target.id === curr) nextId = e.source.id;
+          if (nextId && !visited.has(nextId)) {
+            visited.add(nextId);
+            parentEdge.set(`${curr}::${nextId}`, e.id);
+            queue.push([...path, nextId]);
+          }
+        }
+      }
+      return null;
+    }
+
+    function recordNavHistory(nodeId) {
+      if (suppressHistoryPush) return;
+      if (navHistory[navHistoryIdx] === nodeId) return;
+      navHistory = navHistory.slice(0, navHistoryIdx + 1);
+      navHistory.push(nodeId);
+      navHistoryIdx = navHistory.length - 1;
+    }
+
+    function focusNode(nodeId, { switchTab = false } = {}) {
+      const n = nodeById.get(nodeId);
+      if (!n) return;
+      if (switchTab && state.mode !== "graph") setActiveMode("graph");
+      selectedEdge = null;
+      selectedNode = n;
+      enabledTypes.add(n.type);
+      syncTypeFilterButtons();
+      applyCurrentLayout({ fit: true });
+      updateInspector(n);
+    }
+
+    function updateEdgeInspector(edge) {
+      if (!edge) return;
+      const isLight = document.documentElement.classList.contains("light");
+      const sMeta = TYPE_META[edge.source.type] || TYPE_META.evidence;
+      const tMeta = TYPE_META[edge.target.type] || TYPE_META.evidence;
+      const eBand = getConfidenceBand(edge.confidence);
+      const eCol = isLight ? eBand.colorLight : eBand.colorDark;
+      const eBg = isLight ? eBand.bgLight : eBand.bgDark;
+      const ePct = Math.round(edge.confidence * 100);
+      inspectorContent.innerHTML = `
+        <div style="border-bottom: 1px solid var(--border-col);" class="pb-3">
+          <div class="flex flex-wrap items-center justify-between gap-1 mb-1.5">
+            <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full" style="background:${eBg}; color:${eCol}; border:1px solid ${eCol}44;">
+              ${esc(eBand.label)} (${ePct}%)
+            </span>
+            <span style="color: var(--text-muted);" class="text-xs font-mono">Evidence: ${edge.evidenceCount || 0}</span>
+          </div>
+          <h3 class="text-base font-bold font-mono" style="margin:4px 0;">${esc(edge.label)}</h3>
+          <p style="color: var(--text-muted); margin:4px 0 0 0;" class="text-xs">${esc(edge.desc || "Registered canonical edge in augmented_skills_graph.sqlite.")}</p>
+        </div>
+        <div class="flex flex-col gap-2 text-xs">
+          <div class="font-semibold">Source Node</div>
+          <button type="button" data-jump="${esc(edge.source.id)}" style="background:var(--bg-main);border:1px solid var(--border-col);" class="jump-btn w-full text-left p-2 rounded-lg flex items-center justify-between">
+            <span class="font-semibold truncate">${esc(edge.source.label)}</span>
+            <span class="px-2 py-0.5 rounded text-xs font-semibold" style="background:${sMeta.color}20;color:${isLight ? sMeta.fgLight : sMeta.fgDark}">${esc(edge.source.rawType)}</span>
+          </button>
+          <div class="font-semibold mt-1">Target Node</div>
+          <button type="button" data-jump="${esc(edge.target.id)}" style="background:var(--bg-main);border:1px solid var(--border-col);" class="jump-btn w-full text-left p-2 rounded-lg flex items-center justify-between">
+            <span class="font-semibold truncate">${esc(edge.target.label)}</span>
+            <span class="px-2 py-0.5 rounded text-xs font-semibold" style="background:${tMeta.color}20;color:${isLight ? tMeta.fgLight : tMeta.fgDark}">${esc(edge.target.rawType)}</span>
+          </button>
+        </div>
+      `;
+      inspectorContent.querySelectorAll(".jump-btn").forEach((b) => b.addEventListener("click", () => focusNode(b.getAttribute("data-jump"))));
+    }
+
+    function updateInspector(node) {
+      if (!node) return;
+      recordNavHistory(node.id);
+      const isLight = document.documentElement.classList.contains("light");
+      const meta = TYPE_META[node.type] || TYPE_META.evidence;
+      const nBand = getConfidenceBand(node.confidence);
+      const nCol = isLight ? nBand.colorLight : nBand.colorDark;
+      const nBg = isLight ? nBand.bgLight : nBand.bgDark;
+      const nPct = Math.round(node.confidence * 100);
+
+      const visSet = new Set(getVisibleNodes().map((n) => n.id));
+      const allConn = edges.filter((e) => e.source.id === node.id || e.target.id === node.id)
+        .sort((a, b) => (b.confidence - a.confidence) || ((b.evidenceCount || 0) - (a.evidenceCount || 0)));
+      const visConn = allConn.filter((e) => visSet.has(e.source.id) && visSet.has(e.target.id));
+      const hidConn = allConn.filter((e) => !visSet.has(e.source.id) || !visSet.has(e.target.id));
+
+      const highlights = Array.isArray(node.highlights) ? node.highlights : [];
+      const highlightsHtml = highlights.length > 0 ? `
+        <div style="background:var(--bg-main);border:1px solid var(--border-col);" class="p-2 rounded-lg flex flex-col gap-1.5 text-xs">
+          <div class="font-semibold">Verified Assertions &amp; Semantic Units (${highlights.length})</div>
+          ${highlights.map((h) => `
+            <div style="border-left:3px solid ${nCol};padding-left:7px;" class="py-0.5">
+              <div class="flex items-center justify-between" style="color:var(--text-muted);font-size:var(--fs-2xs);">
+                <span class="font-mono font-semibold">${esc(String(h.predicate || "").replace(/_/g, " "))}</span>
+                <span class="font-mono font-semibold" style="color:${nCol};">${esc(h.confidence || "92%")}</span>
+              </div>
+              <div class="text-xs">${esc(h.claim || "")}</div>
+            </div>
+          `).join("")}
+        </div>
+      ` : "";
+
+      const renderConn = (e, isHid) => {
+        const isOut = e.source.id === node.id;
+        const other = isOut ? e.target : e.source;
+        const oMeta = TYPE_META[other.type] || TYPE_META.evidence;
+        const eb = getConfidenceBand(e.confidence);
+        const ec = isLight ? eb.colorLight : eb.colorDark;
+        return `
+          <button type="button" data-jump="${esc(other.id)}" style="background:var(--bg-main);border:1px solid var(--border-col);border-left:3px solid ${ec};opacity:${isHid ? "0.78" : "1"};" class="jump-btn w-full text-left p-2 rounded-lg flex flex-col gap-1">
+            <div class="flex items-center justify-between text-xs gap-1">
+              <span style="color:var(--text-muted);" class="font-mono truncate">${isOut ? "&rarr;" : "&larr;"} ${esc(e.label)}</span>
+              <span class="font-mono shrink-0" style="font-size:var(--fs-2xs);color:${ec};">${Math.round(e.confidence * 100)}%</span>
+            </div>
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-xs font-semibold truncate">${esc(other.label)}${isHid ? ' <span style="color:var(--band-prov-fg);">(Hidden)</span>' : ""}</span>
+              <span class="px-1.5 py-0.5 rounded text-xs font-semibold shrink-0" style="background:${oMeta.color}20;color:${isLight ? oMeta.fgLight : oMeta.fgDark};font-size:var(--fs-2xs);">${esc(other.rawType)}</span>
+            </div>
+          </button>
+        `;
+      };
+
+      const canBack = navHistoryIdx > 0;
+      const canFwd = navHistoryIdx >= 0 && navHistoryIdx < navHistory.length - 1;
+      const pathTargets = nodes.filter((x) => x.id !== node.id).sort((a, b) => (a.coreBackbone === b.coreBackbone ? a.label.localeCompare(b.label) : (a.coreBackbone ? -1 : 1))).slice(0, 220);
+
+      inspectorContent.innerHTML = `
+        <div class="flex items-center justify-between gap-1 text-xs" style="padding-bottom:4px;border-bottom:1px solid var(--border-col);">
+          <div class="flex items-center gap-1">
+            <button type="button" id="btnNavBack" ${canBack ? "" : "disabled"} style="opacity:${canBack ? "1" : "0.4"};padding:2px 7px;" class="rounded text-xs">&larr; Back</button>
+            <button type="button" id="btnNavFwd" ${canFwd ? "" : "disabled"} style="opacity:${canFwd ? "1" : "0.4"};padding:2px 7px;" class="rounded text-xs">Fwd &rarr;</button>
+          </div>
+          <button type="button" id="btnExpandNeighbors" style="padding:2px 8px;" class="rounded text-xs font-medium">Expand 1-Hop Ring</button>
+        </div>
+
+        <div style="border-bottom:1px solid var(--border-col);" class="pb-3">
+          <div class="flex flex-wrap items-center justify-between gap-1 mb-1.5">
+            <span class="text-xs font-semibold px-2 py-0.5 rounded-full" style="background:${meta.color}20;color:${isLight ? meta.fgLight : meta.fgDark}">
+              ${esc(meta.label)} &middot; ${esc(node.rawType)}
+            </span>
+            <span class="text-xs font-mono font-semibold px-2 py-0.5 rounded-full" style="background:${nBg};color:${nCol};border:1px solid ${nCol}44;">
+              ${esc(nBand.label)} (${nPct}%)
+            </span>
+          </div>
+          <div style="color:var(--text-muted);font-size:var(--fs-2xs);" class="font-mono mb-0.5">
+            Layer: ${esc(node.layer)} &middot; Status: ${esc(node.activationStatus)}${node.externalEligible ? " &middot; External Eligible" : ""}
+          </div>
+          <h3 class="text-base font-bold" style="margin:4px 0;">${esc(node.label)}</h3>
+          <p style="color:var(--text-muted);margin:4px 0 0 0;" class="text-xs">${esc(node.desc)}</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-1.5 text-xs">
+          <div style="background:var(--bg-main);border:1px solid var(--border-col);" class="p-2 rounded-lg">
+            <div style="color:var(--text-muted);font-size:var(--fs-2xs);">Evidence Links</div>
+            <div class="font-bold mt-0.5">${(node.evidenceCount || 0).toLocaleString()} backed links</div>
+          </div>
+          <div style="background:var(--bg-main);border:1px solid var(--border-col);" class="p-2 rounded-lg">
+            <div style="color:var(--text-muted);font-size:var(--fs-2xs);">Graph Connections</div>
+            <div class="font-bold mt-0.5">${visConn.length} / ${allConn.length} edges</div>
+          </div>
+        </div>
+
+        ${highlightsHtml}
+
+        <div style="background:var(--bg-main);border:1px solid var(--border-col);" class="p-2 rounded-lg flex flex-col gap-1.5 text-xs">
+          <div class="font-semibold flex items-center justify-between">
+            <span>Trace Shortest Path From Here</span>
+            <button type="button" id="btnClearPath" class="${activeShortestPathNodeIds.size ? "" : "hidden"} rounded" style="padding:1px 6px;font-size:var(--fs-2xs);">Clear Path</button>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <select id="pathTargetSel" class="flex-1 rounded" style="padding:4px 6px;font-size:var(--fs-xs);min-width:0;">
+              <option value="">Select destination entity...</option>
+              ${pathTargets.map((t) => `<option value="${esc(t.id)}">${esc(t.label)} (${esc(t.rawType)})</option>`).join("")}
+            </select>
+            <button type="button" id="btnRunPath" class="btn-primary rounded" style="padding:4px 8px;font-size:var(--fs-xs);">Trace</button>
+          </div>
+          <div id="pathResultText" style="color:var(--text-muted);font-size:var(--fs-xs);"></div>
+        </div>
+
+        <div class="flex flex-col gap-1.5 mt-1">
+          <div class="text-xs font-semibold">Connected Entities (${visConn.length} visible of ${allConn.length})</div>
+          ${visConn.slice(0, 45).map((e) => renderConn(e, false)).join("") || '<div class="text-xs" style="color:var(--text-muted);">None visible under current filter.</div>'}
+          ${hidConn.length > 0 ? `<div class="text-xs font-semibold mt-1" style="color:var(--text-muted);">Hidden by Active Filter (${hidConn.length})</div>${hidConn.slice(0, 25).map((e) => renderConn(e, true)).join("")}` : ""}
+        </div>
+      `;
+
+      document.getElementById("btnNavBack")?.addEventListener("click", () => {
+        if (navHistoryIdx > 0) { navHistoryIdx--; suppressHistoryPush = true; focusNode(navHistory[navHistoryIdx]); suppressHistoryPush = false; }
+      });
+      document.getElementById("btnNavFwd")?.addEventListener("click", () => {
+        if (navHistoryIdx < navHistory.length - 1) { navHistoryIdx++; suppressHistoryPush = true; focusNode(navHistory[navHistoryIdx]); suppressHistoryPush = false; }
+      });
+      document.getElementById("btnExpandNeighbors")?.addEventListener("click", () => {
+        for (const nb of fullAdj.get(node.id) || []) egoPinnedIds.add(nb);
+        activeLayout = "radial";
+        document.getElementById("layoutSelect").value = "radial";
+        applyCurrentLayout({ fit: true });
+        updateInspector(node);
+      });
+      document.getElementById("btnRunPath")?.addEventListener("click", () => {
+        const tgt = document.getElementById("pathTargetSel")?.value;
+        const out = document.getElementById("pathResultText");
+        if (!tgt) return;
+        const res = computeShortestPath(node.id, tgt);
+        if (res) {
+          activeShortestPathNodeIds = new Set(res.nodeIds);
+          activeShortestPathEdgeIds = new Set(res.edgeIds);
+          if (out) out.textContent = `${res.nodeIds.length - 1} hops: ${res.nodeIds.map((id) => nodeById.get(id)?.label || id).join(" -> ")}`;
+          document.getElementById("btnClearPath")?.classList.remove("hidden");
+          applyCurrentLayout({ fit: true });
+        } else if (out) {
+          out.textContent = "No connected path found.";
+        }
+      });
+      document.getElementById("btnClearPath")?.addEventListener("click", () => {
+        activeShortestPathNodeIds.clear();
+        activeShortestPathEdgeIds.clear();
+        applyCurrentLayout({ fit: true });
+        updateInspector(node);
+      });
+      inspectorContent.querySelectorAll(".jump-btn").forEach((b) => b.addEventListener("click", () => focusNode(b.getAttribute("data-jump"))));
+    }
+
+    // Canvas Hit Testing & Pointer Interaction
+    function screenToWorld(sx, sy) {
+      return { x: (sx - camera.x) / camera.zoom, y: (sy - camera.y) / camera.zoom };
+    }
+
+    function hitTestNode(wx, wy) {
+      const vis = getVisibleNodes();
+      const isPill = isBackbonePillOverview(vis);
+      for (let i = vis.length - 1; i >= 0; i--) {
+        const n = vis[i];
+        if (isPill) {
+          if (Math.abs(wx - n.x) <= 114 && Math.abs(wy - n.y) <= 23) return n;
+        } else {
+          if (Math.hypot(wx - n.x, wy - n.y) <= Math.max(n.r + 5 / camera.zoom, 12 / camera.zoom)) return n;
+        }
+      }
+      return null;
+    }
+
+    function hitTestEdge(wx, wy) {
+      const vis = getVisibleNodes();
+      const visSet = new Set(vis.map((n) => n.id));
+      const visEdges = getVisibleEdges(visSet);
+      const tol = 7 / camera.zoom;
+      for (const e of visEdges) {
+        const dx = e.target.x - e.source.x, dy = e.target.y - e.source.y;
+        const l2 = dx * dx + dy * dy;
+        if (l2 < 1) continue;
+        let t = ((wx - e.source.x) * dx + (wy - e.source.y) * dy) / l2;
+        t = Math.max(0.08, Math.min(0.92, t));
+        const px = e.source.x + t * dx, py = e.source.y + t * dy;
+        if (Math.hypot(wx - px, wy - py) <= tol) return e;
+      }
+      return null;
+    }
+
+    canvas.addEventListener("pointerdown", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const sx = e.clientX - rect.left, sy = e.clientY - rect.top;
+      const w = screenToWorld(sx, sy);
+      pointerDownPos = { x: sx, y: sy };
+      const hit = hitTestNode(w.x, w.y);
+      if (hit) {
+        draggingNode = hit;
+        canvas.setPointerCapture(e.pointerId);
+      } else {
+        isPanning = true;
+        panStart = { x: sx - camera.x, y: sy - camera.y };
+        canvas.setPointerCapture(e.pointerId);
+      }
+    });
+
+    canvas.addEventListener("pointermove", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const sx = e.clientX - rect.left, sy = e.clientY - rect.top;
+      const w = screenToWorld(sx, sy);
+      if (draggingNode) {
+        draggingNode.x = w.x;
+        draggingNode.y = w.y;
+        renderGraph();
+        return;
+      }
+      if (isPanning) {
+        camera.x = sx - panStart.x;
+        camera.y = sy - panStart.y;
+        renderGraph();
+        return;
+      }
+      const hit = hitTestNode(w.x, w.y);
+      if (hit !== hoveredNode) {
+        hoveredNode = hit;
+        hoveredEdge = hit ? null : hitTestEdge(w.x, w.y);
+        if (hoveredNode) {
+          hoverText.textContent = hoveredNode.label;
+          hoverSub.textContent = `${hoveredNode.rawType} · ${Math.round(hoveredNode.confidence * 100)}% (${hoveredNode.confidenceBand}) · ${hoveredNode.degree} links`;
+          hoverBanner.classList.remove("hidden");
+          canvas.style.cursor = "pointer";
+        } else if (hoveredEdge) {
+          hoverText.textContent = `${hoveredEdge.source.label} -> ${hoveredEdge.label} -> ${hoveredEdge.target.label}`;
+          hoverSub.textContent = `${Math.round(hoveredEdge.confidence * 100)}% · ${hoveredEdge.evidenceCount || 0} evidence`;
+          hoverBanner.classList.remove("hidden");
+          canvas.style.cursor = "pointer";
+        } else {
+          hoverBanner.classList.add("hidden");
+          canvas.style.cursor = "grab";
+        }
+        renderGraph();
+      }
+    });
+
+    canvas.addEventListener("pointerup", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const sx = e.clientX - rect.left, sy = e.clientY - rect.top;
+      const moved = pointerDownPos ? Math.hypot(sx - pointerDownPos.x, sy - pointerDownPos.y) : 99;
+      const clickedNode = draggingNode;
+      draggingNode = null;
+      isPanning = false;
+      if (moved < 6) {
+        const w = screenToWorld(sx, sy);
+        if (clickedNode) {
+          selectedEdge = null;
+          selectedNode = clickedNode;
+          applyCurrentLayout({ fit: false });
+          updateInspector(clickedNode);
+        } else {
+          const hitE = hitTestEdge(w.x, w.y);
+          if (hitE) {
+            selectedEdge = hitE;
+            updateEdgeInspector(hitE);
+            renderGraph();
+          }
+        }
+      }
+    });
+
+    canvas.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const sx = e.clientX - rect.left, sy = e.clientY - rect.top;
+      const factor = e.deltaY < 0 ? 1.12 : 0.89;
+      const nextZoom = Math.max(0.10, Math.min(3.5, camera.zoom * factor));
+      camera.x = sx - ((sx - camera.x) / camera.zoom) * nextZoom;
+      camera.y = sy - ((sy - camera.y) / camera.zoom) * nextZoom;
+      camera.zoom = nextZoom;
+      renderGraph();
+    }, { passive: false });
+
+    canvas.addEventListener("keydown", (e) => {
+      const vis = getVisibleNodes();
+      if (e.key === "ArrowLeft") { camera.x += 45; renderGraph(); }
+      else if (e.key === "ArrowRight") { camera.x -= 45; renderGraph(); }
+      else if (e.key === "ArrowUp") { camera.y += 45; renderGraph(); }
+      else if (e.key === "ArrowDown") { camera.y -= 45; renderGraph(); }
+      else if (e.key === "+" || e.key === "=") { camera.zoom = Math.min(3.5, camera.zoom * 1.15); renderGraph(); }
+      else if (e.key === "-") { camera.zoom = Math.max(0.10, camera.zoom * 0.86); renderGraph(); }
+      else if (e.key === "]" || e.key === "[") {
+        if (!vis.length) return;
+        const idx = selectedNode ? vis.findIndex((n) => n.id === selectedNode.id) : -1;
+        const next = vis[(idx + (e.key === "]" ? 1 : -1) + vis.length) % vis.length];
+        focusNode(next.id);
+      } else if (e.key === "Escape") {
+        selectedNode = nodeById.get(ROOT_NODE_ID) || nodes[0];
+        selectedEdge = null;
+        activeShortestPathNodeIds.clear();
+        activeShortestPathEdgeIds.clear();
+        egoPinnedIds.clear();
+        applyCurrentLayout({ fit: true });
+        updateInspector(selectedNode);
+      }
+    });
+
+    // =========================================================================
+    // WORKSPACE 1: Architecture Map SVG Matrix
+    // =========================================================================
+    function renderArchitectureWorkspace() {
+      const isLight = document.documentElement.classList.contains("light");
+      document.getElementById("kpiArchNodes").textContent = `${(DATA.total_nodes || 0).toLocaleString()} Nodes · ${(DATA.total_edges || 0).toLocaleString()} Edges`;
+      document.getElementById("kpiArchSkills").textContent = `${SKILLS.length} Skills · ${nodes.filter((n) => n.rawType === "pillar").length} Pillars`;
+      document.getElementById("kpiArchEvidence").textContent = `${(DATA.total_evidence_links || 0).toLocaleString()} Evidence Links`;
+      document.getElementById("kpiArchGov").textContent = `${ROLE_PROJECTIONS.length} Role Projections · ${nodes.filter((n) => n.type === "policy").length} Policies`;
+
+      const tracks = [
+        { id: "track_actuarial_risk_derivatives", title: "Track 1: Actuarial, Risk & Derivatives", sub: "2002 - 2010 · Quant & Risk Foundation", x: 20, w: 368, fill: "var(--opm-lane-t1)", stroke: "#1d4ed8", epochs: ["epoch_actuarial_financial_engineering", "epoch_enterprise_risk_governance"], emps: ["emp_early", "emp_ey"] },
+        { id: "track_data_tech_cloud_ml", title: "Track 2: Data, Cloud, ML & Partner GTM", sub: "2010 - 2022 · Cloud Scale & Partnerships", x: 416, w: 368, fill: "var(--opm-lane-t2)", stroke: "#c2410c", epochs: ["epoch_cloud_data_platform_engineering", "epoch_partner_gtm_revenue_leadership"], emps: ["emp_insurtech", "emp_ibm"] },
+        { id: "track_genai_agentic", title: "Track 3: GenAI & Agentic AI Platforms", sub: "2022 - Present · Governed Agentic Runtime", x: 812, w: 368, fill: "var(--opm-lane-t3)", stroke: "#047857", epochs: ["epoch_agentic_ai_runtime_architecture", "epoch_ai_platform_commercialization"], emps: ["emp_unify", "emp_slalom"] }
+      ];
+
+      const empBySlug = new Map(EMPLOYMENTS.map((e) => [e.slug, e]));
+      const textMain = isLight ? "#0f172a" : "#f8fafc";
+      const textMuted = isLight ? "#475569" : "#cbd5e1";
+      const cardFill = isLight ? "#ffffff" : "#111827";
+
+      let svg = `
+        <g class="matrix-node" data-scope="all">
+          <rect x="20" y="10" width="1160" height="58" rx="10" fill="${isLight ? "#0f172a" : "#1e293b"}" stroke="#3b82f6" stroke-width="2" />
+          <text x="40" y="34" fill="#ffffff" font-size="16" font-weight="700">Amit Ayer — Governed AI Platform Leader (Identity Spine)</text>
+          <text x="40" y="54" fill="#cbd5e1" font-size="12">${(DATA.total_nodes || 0).toLocaleString()} Active Nodes · ${(DATA.total_edges || 0).toLocaleString()} Directed Edges · ${ENGAGEMENTS.length} Role-Episode Engagements · ${SKILLS.length} Verified Skills</text>
+          <text x="1160" y="42" text-anchor="end" fill="#34d399" font-size="12.5" font-weight="700">Snapshot ${esc(DATA.snapshot_date || "")}</text>
+        </g>
+      `;
+
+      tracks.forEach((tr) => {
+        const trSkills = SKILLS.filter((s) => s.trackId === tr.id || s.clusters.includes(tr.id)).length;
+        const isSel = state.scope === tr.id;
+        svg += `
+          <g class="matrix-node" data-scope="${tr.id}">
+            <rect x="${tr.x}" y="84" width="${tr.w}" height="310" rx="12" fill="${tr.fill}" stroke="${tr.stroke}" stroke-width="${isSel ? 3 : 1.5}" />
+            <text x="${tr.x + 14}" y="108" fill="${textMain}" font-size="14" font-weight="700">${esc(tr.title)}</text>
+            <text x="${tr.x + 14}" y="126" fill="${textMuted}" font-size="11.5">${esc(tr.sub)} · ${trSkills} skills</text>
+          </g>
+        `;
+        tr.epochs.forEach((epId, idx) => {
+          const ep = nodeById.get(epId);
+          const ey = 142 + idx * 54;
+          const epCnt = nodes.filter((n) => n.cluster.includes(epId)).length;
+          svg += `
+            <g class="matrix-node" data-scope="${epId}">
+              <rect x="${tr.x + 12}" y="${ey}" width="${tr.w - 24}" height="44" rx="8" fill="${cardFill}" stroke="${tr.stroke}" stroke-width="${state.scope === epId ? 2.5 : 1}" />
+              <text x="${tr.x + 24}" y="${ey + 18}" fill="${textMain}" font-size="12.5" font-weight="700">${esc(ep ? ep.label : epId)}</text>
+              <text x="${tr.x + 24}" y="${ey + 34}" fill="${textMuted}" font-size="11">${epCnt} linked graph nodes · Phase ${ep && ep.phaseOrdinal ? ep.phaseOrdinal : idx + 1}</text>
+            </g>
+          `;
+        });
+        tr.emps.forEach((es, idx) => {
+          const emp = empBySlug.get(es);
+          if (!emp) return;
+          const my = 258 + idx * 62;
+          svg += `
+            <g class="matrix-node" data-scope="${es}">
+              <rect x="${tr.x + 12}" y="${my}" width="${tr.w - 24}" height="52" rx="8" fill="${cardFill}" stroke="${emp.isCurrent ? "#10b981" : "#64748b"}" stroke-width="${state.scope === es ? 2.6 : 1.2}" />
+              <text x="${tr.x + 24}" y="${my + 19}" fill="${textMain}" font-size="12.5" font-weight="700">${esc(emp.employer)} — ${esc(emp.title)}</text>
+              <text x="${tr.x + 24}" y="${my + 37}" fill="${textMuted}" font-size="11">${esc(emp.startDate)} to ${esc(emp.endDate)} · ${emp.engagements} Engagements · ${emp.metrics} Outcomes · ${emp.facts} Facts</text>
+            </g>
+          `;
+        });
+      });
+
+      // Horizontal Platform & Governance Bars (Mirroring DIE One Tech / Corp Functions Bars)
+      svg += `
+        <g class="matrix-node" data-scope="projections_layer">
+          <rect x="20" y="412" width="1160" height="88" rx="10" fill="var(--opm-bar-tech-bg)" stroke="var(--opm-bar-tech-stroke)" stroke-width="${state.scope === "projections_layer" ? 3 : 1.5}" />
+          <text x="38" y="438" fill="var(--opm-bar-tech-title)" font-size="14" font-weight="700">Horizontal Projection &amp; Retrieval Layer: 29 Capability Pillars · 49 Domains · 18 Role Projections · 17 Resume Sections</text>
+          <text x="38" y="460" fill="var(--opm-bar-sub)" font-size="12">Hybrid Retrieval Index: ${(DATA.total_semantic_units || 0)} Semantic Units · ${(DATA.total_paths || 0).toLocaleString()} Precomputed Paths · ${(DATA.total_neighborhoods || 0).toLocaleString()} Neighborhoods</text>
+          <text x="38" y="482" fill="var(--opm-bar-sub)" font-size="11.5">Click to filter Projections &amp; Sections across the Explorer</text>
+        </g>
+        <g class="matrix-node" data-scope="policy_guardrails">
+          <rect x="20" y="516" width="1160" height="84" rx="10" fill="var(--opm-bar-corp-bg)" stroke="#b91c1c" stroke-width="${state.scope === "policy_guardrails" ? 3 : 1.5}" />
+          <text x="38" y="542" fill="var(--opm-bar-corp-title)" font-size="14" font-weight="700">Fail-Closed Claim Governance &amp; Provenance Floor (3 Policies · 17 Policy Rules)</text>
+          <text x="38" y="564" fill="var(--opm-bar-sub)" font-size="12">Enforces Atomic Fact Default External Proof · Skill Projection Is Routing Not Claim Proof · Pending-Source &amp; Blocked-Phrase Fail-Closed Gates</text>
+          <text x="38" y="584" fill="var(--opm-bar-sub)" font-size="11.5">Click to inspect Policy Guardrail nodes in the Graph and Evidence tables</text>
+        </g>
+      `;
+
+      const svgEl = document.getElementById("archMatrixSvg");
+      svgEl.innerHTML = svg;
+      svgEl.querySelectorAll(".matrix-node").forEach((g) => {
+        g.addEventListener("click", () => setScope(g.getAttribute("data-scope") || "all"));
+      });
+
+      // Update Right Focus Card
+      const scopedNodes = state.scope === "all" ? nodes : nodes.filter((n) => n.cluster.includes(state.scope) || n.id === state.scope);
+      const scopedSkills = state.scope === "all" ? SKILLS : SKILLS.filter((s) => s.clusters.includes(state.scope));
+      const scopedEngs = state.scope === "all" ? ENGAGEMENTS : ENGAGEMENTS.filter((e) => e.clusters.includes(state.scope) || e.employerSlug === state.scope);
+      const scopeOpt = document.querySelector(`#clusterSelect option[value="${state.scope}"]`);
+      document.getElementById("archFocusTitle").textContent = scopeOpt ? scopeOpt.textContent : state.scope;
+      document.getElementById("archFocusDesc").textContent = `Live read-only slice from augmented_skills_graph.sqlite showing ${scopedNodes.length.toLocaleString()} connected nodes.`;
+      document.getElementById("archFocusStats").innerHTML = `
+        <div class="subcard"><div style="color:var(--muted);font-size:var(--fs-2xs);">Nodes in Scope</div><div class="font-bold text-sm">${scopedNodes.length.toLocaleString()}</div></div>
+        <div class="subcard"><div style="color:var(--muted);font-size:var(--fs-2xs);">Skills</div><div class="font-bold text-sm">${scopedSkills.length}</div></div>
+        <div class="subcard"><div style="color:var(--muted);font-size:var(--fs-2xs);">Engagements</div><div class="font-bold text-sm">${scopedEngs.length}</div></div>
+        <div class="subcard"><div style="color:var(--muted);font-size:var(--fs-2xs);">External Eligible</div><div class="font-bold text-sm">${scopedSkills.filter((s) => s.externalEligible).length}</div></div>
+      `;
+      const topHubs = [...scopedNodes].sort((a, b) => (b.degree || 0) - (a.degree || 0)).slice(0, 8);
+      document.getElementById("archFocusList").innerHTML = `
+        <div class="font-semibold" style="color:var(--muted);">Top Connected Hubs in Scope</div>
+        ${topHubs.map((n) => `
+          <button type="button" data-focus-node="${esc(n.id)}" class="jump-btn text-left p-2 rounded-lg flex items-center justify-between gap-2" style="background:var(--muted-surface);border:1px solid var(--border);">
+            <span class="font-semibold truncate">${esc(n.label)}</span>
+            <span class="chip chip-ctr shrink-0">${n.degree} links</span>
+          </button>
+        `).join("")}
+      `;
+      document.querySelectorAll("#archFocusList [data-focus-node]").forEach((b) => {
+        b.addEventListener("click", () => focusNode(b.getAttribute("data-focus-node"), { switchTab: true }));
+      });
+    }
+
+    // =========================================================================
+    // WORKSPACE 2: Skills & Pillars Table
+    // =========================================================================
+    function getFilteredSkills() {
+      const q = state.search.trim().toLowerCase();
+      return SKILLS.filter((s) => {
+        if (state.scope !== "all" && !s.clusters.includes(state.scope)) return false;
+        if (state.skillQf === "external" && !s.externalEligible) return false;
+        if (state.skillQf === "confirmed" && s.activationStatus !== "ACTIVE_CONFIRMED") return false;
+        if (state.skillQf === "high_conf" && s.confidence < 0.90) return false;
+        if (state.skillQf === "internal" && s.externalEligible) return false;
+        if (state.skillQf === "blocked" && !["BLOCKED", "DRAFT", "QUARANTINED_UNVERIFIED_SYNTHETIC"].includes(s.activationStatus)) return false;
+        if (q && !`${s.label} ${s.pillar} ${s.domain} ${s.desc} ${s.epoch}`.toLowerCase().includes(q)) return false;
+        return true;
+      }).sort((a, b) => {
+        if (state.skillSort === "facts_desc") return (b.sourceFactCount - a.sourceFactCount) || (b.confidence - a.confidence);
+        if (state.skillSort === "label_asc") return a.label.localeCompare(b.label);
+        if (state.skillSort === "pillar_asc") return a.pillar.localeCompare(b.pillar) || a.label.localeCompare(b.label);
+        return (b.confidence - a.confidence) || (b.sourceFactCount - a.sourceFactCount);
+      });
+    }
+
+    function renderSkillsWorkspace() {
+      const rows = getFilteredSkills();
+      const extCnt = rows.filter((r) => r.externalEligible).length;
+      const factSum = rows.reduce((acc, r) => acc + (r.sourceFactCount || 0), 0);
+      const avgConf = rows.length ? Math.round((rows.reduce((a, r) => a + r.confidence, 0) / rows.length) * 100) : 0;
+
+      document.getElementById("kpiPortTotal").textContent = `${rows.length} / ${SKILLS.length} Skills`;
+      document.getElementById("kpiPortExt").textContent = `${extCnt} External Eligible`;
+      document.getElementById("kpiPortProof").textContent = `${factSum} Linked Facts`;
+      document.getElementById("kpiPortConf").textContent = `${avgConf}% Avg`;
+      document.getElementById("skillsRowTelemetry").textContent = `Showing ${rows.length} of ${SKILLS.length} Skills`;
+
+      const tbl = document.getElementById("skillsTable");
+      tbl.classList.toggle("table-compact", state.skillCompact);
+      const tbody = document.getElementById("skillsTableBody");
+
+      const rowHtml = (r) => {
+        const band = getConfidenceBand(r.confidence);
+        const statusChip = r.externalEligible
+          ? '<span class="chip chip-verified">External Eligible</span>'
+          : (r.activationStatus === "BLOCKED" ? '<span class="chip chip-off">Blocked</span>' : '<span class="chip chip-open">Internal Only</span>');
+        return `
+          <tr class="data-row" data-skill-id="${esc(r.id)}">
+            <td><strong>${esc(r.label)}</strong><div style="color:var(--muted);font-size:var(--fs-2xs);margin-top:2px;">${esc(r.desc.slice(0, 120))}${r.desc.length > 120 ? "..." : ""}</div></td>
+            <td><div class="font-semibold">${esc(r.pillar)}</div><div style="color:var(--muted);font-size:var(--fs-2xs);">${esc(r.domain)}</div></td>
+            <td><div class="chips">${statusChip}<span class="chip chip-ctr">${esc(r.activationStatus)}</span></div><div style="color:var(--muted);font-size:var(--fs-2xs);margin-top:2px;">${esc(r.epoch || "Cross-Career")}</div></td>
+            <td><span class="chip chip-fte">${esc(band.label)} ${Math.round(r.confidence * 100)}%</span></td>
+            <td><div class="chips"><span class="chip chip-ctr">${r.sourceFactCount} facts</span><span class="chip chip-ctr">${r.metricCount} metrics</span><span class="chip chip-ctr">${r.engagementCount} eng.</span></div></td>
+            <td><div class="chips">${(r.topRoleFamilies || []).slice(0, 3).map((rf) => `<span class="chip chip-purple">${esc(rf.role_family.replace(/_/g, " "))} (${rf.weight})</span>`).join("") || '<span style="color:var(--muted);">—</span>'}</div></td>
+          </tr>
+        `;
+      };
+
+      if (state.skillGroupPillar) {
+        const groups = new Map();
+        rows.forEach((r) => { if (!groups.has(r.pillar)) groups.set(r.pillar, []); groups.get(r.pillar).push(r); });
+        let html = "";
+        for (const [pName, list] of groups.entries()) {
+          html += `<tr class="group-row"><td colspan="6">${esc(pName)} (${list.length} skills)</td></tr>`;
+          html += list.map(rowHtml).join("");
+        }
+        tbody.innerHTML = html;
+      } else {
+        tbody.innerHTML = rows.map(rowHtml).join("");
+      }
+
+      tbody.querySelectorAll("tr.data-row").forEach((tr) => {
+        tr.addEventListener("click", () => openNodeDrawer(tr.getAttribute("data-skill-id")));
+      });
+    }
+
+    // =========================================================================
+    // WORKSPACE 3: Evidence, Metric Outcomes & Policies
+    // =========================================================================
+    function renderEvidenceWorkspace() {
+      const q = state.search.trim().toLowerCase();
+      const rows = EVIDENCE.filter((r) => {
+        if (state.scope !== "all" && !r.clusters.includes(state.scope)) return false;
+        if (state.evidenceCat !== "all" && r.category !== state.evidenceCat) return false;
+        if (q && !`${r.label} ${r.desc} ${r.employer} ${r.rawType}`.toLowerCase().includes(q)) return false;
+        return true;
+      });
+      document.getElementById("kpiEvMetrics").textContent = `${EVIDENCE.filter((e) => e.category === "metric_outcome").length} Outcomes`;
+      document.getElementById("kpiEvFacts").textContent = `${EVIDENCE.filter((e) => e.category === "grounded_fact").length} Anchors`;
+      document.getElementById("kpiEvRepo").textContent = `${EVIDENCE.filter((e) => e.category === "repo_evidence").length} Repo Artifacts`;
+      document.getElementById("kpiEvPolicy").textContent = `${EVIDENCE.filter((e) => e.category === "policy").length} Policy Rules`;
+      document.getElementById("evidenceRowTelemetry").textContent = `Showing ${rows.length} of ${EVIDENCE.length} Evidence & Policy Records`;
+      document.getElementById("evidenceLineageText").textContent =
+        `Derived live from ${DATA.graph_version || "augmented_skills_graph.sqlite"} (build ${DATA.generation_id || "active"}, hash ${DATA.ledger_hash || ""}): ${(DATA.total_nodes || 0).toLocaleString()} nodes, ${(DATA.total_edges || 0).toLocaleString()} edges, ${(DATA.total_evidence_links || 0).toLocaleString()} edge evidence records, and ${(DATA.total_semantic_units || 0)} semantic units.`;
+
+      const tbody = document.getElementById("evidenceTableBody");
+      tbody.innerHTML = rows.slice(0, 300).map((r) => {
+        const catChip = r.category === "policy" ? "chip-off" : (r.category === "metric_outcome" ? "chip-verified" : (r.category === "repo_evidence" ? "chip-purple" : "chip-fte"));
+        return `
+          <tr class="data-row" data-ev-id="${esc(r.id)}">
+            <td><span class="chip ${catChip}">${esc(r.rawType.replace(/_/g, " "))}</span></td>
+            <td><strong>${esc(r.label)}</strong></td>
+            <td><div>${esc(r.employer)}</div><div class="mt-0.5"><span class="chip chip-ctr">${Math.round(r.confidence * 100)}% ${esc(r.confidenceBand)}</span></div></td>
+            <td>
+              <div>${esc(r.desc)}</div>
+              ${r.linkedSkills.length ? `<div class="chips mt-1">${r.linkedSkills.map((sk) => `<span class="chip chip-ctr">${esc(sk.label)}</span>`).join("")}</div>` : ""}
+            </td>
+          </tr>
+        `;
+      }).join("");
+      tbody.querySelectorAll("tr.data-row").forEach((tr) => {
+        tr.addEventListener("click", () => openNodeDrawer(tr.getAttribute("data-ev-id")));
+      });
+    }
+
+    // =========================================================================
+    // WORKSPACE 4: Engagements & Employments
+    // =========================================================================
+    function getFilteredEngagements() {
+      const q = state.search.trim().toLowerCase();
+      return ENGAGEMENTS.filter((r) => {
+        if (state.scope !== "all" && !r.clusters.includes(state.scope) && r.employerSlug !== state.scope) return false;
+        if (state.engEmployer !== "all" && r.employerSlug !== state.engEmployer) return false;
+        if (q && !`${r.label} ${r.desc} ${r.employer} ${r.epoch}`.toLowerCase().includes(q)) return false;
+        return true;
+      });
+    }
+
+    function renderEngagementsWorkspace() {
+      const rows = getFilteredEngagements();
+      document.getElementById("kpiEngTotal").textContent = `${rows.length} / ${ENGAGEMENTS.length} Engagements`;
+      document.getElementById("kpiEngSkills").textContent = `${rows.reduce((a, r) => a + r.skillCount, 0)} Skill Links`;
+      document.getElementById("kpiEngFacts").textContent = `${rows.reduce((a, r) => a + r.factCount, 0)} Grounded Facts`;
+      document.getElementById("kpiEngMetrics").textContent = `${rows.reduce((a, r) => a + r.metricCount, 0)} Metric Outcomes`;
+      document.getElementById("engRowTelemetry").textContent = `Showing ${rows.length} of ${ENGAGEMENTS.length} Engagements`;
+
+      const tbody = document.getElementById("engagementsTableBody");
+      tbody.innerHTML = rows.map((r) => `
+        <tr class="data-row" data-eng-id="${esc(r.id)}">
+          <td><strong>${esc(r.employer)}</strong><div style="color:var(--muted);font-size:var(--fs-2xs);margin-top:2px;">${esc(r.epoch)}</div></td>
+          <td><strong>${esc(r.label)}</strong><div style="color:var(--muted);font-size:var(--fs-2xs);margin-top:2px;" class="font-mono">${esc(r.code)}</div></td>
+          <td><span class="chip chip-verified">${Math.round(r.confidence * 100)}% ${esc(r.confidenceBand)}</span><div style="color:var(--muted);font-size:var(--fs-2xs);margin-top:3px;">${r.skillCount} skills · ${r.factCount} facts</div></td>
+          <td>
+            <div>${esc(r.desc)}</div>
+            <div class="chips mt-1">${(r.linkedSkills || []).slice(0, 6).map((sk) => `<span class="chip chip-fte">${esc(sk.label)}</span>`).join("")}</div>
+          </td>
+        </tr>
+      `).join("");
+      tbody.querySelectorAll("tr.data-row").forEach((tr) => {
+        tr.addEventListener("click", () => openNodeDrawer(tr.getAttribute("data-eng-id")));
+      });
+    }
+
+    // =========================================================================
+    // WORKSPACE 5: Role Projections (DIE Exec Agendas Card Grid)
+    // =========================================================================
+    function renderProjectionsWorkspace() {
+      const q = state.search.trim().toLowerCase();
+      const cards = ROLE_PROJECTIONS.filter((p) => {
+        if (state.projGroup !== "ALL" && p.group !== state.projGroup) return false;
+        if (q && !`${p.id} ${p.label} ${p.group} ${(p.weightedPillars || []).map((x) => x.label).join(" ")}`.toLowerCase().includes(q)) return false;
+        return true;
+      });
+      document.getElementById("projCountBadge").textContent = `${cards.length} of ${ROLE_PROJECTIONS.length} Projections`;
+      const grid = document.getElementById("roleProjectionsGrid");
+      grid.innerHTML = cards.map((p) => {
+        const tw = p.trackWeights || { actuarial: 0, cloud_gtm: 0, agentic: 0 };
+        return `
+          <div class="exec-agenda-card">
+            <div class="exec-agenda-head">
+              <div>
+                <div class="exec-agenda-name">${esc(p.label)}</div>
+                <div class="exec-agenda-title">${esc(p.group)} &middot; <span class="font-mono">${esc(p.id)}</span></div>
+              </div>
+              <button type="button" data-focus-rf="${esc(p.id)}" style="padding:2px 8px;font-size:var(--fs-2xs);" class="btn-primary">Focus in Graph</button>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:var(--fs-2xs);color:var(--muted);margin-bottom:3px;">
+                <span>Actuarial/Risk ${tw.actuarial}%</span>
+                <span>Cloud/GTM ${tw.cloud_gtm}%</span>
+                <span>GenAI/Agentic ${tw.agentic}%</span>
+              </div>
+              <div class="track-bar">
+                <div style="width:${tw.actuarial}%;background:#1d4ed8;"></div>
+                <div style="width:${tw.cloud_gtm}%;background:#d97706;"></div>
+                <div style="width:${tw.agentic}%;background:#047857;"></div>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:var(--fs-2xs);font-weight:700;color:var(--muted);margin-bottom:3px;">Weighted Capability Pillars</div>
+              <div class="chips">
+                ${(p.weightedPillars || []).map((pl) => `<button type="button" data-focus-rf="${esc(pl.id)}" class="chip chip-purple">${esc(pl.label)} (${pl.weight})</button>`).join("")}
+              </div>
+            </div>
+            ${(p.topSkills || []).length ? `
+              <div>
+                <div style="font-size:var(--fs-2xs);font-weight:700;color:var(--muted);margin-bottom:3px;">Top Ranked Skills</div>
+                <div class="chips">
+                  ${p.topSkills.map((sk) => `<button type="button" data-focus-rf="${esc(sk.id)}" class="chip chip-fte">${esc(sk.label)} (${sk.weight})</button>`).join("")}
+                </div>
+              </div>
+            ` : ""}
+          </div>
+        `;
+      }).join("");
+      grid.querySelectorAll("[data-focus-rf]").forEach((btn) => {
+        btn.addEventListener("click", () => focusNode(btn.getAttribute("data-focus-rf"), { switchTab: true }));
+      });
+    }
+
+    // =========================================================================
+    // Shared Slide-Over Detail Drawer
+    // =========================================================================
+    function openNodeDrawer(nodeId) {
+      const n = nodeById.get(nodeId);
+      if (!n) return;
+      state.drawerNodeId = n.id;
+      document.getElementById("drawerKicker").textContent = `${n.layer.toUpperCase()} · ${n.rawType.toUpperCase()} · ${Math.round(n.confidence * 100)}% ${n.confidenceBand}`;
+      document.getElementById("drawerTitle").textContent = n.label;
+      const conn = edges.filter((e) => e.source.id === n.id || e.target.id === n.id);
+      const body = document.getElementById("drawerBody");
+      body.innerHTML = `
+        <div class="box">
+          <div class="box-label">Canonical Description</div>
+          <div class="text-sm">${esc(n.desc)}</div>
+        </div>
+        <div class="drawer-grid">
+          <div class="box"><div class="box-label">Activation &amp; Claim Policy</div><div class="text-xs">${esc(n.activationStatus)} · ${n.externalEligible ? "External Claim Eligible" : "Internal / Routing Only"}</div></div>
+          <div class="box"><div class="box-label">Employer &amp; Epoch</div><div class="text-xs">${esc(n.employer || "Cross-Career")} · ${esc(n.careerEpoch || "—")}</div></div>
+        </div>
+        ${(n.allowedSections || []).length ? `<div class="box"><div class="box-label">Allowed Resume Sections (${n.allowedSections.length})</div><div class="chips">${n.allowedSections.map((s) => `<span class="chip chip-purple">${esc(s)}</span>`).join("")}</div></div>` : ""}
+        ${(n.highlights || []).length ? `<div class="box"><div class="box-label">Verified Assertions &amp; Semantic Units</div><div class="flex flex-col gap-1.5">${n.highlights.map((h) => `<div class="text-xs" style="border-left:3px solid var(--primary);padding-left:8px;"><strong>${esc(h.predicate)}</strong> (${esc(h.confidence)}): ${esc(h.claim)}</div>`).join("")}</div></div>` : ""}
+        <div class="box">
+          <div class="box-label">Direct Graph Links (${conn.length})</div>
+          <div class="flex flex-col gap-1">
+            ${conn.slice(0, 30).map((e) => {
+              const other = e.source.id === n.id ? e.target : e.source;
+              const dir = e.source.id === n.id ? "&rarr;" : "&larr;";
+              return `<button type="button" data-drawer-jump="${esc(other.id)}" class="jump-btn text-left p-2 rounded flex items-center justify-between text-xs" style="background:var(--card);border:1px solid var(--border);"><span class="truncate">${dir} <code>${esc(e.label)}</code> &middot; <strong>${esc(other.label)}</strong></span><span class="chip chip-ctr shrink-0">${esc(other.rawType)}</span></button>`;
+            }).join("")}
+          </div>
+        </div>
+      `;
+      body.querySelectorAll("[data-drawer-jump]").forEach((b) => {
+        b.addEventListener("click", () => openNodeDrawer(b.getAttribute("data-drawer-jump")));
+      });
+      document.getElementById("detailOverlay").classList.remove("hidden");
+    }
+
+    document.getElementById("btnCloseDrawer").addEventListener("click", () => document.getElementById("detailOverlay").classList.add("hidden"));
+    document.getElementById("detailOverlay").addEventListener("click", (e) => { if (e.target.id === "detailOverlay") e.target.classList.add("hidden"); });
+    document.getElementById("btnDrawerFocusGraph").addEventListener("click", () => {
+      document.getElementById("detailOverlay").classList.add("hidden");
+      if (state.drawerNodeId) focusNode(state.drawerNodeId, { switchTab: true });
+    });
+
+    // =========================================================================
+    // Global Navigation, Scope Spine, Search, Filters, Theme & CSV Export
+    // =========================================================================
+    const VIEW_MAP = {
+      opmodel: "viewOpModelWorkspace",
+      portfolio: "viewPortfolioWorkspace",
+      signals: "viewSignalsWorkspace",
+      delivery: "viewDeliveryWorkspace",
+      agendas: "viewAgendasWorkspace",
+      graph: "viewGraphWorkspace"
+    };
+
+    function setActiveMode(mode) {
+      if (!VIEW_MAP[mode]) mode = "graph";
+      state.mode = mode;
+      document.querySelectorAll(".mode-tab").forEach((btn) => {
+        const active = btn.getAttribute("data-mode") === mode;
+        btn.classList.toggle("active", active);
+        btn.setAttribute("aria-selected", active ? "true" : "false");
+      });
+      Object.entries(VIEW_MAP).forEach(([k, id]) => {
+        document.getElementById(id)?.classList.toggle("hidden", k !== mode);
+      });
+      try { history.replaceState(null, "", `#${mode}`); } catch (_err) {}
+      if (mode === "opmodel") renderArchitectureWorkspace();
+      else if (mode === "portfolio") renderSkillsWorkspace();
+      else if (mode === "signals") renderEvidenceWorkspace();
+      else if (mode === "delivery") renderEngagementsWorkspace();
+      else if (mode === "agendas") renderProjectionsWorkspace();
+      else if (mode === "graph") {
+        requestAnimationFrame(() => {
+          resizeCanvas();
+          applyCurrentLayout({ fit: true });
+        });
+      }
+    }
+
+    function setScope(scopeVal) {
+      state.scope = scopeVal || "all";
+      const sel = document.getElementById("clusterSelect");
+      if (sel && sel.value !== state.scope) sel.value = state.scope;
+      const badge = document.getElementById("activeScopeBadge");
+      const clearBtn = document.getElementById("btnClearSsotScope");
+      if (state.scope === "all") {
+        badge.classList.add("hidden");
+        clearBtn.classList.add("hidden");
+      } else {
+        const opt = document.querySelector(`#clusterSelect option[value="${state.scope}"]`);
+        badge.textContent = `Scope: ${opt ? opt.textContent : state.scope}`;
+        badge.classList.remove("hidden");
+        clearBtn.classList.remove("hidden");
+      }
+      refreshActiveWorkspace();
+    }
+
+    function refreshActiveWorkspace() {
+      if (state.mode === "opmodel") renderArchitectureWorkspace();
+      else if (state.mode === "portfolio") renderSkillsWorkspace();
+      else if (state.mode === "signals") renderEvidenceWorkspace();
+      else if (state.mode === "delivery") renderEngagementsWorkspace();
+      else if (state.mode === "agendas") renderProjectionsWorkspace();
+      else {
+        applyCurrentLayout({ fit: true });
+        if (selectedNode) updateInspector(selectedNode);
+      }
+    }
+
+    function syncTypeFilterButtons() {
+      const allActive = enabledTypes.size === Object.keys(TYPE_META).length;
+      const allBtn = document.getElementById("btnAllTypes");
+      allBtn.style.background = allActive ? "var(--primary)" : "var(--bg-main)";
+      allBtn.style.color = allActive ? "var(--primary-fg)" : "var(--text-main)";
+      document.querySelectorAll(".type-pill").forEach((btn) => {
+        const t = btn.getAttribute("data-type");
+        const on = enabledTypes.has(t);
+        btn.classList.toggle("inactive", !on);
+        btn.setAttribute("aria-pressed", on ? "true" : "false");
+      });
+    }
+
+    function downloadCsv(filename, headers, rows) {
+      const escCsv = (v) => `"${String(v == null ? "" : v).replace(/"/g, '""')}"`;
+      const csv = [headers.map(escCsv).join(","), ...rows.map((r) => r.map(escCsv).join(","))].join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = filename; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    // Bind Header & Spine Controls
+    document.querySelectorAll(".mode-tab").forEach((btn) => {
+      btn.addEventListener("click", () => setActiveMode(btn.getAttribute("data-mode")));
+    });
+    document.getElementById("clusterSelect").addEventListener("change", (e) => setScope(e.target.value));
+    document.getElementById("btnClearSsotScope").addEventListener("click", () => setScope("all"));
+    document.getElementById("btnToggleGuide").addEventListener("click", () => document.getElementById("panelGuideWrap").classList.toggle("hidden"));
+    document.getElementById("btnCloseGuide").addEventListener("click", () => document.getElementById("panelGuideWrap").classList.add("hidden"));
+    document.getElementById("themeBtn").addEventListener("click", () => {
+      const html = document.documentElement;
+      const toDark = html.classList.contains("light");
+      html.classList.toggle("light", !toDark);
+      html.classList.toggle("dark", toDark);
+      html.setAttribute("data-theme", toDark ? "dark" : "light");
+      document.getElementById("themeBtn").textContent = toDark ? "Light Theme" : "Dark Theme";
+      if (state.mode === "opmodel") renderArchitectureWorkspace();
+      else if (state.mode === "graph") { renderGraph(); if (selectedNode) updateInspector(selectedNode); }
+    });
+
+    // Global Search & Autocomplete Dropdown
+    const searchInput = document.getElementById("searchInput");
+    const searchDropdown = document.getElementById("graphSearchDropdown");
+    const btnClearSearch = document.getElementById("btnClearSearch");
+
+    function handleSearchInput(val) {
+      state.search = val;
+      btnClearSearch.classList.toggle("hidden", !val.trim());
+      const q = val.trim().toLowerCase();
+      if (!q) {
+        searchDropdown.classList.add("hidden");
+        document.getElementById("activeSearchChip").classList.add("hidden");
+      } else {
+        const chip = document.getElementById("activeSearchChip");
+        chip.textContent = `Search: "${val.trim()}"`;
+        chip.classList.remove("hidden");
+        const hits = nodes.filter((n) => `${n.label} ${n.id} ${n.rawType} ${n.employer} ${n.desc}`.toLowerCase().includes(q)).slice(0, 14);
+        searchDropdown.innerHTML = hits.length
+          ? hits.map((h) => `
+              <button type="button" data-pick-node="${esc(h.id)}" style="background:transparent;border:none;border-bottom:1px solid var(--border-col);width:100%;text-align:left;padding:7px 10px;" class="jump-btn flex items-center justify-between gap-2">
+                <div style="min-width:0;"><div class="text-xs font-semibold truncate">${esc(h.label)}</div><div style="color:var(--text-muted);font-size:var(--fs-2xs);" class="truncate">${esc(h.rawType)} ${h.employer ? "· " + esc(h.employer) : ""}</div></div>
+                <span class="chip chip-ctr shrink-0">${Math.round(h.confidence * 100)}%</span>
+              </button>
+            `).join("")
+          : '<div class="p-2 text-xs" style="color:var(--text-muted);">No matching graph nodes.</div>';
+        searchDropdown.classList.remove("hidden");
+        searchDropdown.querySelectorAll("[data-pick-node]").forEach((b) => {
+          b.addEventListener("click", () => {
+            searchDropdown.classList.add("hidden");
+            focusNode(b.getAttribute("data-pick-node"), { switchTab: true });
+          });
+        });
+      }
+      refreshActiveWorkspace();
+    }
+
+    searchInput.addEventListener("input", (e) => handleSearchInput(e.target.value));
+    btnClearSearch.addEventListener("click", () => { searchInput.value = ""; handleSearchInput(""); });
+    document.addEventListener("click", (e) => {
+      if (!searchDropdown.contains(e.target) && e.target !== searchInput) searchDropdown.classList.add("hidden");
+    });
+
+    // Graph Toolbar Bindings
+    document.getElementById("btnAllTypes").addEventListener("click", () => {
+      enabledTypes = new Set(Object.keys(TYPE_META));
+      syncTypeFilterButtons();
+      applyCurrentLayout({ fit: true });
+    });
+    document.querySelectorAll(".type-pill").forEach((btn) => {
+      const t = btn.getAttribute("data-type");
+      btn.addEventListener("click", () => {
+        if (enabledTypes.has(t)) {
+          if (enabledTypes.size > 1) enabledTypes.delete(t);
+        } else {
+          enabledTypes.add(t);
+        }
+        syncTypeFilterButtons();
+        applyCurrentLayout({ fit: true });
+      });
+      btn.addEventListener("dblclick", () => {
+        enabledTypes = new Set([t]);
+        graphShowFullTopology = true;
+        document.getElementById("btnToggleFullTopology").textContent = `Full Graph (${nodes.length})`;
+        syncTypeFilterButtons();
+        applyCurrentLayout({ fit: true });
+      });
+    });
+
+    document.getElementById("btnIsolateSubgraph").addEventListener("click", (e) => {
+      isolateHopDepth = (isolateHopDepth + 1) % 4;
+      e.currentTarget.textContent = isolateHopDepth === 0 ? "Depth: Off" : `Depth: ${isolateHopDepth}-Hop`;
+      applyCurrentLayout({ fit: true });
+    });
+    document.getElementById("layoutSelect").addEventListener("change", (e) => {
+      activeLayout = e.target.value;
+      applyCurrentLayout({ fit: true });
+    });
+    document.getElementById("sizeSelect").addEventListener("change", (e) => {
+      activeSizeMode = e.target.value;
+      nodes.forEach((n) => { n.r = computeNodeRadius(n); });
+      renderGraph();
+    });
+    document.getElementById("colorSelect").addEventListener("change", (e) => {
+      activeColorMode = e.target.value;
+      renderGraph();
+    });
+    document.getElementById("btnToggleFullTopology").addEventListener("click", (e) => {
+      graphShowFullTopology = !graphShowFullTopology;
+      e.currentTarget.textContent = graphShowFullTopology ? `Full Graph (${nodes.length})` : "Career Backbone";
+      if (graphShowFullTopology) {
+        isolateHopDepth = 0;
+        document.getElementById("btnIsolateSubgraph").textContent = "Depth: Off";
+        activeLayout = "force";
+        document.getElementById("layoutSelect").value = "force";
+      } else {
+        isolateHopDepth = 1;
+        document.getElementById("btnIsolateSubgraph").textContent = "Depth: 1-Hop";
+        activeLayout = "hierarchy";
+        document.getElementById("layoutSelect").value = "hierarchy";
+        selectedNode = nodeById.get(ROOT_NODE_ID) || nodes[0];
+      }
+      applyCurrentLayout({ fit: true });
+      if (selectedNode) updateInspector(selectedNode);
+    });
+    document.getElementById("fitToScreenBtn").addEventListener("click", () => fitVisibleToScreen());
+    document.getElementById("zoomInBtn").addEventListener("click", () => { camera.zoom = Math.min(3.5, camera.zoom * 1.18); renderGraph(); });
+    document.getElementById("zoomOutBtn").addEventListener("click", () => { camera.zoom = Math.max(0.10, camera.zoom * 0.84); renderGraph(); });
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      state.scope = "all";
+      document.getElementById("clusterSelect").value = "all";
+      state.search = ""; searchInput.value = ""; btnClearSearch.classList.add("hidden");
+      document.getElementById("activeScopeBadge").classList.add("hidden");
+      document.getElementById("btnClearSsotScope").classList.add("hidden");
+      document.getElementById("activeSearchChip").classList.add("hidden");
+      graphShowFullTopology = false;
+      document.getElementById("btnToggleFullTopology").textContent = "Career Backbone";
+      isolateHopDepth = 1;
+      document.getElementById("btnIsolateSubgraph").textContent = "Depth: 1-Hop";
+      activeLayout = "hierarchy";
+      document.getElementById("layoutSelect").value = "hierarchy";
+      activeConfidenceFilter = "ALL";
+      enabledTypes = new Set(Object.keys(TYPE_META));
+      activeShortestPathNodeIds.clear();
+      activeShortestPathEdgeIds.clear();
+      egoPinnedIds.clear();
+      selectedEdge = null;
+      selectedNode = nodeById.get(ROOT_NODE_ID) || nodes[0];
+      syncTypeFilterButtons();
+      syncConfidenceButtons();
+      applyCurrentLayout({ fit: true });
+      updateInspector(selectedNode);
+    });
+
+    function syncConfidenceButtons() {
+      document.querySelectorAll(".conf-band-pill").forEach((b) => {
+        const active = b.getAttribute("data-conf-band") === activeConfidenceFilter;
+        b.style.background = active ? "var(--primary)" : "var(--bg-main)";
+        b.style.color = active ? "var(--primary-fg)" : "var(--text-main)";
+        b.setAttribute("aria-pressed", active ? "true" : "false");
+      });
+    }
+    document.querySelectorAll(".conf-band-pill").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        activeConfidenceFilter = btn.getAttribute("data-conf-band") || "ALL";
+        syncConfidenceButtons();
+        renderGraph();
+      });
+    });
+
+    // Workspace 1, 2, 3, 4, 5 Action Bindings
+    document.getElementById("btnArchToGraph").addEventListener("click", () => setActiveMode("graph"));
+    document.getElementById("btnArchToSkills").addEventListener("click", () => setActiveMode("portfolio"));
+    document.getElementById("btnArchToEngagements").addEventListener("click", () => setActiveMode("delivery"));
+
+    document.querySelectorAll(".sk-qf-btn").forEach((b) => b.addEventListener("click", () => {
+      state.skillQf = b.getAttribute("data-sk-qf") || "all";
+      document.querySelectorAll(".sk-qf-btn").forEach((x) => x.classList.toggle("active", x === b));
+      renderSkillsWorkspace();
+    }));
+    document.getElementById("skillsSortSelect").addEventListener("change", (e) => { state.skillSort = e.target.value; renderSkillsWorkspace(); });
+    document.getElementById("chkGroupPillar").addEventListener("change", (e) => { state.skillGroupPillar = e.target.checked; renderSkillsWorkspace(); });
+    document.getElementById("btnToggleSkillsDensity").addEventListener("click", (e) => {
+      state.skillCompact = !state.skillCompact;
+      e.currentTarget.textContent = state.skillCompact ? "Density: Compact" : "Density: Standard";
+      renderSkillsWorkspace();
+    });
+    document.getElementById("btnExportSkillsCsv").addEventListener("click", () => {
+      const rows = getFilteredSkills();
+      downloadCsv("agents_skills_arsenal.csv", ["ID", "Skill", "Pillar", "Domain", "Epoch", "Status", "ExternalEligible", "Confidence", "FactCount"], rows.map((r) => [r.id, r.label, r.pillar, r.domain, r.epoch, r.activationStatus, r.externalEligible, r.confidence, r.sourceFactCount]));
+    });
+    document.getElementById("btnResetSkills").addEventListener("click", () => {
+      state.skillQf = "all"; state.skillSort = "conf_desc"; state.skillGroupPillar = false;
+      document.getElementById("skillsSortSelect").value = "conf_desc";
+      document.getElementById("chkGroupPillar").checked = false;
+      document.querySelectorAll(".sk-qf-btn").forEach((x) => x.classList.toggle("active", x.getAttribute("data-sk-qf") === "all"));
+      renderSkillsWorkspace();
+    });
+
+    document.querySelectorAll(".ev-cat-btn").forEach((b) => b.addEventListener("click", () => {
+      state.evidenceCat = b.getAttribute("data-ev-cat") || "all";
+      document.querySelectorAll(".ev-cat-btn").forEach((x) => x.classList.toggle("active", x === b));
+      renderEvidenceWorkspace();
+    }));
+    document.getElementById("btnResetEvidence").addEventListener("click", () => {
+      state.evidenceCat = "all";
+      document.querySelectorAll(".ev-cat-btn").forEach((x) => x.classList.toggle("active", x.getAttribute("data-ev-cat") === "all"));
+      renderEvidenceWorkspace();
+    });
+
+    document.querySelectorAll(".eng-emp-btn").forEach((b) => b.addEventListener("click", () => {
+      state.engEmployer = b.getAttribute("data-eng-emp") || "all";
+      document.querySelectorAll(".eng-emp-btn").forEach((x) => x.classList.toggle("active", x === b));
+      renderEngagementsWorkspace();
+    }));
+    document.getElementById("btnExportEngCsv").addEventListener("click", () => {
+      const rows = getFilteredEngagements();
+      downloadCsv("agents_engagements.csv", ["ID", "Employer", "Epoch", "Title", "Confidence", "Skills", "Facts", "Metrics", "Summary"], rows.map((r) => [r.id, r.employer, r.epoch, r.label, r.confidence, r.skillCount, r.factCount, r.metricCount, r.desc]));
+    });
+    document.getElementById("btnResetEng").addEventListener("click", () => {
+      state.engEmployer = "all";
+      document.querySelectorAll(".eng-emp-btn").forEach((x) => x.classList.toggle("active", x.getAttribute("data-eng-emp") === "all"));
+      renderEngagementsWorkspace();
+    });
+
+    document.querySelectorAll(".proj-group-btn").forEach((b) => b.addEventListener("click", () => {
+      state.projGroup = b.getAttribute("data-proj-group") || "ALL";
+      document.querySelectorAll(".proj-group-btn").forEach((x) => x.classList.toggle("active", x === b));
+      renderProjectionsWorkspace();
+    }));
+
+    window.addEventListener("resize", () => {
+      if (state.mode === "graph") { resizeCanvas(); fitVisibleToScreen(); }
+    });
+
+    // Boot Explorer
+    const hashMode = (window.location.hash || "").replace(/^#/, "").trim();
+    const initialMode = VIEW_MAP[hashMode] ? hashMode : state.mode;
+    selectedNode = nodeById.get(ROOT_NODE_ID) || nodes[0] || null;
+    syncTypeFilterButtons();
+    syncConfidenceButtons();
+    if (selectedNode) updateInspector(selectedNode);
+    setActiveMode(initialMode);
+  </script>
+</body>
+</html>
