@@ -90,9 +90,55 @@ def _probe_graph_explorer_and_portal(repo_root: Path) -> dict[str, Any]:
     return {"passed": len(gaps) == 0, "gaps": gaps, "explorer_gate_passed": gate_passed}
 
 
+def _resolve_live_canary_candidates(repo_root: Path, agy_bin: str) -> list[str]:
+    """Resolve ordered, live-available keyless `agy` canary model pins from SSOT config."""
+    from infrastructure.sdks_mcps.agy_cli_transport import AgyTransportError, list_agy_models
+
+    configured: list[str] = []
+    cfg_path = repo_root / "config" / "provider_profiles.yaml"
+    if cfg_path.is_file():
+        try:
+            import yaml
+
+            doc = yaml.safe_load(cfg_path.read_text(encoding="utf-8")) or {}
+            ide_gen = doc.get("ide_cli_generation") or {}
+            for key in ("quota_backup_models", "ide_models"):
+                for item in ide_gen.get(key) or []:
+                    slug = str(item or "").strip()
+                    if slug and slug not in configured:
+                        configured.append(slug)
+        except (ImportError, OSError, ValueError):
+            pass
+
+    preferred_order = [
+        "gemini-3.8-flash-medium",
+        "gemini-3.8-flash-low",
+        "gemini-4-neon-medium",
+        "gemini-4-neon-low",
+        *configured,
+    ]
+    deduped_pref: list[str] = []
+    for slug in preferred_order:
+        if slug and slug not in deduped_pref:
+            deduped_pref.append(slug)
+
+    try:
+        available = list_agy_models(agy_bin)
+    except AgyTransportError:
+        return deduped_pref
+
+    available_set = set(available)
+    matched = [slug for slug in deduped_pref if slug in available_set]
+    if matched:
+        return matched
+    fast_live = [slug for slug in available if "flash" in slug or "neon" in slug]
+    return fast_live or available
+
+
 def _probe_keyless_agy_transport_readiness(repo_root: Path, *, live_canary: bool = False) -> dict[str, Any]:
     gaps: list[str] = []
     from infrastructure.sdks_mcps.agy_cli_transport import (
+        AgyQuotaExhaustedError,
         clear_agy_quota_cooldowns,
         ide_cli_ready,
         is_agy_model_quota_cooled_down,
@@ -122,27 +168,47 @@ def _probe_keyless_agy_transport_readiness(repo_root: Path, *, live_canary: bool
                 from infrastructure.sdks_mcps.agy_cli_transport import discover_agy_bin
 
                 agy_bin = discover_agy_bin(allow_default_app_bundle=True)
-                res = run_agy(
-                    'Return strictly valid JSON: {"canary": "ok"}.',
-                    model="gemini-3-flash",
-                    json_schema={
-                        "type": "object",
-                        "required": ["canary"],
-                        "properties": {"canary": {"type": "string", "enum": ["ok"]}},
-                        "additionalProperties": False,
-                    },
-                    timeout_s=180,
-                    agy_bin=agy_bin,
-                )
-                live_probe_result = {
-                    "executed": True,
-                    "status": res.status,
-                    "model_reported": res.model_reported,
-                    "conversation_id": res.conversation_id,
-                    "marginal_api_cost_usd": 0.0,
-                }
-                if res.status != "SUCCESS":
-                    gaps.append(f"Live keyless canary returned non-SUCCESS status: {res.status}")
+                candidates = _resolve_live_canary_candidates(repo_root, agy_bin)
+                active_candidates = [m for m in candidates if not is_agy_model_quota_cooled_down(m)]
+                if not active_candidates:
+                    gaps.append(f"All live canary candidates are in quota cooldown: {candidates}")
+                last_quota_err: str | None = None
+                for candidate_model in active_candidates:
+                    try:
+                        res = run_agy(
+                            'Return strictly valid JSON: {"canary": "ok"}.',
+                            model=candidate_model,
+                            json_schema={
+                                "type": "object",
+                                "required": ["canary"],
+                                "properties": {"canary": {"type": "string", "enum": ["ok"]}},
+                                "additionalProperties": False,
+                            },
+                            timeout_s=180,
+                            agy_bin=agy_bin,
+                        )
+                    except AgyQuotaExhaustedError as exc:
+                        last_quota_err = f"{candidate_model}: {exc}"
+                        continue
+                    live_probe_result = {
+                        "executed": True,
+                        "status": res.status,
+                        "model_requested": res.model_requested,
+                        "model_reported": res.model_reported,
+                        "structured_output": res.structured_output,
+                        "conversation_id": res.conversation_id,
+                        "marginal_api_cost_usd": 0.0,
+                    }
+                    if res.status != "SUCCESS":
+                        gaps.append(f"Live keyless canary returned non-SUCCESS status: {res.status}")
+                    elif res.structured_output != {"canary": "ok"}:
+                        gaps.append(
+                            f"Live keyless canary returned unexpected structured_output: {res.structured_output!r}"
+                        )
+                    break
+                else:
+                    if active_candidates and last_quota_err:
+                        gaps.append(f"Live keyless agy canary quota-exhausted across candidates: {last_quota_err}")
             except Exception as exc:  # guardian: allow-broad-exception -- surface live canary failure
                 gaps.append(f"Live keyless agy canary failed: {type(exc).__name__}: {exc}")
 
