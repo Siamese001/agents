@@ -42,6 +42,15 @@ FORBIDDEN_UNVERIFIED_TOKENS_RE = re.compile(
     re.IGNORECASE,
 )
 
+GENERAL_NUMERIC_CLAIM_RE = re.compile(r"(?:\$\d[\d,]*(?:\.\d+)?\s*[MBKmbk]\b|\b\d+(?:\.\d+)?\s*%)")
+
+
+def _extract_normalized_numeric_tokens(text: str) -> set[str]:
+    out: set[str] = set()
+    for m in GENERAL_NUMERIC_CLAIM_RE.finditer(text or ""):
+        out.add(re.sub(r"\s+", "", m.group(0).lower()))
+    return out
+
 
 def _load_canonical_source_ids(repo_root: Path) -> tuple[set[str], str]:
     rg_src = repo_root / "resume_graph_engine" / "src" / "apps_rg"
@@ -114,9 +123,34 @@ def _load_canonical_source_ids(repo_root: Path) -> tuple[set[str], str]:
     return known_ids, str(base_path.relative_to(repo_root))
 
 
+def _load_canonical_source_corpus_numbers(repo_root: Path) -> set[str]:
+    """Collect all normalized percentage and dollar tokens present in canonical candidate source documents."""
+    rg_src = repo_root / "resume_graph_engine" / "src" / "apps_rg"
+    paths = [
+        rg_src / "resume" / "base" / "amit_ayer_base_resume_v1.json",
+        repo_root / "resume_graph_engine" / "artifacts" / "apps_rg" / "fact_inventory" / "master_candidate_skills_fact_ledger_20260518T1100Z.json",
+        repo_root / "resume_graph_engine" / "artifacts" / "apps_rg" / "slalom_extraction" / "slalom_graph_delta_proposal.json",
+        rg_src / "fact_inventory" / "master_skills_arsenal_ledger.json",
+    ]
+    pointer_path = rg_src / "resume" / "base" / "active_base_resume_pointer.json"
+    if pointer_path.is_file():
+        ptr = json.loads(pointer_path.read_text(encoding="utf-8"))
+        rel = str(ptr.get("active_base_resume_file") or ptr.get("file") or "").strip()
+        if rel:
+            cand = (pointer_path.parent / Path(rel).name).resolve()
+            if cand.is_file():
+                paths[0] = cand
+    nums: set[str] = set()
+    for p in paths:
+        if p.is_file():
+            nums.update(_extract_normalized_numeric_tokens(p.read_text(encoding="utf-8", errors="ignore")))
+    return nums
+
+
 def audit_fact_provenance(repo_root: Path) -> dict[str, Any]:
     root = repo_root.resolve()
     known_ids, base_rel = _load_canonical_source_ids(root)
+    canonical_numbers = _load_canonical_source_corpus_numbers(root)
     inv_dir = root / "resume_graph_engine" / "src" / "apps_rg" / "fact_inventory"
     bundle_files = sorted(inv_dir.glob("*_role_episode_bundles.json"))
 
@@ -274,6 +308,17 @@ def audit_fact_provenance(repo_root: Path) -> dict[str, Any]:
                             "message": f"Approved metric {mid} contains unverified synthetic token {bad_match.group(0)!r}.",
                         }
                     )
+                if support == "verified_base_resume" and canonical_numbers:
+                    unentailed = sorted(_extract_normalized_numeric_tokens(metric_surface) - canonical_numbers)
+                    if unentailed:
+                        violations.append(
+                            {
+                                "code": "UNENTAILED_NUMERIC_TOKEN_IN_APPROVED_METRIC",
+                                "file": rel_file,
+                                "entity_id": mid,
+                                "message": f"Approved metric {mid} contains numeric token(s) {unentailed} absent from canonical candidate sources.",
+                            }
+                        )
             else:
                 if support != QUARANTINED_SUPPORT_LEVEL:
                     violations.append(

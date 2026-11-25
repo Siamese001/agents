@@ -643,12 +643,14 @@ def run_pre_promotion_regression_gates(
     after_db_path: Path,
     *,
     before_metrics: Mapping[str, Any] | None = None,
+    strict_zero_debt: bool = False,
 ) -> dict[str, Any]:
     """DIE pre_promotion_regression_gates.py parity: fail-closed FTS5, quarantine, vector & topology gates."""
     conn = open_readonly_sqlite(after_db_path)
     try:
         leak = scan_quarantine_and_fts_leakage(conn)
         topo = scan_stranded_topology_and_consolidation(conn)
+        dup = scan_duplicate_and_near_duplicate_nodes(conn)
         su_cnt = int(conn.execute("SELECT COUNT(*) FROM semantic_unit").fetchone()[0])
         uv_cnt = int(conn.execute("SELECT COUNT(*) FROM unit_vectors").fetchone()[0])
         sp_cnt = int(conn.execute("SELECT COUNT(*) FROM assertion_learned_sparse").fetchone()[0])
@@ -662,12 +664,20 @@ def run_pre_promotion_regression_gates(
     vector_parity_ok = su_cnt == uv_cnt and sp_cnt == cb_cnt and su_cnt > 0
     edge_hygiene_ok = topo["self_loops"] == 0 and topo["duplicate_edges"] == 0 and topo["dangling_edges"] == 0
 
+    twins_cnt = len(dup["exact_skill_twins"])
     topo_non_regression_ok = True
     if before_metrics is not None:
         prev_iso = int(before_metrics.get("isolated_count", 10**9))
         prev_stranded = int(before_metrics.get("stranded_verified_metrics_count", 10**9))
-        if len(topo["isolated_nodes"]) > prev_iso or len(topo["stranded_verified_metrics"]) > prev_stranded:
+        prev_twins = int(before_metrics.get("exact_skill_twins_count", 10**9))
+        if (
+            len(topo["isolated_nodes"]) > prev_iso
+            or len(topo["stranded_verified_metrics"]) > prev_stranded
+            or twins_cnt > prev_twins
+        ):
             topo_non_regression_ok = False
+    if strict_zero_debt and (twins_cnt > 0 or len(topo["stranded_verified_metrics"]) > 0):
+        topo_non_regression_ok = False
 
     passed = all((integrity == "ok", fts_ok, quarantine_su_ok, vector_parity_ok, edge_hygiene_ok, topo_non_regression_ok))
     return {
@@ -692,6 +702,7 @@ def run_pre_promotion_regression_gates(
             "status": "PASS" if topo_non_regression_ok else "FAIL",
             "isolated_count": len(topo["isolated_nodes"]),
             "stranded_verified_metrics_count": len(topo["stranded_verified_metrics"]),
+            "exact_skill_twins_count": twins_cnt,
         },
     }
 

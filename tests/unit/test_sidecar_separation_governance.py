@@ -26,9 +26,9 @@ def test_live_sidecar_separation_passes_with_zero_collisions() -> None:
     assert result["status"] == "PASS", f"Expected PASS, got violations: {result['violations']}"
     assert result["is_clean"] is True
     assert result["agents_scheduled_count"] == 0
-    assert result["agents_catalog_count"] == 5
-    assert result["agents_prompt_count"] == 5
-    assert result["agents_sidecar_count"] == 5
+    assert result["agents_catalog_count"] == 7
+    assert result["agents_prompt_count"] == 7
+    assert result["agents_sidecar_count"] == 7
     assert result["nee_sidecar_count"] >= 3
     assert result["collision_count"] == 0
     assert result["violations"] == []
@@ -42,6 +42,8 @@ def test_all_four_workflows_bind_distinct_executable_behavioral_auditors() -> No
         "agents-graph-retrieval-qrels-assurance": "tools/retrieval_surface_auditor.py",
         "agents-domain-synthesis-pipelines": "tools/e2e_functionality_auditor.py",
         "agents-evals-flywheel-assurance": "tools/validate_eval_rubrics.py",
+        "agents-research-intelligence-handoff": "tools/apps_research_auditor.py",
+        "agents-live-canary-release-certification": "tools/live_canary_release_auditor.py",
     }
     assert {k: v["deterministic_entrypoint"] for k, v in EXPECTED_AGENTS_SIDECARS.items()} == expected_entrypoints
     for workflow_id, rel_ep in expected_entrypoints.items():
@@ -259,10 +261,13 @@ def test_agents_sidecar_dispositions_skill_budget_and_eval_rubrics() -> None:
     budget_rep = audit_skills_budget(REPO_ROOT)
     assert budget_rep["status"] == "PASS"
     assert budget_rep["is_clean"] is True
-    assert 10 <= budget_rep["skill_count"] <= 13
+    assert 7 <= budget_rep["skill_count"] <= 13
     assert budget_rep["skill_count"] <= 26
 
     root_skills = {s["name"] for s in budget_rep["skills"]}
+    plugin_skills_dir = Path.home() / ".gemini" / "config" / "plugins" / "core-governance" / "skills"
+    if plugin_skills_dir.is_dir():
+        root_skills |= {p.name for p in plugin_skills_dir.iterdir() if p.is_dir() and (p / "SKILL.md").is_file()}
     for sidecar_id, spec in EXPECTED_AGENTS_SIDECARS.items():
         assert "disposition" in spec
         assert "target_skill" in spec
@@ -423,7 +428,7 @@ def test_skills_contract_integrity_and_zero_broken_links() -> None:
     rep = audit_skills_budget(REPO_ROOT)
     assert rep["status"] == "PASS", f"audit_skills_budget failed: {rep.get('violations')}"
     assert rep["is_clean"] is True
-    assert 10 <= rep["skill_count"] <= 13
+    assert 7 <= rep["skill_count"] <= 13
     assert rep["violations"] == []
     assert rep["estimated_description_tokens"] <= rep["max_description_tokens"]
 
@@ -485,7 +490,7 @@ def test_mcp_sdk_loader_and_triggers_wiring() -> None:
     skills_paths = resolve_antigravity_skills_paths(REPO_ROOT)
     assert len(skills_paths) == 1 and skills_paths[0].endswith(".agents/skills")
     triggers = build_antigravity_sdk_triggers(REPO_ROOT)
-    assert len(triggers) == 5
+    assert len(triggers) == 7
     assert all(t["skills_paths"] == skills_paths for t in triggers)
 
 

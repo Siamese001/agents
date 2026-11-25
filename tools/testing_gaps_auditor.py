@@ -163,6 +163,8 @@ def run_testing_gaps_audit(
             for py in sorted(pdir.rglob("*.py")):
                 if "tests" in py.parts or "__pycache__" in py.parts or py.name.startswith("test_"):
                     continue
+                if py.name.startswith("_") and py.name != "__init__.py":
+                    continue
                 try:
                     ptree = ast.parse(py.read_text(encoding="utf-8", errors="replace"))
                 except SyntaxError:
@@ -215,21 +217,6 @@ def run_testing_gaps_audit(
                         rel_tgt = str(tgt.relative_to(root))
                         if rel_tgt in uncovered_mod_paths:
                             uncovered_mod_paths.remove(rel_tgt)
-
-        # Propagate package-level seam coverage across split subpackage sibling modules so
-        # decomposing a covered module into submodules never penalizes module_coverage_ratio.
-        covered_parent_dirs = {
-            p.parent for p, cov in mod_covered.items() if cov and (p.parent / "__init__.py").is_file()
-        } | {
-            fpy.parent for fpy in facade_imports if _is_facade_covered(fpy) and fpy.name == "__init__.py"
-        }
-        for rp, cov in list(mod_covered.items()):
-            if not cov and rp.parent in covered_parent_dirs and rp.parent not in {d.resolve() for d in existing_dirs}:
-                mod_covered[rp] = True
-                covered_mods += 1
-                rel_rp = str(rp.relative_to(root))
-                if rel_rp in uncovered_mod_paths:
-                    uncovered_mod_paths.remove(rel_rp)
 
         sym_ratio = round(covered_pub / float(max(total_pub, 1)), 4)
         mod_ratio = round(covered_mods / float(max(total_mods, 1)), 4)

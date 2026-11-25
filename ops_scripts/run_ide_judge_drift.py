@@ -285,6 +285,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Preflight verification of 48-item gold pools, external rubrics, and drift receipt (when human gold is adjudicated).",
     )
+    parser.add_argument(
+        "--require-sealed-receipt",
+        action="store_true",
+        help="Fail closed (exit 3) in --check-preflight when human gold adjudication / drift receipt is still unsealed.",
+    )
     parser.add_argument("--receipt", default=str(DEFAULT_RECEIPT_PATH))
     parser.add_argument("--cache", default=str(DEFAULT_CACHE_PATH))
     parser.add_argument("--baseline", default=str(DEFAULT_BASELINE_PATH))
@@ -335,12 +340,13 @@ def main(argv: list[str] | None = None) -> int:
                     "status": "AWAITING_HUMAN_ADJUDICATION",
                     "gold_candidates_verified": total_gold_items,
                     "external_rubrics_verified": True,
-                    "advisory": "Complete blind human grading via ops_scripts/blind_human_grading_cli.py to seal live drift receipt.",
+                    "require_sealed_receipt": bool(args.require_sealed_receipt),
+                    "advisory": "Complete blind human grading via open_labeling_studio / ops_scripts/blind_human_grading_cli.py to seal live drift receipt.",
                 },
                 indent=2,
             )
         )
-        return 0
+        return 3 if args.require_sealed_receipt else 0
 
     if args.check_receipt:
         ok, viols, summary = verify_ide_judge_drift_receipt(Path(args.receipt), repo_root=REPO_ROOT)

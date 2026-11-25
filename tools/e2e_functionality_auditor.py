@@ -482,24 +482,81 @@ def _probe_vocab_symmetry_overlap_and_v2_sealing(repo_root: Path) -> dict[str, A
     v2_checks = (
         (
             "resume_graph_engine/src/apps_rg/runtime/sections/executive_summary_v2",
-            ("write_x2_source_fact_pool_receipt", "set_authoritative_attempt", "graph_targeting_capsule", "section_metric_receipt.json"),
+            ("write_x2_source_fact_pool_receipt", "set_authoritative_attempt"),
+            ("graph_targeting_capsule", "section_metric_receipt.json"),
         ),
         (
             "resume_graph_engine/src/apps_rg/runtime/sections/headline_v2",
-            ("write_x2_source_fact_pool_receipt", "set_authoritative_attempt", "section_metric_receipt.json"),
+            ("write_x2_source_fact_pool_receipt", "set_authoritative_attempt"),
+            ("section_metric_receipt.json",),
         ),
         (
             "resume_graph_engine/src/apps_rg/runtime/sections/role_narrative_v2",
-            ("write_x2_source_fact_pool_receipt", "set_authoritative_attempt", "section_metric_receipt.json"),
+            ("write_x2_source_fact_pool_receipt", "set_authoritative_attempt"),
+            ("section_metric_receipt.json",),
         ),
     )
-    for rel_dir, markers in v2_checks:
+    for rel_dir, required_calls, required_literals in v2_checks:
         d = repo_root / rel_dir
-        if d.is_dir():
-            combined = "\n".join(p.read_text(encoding="utf-8", errors="replace") for p in sorted(d.rglob("*.py")))
-            for m in markers:
-                if m not in combined:
-                    gaps.append(f"{rel_dir} missing mandatory V2 spine sealing marker '{m}'")
+        if not d.is_dir():
+            gaps.append(f"Missing V2 section directory: {rel_dir}")
+            continue
+        called_names: set[str] = set()
+        str_literals: set[str] = set()
+        for py_p in sorted(d.rglob("*.py")):
+            tree = ast.parse(py_p.read_text(encoding="utf-8", errors="replace"), filename=str(py_p))
+            for n in ast.walk(tree):
+                if isinstance(n, ast.Call):
+                    if isinstance(n.func, ast.Name):
+                        called_names.add(n.func.id)
+                    elif isinstance(n.func, ast.Attribute):
+                        called_names.add(n.func.attr)
+                elif isinstance(n, ast.Constant) and isinstance(n.value, str):
+                    str_literals.add(n.value)
+        for fn_name in required_calls:
+            if fn_name not in called_names:
+                gaps.append(f"{rel_dir} AST missing call to V2 sealing helper '{fn_name}'")
+        for lit in required_literals:
+            if not any(lit in s for s in str_literals):
+                gaps.append(f"{rel_dir} AST missing V2 receipt literal '{lit}'")
+
+    # Behavioral probe: Executive Summary V2 X2 rejects post-repair inanimate openers & AI crutches
+    try:
+        from apps_rg.runtime.sections.executive_summary_v2.x2_invariants import evaluate_executive_summary_v2_x2
+
+        bad_probe = (
+            "Engineering executive scaling governed AI platforms across regulated accounts. "
+            "Platform ownership covered deterministic controls across banking teams. "
+            "In parallel, field delivery scaled regulated workflows."
+        )
+        probe_gates = {
+            g["gate_id"]: g["pass"]
+            for g in evaluate_executive_summary_v2_x2(
+                resume_display_text=bad_probe,
+                claim_ledger=[{"claim_text": "s", "source_fact_ids": ["f1"]} for _ in range(3)],
+                parsed_output={"resume_display_text": bad_probe},
+                allowed_fact_ids={"f1"},
+                verified_numbers=frozenset(),
+                verified_corpus_lower="agentic cloud banking",
+                target_company="TargetBank",
+                jd_text="banking ai",
+            )
+        }
+        if probe_gates.get("x2_v2_no_inanimate_subject_openers") is not False:
+            gaps.append("executive_summary_v2 X2 failed to reject inanimate-subject opener")
+        if probe_gates.get("x2_v2_no_ai_bridge_crutches") is not False:
+            gaps.append("executive_summary_v2 X2 failed to reject AI bridge crutch")
+    except Exception as exc:  # guardian: allow-broad-exception -- report V2 X2 behavioral probe failure
+        gaps.append(f"executive_summary_v2 X2 behavioral probe error: {type(exc).__name__}: {exc}")
+
+    # Verify patch_run frozen graph-authority enforcement helpers exist via AST
+    patch_run_path = repo_root / "resume_graph_engine" / "src" / "apps_rg" / "runtime" / "orchestration" / "patch_run.py"
+    if patch_run_path.is_file():
+        pr_tree = ast.parse(patch_run_path.read_text(encoding="utf-8", errors="replace"), filename=str(patch_run_path))
+        pr_defs = {n.name for n in ast.walk(pr_tree) if isinstance(n, ast.FunctionDef)}
+        for req_fn in ("_whole_resume_graph_rollup_authority", "_lane_matches_frozen_graph_authority"):
+            if req_fn not in pr_defs:
+                gaps.append(f"patch_run.py missing frozen graph-authority function '{req_fn}'")
 
     return {
         "passed": len(gaps) == 0,

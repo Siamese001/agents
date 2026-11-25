@@ -134,6 +134,13 @@ def _audit_pillar_1_provider_pinning_and_effort(
                 gaps.append(f"{prof_key} missing explicit model_by_section pins")
             if not efforts_by_sec:
                 gaps.append(f"{prof_key} missing explicit effort_by_section bounds")
+            raw_review = str(prof.get("pin_review_after") or "").strip()
+            if raw_review:
+                try:
+                    if datetime.strptime(raw_review, "%Y-%m-%d").date() < datetime.now(timezone.utc).date():
+                        gaps.append(f"{prof_key} pin_review_after '{raw_review}' is expired")
+                except ValueError:
+                    gaps.append(f"{prof_key} pin_review_after '{raw_review}' is not ISO YYYY-MM-DD")
             for sec, model_id in models_by_sec.items():
                 if pricing_map and str(model_id) not in pricing_map:
                     gaps.append(f"{prof_key}.{sec} pins unpriced/unknown model '{model_id}'")
@@ -175,6 +182,13 @@ def _audit_pillar_1_provider_pinning_and_effort(
                 gaps.append(
                     f"outreach_engine.rubric_judge_panel should be right-sized to 'claude-sonnet-5-5-medium' or 'claude-haiku-5-5', got '{rmodel}'"
                 )
+            raw_or_rev = str(role_cfg.get("pin_review_after") or "").strip()
+            if raw_or_rev:
+                try:
+                    if datetime.strptime(raw_or_rev, "%Y-%m-%d").date() < datetime.now(timezone.utc).date():
+                        gaps.append(f"outreach_engine.{role_name} pin_review_after '{raw_or_rev}' is expired")
+                except ValueError:
+                    gaps.append(f"outreach_engine.{role_name} pin_review_after '{raw_or_rev}' is not ISO YYYY-MM-DD")
 
     reg_data, reg_err = load_yaml_strict(repo_root / "resume_graph_engine" / "config" / "models" / "registry.yaml")
     if not reg_err and isinstance(reg_data, dict):

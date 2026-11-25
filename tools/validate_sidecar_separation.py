@@ -32,6 +32,7 @@ FALLBACK_AGENTS_PROJECT_ID = "00ceb967-07c7-4f88-bff1-8a348c7875a4"
 REQUIRED_SIDECAR_ACCESS_GRANTS: tuple[str, ...] = (
     "command(.venv/bin/python)",
     "command(git)",
+    "command(agy)",
 )
 
 
@@ -69,7 +70,7 @@ AGENTS_PROJECT_ID = resolve_agents_project_id()
 
 EXPECTED_AGENTS_SIDECARS: dict[str, dict[str, Any]] = {
     "agents-architecture-cost-governance": {
-        "display_name": "Agents Repo: Architecture, SSOT & Tokenomics",
+        "display_name": "Agents Repo: Architecture, Storage, SSOT & Tokenomics",
         "prompt_file": "agents_architecture_cost_agent.md",
         "cron": "CRON_TZ=America/New_York 0 5 * * *",
         "disposition": "CONSOLIDATED_ARCHITECTURE_COST_AGENT",
@@ -79,6 +80,7 @@ EXPECTED_AGENTS_SIDECARS: dict[str, dict[str, Any]] = {
             "tools/cost_token_budget_auditor.py",
             "tools/audit_governance_harmonization.py",
             "tools/zero_bugfix_constraint_gate.py",
+            "tools/storage_worktree_hygiene.py",
         ),
         "requires_remediation_quota": True,
     },
@@ -93,7 +95,7 @@ EXPECTED_AGENTS_SIDECARS: dict[str, dict[str, Any]] = {
         "requires_remediation_quota": True,
     },
     "agents-graph-retrieval-qrels-assurance": {
-        "display_name": "Agents Repo: Graph Retrieval, Fact Provenance & QRELS",
+        "display_name": "Agents Repo: Candidate Graph Retrieval, Provenance & QRELS",
         "prompt_file": "agents_graph_retrieval_qrels_agent.md",
         "cron": "CRON_TZ=America/New_York 30 5 * * *",
         "disposition": "CONSOLIDATED_GRAPH_RETRIEVAL_QRELS_AGENT",
@@ -132,6 +134,30 @@ EXPECTED_AGENTS_SIDECARS: dict[str, dict[str, Any]] = {
             "tools/run_eval_flywheel_cycle.py",
             "tools/audit_eval_construct_validity.py",
             "tools/verify_fix_eval_pinning.py",
+            "tools/testing_gaps_auditor.py",
+        ),
+        "requires_remediation_quota": True,
+    },
+    "agents-research-intelligence-handoff": {
+        "display_name": "Agents Repo: Enterprise Research Intelligence & Airlocks",
+        "prompt_file": "agents_research_intelligence_handoff_agent.md",
+        "cron": "CRON_TZ=America/New_York 15 6 * * *",
+        "disposition": "DEDICATED_RESEARCH_INTELLIGENCE_AGENT",
+        "target_skill": "agents-domain-assurance",
+        "deterministic_entrypoint": "tools/apps_research_auditor.py",
+        "secondary_entrypoints": (),
+        "requires_remediation_quota": True,
+    },
+    "agents-live-canary-release-certification": {
+        "display_name": "Agents Repo: Live Keyless Canary, MCP Portal & Release Gate",
+        "prompt_file": "agents_live_canary_release_certification_agent.md",
+        "cron": "CRON_TZ=America/New_York 30 6 * * *",
+        "disposition": "DEDICATED_LIVE_CANARY_RELEASE_AGENT",
+        "target_skill": "receipt-auditor",
+        "deterministic_entrypoint": "tools/live_canary_release_auditor.py",
+        "secondary_entrypoints": (
+            "tools/verify_graph_explorer_gate.py",
+            "tools/verify_release_gate.py",
         ),
         "requires_remediation_quota": True,
     },
@@ -414,6 +440,14 @@ def validate_sidecar_separation(
             if "${RUN_TS}-${HEX6}" not in p_text:
                 violations.append(
                     f"{spec['prompt_file']}: RUN_DIR must append '${{RUN_TS}}-${{HEX6}}' to avoid same-second collisions"
+                )
+            if "/.venv/bin/pytest\"" in p_text:
+                violations.append(
+                    f"{spec['prompt_file']}: invokes ungranted '.venv/bin/pytest' binary instead of '.venv/bin/python -m pytest'"
+                )
+            if "python3 -c" in p_text:
+                violations.append(
+                    f"{spec['prompt_file']}: invokes bare system 'python3 -c' instead of '.venv/bin/python -c'"
                 )
             validated_prompts_count += 1
 
