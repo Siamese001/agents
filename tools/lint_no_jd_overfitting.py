@@ -34,6 +34,7 @@ TARGET_COMPANY_TOKENS: frozenset[str] = frozenset(
 
 PRODUCTION_SCAN_ROOTS: tuple[str, ...] = (
     "resume_graph_engine/src",
+    "resume_engine",
     "outreach_engine",
     "apps_research",
     "agents",
@@ -82,31 +83,55 @@ def check_file_no_jd_overfitting(file_path: Path, repo_root: Path) -> list[dict[
 
     violations: list[dict[str, Any]] = []
     seen: set[tuple[int, str]] = set()
+
+    def _record(lineno: int, token: str, code: str = "JD_COMPANY_OVERFITTING_BRANCH") -> None:
+        key = (lineno, token)
+        if key in seen:
+            return
+        seen.add(key)
+        violations.append(
+            {
+                "code": code,
+                "file": rel,
+                "line": lineno,
+                "token": token,
+                "message": (
+                    f"Hardcoded target-company conditional or dispatch on '{token}' in production code "
+                    "(use generalizable role profiles / targeting config instead)."
+                ),
+            }
+        )
+
     for node in ast.walk(tree):
         cond: ast.AST | None = None
         if isinstance(node, (ast.If, ast.IfExp)):
             cond = node.test
         elif isinstance(node, ast.Compare):
             cond = node
+        elif isinstance(node, ast.Dict):
+            dict_keys = [
+                (getattr(k, "lineno", 1), k.value.strip().lower())
+                for k in node.keys
+                if isinstance(k, ast.Constant) and isinstance(k.value, str) and k.value.strip().lower() in TARGET_COMPANY_TOKENS
+            ]
+            if len(dict_keys) >= 2:
+                for lineno, token in dict_keys:
+                    _record(lineno, token, code="JD_COMPANY_OVERFITTING_DISPATCH_DICT")
+            continue
+        elif isinstance(node, ast.Call):
+            fn_attr = node.func.attr if isinstance(node.func, ast.Attribute) else ""
+            if fn_attr in ("startswith", "endswith", "compile", "search", "match"):
+                for arg in node.args:
+                    if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                        low = arg.value.strip().lower()
+                        for tok in TARGET_COMPANY_TOKENS:
+                            if low == tok or (fn_attr in ("compile", "search", "match") and f"\\b{tok}" in low):
+                                _record(getattr(arg, "lineno", 1), tok, code="JD_COMPANY_OVERFITTING_CALL")
+            continue
         if cond is None:
             continue
         for lineno, token in _extract_string_literals(cond):
-            key = (lineno, token)
-            if key in seen:
-                continue
-            seen.add(key)
-            violations.append(
-                {
-                    "code": "JD_COMPANY_OVERFITTING_BRANCH",
-                    "file": rel,
-                    "line": lineno,
-                    "token": token,
-                    "message": (
-                        f"Hardcoded target-company conditional branch on '{token}' in production code "
-                        "(use generalizable role profiles / targeting config instead)."
-                    ),
-                }
-            )
+            _record(lineno, token)
     return violations
 
 

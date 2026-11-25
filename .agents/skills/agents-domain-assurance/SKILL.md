@@ -5,27 +5,29 @@ description: Consolidated E2E pipeline and hybrid retrieval assurance across out
 
 # Agents Domain, Retrieval & Rubric Surface Assurance (On-Demand)
 
-Consolidates `agents-graph-retrieval-qrels-assurance` (`3/5`), `agents-domain-synthesis-pipelines` (`4/5`), and `agents-evals-flywheel-assurance` (`5/5`) into behavioral, fail-closed on-demand workflows (zero daily background schedules).
+Consolidates `agents-graph-retrieval-qrels-assurance` (`3/7`), `agents-domain-synthesis-pipelines` (`4/7`), `agents-evals-flywheel-assurance` (`5/7`), `agents-research-intelligence-handoff` (`6/7`), and `agents-live-canary-release-certification` (`7/7`) into behavioral, fail-closed on-demand workflows (zero daily background schedules).
 
 ## Execution Protocol
 
 1. **Preflight Behavioral Auditors & Full Dual-Engine Sweep (11 Roots / 5 Config Roots / 323 Data Files)**:
    Never fast-exit on `verify_commit.py` alone or skip resume tailoring (`run_e2e_authoritative_smoke.py` executes both Outreach and deterministic 11-stage Resume by default). Run `verify_release_gate.py --no-write` sequentially (never concurrently alongside heavy `pytest` or auditor sweeps, because `test_antipattern_wave6_governance_convergence.py` spawns nested release-gate verification subprocesses) and always re-run post-merge verification on `main` after worktree promotion. Run every dedicated domain auditor in read-only mode so tracked `reports/` remain clean:
    ```bash
+   .venv/bin/python tools/apps_research_auditor.py --read-only --json
    .venv/bin/python tools/e2e_functionality_auditor.py --read-only --json
    .venv/bin/python tools/retrieval_surface_auditor.py --read-only --json
-   .venv/bin/python tools/audit_qrels_coverage.py
+   .venv/bin/python tools/audit_qrels_coverage.py --strict-200
    .venv/bin/python tools/audit_resume_fact_provenance.py --strict --json
    .venv/bin/python tools/lint_prompt_validator_vocab_symmetry.py
    .venv/bin/python tools/lint_apps_rg_domain_literals.py
-   .venv/bin/python tools/lint_no_jd_overfitting.py
+   .venv/bin/python tools/lint_no_jd_overfitting.py --all
    .venv/bin/python tools/validate_eval_rubrics.py --json
+   .venv/bin/python tools/live_canary_release_auditor.py --preflight-readiness --json
    .venv/bin/python ops_scripts/run_e2e_authoritative_smoke.py --read-only
    .venv/bin/python tools/verify_graph_integrity_and_embeddings.py
    .venv/bin/python tools/run_resume_graph_traversal_probe.py --max-paths 200
    .venv/bin/python tools/verify_pipeline_latency_caching.py
    .venv/bin/python tools/verify_release_gate.py --no-write --json
-   .venv/bin/pytest tests/unit/test_e2e_and_retrieval_full_parity.py tests/unit/test_evals_and_budget_full_parity.py outreach_engine/tests -q --timeout=60
+   .venv/bin/python -m pytest tests/unit/test_e2e_and_retrieval_full_parity.py tests/unit/test_evals_and_budget_full_parity.py outreach_engine/tests -q --timeout=60
    ```
    If all 8 behavioral gates exit `0` (`B_total == 0`), exit immediately (`PREFLIGHT_ZERO_DEFECT_FAST_EXIT`) without creating empty branches or synthetic wave plans.
 

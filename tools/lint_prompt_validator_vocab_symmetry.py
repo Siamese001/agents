@@ -226,6 +226,31 @@ def audit_prompt_validator_vocab_symmetry(repo_root: Path) -> list[str]:
                 f"[Vocab Symmetry] {rel_path} locally redefines {sh} via Call instead of binding {SSOT_MODULE_IMPORT}."
             )
 
+    # Bilateral check: outreach_engine spam trigger SSOT & SpamTriggerValidator symmetry
+    outreach_spam_ssot = repo_root / "outreach_engine" / "config" / "spam_trigger_phrases.py"
+    outreach_lexical = repo_root / "outreach_engine" / "src" / "apps_lic" / "domain" / "validators_pkg" / "lexical_and_style.py"
+    if outreach_spam_ssot.is_file() and outreach_lexical.is_file():
+        try:
+            spam_mod = _load_ssot_module(outreach_spam_ssot)
+            spam_map = getattr(spam_mod, "SPAM_TRIGGER_PHRASES", {})
+            if not isinstance(spam_map, dict) or not spam_map:
+                violations.append("[Vocab Symmetry] outreach_engine/config/spam_trigger_phrases.py missing SPAM_TRIGGER_PHRASES.")
+            lex_tree = ast.parse(outreach_lexical.read_text(encoding="utf-8"), filename=str(outreach_lexical))
+            lex_defs = {n.name for n in ast.walk(lex_tree) if isinstance(n, (ast.FunctionDef, ast.ClassDef))}
+            if "_load_canonical_spam_phrases" not in lex_defs or "SpamTriggerValidator" not in lex_defs:
+                violations.append(
+                    "[Vocab Symmetry] outreach_engine lexical_and_style.py must bind _load_canonical_spam_phrases and SpamTriggerValidator."
+                )
+            lex_literals = {
+                n.value for n in ast.walk(lex_tree) if isinstance(n, ast.Constant) and isinstance(n.value, str)
+            }
+            if "spam_trigger_phrases.py" not in lex_literals:
+                violations.append(
+                    "[Vocab Symmetry] outreach_engine lexical_and_style.py does not load config/spam_trigger_phrases.py SSOT."
+                )
+        except Exception as exc:  # guardian: allow-broad-exception -- report bilateral symmetry failure deterministically
+            violations.append(f"[Vocab Symmetry] Failed outreach_engine symmetry check: {exc}")
+
     return violations
 
 

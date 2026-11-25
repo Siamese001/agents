@@ -80,10 +80,10 @@ def _run_hook(fn, payload: dict[str, object], repo_root: Path) -> dict[str, obje
 
 
 def test_wave1_prompt_stage_manifests_and_write_scope(tmp_path: Path) -> None:
-    """All 5 consolidated sidecar prompts declare stage isolation and write outside scope allows solo root-cause fixes."""
-    assert len(PROMPT_STAGE_ALLOWED_WRITE_PATHS) == 5
+    """All 7 consolidated sidecar prompts declare stage isolation and write outside scope allows solo root-cause fixes."""
+    assert len(PROMPT_STAGE_ALLOWED_WRITE_PATHS) == 7
     prompt_files = sorted((REPO_ROOT / "automations" / "prompts").glob("agents_*_agent.md"))
-    assert len(prompt_files) == 5
+    assert len(prompt_files) == 7
     for pf in prompt_files:
         text = pf.read_text(encoding="utf-8")
         assert "PYTHONDONTWRITEBYTECODE=1" in text, pf.name
@@ -403,7 +403,7 @@ def test_all_6_agent_pairs_strictly_mece_disjoint_and_paths_exist() -> None:
     # Counterfactual: dropping a stage leaves tracked files uncovered and fails closed
     from tools.prompt_scope_isolation import validate_stage_full_repo_coverage
 
-    partial = {k: v for k, v in PROMPT_STAGE_ALLOWED_WRITE_PATHS.items() if k != "agents-graph-retrieval-qrels-assurance"}
+    partial = {k: v for k, v in PROMPT_STAGE_ALLOWED_WRITE_PATHS.items() if k != "agents-research-intelligence-handoff"}
     uncovered_errs = validate_stage_full_repo_coverage(REPO_ROOT, stage_paths=partial)
     assert any("STAGE_WRITE_PATH_UNCOVERED" in err and "apps_research/" in err for err in uncovered_errs)
 

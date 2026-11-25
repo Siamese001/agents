@@ -8,8 +8,8 @@ import sys
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-# Ratchet ceiling after Wave 5 consolidation (down from 104 literal frozensets; may only decrease).
-MAX_VALIDATOR_JUDGE_FROZENSET_CALLS = 100
+# Ratchet ceiling tightened to exact observed count (down from 104 -> 100 -> 85; may only decrease).
+MAX_VALIDATOR_JUDGE_FROZENSET_CALLS = 85
 MAX_QUALITY_ENGINE_FROZENSET_CALLS = 3
 
 BANNED_IDENTIFIER_NAMES: frozenset[str] = frozenset({

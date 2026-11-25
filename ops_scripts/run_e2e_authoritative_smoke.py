@@ -159,17 +159,20 @@ def _verify_outreach_rigor_parity(repo_root: Path, sandbox_root: Path) -> dict[s
         if pa_compiled.slot_order != ("S0", "D0", "I0", "C0", "E0", "Y0", "U0", "R0") or not pa_compiled.has_no_fabrication_oath or not pa_compiled.untrusted_fenced or len(pa_compiled.prompt_hash) != 64:
             raise RuntimeError("8-slot PA compile check failed in outreach rigor parity smoke")
         rubric = load_x1d_exit_rubric()
-        quorum = evaluate_x1d_judge_quorum(
-            GradeOnlyJudgePacket(
-                run_id="smoke_x1d", mission_id="mission_smoke",
-                touches=({"touch_number": 1, "subject": "Enterprise AI Governance", "body": "Led platform transformation [fact_id:fact_platform_001]. Would a brief exchange next week make sense?", "cited_fact_ids": ["fact_platform_001"]},),
-                allocated_fact_ids_by_touch={1: ["fact_platform_001"]}, x2_passed=True,
-            ),
-            primary_score=0.92,
-            secondary_score=0.88,
+        probe_packet = GradeOnlyJudgePacket(
+            run_id="smoke_x1d", mission_id="mission_smoke",
+            touches=({"touch_number": 1, "subject": "Enterprise AI Governance", "body": "Led platform transformation [fact_id:fact_platform_001]. Would a brief exchange next week make sense?", "cited_fact_ids": ["fact_platform_001"]},),
+            allocated_fact_ids_by_touch={1: ["fact_platform_001"]}, x2_passed=True,
         )
-        if rubric.get("rubric_id") != "outreach_sequence:outreach_multi_touch_sequence" or not quorum.quorum_passed or not quorum.drafter_judge_orthogonal:
-            raise RuntimeError(f"X1D rubric/quorum check failed: {quorum.to_dict()}")
+        quorum = evaluate_x1d_judge_quorum(probe_packet, primary_score=0.92, secondary_score=0.88)
+        quorum_fail_probe = evaluate_x1d_judge_quorum(probe_packet, primary_score=0.40, secondary_score=0.40)
+        if (
+            rubric.get("rubric_id") != "outreach_sequence:outreach_multi_touch_sequence"
+            or not quorum.quorum_passed
+            or not quorum.drafter_judge_orthogonal
+            or quorum_fail_probe.quorum_passed
+        ):
+            raise RuntimeError(f"X1D rubric/quorum check failed: pass={quorum.to_dict()} fail_probe={quorum_fail_probe.to_dict()}")
         verified_exports: dict[str, dict[str, Any]] = {}
         for slug, company, role, brief_fname in targets:
             brief_path = repo_root / "outreach_engine" / "config" / "targeting" / brief_fname
@@ -196,8 +199,11 @@ def _verify_outreach_rigor_parity(repo_root: Path, sandbox_root: Path) -> dict[s
             if not verify_docx_ecma376_compliance(out_dir / "executive_outreach_packet.docx").get("passed"):
                 raise RuntimeError(f"DOCX ECMA-376 compliance failed for {company}")
         return {
-            "status": "PASSED", "targets_verified": ["Citi", "AIG", "Brown & Brown"],
-            "pa_prompt_hash": pa_compiled.prompt_hash, "x1d_quorum_passed": quorum.quorum_passed, "verified_exports": verified_exports,
+            "status": "PASSED", "mode": "DETERMINISTIC_HERMETIC_SMOKE", "live_judge_scores_executed": False,
+            "targets_verified": ["Citi", "AIG", "Brown & Brown"],
+            "pa_prompt_hash": pa_compiled.prompt_hash, "x1d_quorum_passed": quorum.quorum_passed,
+            "x1d_quorum_counterfactual_rejected": not quorum_fail_probe.quorum_passed,
+            "verified_exports": verified_exports,
         }
     finally:
         GovernedBriefingResolver.clear_cache()

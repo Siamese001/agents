@@ -258,6 +258,10 @@ def audit_repository(
 
     seen_eval: set[Path] = set()
     grounding_tiers: dict[str, str] = {}
+    authoritative_grounded_floors = {
+        "tools/eval_shield_core/domain_eval_checks.py": ("LIVE_CORPUS_GROUNDED",),
+        "apps_eval/graders/judge/blind_pool_deduplicator.py": ("OFFLINE_BENCHMARK_GROUNDED", "LIVE_CORPUS_GROUNDED"),
+    }
     for path in eval_targets:
         resolved = path.resolve()
         if resolved in seen_eval or not path.is_file():
@@ -265,7 +269,18 @@ def audit_repository(
         seen_eval.add(resolved)
         rel = resolved.relative_to(root).as_posix() if resolved.is_relative_to(root) else str(path)
         scanned_eval.append(rel)
-        grounding_tiers[rel] = classify_evaluator_grounding_tier(path)
+        tier = classify_evaluator_grounding_tier(path)
+        grounding_tiers[rel] = tier
+        allowed_tiers = authoritative_grounded_floors.get(rel)
+        if allowed_tiers and tier not in allowed_tiers:
+            violations.append(
+                {
+                    "code": "GROUNDING_TIER_REGRESSION",
+                    "file": rel,
+                    "line": 1,
+                    "message": f"Authoritative evaluator '{rel}' regressed to grounding tier '{tier}' (expected one of {allowed_tiers}).",
+                }
+            )
         violations.extend(scan_file_for_vacuous_eval_and_score_clamping(path))
         if rel.startswith("apps_eval/"):
             violations.extend(scan_extended_construct_validity(path))

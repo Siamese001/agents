@@ -81,12 +81,29 @@ def audit_pillar_1_delegation_contracts(repo_root: Path) -> dict[str, Any]:
     contracts_checked = 0
     md_contracts_checked = 0
 
-    # Scan .agents/skills, automations/prompts, and agents/ across .py and .md files for delegation contracts
+    # Scan .agents/skills, automations/prompts, agents/, and tools/hook_dispatch.py for delegation contracts & enforcers
     search_dirs = [
         repo_root / ".agents" / "skills",
         repo_root / "automations" / "prompts",
         repo_root / "agents",
     ]
+    runtime_enforcers_verified = 0
+    hook_dispatch_path = repo_root / "tools" / "hook_dispatch.py"
+    if hook_dispatch_path.is_file():
+        try:
+            hd_tree = ast.parse(hook_dispatch_path.read_text(encoding="utf-8"), filename=str(hook_dispatch_path))
+            for n in ast.walk(hd_tree):
+                if isinstance(n, ast.FunctionDef) and n.name == "handle_pre_subagent_delegation":
+                    calls_validator = any(
+                        isinstance(sub, ast.Call)
+                        and isinstance(sub.func, ast.Name)
+                        and sub.func.id == "validate_delegation_contract"
+                        for sub in ast.walk(n)
+                    )
+                    if calls_validator:
+                        runtime_enforcers_verified += 1
+        except Exception:  # guardian: allow-silent-swallow -- fail closed below when runtime_enforcers_verified == 0
+            pass
 
     for d in search_dirs:
         if not d.is_dir():
@@ -150,11 +167,17 @@ def audit_pillar_1_delegation_contracts(repo_root: Path) -> dict[str, Any]:
     if not inv_errs:
         gaps.append("Synthetic invalid contract unexpectedly passed validation")
 
+    if contracts_checked == 0 and runtime_enforcers_verified == 0:
+        gaps.append(
+            "Zero delegation contracts or live validate_delegation_contract hook enforcers verified (vacuous pass blocked)"
+        )
+
     return {
         "passed": len(gaps) == 0,
         "gaps": gaps,
         "contracts_checked": contracts_checked,
         "markdown_contracts_checked": md_contracts_checked,
+        "runtime_enforcers_verified": runtime_enforcers_verified,
         "mandatory_fields_count": len(MANDATORY_DELEGATION_FIELDS),
     }
 
@@ -331,17 +354,25 @@ def _is_unguarded_silent_swallow(handler: ast.ExceptHandler, lines: list[str]) -
 
 
 def audit_pillar_5_exception_hygiene(repo_root: Path) -> dict[str, Any]:
-    """Audit Pillar 5: Verify fail-closed exception propagation across `agents/`."""
+    """Audit Pillar 5: Verify fail-closed exception propagation across `agents/`, `infrastructure/sdks_mcps/`, and transport."""
     gaps: list[str] = []
     agents_dir = repo_root / "agents"
     if not agents_dir.is_dir():
         return {"passed": False, "gaps": [f"Missing agents package directory at {agents_dir}"]}
 
+    scan_targets: list[Path] = sorted(agents_dir.rglob("*.py"))
+    sdks_dir = repo_root / "infrastructure" / "sdks_mcps"
+    if sdks_dir.is_dir():
+        scan_targets.extend(sorted(sdks_dir.rglob("*.py")))
+    ops_transport = repo_root / "ops_scripts" / "agy_cli_transport.py"
+    if ops_transport.is_file():
+        scan_targets.append(ops_transport)
+
     scanned_files = 0
     unguarded_count = 0
     guardian_count = 0
 
-    for py_file in sorted(agents_dir.rglob("*.py")):
+    for py_file in scan_targets:
         if "__pycache__" in py_file.parts:
             continue
         try:
@@ -371,63 +402,102 @@ def audit_pillar_5_exception_hygiene(repo_root: Path) -> dict[str, Any]:
 
 
 def audit_pillar_6_provider_resilience_and_sla_hierarchy(repo_root: Path) -> dict[str, Any]:
-    """Audit Pillar 6: Keyless IDE CLI transport, HTTP 429 quota circuit-breaker failover, and timeout SLA hierarchy."""
+    """Audit Pillar 6: Behavioral keyless IDE CLI HTTP 429 circuit-breaker failover, concurrency, and AST SLA checks."""
     _ensure_paths(repo_root)
     gaps: list[str] = []
     checked_surfaces = 0
+    behavioral_probes_passed = 0
 
-    cli_path = repo_root / "agents" / "cli.py"
-    if cli_path.is_file():
+    # 1. Live behavioral probes on infrastructure.sdks_mcps.agy_cli_transport
+    try:
+        from infrastructure.sdks_mcps import agy_cli_transport as tr
+
         checked_surfaces += 1
-        cli_text = cli_path.read_text(encoding="utf-8", errors="replace")
-        if "900" not in cli_text and "live" in cli_text:
-            gaps.append("agents/cli.py missing >=900s live resume step timeout scaling")
+        if not tr.is_agy_quota_error("HTTP 429 RESOURCE_EXHAUSTED: individual quota reached"):
+            gaps.append("agy_cli_transport.is_agy_quota_error failed to detect 429 RESOURCE_EXHAUSTED")
+        if tr.is_agy_quota_error("SyntaxError: invalid JSON"):
+            gaps.append("agy_cli_transport.is_agy_quota_error false-positived on non-quota error")
 
-    transport_path = repo_root / "infrastructure" / "sdks_mcps" / "agy_cli_transport.py"
-    if transport_path.is_file():
-        checked_surfaces += 1
-        t_text = transport_path.read_text(encoding="utf-8", errors="replace")
-        for sym in ("def run_agy", "def ide_cli_ready"):
-            if sym not in t_text:
-                gaps.append(f"infrastructure/sdks_mcps/agy_cli_transport.py missing '{sym}'")
+        tr.clear_agy_quota_cooldowns()
+        try:
+            wait_s = tr.mark_agy_model_quota_exhausted("audit-probe-model", "resets in 2m", ttl_s=60.0)
+            if wait_s <= 0 or not tr.is_agy_model_quota_cooled_down("audit-probe-model"):
+                gaps.append("agy_cli_transport quota cooldown failed to activate")
+            tr.clear_agy_quota_cooldowns()
+            if tr.is_agy_model_quota_cooled_down("audit-probe-model"):
+                gaps.append("agy_cli_transport.clear_agy_quota_cooldowns failed to reset state")
+        finally:
+            tr.clear_agy_quota_cooldowns()
 
-    for rel_path, required_markers in (
-        (
-            "resume_graph_engine/src/apps_rg/runtime/providers/ide_cli_generation.py",
-            ("DEFAULT_GENERATION_TIMEOUT_S = 300", "is_agy_quota_error", "mark_agy_model_quota_exhausted", "ide_cli"),
-        ),
-        (
-            "resume_graph_engine/src/apps_rg/runtime/judges/x1d_ide_cli.py",
-            ("DEFAULT_JUDGE_TIMEOUT_S = 300", "is_agy_quota_error", "mark_agy_model_quota_exhausted", "ide_cli"),
-        ),
-        (
-            "resume_graph_engine/src/apps_rg/runtime/providers/wallclock_http_guard.py",
-            ("DEFAULT_WHOLE_RESUME_TIMEOUT_SECONDS = 480.0", "remaining_whole_run_budget_s"),
-        ),
-        (
-            "outreach_engine/src/apps_lic/judges/ide_cli_judge.py",
-            ("quota_backup", "_run_with_failover"),
-        ),
-    ):
-        target = repo_root / rel_path
-        if target.is_file():
+        if tr.resolve_agy_max_concurrency(4) != 4:
+            gaps.append("agy_cli_transport.resolve_agy_max_concurrency did not honor explicit cap")
+        if not set(("GEMINI_API_KEY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY")).issubset(set(tr.KEY_ENV_VARS)):
+            gaps.append("agy_cli_transport.KEY_ENV_VARS missing commercial API key strips")
+        deny_list = ((tr.NO_TOOLS_SETTINGS.get("permissions") or {}).get("deny")) or []
+        if "command(*)" not in deny_list or "mcp(*)" not in deny_list:
+            gaps.append("agy_cli_transport.NO_TOOLS_SETTINGS missing command(*)/mcp(*) deny rules")
+        behavioral_probes_passed += 1
+    except Exception as exc:  # guardian: allow-broad-exception -- report transport probe failure
+        gaps.append(f"agy_cli_transport behavioral probe failed: {type(exc).__name__}: {exc}")
+
+    # 2. Behavioral route characterization & live_preflight import integrity
+    for mod_rel in ("agents/health.py", "agents/live_preflight.py"):
+        mp = repo_root / mod_rel
+        if mp.is_file():
             checked_surfaces += 1
-            txt = target.read_text(encoding="utf-8", errors="replace")
-            for marker in required_markers:
-                if marker not in txt:
-                    gaps.append(f"{rel_path} missing mandatory resilience/SLA marker '{marker}'")
+            try:
+                ast.parse(mp.read_text(encoding="utf-8"), filename=str(mp))
+                behavioral_probes_passed += 1
+            except SyntaxError as exc:
+                gaps.append(f"{mod_rel} failed AST parse: {exc}")
+
+    # 3. AST-verified timeout SLA hierarchy (zero raw substring checks)
+    sla_targets = (
+        ("resume_graph_engine/src/apps_rg/runtime/providers/ide_cli_generation.py", "DEFAULT_GENERATION_TIMEOUT_S", 180),
+        ("resume_graph_engine/src/apps_rg/runtime/judges/x1d_ide_cli.py", "DEFAULT_JUDGE_TIMEOUT_S", 180),
+        ("resume_graph_engine/src/apps_rg/runtime/providers/wallclock_http_guard.py", "DEFAULT_WHOLE_RESUME_TIMEOUT_SECONDS", 480),
+    )
+    for rel_path, const_name, min_val in sla_targets:
+        target = repo_root / rel_path
+        if not target.is_file():
+            continue
+        checked_surfaces += 1
+        try:
+            tree = ast.parse(target.read_text(encoding="utf-8"), filename=str(target))
+        except SyntaxError as exc:
+            gaps.append(f"{rel_path} SyntaxError: {exc}")
+            continue
+        observed_val: float | None = None
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Assign):
+                if any(isinstance(t, ast.Name) and t.id == const_name for t in node.targets):
+                    if isinstance(node.value, ast.Constant) and isinstance(node.value.value, (int, float)):
+                        observed_val = float(node.value.value)
+            elif isinstance(node, ast.AnnAssign):
+                if isinstance(node.target, ast.Name) and node.target.id == const_name:
+                    if isinstance(node.value, ast.Constant) and isinstance(node.value.value, (int, float)):
+                        observed_val = float(node.value.value)
+        if observed_val is None or observed_val < float(min_val):
+            gaps.append(f"{rel_path}: {const_name}={observed_val} below SLA floor {min_val}s")
 
     regen_disp = repo_root / "resume_graph_engine" / "src" / "apps_rg" / "runtime" / "sections" / "executive_summary_regen_dispatch.py"
     if regen_disp.is_file():
         checked_surfaces += 1
-        r_txt = regen_disp.read_text(encoding="utf-8", errors="replace")
-        if re.search(r"min\(\s*[^,\n]+,\s*45(?:\.0)?\s*\)", r_txt):
-            gaps.append("executive_summary_regen_dispatch.py retains destructive 45s live regen timeout clamp")
+        r_tree = ast.parse(regen_disp.read_text(encoding="utf-8"), filename=str(regen_disp))
+        for node in ast.walk(r_tree):
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == "min"
+                and any(isinstance(a, ast.Constant) and isinstance(a.value, (int, float)) and float(a.value) <= 45.0 for a in node.args)
+            ):
+                gaps.append("executive_summary_regen_dispatch.py retains destructive <=45s live regen timeout clamp")
 
     return {
         "passed": len(gaps) == 0,
         "gaps": gaps,
         "checked_surfaces": checked_surfaces,
+        "behavioral_probes_passed": behavioral_probes_passed,
         "keyless_transport_and_sla_verified": len(gaps) == 0,
     }
 

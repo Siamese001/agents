@@ -84,7 +84,7 @@ profiles:
     provider_profile: external_openai
     provider_class: external_api
     pin_owner: apps_rg.section_generation.openai
-    pin_review_after: "2026-11-07"
+    pin_review_after: "2027-02-25"
     # Explicit OpenAI generation pins. No provider-level default model is allowed for
     # proof-bearing apps_rg lanes.
     model_by_section:
@@ -132,7 +132,7 @@ profiles:
     provider_profile: external_claude
     provider_class: external_api
     pin_owner: apps_rg.section_generation.claude
-    pin_review_after: "2026-11-07"
+    pin_review_after: "2027-02-25"
     # Explicit Claude generation pins. No provider-level default model is allowed for
     # proof-bearing apps_rg lanes.
     model_by_section:

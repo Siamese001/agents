@@ -79,7 +79,7 @@ profiles:
     proof_eligible: false
     ide_internal_tier: argon4_high
     pin_owner: outreach_engine.generator.executive
-    pin_review_after: "2026-11-07"
+    pin_review_after: "2027-02-25"
     description: "Peer-to-peer executive outreach draft synthesis with cross-family backup"
 
   recruiter_outreach_generator:
@@ -96,7 +96,7 @@ profiles:
     proof_eligible: false
     ide_internal_tier: argon4_high
     pin_owner: outreach_engine.generator.recruiter
-    pin_review_after: "2026-11-07"
+    pin_review_after: "2027-02-25"
     description: "Scannable executive recruiter outreach synthesis with cross-family backup"
 
   rubric_judge_panel:
@@ -113,7 +113,7 @@ profiles:
     proof_eligible: false
     ide_internal_tier: argon4_medium
     pin_owner: outreach_engine.judges.panel
-    pin_review_after: "2026-11-07"
+    pin_review_after: "2027-02-25"
     description: "Multi-lens executive outreach rubric evaluator right-sized to Sonnet 5.5 (Medium)"
 
   x1d_proof_judge_primary:
@@ -129,7 +129,7 @@ profiles:
     orthogonal_to_drafter_family: anthropic
     ide_internal_tier: argon4_medium
     pin_owner: outreach_engine.judges.x1d_primary
-    pin_review_after: "2026-11-07"
+    pin_review_after: "2027-02-25"
     description: "Primary cross-family X1D proof judge (Gemini 3.8 Flash at low effort)"
 
   x1d_proof_judge_secondary:
@@ -145,7 +145,7 @@ profiles:
     orthogonal_to_drafter_family: anthropic
     ide_internal_tier: argon4_medium
     pin_owner: outreach_engine.judges.x1d_secondary
-    pin_review_after: "2026-11-07"
+    pin_review_after: "2027-02-25"
     description: "Secondary cross-family X1D proof judge (GPT-5.6 Luna at low effort)"
 
   company_brief_generation:
@@ -160,7 +160,7 @@ profiles:
     proof_eligible: false
     ide_internal_tier: argon4_high
     pin_owner: outreach_engine.research.generation
-    pin_review_after: "2026-11-07"
+    pin_review_after: "2027-02-25"
     description: "Company intelligence targeting brief generation"
 
   handoff_judge:
@@ -175,5 +175,5 @@ profiles:
     proof_eligible: true
     ide_internal_tier: argon4_medium
     pin_owner: outreach_engine.research.judge
-    pin_review_after: "2026-11-07"
+    pin_review_after: "2027-02-25"
     description: "Research handoff semantic gate judge"

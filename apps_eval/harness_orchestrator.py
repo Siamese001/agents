@@ -226,10 +226,13 @@ def _probe_apps_lic_bundle(
             str(repo_root / "outreach_engine" / "src"),
             str(repo_root / "resume_graph_engine" / "src"),
         ]
-        existing_py = os.environ.get("PYTHONPATH", "").strip()
+        from infrastructure.config.env_loader import get_env_str, snapshot_process_env
+
+        existing_py = get_env_str("PYTHONPATH", "").strip()
         if existing_py:
             py_parts.append(existing_py)
-        sub_env = {**os.environ, "PYTHONPATH": os.pathsep.join(py_parts)}
+        sub_env = snapshot_process_env()
+        sub_env["PYTHONPATH"] = os.pathsep.join(py_parts)
         proc = subprocess.run(
             [
                 python_bin,

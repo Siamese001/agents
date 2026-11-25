@@ -138,6 +138,7 @@ def run_eval_flywheel_cycle(
     manifest_payload: Mapping[str, Any] | Path | str | None = None,
     harvest_borderline: bool = False,
     daily_harvest_cap: int = 3,
+    fail_on_pending_action: bool = False,
 ) -> tuple[int, dict[str, Any]]:
     _guard_non_output_path(output_root)
     src = Path(source_root).resolve()
@@ -306,7 +307,16 @@ def run_eval_flywheel_cycle(
             cands, out / "judge_calibration_queue.jsonl", daily_cap=daily_harvest_cap
         )
 
-    exit_code = 2 if drift_alerts else 0
+    has_pending_action = bool(
+        int(dispatch_res.get("pending_hitl_count", 0)) > 0
+        or int(dispatch_res.get("auto_applied_count", 0)) > 0
+    )
+    if drift_alerts:
+        exit_code = 2
+    elif fail_on_pending_action and has_pending_action:
+        exit_code = 3
+    else:
+        exit_code = 0
     receipt = {
         "schema_version": "agents.eval_flywheel_cycle_receipt.v1",
         "executed_at_utc": utc_now_iso(),
@@ -364,6 +374,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument("--harvest-borderline", action="store_true", help="Harvest <=3 topic-diverse borderline runs/day.")
     parser.add_argument("--daily-harvest-cap", type=int, default=3)
+    parser.add_argument(
+        "--fail-on-pending-action",
+        action="store_true",
+        help="Return exit code 3 when pending HITL or auto-applied proposals exist so preflight does not fast-exit.",
+    )
     parser.add_argument("--json", action="store_true", help="Emit full JSON receipt.")
     args = parser.parse_args(argv)
 
@@ -383,6 +398,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     emit_next_hitl_question=args.emit_next_hitl_question,
                     harvest_borderline=args.harvest_borderline,
                     daily_harvest_cap=args.daily_harvest_cap,
+                    fail_on_pending_action=args.fail_on_pending_action,
                 )
         else:
             out = Path(args.output_root).resolve() if args.output_root else src
@@ -396,6 +412,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 emit_next_hitl_question=args.emit_next_hitl_question,
                 harvest_borderline=args.harvest_borderline,
                 daily_harvest_cap=args.daily_harvest_cap,
+                fail_on_pending_action=args.fail_on_pending_action,
             )
     except (ValueError, OSError, RuntimeError) as exc:
         print(json.dumps({"status": "HARD_FAIL", "error": str(exc)}, indent=2))
