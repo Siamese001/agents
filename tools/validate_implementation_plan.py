@@ -363,7 +363,7 @@ def get_active_plan_file(repo_root: Optional[Path] = None) -> Optional[Path]:
     root = (repo_root or ROOT).resolve()
     common_root = _resolve_common_repo_root(root)
     explicit_plan = os.environ.get("AGY_PLAN_FILE")
-    if explicit_plan and is_git_repo and Path(explicit_plan).is_file():
+    if explicit_plan and Path(explicit_plan).is_file():
         return Path(explicit_plan).resolve()
     for env_var in ("ANTIGRAVITY_ARTIFACTS_DIR", "ARTIFACT_DIRECTORY_PATH"):
         val = os.environ.get(env_var)
