@@ -12,6 +12,7 @@ from tools.export_interactive_knowledge_graph import export_interactive_knowledg
 from tools.interactive_graph_export_core.dataset_builder import (
     IDENTITY_ROOT_ID,
     build_agents_explorer_dataset,
+    compute_multihop_subgraph,
     filter_bundle_lens,
     render_explorer_html,
     resolve_default_graph_db_path,
@@ -111,6 +112,13 @@ def test_live_http_portal_endpoints() -> None:
             assert node_resp["node"]["id"] == IDENTITY_ROOT_ID
             assert len(node_resp["edges"]) > 0
 
+        with urllib.request.urlopen(f"{base}/api/v1/node/pillar_agentic_ai_platforms?hops=2", timeout=10) as resp:
+            assert resp.status == 200
+            hop2_resp = json.loads(resp.read().decode("utf-8"))
+            assert hop2_resp["hops"] == 2
+            assert hop2_resp["node_count"] > 45
+            assert hop2_resp["edge_count"] >= hop2_resp["node_count"] - 1
+
         with urllib.request.urlopen(f"{base}/api/v1/search?q=slalom", timeout=10) as resp:
             assert resp.status == 200
             srch = json.loads(resp.read().decode("utf-8"))
@@ -119,3 +127,42 @@ def test_live_http_portal_endpoints() -> None:
         server.shutdown()
         server.server_close()
         thread.join(timeout=5)
+
+
+def test_multihop_subgraph_zero_disconnected_islands() -> None:
+    """Verify 2-hop and 3-hop neighborhoods are 100% connected and block super-hub hairball bounce."""
+    data = build_agents_explorer_dataset()
+    for target_id in ("pillar_agentic_ai_platforms", "skill_governed_agentic_systems_architecture"):
+        for hops in (2, 3):
+            sub = compute_multihop_subgraph(data, target_id, hops=hops)
+            node_ids = {n["id"] for n in sub["nodes"]}
+            assert target_id in node_ids
+            assert len(node_ids) > 15
+
+            # Build induced adjacency from returned visible edges and prove 100% reachability
+            adj: dict[str, set[str]] = {nid: set() for nid in node_ids}
+            for e in sub["edges"]:
+                u, v = e["from"], e["to"]
+                assert u in node_ids and v in node_ids
+                adj[u].add(v)
+                adj[v].add(u)
+
+            visited = {target_id}
+            queue = [target_id]
+            while queue:
+                cur = queue.pop(0)
+                for nb in adj[cur]:
+                    if nb not in visited:
+                        visited.add(nb)
+                        queue.append(nb)
+
+            disconnected = node_ids - visited
+            assert not disconnected, f"{target_id} at {hops}-hop had disconnected nodes: {disconnected}"
+
+    # Specifically verify Agentic AI Platforms 2-hop expands into its own domains & skills without bouncing into Actuarial/Derivatives skills
+    ag_sub = compute_multihop_subgraph(data, "pillar_agentic_ai_platforms", hops=2)
+    ag_ids = {n["id"] for n in ag_sub["nodes"]}
+    assert "domain_agentic_systems_architecture" in ag_ids
+    assert "skill_governed_agentic_systems_architecture" in ag_ids
+    assert "skill_derivatives_derivatives_pricing" not in ag_ids
+
