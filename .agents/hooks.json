@@ -14,30 +14,6 @@
     ]
   },
   "agents-hitl-atomic-guard": {
-    "PreToolUse": [
-      {
-        "matcher": "ask_question|ask_user_question",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 tools/hook_dispatch.py --hook pre_ask_question",
-            "timeout": 15
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "ask_question|ask_user_question",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 tools/hook_dispatch.py --hook post_ask_question",
-            "timeout": 15
-          }
-        ]
-      }
-    ],
     "PostInvocation": [
       {
         "type": "command",

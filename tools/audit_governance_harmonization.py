@@ -42,8 +42,21 @@ REQUIRED_AI_SDLC_POLICY_IDS: tuple[str, ...] = (
 )
 
 SCRIPT_REF_RE = re.compile(r"`((?:tools|ops_scripts|scripts)/[a-zA-Z0-9_./-]+\.py)`")
+SKILL_REF_RE = re.compile(r"`(\.agents/skills/[a-zA-Z0-9_-]+/SKILL\.md)`")
 HOOK_FLAG_RE = re.compile(r"--hook\s+([a-zA-Z0-9_-]+)")
 MAX_ALWAYS_ON_BYTES = 36000
+
+
+def _resolve_governed_doc_ref(repo_root: Path, rel_ref: str) -> bool:
+    """Resolve .agents/rules/ and .agents/skills/ references across both workspace and centralized core-governance."""
+    if (repo_root / rel_ref).is_file():
+        return True
+    core_plugin = Path.home() / ".gemini" / "config" / "plugins" / "core-governance"
+    if rel_ref.startswith(".agents/skills/"):
+        return (core_plugin / rel_ref.removeprefix(".agents/")).is_file()
+    if rel_ref.startswith(".agents/rules/"):
+        return (core_plugin / rel_ref.removeprefix(".agents/")).is_file()
+    return False
 
 
 def _check_always_on_budget(repo_root: Path) -> tuple[list[dict[str, Any]], int]:
@@ -120,7 +133,7 @@ def _check_policy_and_threshold_parity(repo_root: Path) -> list[dict[str, Any]]:
                     }
                 )
             rule_ref = str(policies[pid].get("rule_reference") or "").strip()
-            if rule_ref and not (repo_root / rule_ref).is_file():
+            if rule_ref and not _resolve_governed_doc_ref(repo_root, rule_ref):
                 findings.append(
                     {
                         "severity": "CRITICAL",
@@ -218,6 +231,18 @@ def _check_broken_script_refs(repo_root: Path) -> tuple[list[dict[str, Any]], li
                         "severity": "CRITICAL",
                         "category": "broken_reference",
                         "message": f"Broken script reference in {rel_md}: '{ref}' does not exist.",
+                    }
+                )
+        for smatch in SKILL_REF_RE.finditer(text):
+            sref = smatch.group(1)
+            if not _resolve_governed_doc_ref(repo_root, sref):
+                entry = f"{rel_md} -> {sref}"
+                broken_refs.append(entry)
+                findings.append(
+                    {
+                        "severity": "CRITICAL",
+                        "category": "broken_reference",
+                        "message": f"Broken skill reference in {rel_md}: '{sref}' does not exist in workspace or core-governance.",
                     }
                 )
     return findings, sorted(set(broken_refs))

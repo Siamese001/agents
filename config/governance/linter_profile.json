@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0.0",
+  "repository": "agents",
+  "plan_validator": {
+    "require_objective": true,
+    "allow_sharded": true,
+    "max_waves": 0,
+    "base_max_words": 0,
+    "max_scaled_words": 0,
+    "legacy_exemptions": [
+      "core-judge-panel-harness-f3c8d1.md",
+      "governance-dedup-closeout-e8a4c2.md",
+      "live-llm-enforcement-wave1-b7d14e.md",
+      "runtime-seam-unification-5e8a1b.md",
+      "token-optimization-waves-c8d1e4.md"
+    ]
+  }
+}

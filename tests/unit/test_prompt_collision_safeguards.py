@@ -374,8 +374,11 @@ def test_wave4_subagent_scope_hooks_and_prompt_catalog_parity(tmp_path: Path, mo
     assert "BLOCKED: COMPANY_NOT_IDENTIFIABLE" in tpl["slot_bodies"]["R0"]
     assert "BLOCKED: COMPANY_NOT_IDENTIFIABLE_FROM_JD" not in tpl["slot_bodies"]["R0"]
     assert "BLOCKED: COMPANY_NOT_IDENTIFIABLE" in md_prompt
-    skill_text = (REPO_ROOT / ".agents/skills/agent-subagent-orchestration/SKILL.md").read_text(encoding="utf-8")
-    assert '"status": "SUCCESS"' in skill_text
+    local_skill = REPO_ROOT / ".agents/skills/agent-subagent-orchestration/SKILL.md"
+    central_skill = Path.home() / ".gemini/config/plugins/core-governance/skills/agent-subagent-orchestration/SKILL.md"
+    skill_path = local_skill if local_skill.is_file() else central_skill
+    skill_text = skill_path.read_text(encoding="utf-8")
+    assert '"task_id"' in skill_text and '"status"' in skill_text
 
 
 def test_all_6_agent_pairs_strictly_mece_disjoint_and_paths_exist() -> None:

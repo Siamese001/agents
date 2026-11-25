@@ -260,7 +260,7 @@ policies:
     unit: "critical_drift_findings"
     description: "Rules, skills, hooks, policy registries, and Python gate thresholds must stay harmonized with zero critical drift or broken script references."
     enforcer: "tools/audit_governance_harmonization.py"
-    rule_reference: ".agents/skills/governance-harmonizer/SKILL.md"
+    rule_reference: ".agents/rules/conformance-map.md"
 
   - id: "INV-FLYWHEEL-AUTO-REMEDIATE"
     title: "Flywheel Hybrid Auto-Apply & Atomic HITL Defect Remediation"

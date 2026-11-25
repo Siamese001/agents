@@ -2,23 +2,14 @@
 trigger: glob
 globs: "{config/contracts/**,config/governance/**,resume_graph_engine/src/apps_rg/config/domain_contract/**}"
 ---
-# Contract Enforcement & Schema Integrity Rules
 
-Governs declarative JSON/YAML schemas, canonical digests, and contract-bound receipts across `agents`.
+# Contract Enforcement Rules (`agents` Overrides)
 
-## 1. Compatibility & Canonical Digest Integrity
+Inherits shared schema-first, fail-closed, and versioned evolution invariants from `~/.gemini/config/plugins/core-governance/rules/contract-enforcement.md`.
 
-- **Fail Closed**: Governed contract artifacts and config files fail closed on malformed structure or unknown critical fields (`tools/lint_contract_schemas.py --all`).
-- **Versioning**: Breaking schema changes require a major version bump; backward-compatible optional fields require a minor bump; documentation updates require a patch bump.
-- **Canonical Digest**: Deterministic SHA-256 over UTF-8 JSON with sorted keys and compact separators (excluding the digest field itself) for allocation plans, evidence contracts, and readiness receipts.
+## Repository Contract Surfaces & Enforcers
 
-## 2. Governed Contract Surfaces
-
-- **Governance Policies**: `config/governance/policy_registry.yaml`, `config/governance/risk_lanes_policy.json`, `.agents/hooks.json`.
+- **Governance Contracts**: `config/governance/policy_registry.yaml`, `config/governance/risk_lanes_policy.json`, `config/governance/linter_profile.json`, `.agents/hooks.json`.
 - **Domain Contracts**: `resume_graph_engine/src/apps_rg/config/domain_contract/*`, `resume_graph_engine/src/apps_rg/config/provider_profiles.yaml`, `config/model_catalog.json`.
+- **Canonical Digest & Receipt Parity**: Allocation plans, evidence contracts, and readiness receipts bind deterministic SHA-256 digests (sorted keys, compact separators) with zero raw credential logging and strict `PASS`/`FAIL` gate parity.
 - **Validation**: `.venv/bin/python tools/lint_contract_schemas.py --all` (Tier 1 Category 4 and Tier 2 Stage 4).
-
-## 3. Telemetry & Receipt Boundaries
-
-- Never log raw private credentials, bearer tokens, or API keys in receipts or telemetry streams.
-- Receipts must preserve exact pass/fail parity with underlying stage dispositions (`PASS` only when all required gates and admissions pass).

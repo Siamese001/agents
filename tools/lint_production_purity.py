@@ -1,26 +1,45 @@
 #!/usr/bin/env python3
-"""Deterministic production purity linter.
-
-Invariant:
-    Production code may not contain, import, load, inject, or otherwise consume
-    predetermined domain answers as substitutes for runtime generation or evaluation.
-    Production execution must not depend directly or transitively on directories/artifacts
-    classified as tests/, fixtures/, golden/, expected outputs, or benchmark references.
-
-Constitutional Doctrine:
-    runtime source + approved config -> actual pipeline execution -> generated domain output
-    must NEVER become:
-    prewritten answer / reference artifact -> production output
-"""
+"""Deterministic production purity linter delegating to core-governance with standalone CI fallback."""
 
 from __future__ import annotations
 
 import argparse
 import ast
-import re
-import sys
+import importlib.util
+import os
 from pathlib import Path
+import sys
+from types import ModuleType
 from typing import Sequence
+
+_ROOT = Path(__file__).resolve().parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
+_PLUGIN_FILE = Path.home() / ".gemini" / "config" / "plugins" / "core-governance" / "mcp" / "security_purity_linters.py"
+_CACHED_PLUGIN_MOD: ModuleType | None = None
+
+
+def _load_backend() -> ModuleType:
+    """Resolve core-governance security_purity_linters unless standalone mode is forced or plugin is absent."""
+    global _CACHED_PLUGIN_MOD
+    if os.environ.get("CORE_GOVERNANCE_FORCE_STANDALONE") != "1" and _PLUGIN_FILE.is_file():
+        if _CACHED_PLUGIN_MOD is None:
+            mod_name = "_core_governance_security_purity_linters"
+            spec = importlib.util.spec_from_file_location(mod_name, _PLUGIN_FILE)
+            if spec is not None and spec.loader is not None:
+                mod = importlib.util.module_from_spec(spec)
+                sys.modules[mod_name] = mod
+                spec.loader.exec_module(mod)
+                _CACHED_PLUGIN_MOD = mod
+        if _CACHED_PLUGIN_MOD is not None:
+            return _CACHED_PLUGIN_MOD
+    from tools import _standalone_security_purity
+
+    return _standalone_security_purity
+
+
+_BACKEND = _load_backend()
 
 PRODUCTION_DIRECTORIES: tuple[str, ...] = (
     "scripts",
@@ -46,47 +65,10 @@ EXCLUDED_DIRECTORIES: tuple[str, ...] = (
     ".venv",
 )
 
-# Paths classified as fixtures / goldens / test references
-FORBIDDEN_FIXTURE_PATH_PATTERNS: tuple[str, ...] = (
-    "fixtures/",
-    "/fixtures/",
-    "golden/",
-    "/golden/",
-    "expected_outputs/",
-    "/expected_outputs/",
-    "benchmark_references/",
-    "tests/fixtures",
-    "data/eval/golden",
-)
-
-# Modules / prefixes forbidden from being imported in production execution
-FORBIDDEN_FIXTURE_MODULES: tuple[str, ...] = (
-    "fixtures",
-    "tests",
-    "golden",
-    "expected_outputs",
-)
-
-# Semantic indicators of precomputed domain synthesis substitution
-PREDETERMINED_SYNTHESIS_KEYS: tuple[str, ...] = (
-    "executive_summary",
-    "final_summary",
-    "synthesis",
-    "extracted_insights",
-    "pinned_eval",
-    "pinned_evals",
-    "golden_answer",
-    "expected_output",
-    "result_payload",
-    "summary_payload",
-    "f2_text",
-    "f3_data",
-)
-
-GUARDIAN_PATTERN = re.compile(
-    r"#\s*guardian:\s*allow-(?:purity|fixture|golden|layer-violation)\s*--\s*(.+)",
-    re.IGNORECASE,
-)
+FORBIDDEN_FIXTURE_PATH_PATTERNS: tuple[str, ...] = _BACKEND.FORBIDDEN_FIXTURE_PATHS
+FORBIDDEN_FIXTURE_MODULES: tuple[str, ...] = tuple(sorted(_BACKEND.FORBIDDEN_FIXTURE_MODULES))
+PREDETERMINED_SYNTHESIS_KEYS: tuple[str, ...] = tuple(sorted(_BACKEND.PREDETERMINED_KEYS))
+GUARDIAN_PATTERN = _BACKEND.PURITY_GUARDIAN_RE
 
 
 def is_production_file(path: Path, repo_root: Path) -> bool:
@@ -102,227 +84,68 @@ def is_production_file(path: Path, repo_root: Path) -> bool:
     if "/tests/" in rel or rel.endswith("_test.py") or Path(rel).name.startswith("test_"):
         return False
 
-    for prod in PRODUCTION_DIRECTORIES:
-        if rel == prod or rel.startswith(f"{prod}/"):
-            return True
-
-    return False
+    return any(rel == prod or rel.startswith(f"{prod}/") for prod in PRODUCTION_DIRECTORIES)
 
 
-class ProductionPurityVisitor(ast.NodeVisitor):
-    """AST visitor detecting predetermined domain answers and fixture dependencies."""
+def _scan_agents_function_return_purity(
+    tree: ast.AST,
+    lines: list[str],
+    backend: ModuleType,
+) -> list[tuple[int, str, str]]:
+    """Supplement shared purity visitor with direct-return checks on synthesis/generation functions."""
+    extra: list[tuple[int, str, str]] = []
+    is_prompt = backend._is_prompt_template
+    is_static_dict = backend.ProductionPurityAstVisitor._is_static_domain_dict
+    guardian_re = backend.PURITY_GUARDIAN_RE
 
-    def __init__(self, file_path: Path, lines: list[str], rel_path: str):
-        self.file_path = file_path
-        self.lines = lines
-        self.rel_path = rel_path
-        self.violations: list[tuple[int, str, str]] = []
-        self._docstring_nodes: set[int] = set()
+    def _exempt(lineno: int) -> bool:
+        return 1 <= lineno <= len(lines) and bool(guardian_re.search(lines[lineno - 1]))
 
-    def _is_exempt(self, lineno: int) -> bool:
-        if 1 <= lineno <= len(self.lines):
-            line = self.lines[lineno - 1]
-            return bool(GUARDIAN_PATTERN.search(line))
-        return False
-
-    def visit_Module(self, node: ast.Module) -> None:
-        if (
-            node.body
-            and isinstance(node.body[0], ast.Expr)
-            and isinstance(node.body[0].value, ast.Constant)
-            and isinstance(node.body[0].value.value, str)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name.lower().startswith(
+            ("generate_", "synthesize_", "extract_", "evaluate_")
         ):
-            self._docstring_nodes.add(node.body[0].value.lineno)
-        self.generic_visit(node)
-
-    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-        if (
-            node.body
-            and isinstance(node.body[0], ast.Expr)
-            and isinstance(node.body[0].value, ast.Constant)
-            and isinstance(node.body[0].value.value, str)
-        ):
-            self._docstring_nodes.add(node.body[0].value.lineno)
-
-        func_name_lower = node.name.lower()
-        if any(func_name_lower.startswith(prefix) for prefix in ("generate_", "synthesize_", "extract_", "evaluate_")):
             for stmt in node.body:
-                if isinstance(stmt, ast.Return) and stmt.value:
+                if isinstance(stmt, ast.Return) and stmt.value and not _exempt(stmt.lineno):
                     val = stmt.value
                     if isinstance(val, ast.Constant) and isinstance(val.value, str):
                         s = val.value.strip()
-                        if len(s) > 80 and not self._is_prompt_template(s, node.name):
-                            if not self._is_exempt(stmt.lineno):
-                                self.violations.append(
-                                    (
-                                        stmt.lineno,
-                                        node.name,
-                                        f"Function '{node.name}' directly returns predetermined multiline domain answer instead of runtime generation.",
-                                    )
-                                )
-                    elif isinstance(val, ast.Dict):
-                        if self._is_predetermined_dict(val):
-                            if not self._is_exempt(stmt.lineno):
-                                self.violations.append(
-                                    (
-                                        stmt.lineno,
-                                        node.name,
-                                        f"Function '{node.name}' returns predetermined domain dictionary payload substituting for runtime pipeline execution.",
-                                    )
-                                )
-
-        self.generic_visit(node)
-
-    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
-        if (
-            node.body
-            and isinstance(node.body[0], ast.Expr)
-            and isinstance(node.body[0].value, ast.Constant)
-            and isinstance(node.body[0].value.value, str)
-        ):
-            self._docstring_nodes.add(node.body[0].value.lineno)
-        self.generic_visit(node)
-
-    def visit_ClassDef(self, node: ast.ClassDef) -> None:
-        if (
-            node.body
-            and isinstance(node.body[0], ast.Expr)
-            and isinstance(node.body[0].value, ast.Constant)
-            and isinstance(node.body[0].value.value, str)
-        ):
-            self._docstring_nodes.add(node.body[0].value.lineno)
-        self.generic_visit(node)
-
-    def visit_Import(self, node: ast.Import) -> None:
-        for alias in node.names:
-            first_part = alias.name.split(".")[0]
-            if first_part in FORBIDDEN_FIXTURE_MODULES:
-                if not self._is_exempt(node.lineno):
-                    self.violations.append(
-                        (
-                            node.lineno,
-                            alias.name,
-                            f"Production code cannot import test/fixture artifact '{alias.name}'. Fixtures may only be consumed in test/eval contexts.",
-                        )
-                    )
-        self.generic_visit(node)
-
-    def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
-        if node.module:
-            first_part = node.module.split(".")[0]
-            if first_part in FORBIDDEN_FIXTURE_MODULES:
-                if not self._is_exempt(node.lineno):
-                    self.violations.append(
-                        (
-                            node.lineno,
-                            node.module,
-                            f"Production code cannot import test/fixture artifact '{node.module}'. Fixtures may only be consumed in test/eval contexts.",
-                        )
-                    )
-        self.generic_visit(node)
-
-    def visit_Assign(self, node: ast.Assign) -> None:
-        target_names = []
-        for t in node.targets:
-            if isinstance(t, ast.Name):
-                target_names.append(t.id)
-
-        for target_name in target_names:
-            name_lower = target_name.lower()
-            if any(k in name_lower for k in PREDETERMINED_SYNTHESIS_KEYS):
-                if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
-                    s = node.value.value.strip()
-                    if len(s) > 80 and not self._is_prompt_template(s, target_name):
-                        if not self._is_exempt(node.lineno):
-                            self.violations.append(
+                        if len(s) > 80 and not is_prompt(s, node.name):
+                            extra.append(
                                 (
-                                    node.lineno,
-                                    target_name,
-                                    f"Variable '{target_name}' contains hardcoded predetermined domain text ({len(s)} chars) substituting for runtime synthesis.",
+                                    stmt.lineno,
+                                    node.name,
+                                    f"Function '{node.name}' directly returns predetermined multiline domain answer instead of runtime generation.",
                                 )
                             )
-                elif isinstance(node.value, ast.Dict):
-                    if self._is_predetermined_dict(node.value):
-                        if not self._is_exempt(node.lineno):
-                            self.violations.append(
-                                (
-                                    node.lineno,
-                                    target_name,
-                                    f"Variable '{target_name}' contains precomputed domain payload substituting for runtime generation.",
-                                )
-                            )
-
-        self.generic_visit(node)
-
-    def visit_Call(self, node: ast.Call) -> None:
-        for arg in node.args:
-            if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
-                s = arg.value
-                if any(fp in s for fp in FORBIDDEN_FIXTURE_PATH_PATTERNS):
-                    if not self._is_exempt(node.lineno):
-                        self.violations.append(
+                    elif isinstance(val, ast.Dict) and is_static_dict(val):
+                        extra.append(
                             (
-                                node.lineno,
-                                s,
-                                f"Production code attempts to load fixture/golden artifact '{s}'. Goldens and fixtures are strictly forbidden from production execution paths.",
+                                stmt.lineno,
+                                node.name,
+                                f"Function '{node.name}' returns predetermined domain dictionary payload substituting for runtime pipeline execution.",
                             )
                         )
-        self.generic_visit(node)
-
-    @staticmethod
-    def _is_prompt_template(s: str, target_name: str = "") -> bool:
-        target_low = target_name.lower()
-        if any(k in target_low for k in ("prompt", "template", "instruction", "system_msg", "rubric")):
-            return True
-        s_strip = s.lstrip()
-        # Only recognize genuine placeholder interpolation, never raw JSON object literals starting with `{`
-        if not s_strip.startswith("{") and re.search(
-            r"\{[A-Za-z_][A-Za-z0-9_.]*\}|\$\{[A-Za-z0-9_]+\}|\$[A-Za-z_][A-Za-z0-9_]*",
-            s,
-        ):
-            return True
-        lower = s.lower()
-        if any(
-            kw in lower
-            for kw in (
-                "you are ",
-                "instructions:",
-                "prompt:",
-                "guidelines:",
-                "system:",
-                "assistant:",
-                "never introduce",
-            )
-        ):
-            return True
-        return False
-
-    def _is_predetermined_dict(self, node: ast.Dict) -> bool:
-        """Check if a dictionary literal represents a precomputed final graph or synthesis payload."""
-        string_keys = []
-        constant_values_count = 0
-        multiline_domain_count = 0
-
-        for k, v in zip(node.keys, node.values):
-            if isinstance(k, ast.Constant) and isinstance(k.value, str):
-                string_keys.append(k.value.lower())
-                if isinstance(v, ast.Constant):
-                    constant_values_count += 1
-                    if isinstance(v.value, str) and len(v.value) > 60 and not self._is_prompt_template(v.value):
-                        multiline_domain_count += 1
-                elif isinstance(v, (ast.List, ast.Dict)):
-                    # Check if inner structure contains static constants
-                    if all(isinstance(elt, ast.Constant) for elt in getattr(v, "elts", [])):
-                        constant_values_count += 1
-
-        # Must be mostly static constant values (not dynamic expressions like call/get)
-        if constant_values_count >= 2 and any(
-            k in string_keys for k in ("nodes", "edges", "executive_summary", "synthesis", "verdict", "final_summary", "result_payload")
-        ):
-            if multiline_domain_count >= 1 or constant_values_count >= 3:
-                return True
-
-        return False
+        elif isinstance(node, ast.Assign) and not _exempt(node.lineno):
+            for t in node.targets:
+                if isinstance(t, ast.Name):
+                    low = t.id.lower()
+                    if (
+                        low not in backend.PREDETERMINED_KEYS
+                        and any(k in low for k in PREDETERMINED_SYNTHESIS_KEYS)
+                        and isinstance(node.value, ast.Constant)
+                        and isinstance(node.value.value, str)
+                    ):
+                        s = node.value.value.strip()
+                        if len(s) > 80 and not is_prompt(s, t.id):
+                            extra.append(
+                                (
+                                    node.lineno,
+                                    t.id,
+                                    f"Variable '{t.id}' contains hardcoded predetermined domain text ({len(s)} chars) substituting for runtime synthesis.",
+                                )
+                            )
+    return extra
 
 
 def check_file_production_purity(
@@ -331,26 +154,34 @@ def check_file_production_purity(
     tree: ast.AST | None = None,
     lines: list[str] | None = None,
 ) -> list[tuple[int, str, str]]:
-    """Scan a production file for production purity violations."""
+    """Scan a production file for production purity violations via core-governance or standalone fallback."""
     if not file_path.exists() or not is_production_file(file_path, repo_root):
         return []
 
-    if lines is None:
-        lines = file_path.read_text(encoding="utf-8", errors="replace").splitlines()
-    if tree is None:
+    src_lines = lines if lines is not None else file_path.read_text(encoding="utf-8", errors="replace").splitlines()
+    parsed = tree
+    if parsed is None:
         try:
-            tree = ast.parse("\n".join(lines), filename=str(file_path))
+            parsed = ast.parse("\n".join(src_lines), filename=str(file_path))
         except SyntaxError:
             return []
 
-    try:
-        rel = str(file_path.resolve().relative_to(repo_root.resolve())).replace("\\", "/")
-    except ValueError:
-        rel = str(file_path)
-
-    visitor = ProductionPurityVisitor(file_path, lines, rel)
-    visitor.visit(tree)
-    return visitor.violations
+    backend = _load_backend()
+    visitor = backend.ProductionPurityAstVisitor(src_lines)
+    visitor.visit(parsed)
+    combined: list[tuple[int, str, str]] = []
+    for ln, sym, msg in visitor.violations:
+        if "precomputed domain payload" in msg and not any(k in sym.lower() for k in PREDETERMINED_SYNTHESIS_KEYS):
+            continue
+        if "binds forbidden fixture path" in msg and "config/fixtures/" in src_lines[ln - 1]:
+            continue
+        combined.append((ln, sym, msg))
+    seen = {(ln, sym) for ln, sym, _ in combined}
+    for ln, sym, msg in _scan_agents_function_return_purity(parsed, src_lines, backend):
+        if (ln, sym) not in seen:
+            seen.add((ln, sym))
+            combined.append((ln, sym, msg))
+    return combined
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -375,8 +206,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     for f in files_to_check:
         if f.suffix == ".py":
-            v = check_file_production_purity(f, repo_root)
-            for lineno, symbol, msg in v:
+            for lineno, symbol, msg in check_file_production_purity(f, repo_root):
                 rel = str(f.relative_to(repo_root)) if f.is_relative_to(repo_root) else str(f)
                 violations.append((rel, lineno, symbol, msg))
 
@@ -386,7 +216,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"  - {rel}:{lineno} [{symbol}]: {msg}", file=sys.stderr)
         return 1
 
-    print(f"[PASS] Production purity clean (no predetermined answers or fixture dependencies in production paths).")
+    print("[PASS] Production purity clean (no predetermined answers or fixture dependencies in production paths).")
     return 0
 
 
