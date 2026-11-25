@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import json
+import logging
 import math
 import re
+
+logger = logging.getLogger(__name__)
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -75,7 +78,8 @@ def synthesize_graduation_proposals(
         return []
     try:
         state = json.loads(grad_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+    except (OSError, json.JSONDecodeError) as exc:  # guardian: allow-silent-swallow -- corrupt graduation state defaults to empty proposal list
+        logger.warning("Unable to parse capability graduation state %s: %s", grad_path, exc)
         return []
     if not isinstance(state, Mapping):
         return []

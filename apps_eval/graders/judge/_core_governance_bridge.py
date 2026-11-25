@@ -2,21 +2,22 @@
 from __future__ import annotations
 
 import importlib.util
-import os
 from pathlib import Path
 import sys
 from types import ModuleType
 
+from infrastructure.config.env_loader import get_env_optional_path
+
 _DEFAULT_CORE_GOVERNANCE_MCP_DIR = Path.home() / ".gemini" / "config" / "plugins" / "core-governance" / "mcp"
-CORE_GOVERNANCE_MCP_DIR = Path(
-    os.environ.get("CORE_GOVERNANCE_MCP_DIR") or _DEFAULT_CORE_GOVERNANCE_MCP_DIR
+CORE_GOVERNANCE_MCP_DIR = (
+    get_env_optional_path("CORE_GOVERNANCE_MCP_DIR") or _DEFAULT_CORE_GOVERNANCE_MCP_DIR
 ).resolve()
 CORE_GOVERNANCE_UI_HTML_PATH = CORE_GOVERNANCE_MCP_DIR / "ui" / "studio_app.html"
 
 
 def get_core_governance_mcp_dir() -> Path:
-    override = os.environ.get("CORE_GOVERNANCE_MCP_DIR")
-    return Path(override).resolve() if override else CORE_GOVERNANCE_MCP_DIR
+    override = get_env_optional_path("CORE_GOVERNANCE_MCP_DIR")
+    return override if override is not None else CORE_GOVERNANCE_MCP_DIR
 
 
 def _load_core_gov_module(module_name: str, filename: str) -> ModuleType:

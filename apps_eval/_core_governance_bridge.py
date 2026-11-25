@@ -2,13 +2,14 @@
 from __future__ import annotations
 
 import importlib.util
-import os
 from pathlib import Path
 import sys
 from types import ModuleType
 
+from infrastructure.config.env_loader import get_env_optional_path
+
 _DEFAULT_MCP_DIR = Path.home() / ".gemini" / "config" / "plugins" / "core-governance" / "mcp"
-_MCP_DIR = Path(os.environ.get("CORE_GOVERNANCE_MCP_DIR") or _DEFAULT_MCP_DIR).resolve()
+_MCP_DIR = (get_env_optional_path("CORE_GOVERNANCE_MCP_DIR") or _DEFAULT_MCP_DIR).resolve()
 
 
 def _load_core_gov_module(name: str) -> ModuleType:

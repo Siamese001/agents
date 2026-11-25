@@ -81,10 +81,12 @@ def lane_writer_model(section_id: str) -> str | None:
 
 
 def actual_lane_writer_model(section_id: str, environ: Mapping[str, str] | None = None) -> str | None:
+    from apps_rg.runtime.env_bootstrap import snapshot_process_env
+
     raw_writer = lane_writer_model(section_id)
     if not raw_writer:
         return None
-    env = os.environ if environ is None else environ
+    env = snapshot_process_env() if environ is None else environ
     gen_cfg = _profiles().get("ide_cli_generation") or {}
     if isinstance(gen_cfg, Mapping):
         gen_override = str(env.get(GENERATION_TRANSPORT_ENV) or "").strip().lower()

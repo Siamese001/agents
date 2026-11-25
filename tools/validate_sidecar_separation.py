@@ -4,7 +4,7 @@
 Verifies and reconciles:
 1. Disabled Manual Launcher Catalog (`INV-NO-DAILY-AGENTS-SCHEDULES` & `CATALOG_DISABLED_BY_DEFAULT`):
    - Zero active (`enabled: true`) background schedules for `agents-*` in `/Users/amitayer/.gemini/config/config.json` (`agents_scheduled_count == 0`).
-   - All 4 approved `EXPECTED_AGENTS_SIDECARS` may be materialized in `/Users/amitayer/.gemini/config/sidecars/<id>/sidecar.json` as thin SSOT pointer dereferencers bound to `file:///Users/amitayer/Git/agents` (`projectId: f3cfd8ed-5fb8-40c7-b562-dbdf15522309`, `"enabled": false` in `config.json`) for manual one-click launch in the Antigravity Automations UI, while retired `RETIRED_AGENTS_SIDECARS` are cleanly pruned during `--reconcile`.
+   - All 5 approved `EXPECTED_AGENTS_SIDECARS` may be materialized in `/Users/amitayer/.gemini/config/sidecars/<id>/sidecar.json` as thin SSOT pointer dereferencers bound to `file:///Users/amitayer/Git/agents` (dynamically resolved live `projectId` from `~/.gemini/config/projects/*.json`, `"enabled": false` by default in `config.json`) for manual one-click launch in the Antigravity Automations UI, while retired `RETIRED_AGENTS_SIDECARS` are cleanly pruned during `--reconcile`.
    - Any unapproved/rogue `agents-*` directory (not in `EXPECTED_AGENTS_SIDECARS`) or any `agents-*` directory missing its valid `file:///Users/amitayer/Git/agents/automations/prompts/agents_*_agent.md` pointer is rejected fail-closed.
 2. Dedicated Behavioral Auditor Integrity: All 4 `automations/prompts/agents_*_agent.md` prompt specifications invoke their dedicated fail-closed behavioral auditor CLIs (never generic `verify_commit.py` masquerades or print-only inline heredoc scripts).
 3. Cross-Repo Firewall (`INV-REPO-SEPARATION-AGENTS-ONLY`): Every Agents prompt specification enforces `INV-REPO-SEPARATION-AGENTS-ONLY` and prohibits touching `/Users/amitayer/Git/decision-intelligence-engine`.
@@ -28,7 +28,44 @@ if str(REPO_ROOT) not in sys.path:
 DEFAULT_SIDECARS_ROOT = Path.home() / ".gemini" / "config" / "sidecars"
 AGENTS_CANONICAL_ROOT = str(Path.home() / "Git" / "agents")
 NEE_CANONICAL_ROOT = str(Path.home() / "Git" / "decision-intelligence-engine")
-AGENTS_PROJECT_ID = "f3cfd8ed-5fb8-40c7-b562-dbdf15522309"
+FALLBACK_AGENTS_PROJECT_ID = "00ceb967-07c7-4f88-bff1-8a348c7875a4"
+REQUIRED_SIDECAR_ACCESS_GRANTS: tuple[str, ...] = (
+    "command(.venv/bin/python)",
+    "command(git)",
+)
+
+
+def resolve_agents_project_id(config_root: Path | None = None) -> str:
+    """Resolve active Antigravity project UUID for `/Users/<user>/Git/agents` from `projects/*.json`."""
+    cfg_root = (config_root or DEFAULT_SIDECARS_ROOT.parent).resolve()
+    projects_dir = cfg_root / "projects"
+    target_uri = f"file://{AGENTS_CANONICAL_ROOT}"
+    if projects_dir.is_dir():
+        for pfile in sorted(projects_dir.glob("*.json")):
+            try:
+                doc = json.loads(pfile.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                continue
+            if not isinstance(doc, dict):
+                continue
+            uris: list[str] = list(doc.get("workspacePaths") or doc.get("workspace_uris") or doc.get("workspaces") or [])
+            proj_res = doc.get("projectResources")
+            if isinstance(proj_res, dict):
+                for res in proj_res.get("resources") or []:
+                    if isinstance(res, dict):
+                        gf = res.get("gitFolder")
+                        if isinstance(gf, dict) and gf.get("folderUri"):
+                            uris.append(str(gf["folderUri"]))
+                        elif res.get("folderUri"):
+                            uris.append(str(res["folderUri"]))
+            if any(target_uri == str(u).rstrip("/") or AGENTS_CANONICAL_ROOT == str(u).rstrip("/") for u in uris):
+                pid = str(doc.get("id") or pfile.stem).strip()
+                if pid:
+                    return pid
+    return FALLBACK_AGENTS_PROJECT_ID
+
+
+AGENTS_PROJECT_ID = resolve_agents_project_id()
 
 EXPECTED_AGENTS_SIDECARS: dict[str, dict[str, Any]] = {
     "agents-architecture-cost-governance": {
@@ -216,6 +253,7 @@ def build_agents_sidecar_payload(workflow_id: str, spec: dict[str, Any]) -> dict
         "display_name": str(spec["display_name"]),
         "agent_permissions": {
             "workspace_uris": [f"file://{AGENTS_CANONICAL_ROOT}"],
+            "access_grants": list(REQUIRED_SIDECAR_ACCESS_GRANTS),
         },
     }
 
@@ -223,9 +261,10 @@ def build_agents_sidecar_payload(workflow_id: str, spec: dict[str, Any]) -> dict
 def reconcile_agents_sidecars(
     *,
     sidecars_root: Path = DEFAULT_SIDECARS_ROOT,
-    project_id: str = AGENTS_PROJECT_ID,
+    project_id: str | None = None,
 ) -> dict[str, Any]:
-    """Materialize the 4 EXPECTED_AGENTS_SIDECARS as disabled manual launchers and prune retired agents-* entries."""
+    """Materialize the 5 EXPECTED_AGENTS_SIDECARS as disabled manual launchers and prune retired agents-* entries."""
+    resolved_project_id = project_id or resolve_agents_project_id(sidecars_root.parent)
     sidecars_root.mkdir(parents=True, exist_ok=True)
     pruned_retired: list[str] = []
     for retired_id in sorted(RETIRED_AGENTS_SIDECARS):
@@ -250,14 +289,11 @@ def reconcile_agents_sidecars(
         for retired_id in RETIRED_AGENTS_SIDECARS:
             sidecars_map.pop(retired_id, None)
         for workflow_id in EXPECTED_AGENTS_SIDECARS:
-            existing_proj = (
-                sidecars_map.get(workflow_id, {}).get("projectId")
-                if isinstance(sidecars_map.get(workflow_id), dict)
-                else None
-            )
+            existing_entry = sidecars_map.get(workflow_id) if isinstance(sidecars_map.get(workflow_id), dict) else {}
+            existing_enabled = existing_entry.get("enabled")
             sidecars_map[workflow_id] = {
-                "enabled": False,
-                "projectId": existing_proj or project_id,
+                "enabled": existing_enabled if isinstance(existing_enabled, bool) else False,
+                "projectId": resolved_project_id,
             }
             config_synced += 1
         config_file.write_text(json.dumps(cfg, indent=2) + "\n", encoding="utf-8")
@@ -443,7 +479,9 @@ def validate_sidecar_separation(
                 ag_args = ag_payload.get("args", [])
                 expected_prompt_file = EXPECTED_AGENTS_SIDECARS[child.name]["prompt_file"]
                 expected_uri = f"file://{AGENTS_CANONICAL_ROOT}/automations/prompts/{expected_prompt_file}"
-                ws_uris = (ag_payload.get("agent_permissions") or {}).get("workspace_uris") or []
+                ag_perms = ag_payload.get("agent_permissions") or {}
+                ws_uris = ag_perms.get("workspace_uris") or []
+                ag_grants = {str(g) for g in (ag_perms.get("access_grants") or [])}
                 if (
                     not isinstance(ag_args, list)
                     or not ag_args
@@ -454,6 +492,13 @@ def validate_sidecar_separation(
                     violations.append(
                         f"Unapproved background schedule directory '{child.name}' present in {sidecars_root} "
                         f"with invalid pointer or workspace_uris"
+                    )
+                    continue
+                missing_grants = [g for g in REQUIRED_SIDECAR_ACCESS_GRANTS if g not in ag_grants]
+                if missing_grants:
+                    agents_scheduled_count += 1
+                    violations.append(
+                        f"Agents sidecar '{child.name}' missing required access_grants: {missing_grants}"
                     )
                     continue
                 if NEE_CANONICAL_ROOT in json.dumps(ag_payload):
@@ -497,6 +542,7 @@ def validate_sidecar_separation(
             validated_nee_count += 1
 
     config_file = sidecars_root.parent / "config.json"
+    expected_pid = resolve_agents_project_id(sidecars_root.parent)
     if config_file.is_file():
         try:
             config_payload = json.loads(config_file.read_text(encoding="utf-8"))
@@ -513,6 +559,12 @@ def validate_sidecar_separation(
                             agents_scheduled_count += 1
                             violations.append(
                                 f"Global config.json retains active background schedule entry '{sid}' (enabled must be false)"
+                            )
+                        elif str(s_cfg.get("projectId") or "").strip() != expected_pid:
+                            agents_scheduled_count += 1
+                            violations.append(
+                                f"Global config.json sidecar '{sid}' projectId '{s_cfg.get('projectId')}' "
+                                f"mismatches resolved project '{expected_pid}'"
                             )
         except (OSError, json.JSONDecodeError) as exc:
             violations.append(f"Invalid JSON in global config.json: {exc}")

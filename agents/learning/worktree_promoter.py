@@ -17,9 +17,12 @@ Guarantees that primary `repo_root` (`main`) never accumulates dirty uncommitted
 from __future__ import annotations
 
 import json
+import logging
 import os
 import shutil
 import subprocess
+
+logger = logging.getLogger(__name__)
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Mapping
@@ -61,7 +64,8 @@ def is_git_tracked_target(repo_root: Path, rel_path: str) -> bool:
             timeout=5,
         )
         return ls_proc.returncode == 0
-    except (OSError, subprocess.SubprocessError):
+    except (OSError, subprocess.SubprocessError) as exc:  # guardian: allow-silent-swallow -- non-git or unavailable git binary treats target as untracked
+        logger.debug("Git tracked-file check failed for %s: %s", rel_path, exc)
         return False
 
 
@@ -77,8 +81,8 @@ def _cleanup_ephemeral_worktree(repo_root: Path, wt_dir: Path, branch_name: str)
             shell=False,
             timeout=15,
         )
-    except (OSError, subprocess.SubprocessError):
-        pass
+    except (OSError, subprocess.SubprocessError) as exc:  # guardian: allow-silent-swallow -- fallback to rmtree when git worktree remove fails
+        logger.debug("git worktree remove failed for %s: %s", wt_dir, exc)
     if wt_dir.exists():
         shutil.rmtree(wt_dir, ignore_errors=True)
     try:
@@ -98,8 +102,8 @@ def _cleanup_ephemeral_worktree(repo_root: Path, wt_dir: Path, branch_name: str)
             shell=False,
             timeout=10,
         )
-    except (OSError, subprocess.SubprocessError):
-        pass
+    except (OSError, subprocess.SubprocessError) as exc:  # guardian: allow-silent-swallow -- best-effort post-rmtree worktree prune
+        logger.debug("git worktree prune/branch cleanup failed for %s: %s", branch_name, exc)
 
 
 def promote_single_file_worktree_branch(
