@@ -32,6 +32,9 @@ from pathlib import Path
 from typing import Any, Callable, Iterator
 
 AGY_CLI_ENV_VAR = "AGY_CLI_BIN"
+DEFAULT_MACOS_AGY_HELPER_PATHS: tuple[str, ...] = (
+    "/Applications/Gemini.app/Contents/Helpers/agy",
+)
 AGY_MAX_CONCURRENCY_ENV_VAR = "AGY_CLI_MAX_CONCURRENCY"
 DEFAULT_AGY_MAX_CONCURRENCY = 8
 _CONCURRENCY_LOCK = threading.Lock()
@@ -188,14 +191,32 @@ def _verify_banner(path: str) -> None:
         raise AgyTransportError(f"{path} is not the headless Antigravity CLI (missing 'Usage of agy' / --print)")
 
 
-def resolve_agy_bin(agy_bin: str | os.PathLike[str] | None = None) -> str:
+def resolve_agy_bin(
+    agy_bin: str | os.PathLike[str] | None = None,
+    *,
+    allow_default_app_bundle: bool = False,
+) -> str:
     path = str(agy_bin or os.environ.get(AGY_CLI_ENV_VAR) or "")
+    if not path and allow_default_app_bundle:
+        for cand in DEFAULT_MACOS_AGY_HELPER_PATHS:
+            if Path(cand).is_file() and os.access(cand, os.X_OK):
+                path = cand
+                break
     if not path:
         raise AgyTransportError(
             f"agy binary not given: pass agy_bin= or set {AGY_CLI_ENV_VAR} (PATH 'agy' may be the IDE launcher)"
         )
     _verify_banner(path)
     return path
+
+
+def discover_agy_bin(
+    agy_bin: str | os.PathLike[str] | None = None,
+    *,
+    allow_default_app_bundle: bool = True,
+) -> str:
+    """Resolve explicit/env headless `agy` binary, optionally discovering the verified macOS app helper."""
+    return resolve_agy_bin(agy_bin, allow_default_app_bundle=allow_default_app_bundle)
 
 
 @lru_cache(maxsize=8)
@@ -207,9 +228,18 @@ def _ready_cached(path: str) -> str:
     return ""
 
 
-def ide_cli_ready(agy_bin: str | os.PathLike[str] | None = None) -> tuple[bool, str]:
+def ide_cli_ready(
+    agy_bin: str | os.PathLike[str] | None = None,
+    *,
+    allow_default_app_bundle: bool = False,
+) -> tuple[bool, str]:
     """Cheap readiness check for preflight and credential gates: binary configured and genuine."""
     path = str(agy_bin or os.environ.get(AGY_CLI_ENV_VAR) or "")
+    if not path and allow_default_app_bundle:
+        for cand in DEFAULT_MACOS_AGY_HELPER_PATHS:
+            if Path(cand).is_file() and os.access(cand, os.X_OK):
+                path = cand
+                break
     if not path:
         return False, f"{AGY_CLI_ENV_VAR} is not set; the IDE CLI transport needs the headless Antigravity CLI path"
     reason = _ready_cached(path)

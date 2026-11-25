@@ -238,6 +238,8 @@ def run_materializer_ingress(
     edge_by_id: dict[str, dict[str, Any]] = {}
     section_by_key: dict[tuple[str, str], dict[str, Any]] = {}
     skill_fact_rows: list[dict[str, Any]] = []
+    skill_bullet_link_counts: dict[str, int] = {}
+    skill_edge_fact_counts: dict[str, int] = {}
 
     for raw in payload.get("graph_edges") or []:
         if not isinstance(raw, dict):
@@ -370,6 +372,10 @@ def run_materializer_ingress(
         }
         edge_row = edge_by_id[eid]
         et = edge_row["edge_type"]
+        if et == "skill_supported_by_locked_bullet":
+            skill_bullet_link_counts[src] = skill_bullet_link_counts.get(src, 0) + 1
+        elif et == "skill_supported_by_fact":
+            skill_edge_fact_counts[src] = skill_edge_fact_counts.get(src, 0) + 1
 
         def _upsert_section(row: dict[str, Any]) -> None:
             sec_norm = normalize_section_id(str(row["section_id"]))
@@ -449,7 +455,12 @@ def run_materializer_ingress(
     for sid, row in skill_rows_by_id.items():
         if sid in FORBIDDEN_SKILL_NODE_IDS:
             continue
-        has_link = skill_link_counts.get(sid, 0) > 0
+        has_fact_link = (skill_link_counts.get(sid, 0) > 0) or (skill_edge_fact_counts.get(sid, 0) > 0)
+        has_bullet_proof = (
+            skill_bullet_link_counts.get(sid, 0) > 0
+            and has_valid_human_confirmed_archive_promotion(row)
+        )
+        has_link = has_fact_link or has_bullet_proof
         grade = confidence_grade_for_skill_row(
             row, has_fact_link=has_link, candidate_registry=candidate_registry
         )

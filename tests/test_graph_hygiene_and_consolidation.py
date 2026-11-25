@@ -9,6 +9,7 @@ import sqlite3
 
 import pytest
 
+from infrastructure.sdks_mcps.agy_cli_transport import AgyResult
 from apps_rg.fact_inventory.skills_graph.materializer import (
     materialize_augmented_skills_graph_sqlite,
 )
@@ -45,7 +46,8 @@ def test_graph_hygiene_audit_runs_readonly_and_detects_real_clusters() -> None:
     # Real clusters must be surfaced until operator approves remediation
     assert "CLUSTER-02A-EXACT-DUPLICATE-SKILL-TWINS" in cluster_ids or "CLUSTER-05-DRAFT-STRUCTURAL-PROMOTIONS" in cluster_ids
     for c in report["hitl_clusters"]:
-        assert c["council_debate"]["panel_mode"] == "hybrid_deterministic_council"
+        assert "council_debate" not in c
+        assert c["judge_metadata"]["panel_mode"] == "judge_v3_two_stage_cached"
         assert c["item_count"] == len(c["items"]) > 0
 
 
@@ -144,6 +146,54 @@ def test_apply_remediation_requires_explicit_approved_clusters() -> None:
         )
 
 
+def _hermetic_draft_fn(prompt: str, model: str, schema: dict, effort: str) -> AgyResult:
+    marker = "SKILL_EVIDENCE_PACKETS:\n"
+    raw = prompt.split(marker, 1)[1].strip()
+    packets = json.loads(raw)
+    descriptions = []
+    for p in packets:
+        sid = p["skill_id"]
+        lbl = p["label"]
+        sub = p.get("subpillar") or p.get("domain_id") or sid
+        descriptions.append(
+            {
+                "skill_id": sid,
+                "description": f"Verified {lbl} execution grounded in {sub} evidence records ({sid}).",
+            }
+        )
+    return AgyResult(
+        model_requested=model,
+        model_reported=model,
+        status="SUCCESS",
+        response=json.dumps({"descriptions": descriptions}),
+        structured_output={"descriptions": descriptions},
+        usage={"total_tokens": 250},
+        conversation_id=f"conv-draft-{model}",
+    )
+
+
+def _hermetic_pass_judge_fn(prompt: str, model: str, schema: dict, effort: str) -> AgyResult:
+    checks_spec = ((schema.get("properties") or {}).get("checks") or {}).get("properties") or {}
+    checks = {cid: {"verdict": "YES", "evidence_span": ""} for cid in checks_spec}
+    out = {
+        "cold_read_takeaway": "All graph hygiene changes match observed facts and locked resume bullets cleanly.",
+        "checks": checks,
+        "failure_tags": [],
+    }
+    if "recommended_option_id" in (schema.get("properties") or {}):
+        out["recommended_option_id"] = "accept_grounded_drafts"
+        out["forensic_rationale"] = "Grounded in verified evidence with zero fabrication."
+    return AgyResult(
+        model_requested=model,
+        model_reported=model,
+        status="SUCCESS",
+        response=json.dumps(out),
+        structured_output=out,
+        usage={"total_tokens": 310},
+        conversation_id=f"conv-judge-{model}",
+    )
+
+
 def test_sandbox_apply_skill_twin_merge_and_draft_promotion_preserves_redirects(tmp_path: Path) -> None:
     sandbox_db = tmp_path / "augmented_skills_graph.sqlite"
     sandbox_ledger = tmp_path / "master_skills_arsenal_ledger.json"
@@ -169,6 +219,10 @@ def test_sandbox_apply_skill_twin_merge_and_draft_promotion_preserves_redirects(
         apply_changes=True,
         skip_rematerialize=True,
         backup_dir=backup_dir,
+        run_judge_gate=True,
+        judge_receipt_path=tmp_path / "judge_receipt.json",
+        judge_artifact_path=tmp_path / "judge_artifact.json",
+        judge_call_fn=_hermetic_pass_judge_fn,
     )
     assert receipt["status"] == "PASS", json.dumps(
         {
@@ -352,7 +406,7 @@ def test_item_granular_decisions_file_end_to_end_across_clusters_in_sandbox(tmp_
     assert dry["mutated"] is False
     assert len(dry["skipped_or_held_items"]) == 1
 
-    # Full unmocked apply + SQLite rebuild + pre-promotion regression gates
+    # Full unmocked apply + SQLite rebuild + pre-promotion regression gates + cross-family judge gate
     receipt = apply_graph_hygiene_remediation(
         repo_root=REPO_ROOT,
         db_path=sandbox_db,
@@ -361,6 +415,11 @@ def test_item_granular_decisions_file_end_to_end_across_clusters_in_sandbox(tmp_
         apply_changes=True,
         skip_rematerialize=False,
         backup_dir=backup_dir,
+        run_judge_gate=True,
+        judge_receipt_path=tmp_path / "judge_receipt.json",
+        judge_artifact_path=tmp_path / "judge_artifact.json",
+        draft_call_fn=_hermetic_draft_fn,
+        judge_call_fn=_hermetic_pass_judge_fn,
     )
     assert receipt["status"] == "PASS", json.dumps(
         {
@@ -512,6 +571,7 @@ def test_item_granular_cluster_03_wire_metric_subset_never_touches_tracked_bundl
         apply_changes=True,
         skip_rematerialize=False,
         backup_dir=backup_dir,
+        run_judge_gate=False,
     )
     assert receipt["status"] == "PASS", json.dumps(
         {
@@ -600,6 +660,7 @@ def test_legacy_approve_inference_cli_single_item_and_alias_edge_cases(tmp_path:
             "--decisions-file",
             str(decisions_path),
             "--apply",
+            "--skip-judge-gate",
             "--receipt",
             str(receipt_path),
         ]
@@ -637,3 +698,166 @@ def test_string_similarity_helper_matches_die_scan1_formula() -> None:
     sim, seq, jacc = compute_string_similarity(n1, n2)
     assert 0.65 <= sim <= 1.0
     assert sim == round(0.55 * seq + 0.45 * jacc, 4)
+
+
+def test_promote_skill_external_rejects_unbacked_skill_and_uses_real_locked_bullets_without_fabrication(
+    tmp_path: Path,
+) -> None:
+    sandbox_db = tmp_path / "augmented_skills_graph.sqlite"
+    sandbox_ledger = tmp_path / "master_skills_arsenal_ledger.json"
+    shutil.copy2(REPO_ROOT / DEFAULT_GRAPH_REL, sandbox_db)
+    shutil.copy2(REPO_ROOT / DEFAULT_LEDGER_REL, sandbox_ledger)
+
+    # 1. Skill with zero genuine fact links AND zero locked bullet edges (e.g. only exp_insurtech_001)
+    # must fail closed with zero fabricated fact_insurtech_aws_001 fallback
+    with pytest.raises(ValueError, match="zero verified career fact links and zero verified locked resume bullet"):
+        apply_graph_hygiene_remediation(
+            repo_root=REPO_ROOT,
+            db_path=sandbox_db,
+            ledger_path=sandbox_ledger,
+            decisions_payload={
+                "items": {
+                    "skill_aws_modernization_pipeline_generation": {
+                        "cluster_id": "CLUSTER-06-INTERNAL-SKILL-PROMOTION-TRIAGE",
+                        "action_kind": "promote_skill_external",
+                        "decision": "APPROVE",
+                        "params": {"skill_id": "skill_aws_modernization_pipeline_generation"},
+                    }
+                }
+            },
+            apply_changes=True,
+            skip_rematerialize=True,
+            run_judge_gate=False,
+        )
+
+    # 2. Bullet-only skill promotes using its real locked bullet (bul_insurtech_002) with zero fabricated fact_id_links
+    receipt = apply_graph_hygiene_remediation(
+        repo_root=REPO_ROOT,
+        db_path=sandbox_db,
+        ledger_path=sandbox_ledger,
+        decisions_payload={
+            "items": {
+                "skill_aws_config_change_auditability": {
+                    "cluster_id": "CLUSTER-06-INTERNAL-SKILL-PROMOTION-TRIAGE",
+                    "action_kind": "promote_skill_external",
+                    "decision": "APPROVE",
+                    "params": {"skill_id": "skill_aws_config_change_auditability"},
+                }
+            }
+        },
+        apply_changes=True,
+        skip_rematerialize=False,
+        run_judge_gate=True,
+        judge_receipt_path=tmp_path / "bullet_judge_receipt.json",
+        judge_artifact_path=tmp_path / "bullet_judge_artifact.json",
+        judge_call_fn=_hermetic_pass_judge_fn,
+    )
+    assert receipt["status"] == "PASS"
+    assert receipt["judge_promotion_gate"]["distinct_families"] == 2
+    assert receipt["judge_promotion_gate"]["provenance_verified"] is True
+
+    updated_ledger = json.loads(sandbox_ledger.read_text(encoding="utf-8"))
+    srow = next(r for r in updated_ledger["skill_rows"] if r.get("skill_id") == "skill_aws_config_change_auditability")
+    assert srow["fact_id_links"] == ["bul_insurtech_002"]
+    assert "fact_insurtech_aws_001" not in json.dumps(srow)
+    promo = srow["human_confirmed_archive_promotion"]
+    assert promo["source_locked_bullet_ids"] == ["bul_insurtech_002"]
+    assert "source_fact_ids" not in promo
+
+    conn = open_readonly_sqlite(sandbox_db)
+    try:
+        row = conn.execute(
+            "SELECT activation_status, external_eligible FROM graph_nodes "
+            "WHERE node_id = 'skill_aws_config_change_auditability'"
+        ).fetchone()
+        assert tuple(row) == ("ACTIVE_CONFIRMED", 1)
+        fake_links = conn.execute(
+            "SELECT COUNT(*) FROM skill_fact_links "
+            "WHERE skill_id = 'skill_aws_config_change_auditability' AND fact_id = 'fact_insurtech_aws_001'"
+        ).fetchone()[0]
+        assert fake_links == 0
+    finally:
+        conn.close()
+
+
+def test_counterfactual_failing_promotion_judge_and_draft_veto_fail_closed(tmp_path: Path) -> None:
+    sandbox_db = tmp_path / "augmented_skills_graph.sqlite"
+    sandbox_ledger = tmp_path / "master_skills_arsenal_ledger.json"
+    shutil.copy2(REPO_ROOT / DEFAULT_GRAPH_REL, sandbox_db)
+    shutil.copy2(REPO_ROOT / DEFAULT_LEDGER_REL, sandbox_ledger)
+
+    def _veto_judge_fn(prompt: str, model: str, schema: dict, effort: str) -> AgyResult:
+        checks_spec = ((schema.get("properties") or {}).get("checks") or {}).get("properties") or {}
+        first_cid = next(iter(checks_spec))
+        marker = "BLIND_EVALUATION_PACKET:\n"
+        snippet = prompt.split(marker, 1)[1].strip()[:40]
+        checks = {
+            cid: {"verdict": ("NO" if cid == first_cid else "YES"), "evidence_span": (snippet if cid == first_cid else "")}
+            for cid in checks_spec
+        }
+        out = {
+            "cold_read_takeaway": "Detected critical provenance or evidence defect.",
+            "checks": checks,
+            "failure_tags": ["HALLUCINATED_FACT"],
+        }
+        if "recommended_option_id" in (schema.get("properties") or {}):
+            out["recommended_option_id"] = ""
+            out["forensic_rationale"] = "Rejected due to ungrounded claim."
+        return AgyResult(
+            model_requested=model,
+            model_reported=model,
+            status="SUCCESS",
+            response=json.dumps(out),
+            structured_output=out,
+            usage={"total_tokens": 220},
+            conversation_id=f"conv-veto-{model}",
+        )
+
+    # 1. Judge veto during grounded clone rewrite fails closed before writing ledger
+    with pytest.raises(ValueError, match="Judge v3 vetoed drafted skill descriptions"):
+        apply_graph_hygiene_remediation(
+            repo_root=REPO_ROOT,
+            db_path=sandbox_db,
+            ledger_path=sandbox_ledger,
+            decisions_payload={
+                "items": {
+                    "02b_veto": {
+                        "cluster_id": "CLUSTER-02B-VERBATIM-CLONE-SKILL-GROUPS",
+                        "action_kind": "differentiate_skill_descriptions",
+                        "decision": "APPROVE",
+                        "params": {"skill_ids": ["skill_greeks_vega", "skill_greeks_theta"]},
+                    }
+                }
+            },
+            apply_changes=True,
+            skip_rematerialize=True,
+            run_judge_gate=True,
+            draft_call_fn=_hermetic_draft_fn,
+            judge_call_fn=_veto_judge_fn,
+        )
+
+    # 2. Failing cross-family promotion jury flips receipt status to FAIL fail-closed
+    receipt = apply_graph_hygiene_remediation(
+        repo_root=REPO_ROOT,
+        db_path=sandbox_db,
+        ledger_path=sandbox_ledger,
+        decisions_payload={
+            "items": {
+                "exp_ey_001": {
+                    "cluster_id": "CLUSTER-05-DRAFT-STRUCTURAL-PROMOTIONS",
+                    "action_kind": "promote_structural_node",
+                    "decision": "APPROVE",
+                    "params": {"node_id": "employment_exp_ey_001"},
+                }
+            }
+        },
+        apply_changes=True,
+        skip_rematerialize=True,
+        run_judge_gate=True,
+        judge_receipt_path=tmp_path / "fail_judge_receipt.json",
+        judge_artifact_path=tmp_path / "fail_judge_artifact.json",
+        judge_call_fn=_veto_judge_fn,
+    )
+    assert receipt["status"] == "FAIL"
+    assert receipt["judge_promotion_gate"]["status"] == "FAIL"
+    assert receipt["judge_promotion_gate"]["critical_veto_triggered"] is True

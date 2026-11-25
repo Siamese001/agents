@@ -21,10 +21,10 @@ from apps_eval.graders.judge.v3_registry import (
 from tools.validate_judge_rubrics_v3 import validate_judge_rubrics_v3
 
 
-def test_v3_registry_loads_all_five_clusters_within_word_caps() -> None:
+def test_v3_registry_loads_all_six_clusters_within_word_caps() -> None:
     reg = JudgeRubricRegistryV3.load()
     profiles = reg.list_profiles()
-    assert len(profiles) == 12
+    assert len(profiles) == 14
     observed_clusters = {p.cluster for p in profiles}
     assert observed_clusters == set(REQUIRED_CLUSTERS)
 

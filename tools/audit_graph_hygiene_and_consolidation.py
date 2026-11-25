@@ -51,6 +51,42 @@ _STOPWORDS = frozenset(
 )
 
 
+def resolve_primary_repo_root(repo_root: Path) -> Path:
+    """Resolve primary git root (parent of .git common dir) when invoked inside a linked worktree."""
+    resolved = Path(repo_root).resolve()
+    git_dot = resolved / ".git"
+    if git_dot.is_file():
+        try:
+            text = git_dot.read_text(encoding="utf-8").strip()
+            if text.startswith("gitdir:"):
+                raw_gitdir = Path(text.split(":", 1)[1].strip())
+                gitdir = (raw_gitdir if raw_gitdir.is_absolute() else (resolved / raw_gitdir)).resolve()
+                commondir_file = gitdir / "commondir"
+                if commondir_file.is_file():
+                    cd_raw = Path(commondir_file.read_text(encoding="utf-8").strip())
+                    common = (cd_raw if cd_raw.is_absolute() else (gitdir / cd_raw)).resolve()
+                    if common.name == ".git":
+                        return common.parent
+        except OSError:
+            pass
+    return resolved
+
+
+def resolve_graph_db_path(repo_root: Path, db_path: Path | None = None) -> Path:
+    """Resolve graph SQLite DB path, falling back read-only to primary git root when in a fresh worktree."""
+    if db_path is not None:
+        return Path(db_path).resolve()
+    resolved_root = Path(repo_root).resolve()
+    direct = resolved_root / DEFAULT_GRAPH_REL
+    if direct.is_file():
+        return direct
+    primary = resolve_primary_repo_root(resolved_root)
+    primary_db = primary / DEFAULT_GRAPH_REL
+    if primary_db.is_file():
+        return primary_db
+    return direct
+
+
 def open_readonly_sqlite(db_path: Path) -> sqlite3.Connection:
     """Open SQLite strictly read-only with PRAGMA query_only=ON."""
     resolved = Path(db_path).resolve()
@@ -671,9 +707,9 @@ def _make_cluster(
     requires_isolated_scrutiny: bool,
     confidence_top: float,
     confidence_second: float,
-    team_alpha: str,
-    team_beta: str,
-    verdict: str,
+    triage_rationale: str,
+    recommended_disposition: str,
+    high_risk_for_llm_judge: bool = False,
 ) -> dict[str, Any]:
     margin = round(confidence_top - confidence_second, 4)
     return {
@@ -688,11 +724,14 @@ def _make_cluster(
         "confidence_second": confidence_second,
         "margin": margin,
         "autonomous_permitted": (not requires_isolated_scrutiny) and margin > 0.20 and confidence_top >= 0.65,
-        "council_debate": {
-            "panel_mode": "hybrid_deterministic_council",
-            "team_alpha_pro_consolidation": team_alpha,
-            "team_beta_boundary_defense": team_beta,
-            "verdict": verdict,
+        "judge_metadata": {
+            "panel_mode": "judge_v3_two_stage_cached",
+            "high_risk_cluster": bool(high_risk_for_llm_judge),
+            "triage_profile_id": "graph_hygiene:forensic_item_triage",
+            "promotion_profile_id": "graph_hygiene:promotion_release_gate",
+            "triage_rationale": triage_rationale,
+            "recommended_disposition": recommended_disposition,
+            "judged_item_count": 0,
         },
         "items": items,
     }
@@ -727,9 +766,9 @@ def build_hitl_clusters(
                 requires_isolated_scrutiny=False,
                 confidence_top=0.96,
                 confidence_second=0.35,
-                team_alpha="Unverified synthetic or retired rows must never surface in FTS5, semantic units, or skill edges.",
-                team_beta="Confirm base graph_nodes quarantine rows stay preserved for audit lineage while excluding them from retrieval.",
-                verdict="PURGE_FROM_RETRIEVAL_KEEP_QUARANTINE_NODE",
+                triage_rationale="Unverified synthetic or retired rows must stay excluded from FTS5, semantic units, and skill edges while preserving audit rows.",
+                recommended_disposition="PURGE_FROM_RETRIEVAL_KEEP_QUARANTINE_NODE",
+                high_risk_for_llm_judge=True,
             )
         )
 
@@ -745,9 +784,9 @@ def build_hitl_clusters(
                 requires_isolated_scrutiny=True,
                 confidence_top=0.88,
                 confidence_second=0.72,
-                team_alpha="Exact label twins and Phase-2 copy-paste twins split retrieval rank and dilute fact provenance.",
-                team_beta="Union all linked facts onto the canonical survivor and preserve retired_aliases so downstream lookups stay intact.",
-                verdict="MERGE_WITH_ALIAS_REDIRECT_UPON_APPROVAL",
+                triage_rationale="Exact label twins and Phase-2 copy-paste twins split retrieval rank; union facts onto canonical survivor with alias redirects.",
+                recommended_disposition="MERGE_WITH_ALIAS_REDIRECT_UPON_APPROVAL",
+                high_risk_for_llm_judge=True,
             )
         )
 
@@ -763,9 +802,9 @@ def build_hitl_clusters(
                 requires_isolated_scrutiny=True,
                 confidence_top=0.81,
                 confidence_second=0.69,
-                team_alpha="Identical descriptions across 2-6 distinct skills cause dense vector collisions and redundant top-k results.",
-                team_beta="Some sub-skills (e.g., Vega vs Theta, GSI vs Partner Training) may represent distinct concepts needing distinct descriptions rather than blind merge.",
-                verdict="ISOLATED_REVIEW_MERGE_OR_REWRITE_DESCRIPTIONS",
+                triage_rationale="Identical descriptions across distinct skills cause dense vector collisions; evaluate merge vs evidence-grounded differentiation.",
+                recommended_disposition="ISOLATED_REVIEW_MERGE_OR_REWRITE_DESCRIPTIONS",
+                high_risk_for_llm_judge=True,
             )
         )
 
@@ -781,9 +820,9 @@ def build_hitl_clusters(
                 requires_isolated_scrutiny=True,
                 confidence_top=0.79,
                 confidence_second=0.67,
-                team_alpha="Fragmented domains (e.g., partner_gtm vs phase2_gtm_presales vs gtm_presales_motion) fragment 3-hop capability walks.",
-                team_beta="Check role-family projection profiles before retiring domain aliases so C0.3 domain filters never break.",
-                verdict="ISOLATED_DOMAIN_CONSOLIDATION_REVIEW",
+                triage_rationale="Overlapping capability domains fragment 3-hop capability walks; verify domain consolidation against role-family projections.",
+                recommended_disposition="ISOLATED_DOMAIN_CONSOLIDATION_REVIEW",
+                high_risk_for_llm_judge=True,
             )
         )
 
@@ -799,9 +838,9 @@ def build_hitl_clusters(
                 requires_isolated_scrutiny=True,
                 confidence_top=0.86,
                 confidence_second=0.71,
-                team_alpha="Verified resume metrics unreachable from skill_surfaces_metric_outcome are invisible to skill-seeded 3-hop retrieval.",
-                team_beta="Only wire metrics to skills that already share an explicit verified fact or engagement edge (zero invented links).",
-                verdict="WIRE_VIA_VERIFIED_2HOP_CLOSURE",
+                triage_rationale="Verified metrics lacking skill_surfaces_metric_outcome links are invisible to skill-seeded retrieval; wire only via explicit 2-hop fact or engagement proof.",
+                recommended_disposition="WIRE_VIA_VERIFIED_2HOP_CLOSURE",
+                high_risk_for_llm_judge=True,
             )
         )
 
@@ -820,9 +859,9 @@ def build_hitl_clusters(
                 requires_isolated_scrutiny=True,
                 confidence_top=0.85,
                 confidence_second=0.70,
-                team_alpha="Zero-edge retired policy nodes add noise to graph topology and count metrics.",
-                team_beta="Preserve active section anchors unless confirmed unused by section eligibility projections.",
-                verdict="ARCHIVE_RETIRED_PRESERVE_ACTIVE_SECTIONS",
+                triage_rationale="Archive zero-edge retired policy nodes while preserving active resume section anchors unless explicitly retired.",
+                recommended_disposition="ARCHIVE_RETIRED_PRESERVE_ACTIVE_SECTIONS",
+                high_risk_for_llm_judge=False,
             )
         )
 
@@ -839,9 +878,9 @@ def build_hitl_clusters(
                 requires_isolated_scrutiny=True,
                 confidence_top=0.90,
                 confidence_second=0.74,
-                team_alpha="Core pillars, domains, employments, and career tracks with live edges belong in ACTIVE status, not DRAFT.",
-                team_beta="Verify zero DRAFT skills or unverified facts are touched by structural promotion.",
-                verdict="PROMOTE_STRUCTURAL_DRAFT_TO_ACTIVE",
+                triage_rationale="Edge-backed structural pillars, domains, employments, and career tracks belong in ACTIVE status without touching DRAFT skills or unverified facts.",
+                recommended_disposition="PROMOTE_STRUCTURAL_DRAFT_TO_ACTIVE",
+                high_risk_for_llm_judge=False,
             )
         )
 
@@ -858,9 +897,9 @@ def build_hitl_clusters(
                 requires_isolated_scrutiny=True,
                 confidence_top=0.76,
                 confidence_second=0.68,
-                team_alpha="Confirmed skills already backed by verified facts or locked bullets may unlock higher recall if promoted.",
-                team_beta="Some internal skills are intentionally internal-only per claim policy; require explicit operator sign-off.",
-                verdict="OPERATOR_PROMOTION_TRIAGE_REQUIRED",
+                triage_rationale="Confirmed internal skills backed by verified facts or locked resume bullets require forensic provenance and claim-policy triage before external promotion.",
+                recommended_disposition="OPERATOR_PROMOTION_TRIAGE_REQUIRED",
+                high_risk_for_llm_judge=True,
             )
         )
 
@@ -885,9 +924,9 @@ def build_hitl_clusters(
                 requires_isolated_scrutiny=True,
                 confidence_top=0.80,
                 confidence_second=0.66,
-                team_alpha="Hex labels carry zero semantic value in FTS5/BM25 and 33x sibling-link bloat wastes storage and scan time.",
-                team_beta="Keep repo_evidence node IDs stable while enriching labels and capping sibling links to top-k peers.",
-                verdict="ENRICH_STUB_LABELS_AND_CAP_SIBLINGS",
+                triage_rationale="Enrich verified live repo_evidence stubs, prune dead missing paths, and cap sibling-link fan-out to top-k peers.",
+                recommended_disposition="ENRICH_STUB_LABELS_AND_CAP_SIBLINGS",
+                high_risk_for_llm_judge=False,
             )
         )
 
@@ -897,10 +936,14 @@ def build_hitl_clusters(
 def run_graph_hygiene_audit(
     repo_root: Path = REPO_ROOT,
     db_path: Path | None = None,
+    *,
+    run_llm_judge: bool = False,
+    judge_clusters: Sequence[str] | None = None,
+    judge_cache_path: Path | None = None,
 ) -> dict[str, Any]:
     """Execute full read-only DIE-parity graph hygiene, dedup, consolidation & promotion audit."""
     resolved_root = Path(repo_root).resolve()
-    target_db = Path(db_path).resolve() if db_path is not None else (resolved_root / DEFAULT_GRAPH_REL)
+    target_db = resolve_graph_db_path(resolved_root, db_path)
     conn = open_readonly_sqlite(target_db)
     try:
         node_count = int(conn.execute("SELECT COUNT(*) FROM graph_nodes").fetchone()[0])
@@ -921,7 +964,7 @@ def run_graph_hygiene_audit(
     total_actionable_items = sum(int(c["item_count"]) for c in clusters)
     is_clean = len(p0_clusters) == 0 and len(p1_clusters) == 0 and regression_gates["status"] == "PASS"
 
-    return {
+    report: dict[str, Any] = {
         "schema_version": "agents.graph_hygiene_consolidation_audit.v1",
         "timestamp_utc": dt.datetime.now(dt.timezone.utc).isoformat(),
         "repo_root": str(resolved_root),
@@ -956,6 +999,30 @@ def run_graph_hygiene_audit(
         "hitl_clusters": clusters,
     }
 
+    from tools.graph_hygiene_judge_v3 import (  # noqa: E402
+        HIGH_RISK_CLUSTERS,
+        evaluate_hygiene_cluster_v3,
+        hydrate_audit_report_with_cached_judges,
+    )
+
+    hydrate_audit_report_with_cached_judges(report, repo_root=resolved_root, cache_path=judge_cache_path)
+    if run_llm_judge:
+        target_cids = set(judge_clusters) if judge_clusters else set(HIGH_RISK_CLUSTERS)
+        for c in report["hitl_clusters"]:
+            if c["cluster_id"] in target_cids:
+                verdicts = evaluate_hygiene_cluster_v3(
+                    cluster=c,
+                    repo_root=resolved_root,
+                    cache_path=judge_cache_path,
+                )
+                for it, verd in zip(c.get("items") or [], verdicts):
+                    it["judge_verdict"] = verd
+                c["judge_metadata"]["judged_item_count"] = sum(
+                    1 for v in verdicts if v.get("llm_judge_executed")
+                )
+
+    return report
+
 
 def render_cluster_markdown_preview(report: Mapping[str, Any]) -> str:
     """Render concise plain-English cluster preview table for operator HITL review."""
@@ -966,14 +1033,17 @@ def render_cluster_markdown_preview(report: Mapping[str, Any]) -> str:
         f"- **Status:** `{report['status']}` (`{report['total_clusters']}` clusters, `{report['total_actionable_items']}` items)",
         f"- **Pre-Promotion Regression Gate:** `{report['pre_promotion_regression_gates']['status']}`",
         "",
-        "| Cluster ID | Severity | Items | Scrutiny | Proposed Action | Council Verdict |",
-        "| :--- | :---: | :---: | :---: | :--- | :--- |",
+        "| Cluster ID | Severity | Items | Scrutiny | Proposed Action | Judge v3 Coverage |",
+        "| :--- | :---: | :---: | :---: | :--- | :---: |",
     ]
     for c in report.get("hitl_clusters") or []:
         scrutiny = "HITL_REQUIRED" if c["requires_isolated_scrutiny"] else "AUTONOMOUS_OK"
+        jmeta = c.get("judge_metadata") or {}
+        judged = int(jmeta.get("judged_item_count") or 0)
+        tier_tag = "HIGH_RISK" if jmeta.get("high_risk_cluster") else "STANDARD"
         lines.append(
             f"| `{c['cluster_id']}` | {c['severity']} | {c['item_count']} | {scrutiny} | "
-            f"`{c['proposed_fix']}` | `{c['council_debate']['verdict']}` |"
+            f"`{c['proposed_fix']}` | `{judged}/{c['item_count']} ({tier_tag})` |"
         )
     return "\n".join(lines) + "\n"
 
@@ -987,9 +1057,17 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--markdown", action="store_true", help="Emit Markdown cluster preview table.")
     parser.add_argument("--output", type=Path, default=None, help="Optional path to write JSON hygiene package.")
     parser.add_argument("--strict-hygiene", action="store_true", help="Exit 1 when any P0/P1 hygiene cluster is open.")
+    parser.add_argument("--run-llm-judge", action="store_true", help="Execute live Stage B Judge v3 forensic triage on high-risk clusters.")
+    parser.add_argument("--judge-clusters", type=str, default="", help="Optional comma-separated cluster IDs to judge.")
     args = parser.parse_args(argv)
 
-    report = run_graph_hygiene_audit(repo_root=args.repo_root, db_path=args.db)
+    selected_judge_clusters = [c.strip() for c in args.judge_clusters.split(",") if c.strip()] or None
+    report = run_graph_hygiene_audit(
+        repo_root=args.repo_root,
+        db_path=args.db,
+        run_llm_judge=bool(args.run_llm_judge),
+        judge_clusters=selected_judge_clusters,
+    )
     if args.output is not None:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
