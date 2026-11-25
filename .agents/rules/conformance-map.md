@@ -69,7 +69,7 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 | :--- | :--- | :--- |
 | Policy | `config/governance/policy_registry.yaml` | Machine-readable SSOT for governance thresholds |
 | Rule | `.agents/rules/hitl-decisions.md` | Atomic presentation, 20% margin rule, 65% confidence floor (`0.65`), calibrated confidence |
-| Policy | `~/.gemini/config/plugins/core-governance` | Centralized 5-way workspace/IDE & 4-way policy/Studio zero-drift parity (`INV-ZERO-DRIFT-CROSS-REPO-PARITY`, `INV-CENTRALIZED-LABELING-STUDIO-ONLY`, `0` violations) |
+| Policy | `~/.gemini/config/plugins/core-governance` | Centralized 5-way workspace/IDE, 4-way policy/Studio parity, and top green-check closeout table (`INV-ZERO-DRIFT-CROSS-REPO-PARITY`, `INV-CENTRALIZED-LABELING-STUDIO-ONLY`, `INV-WAVE-MERGE-WORKTREE-CLOSEOUT-TABLE`, `0` violations) |
 | Rule | `.agents/rules/unified-agent-architecture.md` | 5 Pillars, delegation contracts, and A2A guardrails |
 | Rule | `.agents/rules/sidecar-automation-routing.md` | On-demand assurance workflows and zero daily schedules |
 | Tool | `tools/hitl_governance.py` | Calibrated margin evaluator and SQLite decision store |

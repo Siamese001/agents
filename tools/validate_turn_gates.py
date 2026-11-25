@@ -632,13 +632,25 @@ def validate_post_turn_gate(
                 has_table = (
                     "Wave Summary Table" in candidate_response
                     or ("| Wave #" in candidate_response and "Check/Open" in candidate_response)
+                    or ("| stage |" in candidate_response.lower() and "| status |" in candidate_response.lower() and "✅" in candidate_response)
                 )
                 if claims_wave_completion and not has_table:
                     issues.append("Response claims wave completion but does not include the mandatory Wave Summary Table with check marks.")
+                closeout_errs: list[str] = []
+                _core_mcp = Path.home() / ".gemini" / "config" / "plugins" / "core-governance" / "mcp"
+                if (_core_mcp / "closeout_checkmark_contract.py").is_file():
+                    if str(_core_mcp) not in sys.path:
+                        sys.path.insert(0, str(_core_mcp))
+                    from closeout_checkmark_contract import verify_merge_and_worktree_closeout_prominence
+
+                    ok_close, closeout_errs = verify_merge_and_worktree_closeout_prominence(candidate_response)
+                    if not ok_close:
+                        issues.extend(closeout_errs)
                 checks["wave_summary_table"] = {
-                    "status": "PASS" if not (claims_wave_completion and not has_table) else "FAIL",
+                    "status": "PASS" if not (claims_wave_completion and not has_table) and not closeout_errs else "FAIL",
                     "has_completed_waves": has_completed_waves,
                     "has_table": has_table,
+                    "closeout_errors": closeout_errs,
                 }
         except (OSError, ValueError, TypeError) as exc:  # guardian: allow-silent-swallow -- fallback if plan parsing fails
             checks["wave_summary_table"] = {"status": "PASS", "note": str(exc)}

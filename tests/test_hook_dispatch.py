@@ -1050,6 +1050,68 @@ Tweak compiler.py without artificial pipeline-bundling rejection.
             )
             self.assertFalse(allowed_new)
 
+    def test_post_invocation_enforces_centralized_closeout_checkmark_table(self) -> None:
+        """post_invocation must enforce INV-WAVE-MERGE-WORKTREE-CLOSEOUT-TABLE via core-governance."""
+        buried_payload = {
+            "steps": [
+                {"type": "USER_INPUT", "source": "USER_EXPLICIT", "content": "Merge and wrap up"},
+                {
+                    "type": "PLANNER_RESPONSE",
+                    "source": "MODEL",
+                    "tool_calls": [
+                        {
+                            "name": "run_command",
+                            "args": {"CommandLine": "python tools/pr_governance.py merge feat/sample"},
+                        }
+                    ],
+                    "content": "Command exited with code 0.",
+                },
+                {
+                    "type": "PLANNER_RESPONSE",
+                    "source": "MODEL",
+                    "content": "All waves complete. Promoted feat/sample into main and deleted the feature worktree.",
+                },
+            ]
+        }
+        res_bad = subprocess.run(
+            [sys.executable, "tools/hook_dispatch.py", "--hook", "post_invocation"],
+            input=json.dumps(buried_payload),
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
+            timeout=10,
+        )
+        self.assertEqual(res_bad.returncode, 0)
+        data_bad = json.loads(res_bad.stdout.strip())
+        self.assertEqual(data_bad.get("terminationBehavior"), "force_continue")
+        msg = data_bad["injectSteps"][0]["ephemeralMessage"]
+        self.assertIn("INV-WAVE-MERGE-WORKTREE-CLOSEOUT-TABLE", msg)
+
+        good_reply = (
+            "| Stage | Status | Outcome & Verification |\n"
+            "| :--- | :--- | :--- |\n"
+            "| **Wave 1** | ✅ Complete | Tests passed |\n"
+            "| **Merge to Main** | ✅ Complete | Merged feat/sample into main |\n"
+            "| **Worktree Deletion** | ✅ Complete | Removed .worktrees/feat_sample |\n\n"
+            "All waves complete."
+        )
+        good_payload = {
+            "steps": [
+                *buried_payload["steps"][:2],
+                {"type": "PLANNER_RESPONSE", "source": "MODEL", "content": good_reply},
+            ]
+        }
+        res_good = subprocess.run(
+            [sys.executable, "tools/hook_dispatch.py", "--hook", "post_invocation"],
+            input=json.dumps(good_payload),
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
+            timeout=10,
+        )
+        self.assertEqual(res_good.returncode, 0)
+        self.assertEqual(json.loads(res_good.stdout.strip()), {"injectSteps": []})
+
 
 if __name__ == "__main__":
     unittest.main()
