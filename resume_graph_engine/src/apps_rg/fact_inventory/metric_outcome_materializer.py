@@ -483,6 +483,13 @@ def metric_outcome_node_and_edge_rows(
                             "traversable": 1,
                         }
                     )
+                metric_row = rows.get(mid_s) or {}
+                metric_approval = str(metric_row.get("approval_status") or "").strip().upper()
+                if (
+                    not bool(metric_row.get("approved"))
+                    or metric_approval in ("QUARANTINED_UNVERIFIED_SYNTHETIC", "BLOCKED", "RETIRED")
+                ):
+                    continue
                 for sid in sids:
                     sid_s = str(sid).strip()
                     if not sid_s or sid_s in effective_blocked_skill_ids:

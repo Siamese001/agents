@@ -103,7 +103,12 @@ def run_materializer_ingress(
     out_path = db_path or default_graph_sqlite_path(root)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     _require_sidecar_free_atomic_target(out_path)
-    payload = graph or load_augmented_skills_graph(repo_root=root)
+    if graph is not None:
+        payload = graph
+    elif json_source_path is not None and Path(json_source_path).is_file():
+        payload = json.loads(Path(json_source_path).read_text(encoding="utf-8"))
+    else:
+        payload = load_augmented_skills_graph(repo_root=root)
     validate_arsenal_ledger_shape(payload)
     src_path = json_source_path or default_arsenal_ledger_path(root)
     ledger_hash = _sha256_hex(json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")))
@@ -577,6 +582,48 @@ def run_materializer_ingress(
         ts=ts,
         ledger_hash=ledger_hash,
     )
+    raw_redirects = payload.get("_graph_hygiene_redirects") or []
+    if isinstance(raw_redirects, list) and raw_redirects:
+        redirect_map: dict[str, str] = {
+            str(r["retired_node_id"]): str(r["survivor_node_id"])
+            for r in raw_redirects
+            if isinstance(r, dict) and r.get("retired_node_id") and r.get("survivor_node_id")
+        }
+        if redirect_map:
+            def _resolve_redirect(nid: str) -> str:
+                seen: set[str] = set()
+                cur = nid
+                while cur in redirect_map and cur not in seen:
+                    seen.add(cur)
+                    cur = redirect_map[cur]
+                return cur
+
+            repointed: list[dict[str, Any]] = []
+            seen_triples: set[tuple[str, str, str]] = set()
+            for e in edge_rows:
+                src = _resolve_redirect(str(e.get("source_node_id") or ""))
+                tgt = _resolve_redirect(str(e.get("target_node_id") or ""))
+                etype = str(e.get("edge_type") or "")
+                if src == tgt:
+                    continue
+                if src != e.get("source_node_id") or tgt != e.get("target_node_id"):
+                    e = dict(e)
+                    old_src, old_tgt = str(e.get("source_node_id") or ""), str(e.get("target_node_id") or "")
+                    e["source_node_id"] = src
+                    e["target_node_id"] = tgt
+                    if "edge_id" in e:
+                        eid = str(e["edge_id"])
+                        if old_src and old_src != src:
+                            eid = eid.replace(old_src, src)
+                        if old_tgt and old_tgt != tgt:
+                            eid = eid.replace(old_tgt, tgt)
+                        e["edge_id"] = eid
+                triple = (src, tgt, etype)
+                if triple in seen_triples:
+                    continue
+                seen_triples.add(triple)
+                repointed.append(e)
+            edge_rows = repointed
     edge_rows = finalize_and_harden_edge_rows(
         edge_rows,
         build_run_id=build_run_id,

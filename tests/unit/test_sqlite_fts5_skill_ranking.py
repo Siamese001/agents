@@ -31,10 +31,31 @@ def test_materializer_populates_graph_nodes_fts(tmp_path: Path) -> None:
 
     conn = sqlite3.connect(str(db_path))
     try:
-        node_count = int(conn.execute("SELECT COUNT(*) FROM graph_nodes").fetchone()[0])
+        active_count = int(
+            conn.execute(
+                """
+                SELECT COUNT(*) FROM graph_nodes
+                WHERE COALESCE(activation_status, '') NOT IN (
+                    'QUARANTINED_UNVERIFIED_SYNTHETIC', 'BLOCKED', 'RETIRED'
+                )
+                """
+            ).fetchone()[0]
+        )
         fts_count = int(conn.execute("SELECT COUNT(*) FROM graph_nodes_fts").fetchone()[0])
-        assert node_count > 0
-        assert fts_count == node_count
+        leaked_fts = int(
+            conn.execute(
+                """
+                SELECT COUNT(*) FROM graph_nodes_fts f
+                JOIN graph_nodes gn ON gn.node_id = f.node_id
+                WHERE COALESCE(gn.activation_status, '') IN (
+                    'QUARANTINED_UNVERIFIED_SYNTHETIC', 'BLOCKED', 'RETIRED'
+                )
+                """
+            ).fetchone()[0]
+        )
+        assert active_count > 0
+        assert fts_count == active_count
+        assert leaked_fts == 0
 
         ranked = sqlite_fts5_bm25_rank(
             conn,

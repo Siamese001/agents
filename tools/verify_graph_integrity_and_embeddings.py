@@ -112,8 +112,43 @@ def verify_graph_database(db_path: Path, *, read_only: bool = False) -> dict[str
 
     c.execute("SELECT count(*) FROM graph_nodes_fts")
     fts_count = int(c.fetchone()[0])
-    if fts_count != node_count:
-        raise ValueError(f"graph_nodes_fts count mismatch: {fts_count} != {node_count}")
+    c.execute(
+        """
+        SELECT count(*) FROM graph_nodes
+        WHERE COALESCE(activation_status, '') NOT IN (
+            'QUARANTINED_UNVERIFIED_SYNTHETIC', 'BLOCKED', 'RETIRED'
+        )
+        """
+    )
+    eligible_fts_count = int(c.fetchone()[0])
+    if fts_count != eligible_fts_count:
+        raise ValueError(
+            f"graph_nodes_fts active parity mismatch: {fts_count} != {eligible_fts_count}"
+        )
+    c.execute(
+        """
+        SELECT count(*) FROM graph_nodes_fts f
+        JOIN graph_nodes gn ON gn.node_id = f.node_id
+        WHERE COALESCE(gn.activation_status, '') IN (
+            'QUARANTINED_UNVERIFIED_SYNTHETIC', 'BLOCKED', 'RETIRED'
+        )
+        """
+    )
+    leaked_fts = int(c.fetchone()[0])
+    if leaked_fts > 0:
+        raise ValueError(f"Quarantined/blocked/retired nodes leaked into graph_nodes_fts: {leaked_fts}")
+    c.execute(
+        """
+        SELECT count(*) FROM semantic_unit su
+        JOIN graph_nodes gn ON gn.node_id = su.root_node_id
+        WHERE COALESCE(gn.activation_status, '') IN (
+            'QUARANTINED_UNVERIFIED_SYNTHETIC', 'BLOCKED', 'RETIRED'
+        )
+        """
+    )
+    leaked_units = int(c.fetchone()[0])
+    if leaked_units > 0:
+        raise ValueError(f"Quarantined/blocked/retired nodes leaked into semantic_unit: {leaked_units}")
 
     fts_ranked = sqlite_fts5_bm25_rank(
         conn,

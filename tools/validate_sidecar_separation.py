@@ -100,6 +100,7 @@ EXPECTED_AGENTS_SIDECARS: dict[str, dict[str, Any]] = {
         "target_skill": "agents-domain-assurance",
         "deterministic_entrypoint": "tools/retrieval_surface_auditor.py",
         "secondary_entrypoints": (
+            "tools/audit_graph_hygiene_and_consolidation.py",
             "tools/audit_qrels_coverage.py",
             "tools/audit_resume_fact_provenance.py",
             "tools/verify_graph_integrity_and_embeddings.py",

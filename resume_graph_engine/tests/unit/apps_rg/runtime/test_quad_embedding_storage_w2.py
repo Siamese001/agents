@@ -61,10 +61,13 @@ def test_materialized_sqlite_populates_all_four_index_families(tmp_path: Path) -
         sparse_count = conn.execute("SELECT COUNT(*) FROM assertion_learned_sparse").fetchone()[0]
         colbert_count = conn.execute("SELECT COUNT(*) FROM assertion_colbert_vectors").fetchone()[0]
         fts_count = conn.execute("SELECT COUNT(*) FROM graph_nodes_fts").fetchone()[0]
-        node_count = conn.execute("SELECT COUNT(*) FROM graph_nodes").fetchone()[0]
+        active_node_count = conn.execute(
+            "SELECT COUNT(*) FROM graph_nodes "
+            "WHERE COALESCE(activation_status, '') NOT IN ('QUARANTINED_UNVERIFIED_SYNTHETIC', 'BLOCKED', 'RETIRED')"
+        ).fetchone()[0]
 
         assert unit_count == dense_unit_count
-        assert fts_count == node_count
+        assert fts_count == active_node_count
         assert sparse_count == unit_count + elig_skill_count
         assert colbert_count == unit_count + elig_skill_count
 

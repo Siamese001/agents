@@ -202,6 +202,9 @@ def _materialize_augmented_skills_graph_sqlite_locked(
             """
             INSERT INTO graph_nodes_fts (node_id, node_type, label, description)
             SELECT node_id, node_type, label, description FROM graph_nodes
+            WHERE COALESCE(activation_status, '') NOT IN (
+                'QUARANTINED_UNVERIFIED_SYNTHETIC', 'BLOCKED', 'RETIRED'
+            )
             """
         )
         conn.executemany(

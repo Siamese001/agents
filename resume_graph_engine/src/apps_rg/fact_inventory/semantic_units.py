@@ -162,6 +162,8 @@ def build_skill_evidence_clusters(
             FROM graph_edges e JOIN graph_nodes m ON m.node_id = e.target_node_id
             WHERE e.source_node_id = ? AND e.edge_type = 'skill_surfaces_metric_outcome'
               AND e.confidence_tier IN ('HIGH', 'MEDIUM')
+              AND COALESCE(m.external_eligible, 0) = 1
+              AND COALESCE(m.activation_status, '') NOT IN ('QUARANTINED_UNVERIFIED_SYNTHETIC', 'BLOCKED', 'RETIRED', 'DRAFT')
             ORDER BY e.edge_id
             """,
             (skill_id,),
@@ -283,6 +285,8 @@ def build_engagement_episodes(
             SELECT e.edge_id, m.node_id, m.label, m.description FROM graph_edges e
             JOIN graph_nodes m ON m.node_id = e.source_node_id
             WHERE e.target_node_id = ? AND e.edge_type = 'metric_outcome_anchors_bundle'
+              AND COALESCE(m.external_eligible, 0) = 1
+              AND COALESCE(m.activation_status, '') NOT IN ('QUARANTINED_UNVERIFIED_SYNTHETIC', 'BLOCKED', 'RETIRED', 'DRAFT')
             """,
             (eng_id,),
         )
@@ -367,7 +371,13 @@ def build_metric_outcome_stories(
         """
         SELECT node_id, label, description, employer, career_epoch,
                confidence_tier, confidence_score
-        FROM graph_nodes WHERE node_type = 'metric_outcome' ORDER BY node_id
+        FROM graph_nodes
+        WHERE node_type = 'metric_outcome'
+          AND COALESCE(external_eligible, 0) = 1
+          AND COALESCE(activation_status, '') NOT IN (
+              'QUARANTINED_UNVERIFIED_SYNTHETIC', 'BLOCKED', 'RETIRED', 'DRAFT'
+          )
+        ORDER BY node_id
         """
     )
     metric_nodes = cursor.fetchall()

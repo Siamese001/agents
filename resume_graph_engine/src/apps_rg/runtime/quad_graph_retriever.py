@@ -301,11 +301,41 @@ class QuadGraphHybridRetriever:
         self.sparse_cache.ensure_loaded(self.conn, db_path=self.db_path, digest=digest)
         self.colbert_cache.ensure_loaded(self.conn, db_path=self.db_path, digest=digest)
 
-        authority_ids = (
-            set(allowed_ids)
-            if allowed_ids is not None
-            else set(self.vector_cache.record_ids) | set(self.sparse_cache.record_ids)
-        )
+        if allowed_ids is not None:
+            authority_ids = set(allowed_ids)
+        else:
+            cached_ids = set(self.vector_cache.record_ids) | set(self.sparse_cache.record_ids)
+            eligible_ids: set[str] = set()
+            has_su = self.conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE name = 'semantic_unit' LIMIT 1"
+            ).fetchone()
+            if has_su:
+                eligible_ids.update(
+                    str(r[0])
+                    for r in self.conn.execute(
+                        "SELECT su.unit_id FROM semantic_unit su "
+                        "LEFT JOIN graph_nodes gn ON gn.node_id = su.root_node_id "
+                        "WHERE COALESCE(su.external_eligible, 0) = 1 "
+                        "  AND COALESCE(gn.activation_status, '') NOT IN ("
+                        "      'QUARANTINED_UNVERIFIED_SYNTHETIC', 'BLOCKED', 'RETIRED'"
+                        "  )"
+                    ).fetchall()
+                )
+            has_gn = self.conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE name = 'graph_nodes' LIMIT 1"
+            ).fetchone()
+            if has_gn:
+                eligible_ids.update(
+                    str(r[0])
+                    for r in self.conn.execute(
+                        "SELECT node_id FROM graph_nodes "
+                        "WHERE COALESCE(external_eligible, 0) = 1 "
+                        "  AND COALESCE(activation_status, '') NOT IN ("
+                        "      'QUARANTINED_UNVERIFIED_SYNTHETIC', 'BLOCKED', 'RETIRED'"
+                        "  )"
+                    ).fetchall()
+                )
+            authority_ids = (cached_ids & eligible_ids) if eligible_ids else cached_ids
         if not authority_ids:
             return {
                 "results": [],
