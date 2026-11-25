@@ -48,11 +48,11 @@ def test_policy_registry_codifies_centralized_judge_v3_and_14px_studio_invariant
     assert by_id["INV-JUDGE-NON-DEGENERATE-WEIGHTS"]["enforcer"] == "tools/validate_judge_rubrics_v3.py"
 
 
-def test_all_12_enabled_profiles_in_valid_surfaces_and_multi_ssot_audit_passes() -> None:
+def test_all_14_enabled_profiles_in_valid_surfaces_and_multi_ssot_audit_passes() -> None:
     """Verify 100% of enabled Judge v3 profiles are valid human store surfaces and pass multi-SSOT audit."""
     manifest = json.loads((REPO_ROOT / "config" / "governance" / "judge_rubrics_v3.json").read_text(encoding="utf-8"))
     enabled = set(manifest["enabled_profiles"])
-    assert len(enabled) == 12
+    assert len(enabled) == 14
     assert enabled.issubset(VALID_JUDGE_SURFACES)
 
     report = audit_multi_ssot_judge_gate_drift(REPO_ROOT)

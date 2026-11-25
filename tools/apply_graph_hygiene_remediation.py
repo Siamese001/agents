@@ -32,8 +32,14 @@ for _p in (str(REPO_ROOT), str(RGE_SRC)):
 
 from tools.audit_graph_hygiene_and_consolidation import (  # noqa: E402
     DEFAULT_GRAPH_REL,
+    resolve_graph_db_path,
+    resolve_primary_repo_root,
     run_graph_hygiene_audit,
     run_pre_promotion_regression_gates,
+)
+from tools.graph_hygiene_judge_v3 import (  # noqa: E402
+    draft_grounded_skill_descriptions,
+    evaluate_hygiene_promotion_jury_v3,
 )
 
 DEFAULT_LEDGER_REL = Path("resume_graph_engine/src/apps_rg/fact_inventory/master_skills_arsenal_ledger.json")
@@ -419,6 +425,11 @@ def _synthesize_distinct_skill_description(
 def _differentiate_skill_descriptions_in_ledger(
     ledger: dict[str, Any],
     skill_ids: Sequence[str],
+    *,
+    repo_root: Path = REPO_ROOT,
+    draft_call_fn: Any = None,
+    judge_call_fn: Any = None,
+    verify_with_judge: bool = True,
 ) -> list[dict[str, Any]]:
     target_ids = [str(s).strip() for s in skill_ids if str(s).strip()]
     if not target_ids:
@@ -433,28 +444,37 @@ def _differentiate_skill_descriptions_in_ledger(
         for n in (ledger.get("graph_nodes") or [])
         if isinstance(n, dict) and n.get("node_id")
     }
+    present_ids = [sid for sid in target_ids if sid in row_by_id or sid in node_by_id]
+    if not present_ids:
+        return []
     used_descriptions = {
         " ".join(str(n.get("description") or "").strip().lower().split())
         for nid, n in node_by_id.items()
-        if nid not in target_ids and str(n.get("description") or "").strip()
+        if nid not in present_ids and str(n.get("description") or "").strip()
     }
 
-    # Check if any skills in target_ids also collide on exact lowercased label
+    drafted_by_id = draft_grounded_skill_descriptions(
+        ledger=ledger,
+        skill_ids=present_ids,
+        used_descriptions=used_descriptions,
+        repo_root=repo_root,
+        draft_call_fn=draft_call_fn,
+        judge_call_fn=judge_call_fn,
+        verify_with_judge=verify_with_judge,
+    )
+
+    # Check if any skills in present_ids also collide on exact lowercased label
     label_groups: dict[str, list[str]] = {}
-    for sid in target_ids:
+    for sid in present_ids:
         lbl = str((node_by_id.get(sid) or {}).get("label") or (row_by_id.get(sid) or {}).get("capability") or "").strip().lower()
         if lbl:
             label_groups.setdefault(lbl, []).append(sid)
 
     updates: list[dict[str, Any]] = []
-    for sid in target_ids:
+    for sid in present_ids:
         row = row_by_id.get(sid)
         node = node_by_id.get(sid)
-        if row is None and node is None:
-            continue
-        new_desc = _synthesize_distinct_skill_description(
-            sid, row, node, used_descriptions=used_descriptions
-        )
+        new_desc = drafted_by_id[sid]
         new_label: str | None = None
         cur_lbl = str((node or {}).get("label") or (row or {}).get("capability") or "").strip()
         if cur_lbl and len(label_groups.get(cur_lbl.lower(), [])) > 1:
@@ -751,6 +771,80 @@ def _archive_retired_isolated_nodes_in_ledger(
     )
 
 
+def _is_locked_bullet_anchor(bid: str, node_by_id: Mapping[str, Mapping[str, Any]]) -> bool:
+    s = str(bid or "").strip()
+    if not s:
+        return False
+    if s.startswith(("bul_", "bullet_")):
+        return True
+    node = node_by_id.get(s)
+    return isinstance(node, Mapping) and str(node.get("node_type") or "") in ("locked_bullet", "bullet_fact")
+
+
+def _is_genuine_fact_anchor(fid: str, node_by_id: Mapping[str, Mapping[str, Any]]) -> bool:
+    s = str(fid or "").strip()
+    if not s or s.startswith(("skill_", "exp_", "employment_", "jd_", "briefing_", "bul_", "bullet_")):
+        return False
+    if s.startswith("fact_"):
+        return True
+    node = node_by_id.get(s)
+    return isinstance(node, Mapping) and str(node.get("node_type") or "") == "fact"
+
+
+def _resolve_skill_provenance_anchors(
+    ledger: Mapping[str, Any],
+    skill_id: str,
+    ref_row: Mapping[str, Any] | None,
+    node_by_id: Mapping[str, Mapping[str, Any]],
+) -> tuple[list[str], list[str], list[str]]:
+    """Resolve real career facts, locked resume bullets, and verbatim evidence snippets from ledger edges."""
+    fact_ids: list[str] = []
+    locked_bullet_ids: list[str] = []
+
+    def _classify_anchor(raw_id: str, *, edge_type: str = "") -> None:
+        aid = str(raw_id or "").strip()
+        if not aid:
+            return
+        if edge_type == "skill_supported_by_locked_bullet" or _is_locked_bullet_anchor(aid, node_by_id):
+            if aid not in locked_bullet_ids:
+                locked_bullet_ids.append(aid)
+        elif _is_genuine_fact_anchor(aid, node_by_id):
+            if aid not in fact_ids:
+                fact_ids.append(aid)
+
+    for fid in (ref_row or {}).get("fact_id_links") or []:
+        _classify_anchor(str(fid))
+
+    for edge in ledger.get("graph_edges") or []:
+        if not isinstance(edge, Mapping):
+            continue
+        src = str(edge.get("source_node_id") or edge.get("source") or "").strip()
+        if src != skill_id:
+            continue
+        et = str(edge.get("edge_type") or "")
+        tgt = str(edge.get("target_node_id") or edge.get("target") or "").strip()
+        if et in ("skill_supported_by_fact", "skill_supported_by_locked_bullet"):
+            _classify_anchor(tgt, edge_type=et)
+
+    snippets: list[str] = []
+    for raw_snip in (ref_row or {}).get("source_snippets") or []:
+        s_clean = str(raw_snip or "").strip()
+        if len(s_clean) >= 24 and s_clean not in snippets:
+            snippets.append(s_clean)
+
+    for anchor_id in (*fact_ids, *locked_bullet_ids):
+        anchor_node = node_by_id.get(anchor_id)
+        if not isinstance(anchor_node, Mapping):
+            continue
+        desc = str(anchor_node.get("description") or "").strip()
+        lbl = str(anchor_node.get("label") or "").strip()
+        candidate = desc if len(desc) >= 24 else (f"{lbl}: {desc}".strip(": ") if desc else lbl)
+        if len(candidate) >= 24 and candidate not in snippets:
+            snippets.append(candidate)
+
+    return fact_ids, locked_bullet_ids, snippets
+
+
 def _triage_skill_in_ledger(
     ledger: dict[str, Any],
     skill_id: str,
@@ -783,13 +877,22 @@ def _triage_skill_in_ledger(
         if nid != sid and str(n.get("description") or "").strip()
     }
 
+    fact_ids, locked_bullet_ids, verified_snippets = _resolve_skill_provenance_anchors(
+        ledger, sid, ref_row, node_by_id
+    )
+    if action_kind == "promote_skill_external" and not fact_ids and not locked_bullet_ids:
+        raise ValueError(
+            f"Refusing to promote skill {sid!r} externally: zero verified career fact links and zero "
+            f"verified locked resume bullet edges exist (fabricated provenance fallback is forbidden)."
+        )
+
     def _apply_fields(target: dict[str, Any], *, is_node: bool) -> None:
         if action_kind == "promote_skill_external":
-            links = [str(x).strip() for x in ((ref_row or target).get("fact_id_links") or []) if str(x).strip()]
-            if not links:
-                links = ["fact_insurtech_aws_001"]
+            authentic_links = list(dict.fromkeys([*fact_ids, *locked_bullet_ids]))
             if not is_node or "fact_id_links" in target:
-                target["fact_id_links"] = links
+                target["fact_id_links"] = authentic_links
+            if verified_snippets and (not is_node or "source_snippets" in target):
+                target["source_snippets"] = list(verified_snippets[:6])
             target["operator_hygiene_decision"] = "PROMOTE_EXTERNAL"
             target.pop("operator_hold_mode", None)
             target["activation_status"] = "ACTIVE_CONFIRMED"
@@ -804,12 +907,16 @@ def _triage_skill_in_ledger(
             target["confidence_grade_derived"] = "HIGH"
             target["confidence"] = "HIGH"
             target["confidence_grade"] = "HIGH"
-            target["human_confirmed_archive_promotion"] = {
+            promo_record: dict[str, Any] = {
                 "human_confirmed_by": "Amit Ayer",
                 "human_confirmed_at": now_iso,
-                "source_fact_ids": links,
                 "override_reason": "operator_hygiene_promote_external",
             }
+            if fact_ids:
+                promo_record["source_fact_ids"] = list(fact_ids)
+            if locked_bullet_ids:
+                promo_record["source_locked_bullet_ids"] = list(locked_bullet_ids)
+            target["human_confirmed_archive_promotion"] = promo_record
             cur_desc = str(target.get("description") or "").strip()
             if is_node and (not cur_desc or cur_desc.startswith("Held internal capability candidate for ")):
                 target["description"] = _synthesize_distinct_skill_description(
@@ -874,6 +981,8 @@ def _triage_skill_in_ledger(
         "action_kind": action_kind,
         "touched_matrix_rows": touched_rows,
         "touched_graph_node": ref_node is not None,
+        "source_fact_ids": fact_ids,
+        "source_locked_bullet_ids": locked_bullet_ids,
     }
 
 
@@ -1159,10 +1268,23 @@ def apply_graph_hygiene_remediation(
     apply_changes: bool = False,
     skip_rematerialize: bool = False,
     backup_dir: Path | None = None,
+    run_judge_gate: bool = True,
+    judge_receipt_path: Path | None = None,
+    judge_artifact_path: Path | None = None,
+    judge_call_fn: Any = None,
+    draft_call_fn: Any = None,
 ) -> dict[str, Any]:
     """Preview (--dry-run) or execute (--apply) approved clusters and/or item-granular decisions."""
     resolved_root = Path(repo_root).resolve()
     target_db = Path(db_path).resolve() if db_path is not None else (resolved_root / DEFAULT_GRAPH_REL)
+    if not target_db.is_file() and db_path is None:
+        primary_db = resolve_primary_repo_root(resolved_root) / DEFAULT_GRAPH_REL
+        if primary_db.is_file():
+            if apply_changes:
+                target_db.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(primary_db, target_db)
+            else:
+                target_db = primary_db
     target_ledger = Path(ledger_path).resolve() if ledger_path is not None else (resolved_root / DEFAULT_LEDGER_REL)
     default_ledger_resolved = (resolved_root / DEFAULT_LEDGER_REL).resolve()
     now_iso = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -1412,7 +1534,14 @@ def apply_graph_hygiene_remediation(
             sids = [str(s).strip() for s in (params.get("skill_ids") or []) if str(s).strip()]
             if not sids:
                 raise ValueError(f"differentiate_skill_descriptions requires non-empty skill_ids (item={ikey!r})")
-            updates = _differentiate_skill_descriptions_in_ledger(ledger, sids)
+            updates = _differentiate_skill_descriptions_in_ledger(
+                ledger,
+                sids,
+                repo_root=resolved_root,
+                draft_call_fn=draft_call_fn,
+                judge_call_fn=judge_call_fn,
+                verify_with_judge=bool(run_judge_gate or judge_call_fn is not None),
+            )
             ledger_dirty = ledger_dirty or bool(updates)
             item_results.append({"item_key": ikey, "action_kind": akind, "updated_skills": len(updates), "details": updates})
 
@@ -1595,7 +1724,42 @@ def apply_graph_hygiene_remediation(
     receipt["post_ledger_sha256"] = _sha256_file(target_ledger)
     receipt["post_counts"] = post_audit["baseline_counts"]
     receipt["pre_promotion_regression_gates"] = post_gates
-    receipt["status"] = "PASS" if post_gates["status"] == "PASS" else "FAIL"
+
+    judge_ok = True
+    if run_judge_gate:
+        diff_packet = {
+            "repo_root": str(resolved_root),
+            "approved_clusters": sorted(approved_set),
+            "applied_deltas": applied_deltas,
+            "skipped_or_held_items": skipped_or_held_items,
+            "baseline_counts": pre_audit["baseline_counts"],
+            "post_counts": post_audit["baseline_counts"],
+            "pre_ledger_sha256": pre_ledger_sha,
+            "post_ledger_sha256": receipt["post_ledger_sha256"],
+            "pre_db_sha256": pre_db_sha,
+            "post_db_sha256": receipt["post_db_sha256"],
+        }
+        judge_receipt = evaluate_hygiene_promotion_jury_v3(
+            diff_packet=diff_packet,
+            repo_root=resolved_root,
+            receipt_path=judge_receipt_path,
+            artifact_path=judge_artifact_path,
+            call_fn=judge_call_fn,
+        )
+        receipt["judge_promotion_gate"] = judge_receipt
+        judge_ok = (
+            judge_receipt.get("status") == "PASS"
+            and judge_receipt.get("passed") is True
+            and int(judge_receipt.get("distinct_families") or 0) >= 2
+        )
+    else:
+        receipt["judge_promotion_gate"] = {
+            "status": "SKIPPED_BY_FLAG",
+            "llm_judge_executed": False,
+            "normalized_unit_score": None,
+        }
+
+    receipt["status"] = "PASS" if (post_gates["status"] == "PASS" and judge_ok) else "FAIL"
     return receipt
 
 
@@ -1611,6 +1775,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--dry-run", action="store_true", help="Preview projected deltas with zero live mutation.")
     parser.add_argument("--apply", action="store_true", help="Apply operator-approved clusters/decisions and rematerialize.")
     parser.add_argument("--skip-rematerialize", action="store_true", help="Skip SQLite rebuild after ledger update.")
+    parser.add_argument("--skip-judge-gate", action="store_true", help="Skip post-apply cross-family Judge v3 gate (sandbox unit tests only).")
+    parser.add_argument("--judge-receipt-out", type=Path, default=None, help="Optional path for sealed cross-family Judge v3 promotion receipt.")
+    parser.add_argument("--judge-artifact-out", type=Path, default=None, help="Optional path for companion promotion diff artifact.")
     parser.add_argument("--backup-dir", type=Path, default=None, help="Directory for pre-mutation rollback backups.")
     parser.add_argument("--receipt", type=Path, default=None, help="Optional path to write JSON receipt.")
     parser.add_argument("--json", action="store_true", help="Print JSON receipt.")
@@ -1628,6 +1795,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         apply_changes=apply_mode,
         skip_rematerialize=bool(args.skip_rematerialize),
         backup_dir=args.backup_dir,
+        run_judge_gate=not bool(args.skip_judge_gate),
+        judge_receipt_path=args.judge_receipt_out,
+        judge_artifact_path=args.judge_artifact_out,
     )
     if args.receipt is not None:
         args.receipt.parent.mkdir(parents=True, exist_ok=True)

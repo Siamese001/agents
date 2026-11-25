@@ -94,6 +94,9 @@ VALID_JUDGE_SURFACES: frozenset[str] = frozenset(
         "agent_trace_and_calibration:agent_trajectory_governance",
         "agent_trace_and_calibration:agent_execution_trace",
         "agent_trace_and_calibration:human_calibration_studio",
+        "graph_hygiene",
+        "graph_hygiene:forensic_item_triage",
+        "graph_hygiene:promotion_release_gate",
         # Resume Engine judge surfaces
         "resume_headline",
         "resume_executive_summary",

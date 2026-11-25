@@ -65,6 +65,19 @@ DEFAULT_JUDGE_GOVERNED_SURFACES: tuple[JudgeGovernedSurface, ...] = (
         artifact_rel_path="artifacts/eval_harness/judge_receipts/apps_research_company_brief_artifact.json",
         min_distinct_families=1,
     ),
+    JudgeGovernedSurface(
+        surface_id="agents_graph_hygiene",
+        source_globs=(
+            "resume_graph_engine/src/apps_rg/fact_inventory/master_skills_arsenal_ledger.json",
+            "resume_graph_engine/src/apps_rg/fact_inventory/*_role_episode_bundles.json",
+            "resume_graph_engine/artifacts/apps_rg/fact_inventory/augmented_skills_graph.sqlite",
+            "tools/apply_graph_hygiene_remediation.py",
+            "tools/graph_hygiene_judge_v3.py",
+        ),
+        receipt_rel_path="artifacts/eval_harness/judge_receipts/agents_graph_hygiene_receipt.json",
+        artifact_rel_path="artifacts/eval_harness/judge_receipts/agents_graph_hygiene_artifact.json",
+        min_distinct_families=2,
+    ),
 )
 
 

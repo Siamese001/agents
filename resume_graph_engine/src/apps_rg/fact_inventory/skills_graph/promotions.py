@@ -201,13 +201,15 @@ def parse_human_confirmed_archive_promotion(row: dict[str, Any]) -> dict[str, An
     required = (
         "human_confirmed_by",
         "human_confirmed_at",
-        "source_fact_ids",
         "override_reason",
     )
     if not all(str(promo.get(k) or "").strip() for k in required):
         return None
-    source_ids = promo.get("source_fact_ids")
-    if not isinstance(source_ids, list) or not source_ids:
+    source_facts = promo.get("source_fact_ids")
+    source_bullets = promo.get("source_locked_bullet_ids")
+    has_facts = isinstance(source_facts, list) and any(str(x).strip() for x in source_facts)
+    has_bullets = isinstance(source_bullets, list) and any(str(x).strip() for x in source_bullets)
+    if not has_facts and not has_bullets:
         return None
     return promo
 

@@ -31,6 +31,7 @@ REQUIRED_CLUSTERS: tuple[str, ...] = (
     "outreach_sequence",
     "company_research_brief",
     "agent_trace_and_calibration",
+    "graph_hygiene",
 )
 
 
