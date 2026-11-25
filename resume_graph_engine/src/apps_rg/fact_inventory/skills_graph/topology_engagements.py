@@ -18,15 +18,20 @@ def build_engagement_nodes_and_edges(
     *,
     ts: str = "",
     build_run_id: str = "",
+    bundles_dir: Path | None = None,
 ) -> tuple[dict[str, dict[str, Any]], list[dict[str, Any]]]:
     """Load role-episode bundles and build first-class engagement nodes and edges."""
     root = repository_root(repo_root)
-    bundles_dir = (
-        root / "src/apps_rg/fact_inventory"
-        if (root / "src/apps_rg/fact_inventory").is_dir()
-        else root / "resume_graph_engine/src/apps_rg/fact_inventory"
+    resolved_bundles_dir = (
+        Path(bundles_dir)
+        if bundles_dir is not None
+        else (
+            root / "src/apps_rg/fact_inventory"
+            if (root / "src/apps_rg/fact_inventory").is_dir()
+            else root / "resume_graph_engine/src/apps_rg/fact_inventory"
+        )
     )
-    bundle_files = sorted(bundles_dir.glob("*_role_episode_bundles.json"))
+    bundle_files = sorted(resolved_bundles_dir.glob("*_role_episode_bundles.json"))
 
     engagement_nodes: dict[str, dict[str, Any]] = {}
     engagement_edges: list[dict[str, Any]] = []

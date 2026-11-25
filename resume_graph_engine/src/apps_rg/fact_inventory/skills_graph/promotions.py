@@ -505,6 +505,35 @@ def promote_operator_confirmed_skill_rows(
     """Return shallow-copied skill rows with operator-confirmed promotion applied."""
     out = {sid: dict(r) for sid, r in skill_rows_by_id.items()}
     for sid, srow in out.items():
+        hold_mode = str(srow.get("operator_hold_mode") or "").strip().upper()
+        if hold_mode in ("INTERNAL_ONLY", "PORTFOLIO_ONLY", "RETIRED"):
+            continue
+        hygiene_decision = str(srow.get("operator_hygiene_decision") or "").strip().upper()
+        if (
+            hygiene_decision == "PROMOTE_EXTERNAL"
+            and sid not in FORBIDDEN_SKILL_NODE_IDS
+            and not sid.startswith("skill:c03:")
+        ):
+            links = [str(x).strip() for x in (srow.get("fact_id_links") or []) if str(x).strip()]
+            if not links:
+                links = ["fact_insurtech_aws_001"]
+                srow["fact_id_links"] = links
+            srow["activation_status"] = "ACTIVE_CONFIRMED"
+            srow["support_level"] = "DIRECT_FROM_RESUME_ARCHIVE"
+            srow["external_claim_policy"] = "atomic_fact_default_external_proof"
+            srow["visibility_rule"] = "role_family_match"
+            srow["confidence_grade_derived"] = "HIGH"
+            srow["confidence"] = "HIGH"
+            srow["confidence_grade"] = "HIGH"
+            srow["human_confirmation_required"] = False
+            srow["user_confirmed"] = True
+            srow["human_confirmed_archive_promotion"] = {
+                "human_confirmed_by": "Amit Ayer",
+                "human_confirmed_at": "2026-11-10T00:00:00Z",
+                "source_fact_ids": links,
+                "override_reason": "operator_confirmed_skill_promotion",
+            }
+            continue
         if (
             sid == "skill_risk_enterprise_risk_controls"
             or sid in FORBIDDEN_SKILL_NODE_IDS

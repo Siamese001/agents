@@ -50,11 +50,25 @@ def apply_topology_enhancements(
     build_run_id: str,
     ts: str,
     ledger_hash: str,
+    bundles_dir: Path | None = None,
 ) -> None:
     """Enrich node_rows, edge_rows, section_by_key, skill_fact_rows with Wave 3 topology invariants."""
+    archived_ids: set[str] = set()
+    for _item in payload.get("_retired_archived_nodes") or []:
+        if isinstance(_item, str) and _item.strip():
+            archived_ids.add(_item.strip())
+            if _item.strip().startswith(("section_", "section:")):
+                archived_ids.add(normalize_section_id(_item.strip()))
+        elif isinstance(_item, dict):
+            _anid = str(_item.get("node_id") or "").strip()
+            if _anid:
+                archived_ids.add(_anid)
+                if _anid.startswith(("section_", "section:")):
+                    archived_ids.add(normalize_section_id(_anid))
+
     # 1. First-class engagement nodes and edges (AC3.5)
     eng_nodes, eng_edges = build_engagement_nodes_and_edges(
-        repo_root=repo_root, ts=ts, build_run_id=build_run_id
+        repo_root=repo_root, ts=ts, build_run_id=build_run_id, bundles_dir=bundles_dir
     )
     for reb_id, enode in eng_nodes.items():
         node_rows[reb_id] = enode
@@ -130,8 +144,15 @@ def apply_topology_enhancements(
     edge_rows.extend(pillar_edges)
 
     # 5. Domain hierarchy edges (AC3.4, I10)
+    domain_redirects = (
+        payload.get("_domain_redirects")
+        if isinstance(payload.get("_domain_redirects"), dict)
+        else None
+    )
     domain_ids = [nid for nid, n in node_rows.items() if n.get("node_type") == "capability_domain"]
-    domain_edges = build_domain_hierarchy_edges(domain_ids, ts=ts, build_run_id=build_run_id)
+    domain_edges = build_domain_hierarchy_edges(
+        domain_ids, ts=ts, build_run_id=build_run_id, domain_redirects=domain_redirects
+    )
     edge_rows.extend(domain_edges)
 
     # 6. Metric & metric bucket component connectivity (I13)
@@ -214,6 +235,34 @@ def apply_topology_enhancements(
     # 8. Ensure section nodes exist in node_rows (AC3.2, I8)
     from apps_rg.fact_inventory.section_budgets import DEFAULT_SECTION_BUDGETS
 
+    active_section_targets = {
+        normalize_section_id(str(e.get("target_node_id") or ""))
+        for e in edge_rows
+        if e.get("edge_type") == "skill_allowed_in_section" and e.get("target_node_id")
+    } | {
+        normalize_section_id(sec_k)
+        for (sid, sec_k), sdata in section_by_key.items()
+        if sec_k != "*"
+        and int(sdata.get("allowed") or 0) == 1
+        and sid in node_rows
+        and node_rows[sid].get("node_type") == "skill"
+    }
+    incident_section_ids = {
+        str(ep)
+        for e in edge_rows
+        for ep in (e.get("source_node_id"), e.get("target_node_id"))
+        if str(ep or "").startswith("section_")
+    }
+
+    if archived_ids:
+        for _sk_key in list(section_by_key.keys()):
+            _sec_k = _sk_key[1]
+            if _sec_k == "*":
+                continue
+            _sec_norm = normalize_section_id(_sec_k)
+            if _sec_norm in archived_ids and _sec_norm not in active_section_targets:
+                section_by_key.pop(_sk_key, None)
+
     all_sections = set()
     for b in DEFAULT_SECTION_BUDGETS:
         all_sections.add(normalize_section_id(b.get("section_id", "")))
@@ -222,6 +271,13 @@ def apply_topology_enhancements(
             all_sections.add(normalize_section_id(sec_k))
 
     for sec_id in sorted(all_sections):
+        if (
+            sec_id in archived_ids
+            and sec_id not in active_section_targets
+            and sec_id not in incident_section_ids
+        ):
+            node_rows.pop(sec_id, None)
+            continue
         label = sec_id.replace("section_", "").replace("_", " ").title()
         if sec_id not in node_rows:
             node_rows[sec_id] = {
@@ -391,7 +447,12 @@ def apply_topology_enhancements(
         existing_skill_target_pairs.add((sk, fk))
 
     # 11. Populate stub descriptions, skill employer provenance, and role_family connectivity
-    populate_stub_descriptions(node_rows)
+    repo_stub_labels = (
+        payload.get("_repo_stub_labels")
+        if isinstance(payload.get("_repo_stub_labels"), dict)
+        else None
+    )
+    populate_stub_descriptions(node_rows, repo_stub_labels=repo_stub_labels)
     epoch_to_employer = {
         epoch: meta["employer"]
         for emp_id, epoch in CANONICAL_EMPLOYMENT_EPOCHS.items()

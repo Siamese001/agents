@@ -144,12 +144,28 @@ def _dedupe_edge_rows(edge_by_id: dict[str, dict[str, Any]]) -> list[dict[str, A
         out.append(row)
     return out
 
+def _extract_archived_node_ids(payload: Mapping[str, Any]) -> set[str]:
+    raw = payload.get("_retired_archived_nodes") or []
+    out: set[str] = set()
+    if not isinstance(raw, list):
+        return out
+    for item in raw:
+        if isinstance(item, str) and item.strip():
+            out.add(item.strip())
+        elif isinstance(item, Mapping):
+            nid = str(item.get("node_id") or "").strip()
+            if nid:
+                out.add(nid)
+    return out
+
+
 def _ensure_policy_nodes(
     node_rows: dict[str, dict[str, Any]],
     payload: dict[str, Any],
     *,
     ts: str,
 ) -> None:
+    archived_ids = _extract_archived_node_ids(payload)
     policies = payload.get("external_claim_policies") or {}
     seeds: list[tuple[str, str, str]] = [
         ("policy_external_claim_policy", "policy", "External claim policy anchor"),
@@ -168,7 +184,7 @@ def _ensure_policy_nodes(
                 desc = str(body.get("description") or key)
             seeds.append((_policy_rule_node_id(key), "policy_rule", desc or key))
     for nid, ntype, desc in seeds:
-        if nid in node_rows:
+        if nid in node_rows or nid in archived_ids:
             continue
         node_rows[nid] = {
             "node_id": nid,
