@@ -14,16 +14,18 @@ from typing import Any
 
 
 def verify_unmocked_runtime_environment() -> tuple[bool, str]:
-    """Fail closed if mock environment toggles are active or production modules are mocked."""
-    if str(os.environ.get("MOCK_ENV") or "").strip().lower() in {"1", "true", "yes"}:
-        return False, "MOCK_ENV must be unset/disabled during unmocked eval shield execution."
-    for mod_name, mod in list(sys.modules.items()):
-        if mod is None:
-            continue
-        if mod_name.startswith(("agents.", "apps_eval.", "apps_rg.", "apps_lic.", "apps_research.")):
-            mod_type = type(mod).__module__
-            if mod_type.startswith("unittest.mock"):
-                return False, f"Production module {mod_name} replaced by {mod_type}."
+    """Fail closed via centralized core-governance unmocked runtime guard."""
+    from apps_eval._core_governance_bridge import (
+        verify_unmocked_runtime_environment as _central_verify_unmocked,
+    )
+
+    try:
+        _central_verify_unmocked(
+            ("agents.", "apps_eval.", "apps_rg.", "apps_lic.", "apps_research."),
+            forbid_mock_env=True,
+        )
+    except RuntimeError as exc:
+        return False, str(exc)
     return True, "unmocked_runtime_verified"
 
 
