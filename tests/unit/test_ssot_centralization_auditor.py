@@ -6,7 +6,11 @@ import json
 from pathlib import Path
 
 from tools.ssot_boundary_auditor import REPO_ROOT, run_ssot_boundary_audit
-from tools.validate_sidecar_separation import DEFAULT_SIDECARS_ROOT, validate_sidecar_separation
+from tools.validate_sidecar_separation import (
+    DEFAULT_SIDECARS_ROOT,
+    EXPECTED_AGENTS_SIDECARS,
+    validate_sidecar_separation,
+)
 from tools.validate_turn_gates import REQUIRED_AGENTS_HEADERS, REQUIRED_TIER1_TOOLS
 
 
@@ -47,6 +51,16 @@ def _create_clean_sandbox(sandbox: Path) -> None:
         "hook_dispatch.py",
     }:
         (tools_dir / ep).write_text("# validate_word_budget_gate\n", encoding="utf-8")
+
+    for spec in EXPECTED_AGENTS_SIDECARS.values():
+        for rel_entry in (spec.get("deterministic_entrypoint"), *(spec.get("secondary_entrypoints") or ())):
+            rel_str = str(rel_entry or "").strip()
+            if not rel_str:
+                continue
+            target = sandbox / rel_str
+            target.parent.mkdir(parents=True, exist_ok=True)
+            if not target.exists():
+                target.write_text("# validate_word_budget_gate\n", encoding="utf-8")
 
     (sandbox / "pytest.ini").write_text("[pytest]\naddopts = --timeout=180\n", encoding="utf-8")
     (sandbox / "docs" / "architecture").mkdir(parents=True)
