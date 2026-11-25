@@ -83,7 +83,7 @@ def load_repo_linter_profile(repo_root: Path) -> dict[str, Any]:
         try:
             data = json.loads(cand.read_text(encoding="utf-8"))
             return data if isinstance(data, dict) else {}
-        except (OSError, json.JSONDecodeError, UnicodeDecodeError):
+        except Exception:
             return {}
     return {}
 
@@ -322,7 +322,7 @@ def lint_staged_worktrees(repo_root: Path, files: Sequence[str] | None = None) -
     try:
         res = subprocess.run(["git", "diff", "--cached", "--name-only"], cwd=repo_root, capture_output=True, text=True, check=False, timeout=5)
         candidates.extend(res.stdout.splitlines())
-    except (OSError, ValueError, subprocess.SubprocessError):
+    except Exception:
         pass
     for raw in candidates:
         norm = raw.strip().replace("\\", "/").removeprefix("./")

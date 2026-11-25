@@ -290,7 +290,7 @@ def load_repo_plan_profile(repo_root: Path) -> dict[str, Any]:
             data = json.loads(cand.read_text(encoding="utf-8"))
             prof = data.get("plan_validator") if isinstance(data, dict) else None
             return prof if isinstance(prof, dict) else {}
-        except (OSError, json.JSONDecodeError, UnicodeDecodeError):
+        except Exception:
             return {}
     return {}
 
@@ -312,7 +312,7 @@ def validate_plan_file(
             br = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=root, capture_output=True, text=True, check=False, timeout=5).stdout.strip()
             if br == "main":
                 return False, ["[SINGLE_PLAN_LOCATION_VIOLATION] Root 'implementation_plan.md' is blocked on main."]
-    except (OSError, ValueError, RuntimeError, subprocess.SubprocessError):
+    except Exception:
         pass
     prof = load_repo_plan_profile(root)
     exempt = set(legacy_exemptions or ()) | set(prof.get("legacy_exemptions", ()))
