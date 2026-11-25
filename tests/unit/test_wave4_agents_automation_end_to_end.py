@@ -33,12 +33,20 @@ def test_sidecar_project_id_resolution_and_access_grants(tmp_path: Path) -> None
     projects_dir.mkdir(parents=True, exist_ok=True)
     sidecars_root.mkdir(parents=True, exist_ok=True)
 
-    live_uuid = "00ceb967-07c7-4f88-bff1-8a348c7875a4"
-    (projects_dir / f"{live_uuid}.json").write_text(
+    dynamic_uuid = "11111111-2222-3333-4444-555555555555"
+    (projects_dir / f"{dynamic_uuid}.json").write_text(
         json.dumps(
             {
-                "id": live_uuid,
-                "workspacePaths": [f"file://{Path.home() / 'Git' / 'agents'}"],
+                "id": dynamic_uuid,
+                "projectResources": {
+                    "resources": [
+                        {
+                            "gitFolder": {
+                                "folderUri": f"file://{Path.home() / 'Git' / 'agents'}",
+                            }
+                        }
+                    ]
+                },
             }
         ),
         encoding="utf-8",
@@ -58,15 +66,29 @@ def test_sidecar_project_id_resolution_and_access_grants(tmp_path: Path) -> None
         encoding="utf-8",
     )
 
-    assert resolve_agents_project_id(cfg_root) == live_uuid
+    assert resolve_agents_project_id(cfg_root) == dynamic_uuid
     reconcile_agents_sidecars(sidecars_root=sidecars_root)
 
     cfg_after = json.loads((cfg_root / "config.json").read_text(encoding="utf-8"))
     assert cfg_after["sidecars"][first_id]["enabled"] is True
     for sid, spec in EXPECTED_AGENTS_SIDECARS.items():
-        assert cfg_after["sidecars"][sid]["projectId"] == live_uuid
+        assert cfg_after["sidecars"][sid]["projectId"] == dynamic_uuid
         payload = build_agents_sidecar_payload(sid, spec)
         assert payload["agent_permissions"]["access_grants"] == list(REQUIRED_SIDECAR_ACCESS_GRANTS)
+
+    # Read-only validate_sidecar_separation must fail closed on regressed projectId or missing access_grants
+    cfg_after["sidecars"][first_id]["enabled"] = False
+    cfg_after["sidecars"][first_id]["projectId"] = "f3cfd8ed-5fb8-40c7-b562-dbdf15522309"
+    (cfg_root / "config.json").write_text(json.dumps(cfg_after), encoding="utf-8")
+    sc_first = sidecars_root / first_id / "sidecar.json"
+    sc_doc = json.loads(sc_first.read_text(encoding="utf-8"))
+    sc_doc["agent_permissions"]["access_grants"] = []
+    sc_first.write_text(json.dumps(sc_doc), encoding="utf-8")
+    bad_sep = validate_sidecar_separation(repo_root=REPO_ROOT, sidecars_root=sidecars_root)
+    assert bad_sep["is_clean"] is False
+    joined_v = "\n".join(bad_sep["violations"])
+    assert "mismatches resolved project" in joined_v
+    assert "missing required access_grants" in joined_v
 
     src_text = (REPO_ROOT / "tools" / "validate_sidecar_separation.py").read_text(encoding="utf-8")
     shared_text = (REPO_ROOT / "automations" / "prompts" / "_shared_governance_contract.md").read_text(encoding="utf-8")

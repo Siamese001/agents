@@ -48,7 +48,16 @@ def resolve_agents_project_id(config_root: Path | None = None) -> str:
                 continue
             if not isinstance(doc, dict):
                 continue
-            uris = doc.get("workspacePaths") or doc.get("workspace_uris") or doc.get("workspaces") or []
+            uris: list[str] = list(doc.get("workspacePaths") or doc.get("workspace_uris") or doc.get("workspaces") or [])
+            proj_res = doc.get("projectResources")
+            if isinstance(proj_res, dict):
+                for res in proj_res.get("resources") or []:
+                    if isinstance(res, dict):
+                        gf = res.get("gitFolder")
+                        if isinstance(gf, dict) and gf.get("folderUri"):
+                            uris.append(str(gf["folderUri"]))
+                        elif res.get("folderUri"):
+                            uris.append(str(res["folderUri"]))
             if any(target_uri == str(u).rstrip("/") or AGENTS_CANONICAL_ROOT == str(u).rstrip("/") for u in uris):
                 pid = str(doc.get("id") or pfile.stem).strip()
                 if pid:
@@ -470,7 +479,9 @@ def validate_sidecar_separation(
                 ag_args = ag_payload.get("args", [])
                 expected_prompt_file = EXPECTED_AGENTS_SIDECARS[child.name]["prompt_file"]
                 expected_uri = f"file://{AGENTS_CANONICAL_ROOT}/automations/prompts/{expected_prompt_file}"
-                ws_uris = (ag_payload.get("agent_permissions") or {}).get("workspace_uris") or []
+                ag_perms = ag_payload.get("agent_permissions") or {}
+                ws_uris = ag_perms.get("workspace_uris") or []
+                ag_grants = {str(g) for g in (ag_perms.get("access_grants") or [])}
                 if (
                     not isinstance(ag_args, list)
                     or not ag_args
@@ -481,6 +492,13 @@ def validate_sidecar_separation(
                     violations.append(
                         f"Unapproved background schedule directory '{child.name}' present in {sidecars_root} "
                         f"with invalid pointer or workspace_uris"
+                    )
+                    continue
+                missing_grants = [g for g in REQUIRED_SIDECAR_ACCESS_GRANTS if g not in ag_grants]
+                if missing_grants:
+                    agents_scheduled_count += 1
+                    violations.append(
+                        f"Agents sidecar '{child.name}' missing required access_grants: {missing_grants}"
                     )
                     continue
                 if NEE_CANONICAL_ROOT in json.dumps(ag_payload):
@@ -524,6 +542,7 @@ def validate_sidecar_separation(
             validated_nee_count += 1
 
     config_file = sidecars_root.parent / "config.json"
+    expected_pid = resolve_agents_project_id(sidecars_root.parent)
     if config_file.is_file():
         try:
             config_payload = json.loads(config_file.read_text(encoding="utf-8"))
@@ -540,6 +559,12 @@ def validate_sidecar_separation(
                             agents_scheduled_count += 1
                             violations.append(
                                 f"Global config.json retains active background schedule entry '{sid}' (enabled must be false)"
+                            )
+                        elif str(s_cfg.get("projectId") or "").strip() != expected_pid:
+                            agents_scheduled_count += 1
+                            violations.append(
+                                f"Global config.json sidecar '{sid}' projectId '{s_cfg.get('projectId')}' "
+                                f"mismatches resolved project '{expected_pid}'"
                             )
         except (OSError, json.JSONDecodeError) as exc:
             violations.append(f"Invalid JSON in global config.json: {exc}")
