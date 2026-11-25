@@ -11,7 +11,13 @@ import urllib.request
 from pathlib import Path
 
 from scripts.serve_agents_graph_portal import create_agents_graph_portal_server
+from tools import _standalone_graph_quality_gate
 from tools.export_interactive_knowledge_graph import export_interactive_knowledge_graph
+from tools.verify_graph_explorer_gate import (
+    main as verify_gate_main,
+    run_agents_graph_quality_gate,
+    verify_agents_explorer_artifacts,
+)
 from tools.interactive_graph_export_core.dataset_builder import (
     IDENTITY_ROOT_ID,
     UI_TYPE_META,
@@ -572,5 +578,38 @@ if (!(bf1.length < bf2.length)) throw new Error("Bridge-first type-pill check fa
         check=False,
     )
     assert proc.returncode == 0, f"Node VM explorer verification failed:\nSTDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}"
+
+
+def test_centralized_graph_quality_and_firewall_gate_plugin_and_standalone(tmp_path: Path) -> None:
+    """Verify export gate receipt, plugin + standalone parity, and fail-closed cross-repo firewall on port 8081."""
+    receipt = export_interactive_knowledge_graph(output_dir=tmp_path)
+    assert receipt["quality_gate_passed"] is True
+    assert receipt["quality_gate_profile"] == "port_8081"
+    c1, c2, c3, c_off = receipt["vm_hop_counts"]
+    assert 0 < c1 < c2 < c3 <= c_off
+
+    exported_html = Path(receipt["output_html"])
+    plugin_res = verify_agents_explorer_artifacts(exported_html, force_standalone=False)
+    standalone_res = verify_agents_explorer_artifacts(exported_html, force_standalone=True)
+    assert plugin_res["passed"] is True, plugin_res["violations"]
+    assert standalone_res["passed"] is True, standalone_res["violations"]
+    assert plugin_res["vm_metrics"]["counts"] == standalone_res["vm_metrics"]["counts"]
+    assert "_standalone_graph_quality_gate" in standalone_res["backend_source"]
+    assert len(_standalone_graph_quality_gate.CORE_GOVERNANCE_GRAPH_GATE_SHA256) == 64
+
+    assert verify_gate_main(["--html", str(exported_html)]) == 0
+    assert verify_gate_main(["--html", str(exported_html), "--standalone"]) == 0
+
+    clean_html = exported_html.read_text(encoding="utf-8")
+    for forbidden in ("127.0.0.1:8080", "127.0.0.1:8082", "NextEra", "v23_nodes", "Long-Goodbye", "Partner Airgap"):
+        leaked_res = run_agents_graph_quality_gate(
+            clean_html,
+            extra_payload_texts=(f'{{"contaminated": "{forbidden}"}}',),
+            run_vm=False,
+            force_standalone=True,
+        )
+        assert leaked_res["passed"] is False
+        assert any("INV-GRAPH-FIREWALL-ZERO-CROSS-REPO-SPILL" in v and forbidden in v for v in leaked_res["violations"])
+
 
 
