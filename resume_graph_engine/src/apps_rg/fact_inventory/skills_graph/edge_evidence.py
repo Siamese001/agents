@@ -152,6 +152,18 @@ def compute_node_confidence(
     raw_conf = str(node.get("confidence") or "").strip().upper()
     act_status = str(node.get("activation_status") or "").strip()
 
+    # Preserve explicit operator hold/retirement modes before BLOCKED splitting
+    if ntype == "skill" and act_status == "RETIRED":
+        return 0.0, "LOW", "RETIRED"
+    if ntype == "skill" and skill_row is not None:
+        hold_mode = str(skill_row.get("operator_hold_mode") or "").strip().upper()
+        if hold_mode == "RETIRED":
+            return 0.0, "LOW", "RETIRED"
+        if hold_mode == "PORTFOLIO_ONLY":
+            return 0.75, "MEDIUM", act_status if act_status and act_status != "BLOCKED" else "ACTIVE"
+        if hold_mode == "INTERNAL_ONLY":
+            return 0.50, "LOW", act_status if act_status and act_status != "BLOCKED" else "ACTIVE"
+
     # Split BLOCKED from confidence into activation_status
     if raw_conf == "BLOCKED" or act_status == "BLOCKED":
         return 0.0, "LOW", "BLOCKED"

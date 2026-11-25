@@ -185,42 +185,50 @@ def scan_duplicate_and_near_duplicate_nodes(
         if len(desc) >= 24:
             skills_by_desc[desc].append(n)
 
-    verbatim_clone_groups: list[dict[str, Any]] = []
-    for desc, grp in sorted(skills_by_desc.items(), key=lambda kv: (-len(kv[1]), kv[0])):
+    sorted_desc_groups = sorted(skills_by_desc.items(), key=lambda kv: (-len(kv[1]), kv[0]))
+    for desc, grp in sorted_desc_groups:
         if len(grp) < 2:
             continue
         ordered = sorted(grp, key=lambda x: _node_rank_tuple(x, degree_map), reverse=True)
-        surv = ordered[0]
-        p2_retirees = [x for x in ordered[1:] if str(x["node_id"]).startswith("skill_p2_")]
-        non_p2_clones = [x for x in ordered[1:] if not str(x["node_id"]).startswith("skill_p2_")]
+        p2_nodes = [x for x in ordered if str(x["node_id"]).startswith("skill_p2_")]
+        non_p2_nodes = [x for x in ordered if not str(x["node_id"]).startswith("skill_p2_")]
+        if p2_nodes and non_p2_nodes:
+            surv = non_p2_nodes[0]
+            for ret in p2_nodes:
+                pair_key = tuple(sorted((str(surv["node_id"]), str(ret["node_id"]))))
+                if pair_key in seen_pairs:
+                    continue
+                seen_pairs.add(pair_key)
+                exact_skill_twins.append(
+                    {
+                        "reason": "p2_verbatim_description_twin",
+                        "survivor_node_id": surv["node_id"],
+                        "survivor_label": surv["label"],
+                        "retired_node_id": ret["node_id"],
+                        "retired_label": ret["label"],
+                        "shared_description_prefix": desc[:100],
+                        "rationale": (
+                            f"Phase-2 derived skill '{ret['node_id']}' duplicates verbatim description of "
+                            f"canonical skill '{surv['node_id']}'."
+                        ),
+                    }
+                )
 
-        for ret in p2_retirees:
-            pair_key = tuple(sorted((str(surv["node_id"]), str(ret["node_id"]))))
-            if pair_key in seen_pairs:
-                continue
-            seen_pairs.add(pair_key)
-            exact_skill_twins.append(
-                {
-                    "reason": "p2_verbatim_description_twin",
-                    "survivor_node_id": surv["node_id"],
-                    "survivor_label": surv["label"],
-                    "retired_node_id": ret["node_id"],
-                    "retired_label": ret["label"],
-                    "shared_description_prefix": desc[:100],
-                    "rationale": (
-                        f"Phase-2 derived skill '{ret['node_id']}' duplicates verbatim description of "
-                        f"canonical skill '{surv['node_id']}'."
-                    ),
-                }
-            )
-
-        if non_p2_clones:
+    retired_in_02a = {str(x["retired_node_id"]) for x in exact_skill_twins}
+    verbatim_clone_groups: list[dict[str, Any]] = []
+    for desc, grp in sorted_desc_groups:
+        if len(grp) < 2:
+            continue
+        ordered = sorted(grp, key=lambda x: _node_rank_tuple(x, degree_map), reverse=True)
+        remaining = [x for x in ordered if str(x["node_id"]) not in retired_in_02a]
+        if len(remaining) >= 2:
+            surv = remaining[0]
             verbatim_clone_groups.append(
                 {
                     "survivor_candidate_id": surv["node_id"],
-                    "member_ids": [x["node_id"] for x in [surv, *non_p2_clones]],
-                    "member_labels": [x["label"] for x in [surv, *non_p2_clones]],
-                    "member_count": 1 + len(non_p2_clones),
+                    "member_ids": [x["node_id"] for x in remaining],
+                    "member_labels": [x["label"] for x in remaining],
+                    "member_count": len(remaining),
                     "shared_description_prefix": desc[:110],
                 }
             )
@@ -498,7 +506,58 @@ def scan_promotion_readiness(conn: sqlite3.Connection) -> dict[str, Any]:
     }
 
 
-def scan_evidence_and_stub_hygiene(conn: sqlite3.Connection) -> dict[str, Any]:
+_REPO_RELPATH_RE = re.compile(r"repo\s+evidence\s*:\s*([^\s,;\"']+)", re.IGNORECASE)
+_FALLBACK_PATH_RE = re.compile(
+    r"([A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)+/?|[A-Za-z0-9_.-]+\.(?:md|mdc|py|json|yaml|yml|sql|txt))"
+)
+
+
+def _extract_repo_stub_relpath(rationales: Sequence[str], description: str = "") -> str:
+    for text in (*rationales, description):
+        raw = str(text or "").strip()
+        if not raw:
+            continue
+        m = _REPO_RELPATH_RE.search(raw)
+        if m:
+            return m.group(1).strip().strip("'\"`")
+    for text in (*rationales, description):
+        raw = str(text or "").strip()
+        if not raw:
+            continue
+        m = _FALLBACK_PATH_RE.search(raw)
+        if m:
+            return m.group(1).strip().strip("'\"`")
+    return ""
+
+
+def _repo_relpath_exists(repo_root: Path | None, target_relpath: str) -> bool:
+    if repo_root is None or not target_relpath.strip():
+        return False
+    clean = target_relpath.strip().lstrip("/")
+    if not clean:
+        return False
+    candidates = (
+        repo_root / clean,
+        repo_root / "resume_graph_engine" / clean,
+        repo_root / "resume_graph_engine" / "src" / clean,
+    )
+    return any(p.exists() for p in candidates)
+
+
+def _suggested_label_for_repo_stub(node_id: str, target_relpath: str) -> str:
+    clean = target_relpath.strip().rstrip("/")
+    if clean:
+        stem = Path(clean).stem.replace("_", " ").replace("-", " ").strip()
+        if stem:
+            return " ".join(stem.split()).title()
+    return node_id.removeprefix("repo_").replace("_", " ").strip().title() or node_id
+
+
+def scan_evidence_and_stub_hygiene(
+    conn: sqlite3.Connection,
+    *,
+    repo_root: Path | None = None,
+) -> dict[str, Any]:
     """Scanner 5 (DIE Scan 4 parity): duplicate edge_evidence, hex repo_evidence stubs & sibling bloat."""
     dup_ev = int(
         conn.execute(
@@ -510,13 +569,27 @@ def scan_evidence_and_stub_hygiene(conn: sqlite3.Connection) -> dict[str, Any]:
             "SELECT COUNT(*) FROM edge_evidence WHERE edge_id NOT IN (SELECT edge_id FROM graph_edges)"
         ).fetchone()[0]
     )
-    hex_repo_stubs = [
-        dict(r)
-        for r in conn.execute(
-            "SELECT node_id, label, description FROM graph_nodes WHERE node_type = 'repo_evidence' ORDER BY node_id"
-        ).fetchall()
-        if _HEX_LABEL_RE.match(str(r["label"] or "").strip())
-    ]
+    hex_repo_stubs: list[dict[str, Any]] = []
+    for r in conn.execute(
+        "SELECT node_id, label, description FROM graph_nodes WHERE node_type = 'repo_evidence' ORDER BY node_id"
+    ).fetchall():
+        if not _HEX_LABEL_RE.match(str(r["label"] or "").strip()):
+            continue
+        stub_row = dict(r)
+        nid = str(stub_row["node_id"])
+        rationales = [
+            str(er["rationale"] or "")
+            for er in conn.execute(
+                "SELECT rationale FROM graph_edges WHERE target_node_id = ? OR source_node_id = ? ORDER BY edge_id",
+                (nid, nid),
+            ).fetchall()
+        ]
+        target_relpath = _extract_repo_stub_relpath(rationales, str(stub_row.get("description") or ""))
+        stub_row["target_relpath"] = target_relpath
+        stub_row["suggested_label"] = _suggested_label_for_repo_stub(nid, target_relpath)
+        stub_row["path_exists"] = _repo_relpath_exists(repo_root, target_relpath)
+        hex_repo_stubs.append(stub_row)
+
     node_count = max(1, int(conn.execute("SELECT COUNT(*) FROM graph_nodes").fetchone()[0]))
     sibling_count = int(conn.execute("SELECT COUNT(*) FROM graph_sibling_links").fetchone()[0])
     sibling_ratio = round(sibling_count / node_count, 2)
@@ -836,7 +909,7 @@ def run_graph_hygiene_audit(
         leak_scan = scan_quarantine_and_fts_leakage(conn)
         topo_scan = scan_stranded_topology_and_consolidation(conn)
         promo_scan = scan_promotion_readiness(conn)
-        stub_scan = scan_evidence_and_stub_hygiene(conn)
+        stub_scan = scan_evidence_and_stub_hygiene(conn, repo_root=resolved_root)
     finally:
         conn.close()
 

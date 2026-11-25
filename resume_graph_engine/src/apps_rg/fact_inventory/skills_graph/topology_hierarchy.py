@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 from apps_rg.repository_layout import repository_root
 from .topology_normalization import (
@@ -280,25 +280,50 @@ def build_pillar_containment_edges(
 def populate_stub_descriptions(
     node_rows: dict[str, dict[str, Any]],
     candidate_ledger_path: Path | None = None,
+    *,
+    repo_stub_labels: Mapping[str, Any] | None = None,
 ) -> None:
     """Populate descriptions for facts, concepts, and repo evidence from candidate ledger."""
     root = repository_root()
     p1 = root / "artifacts/apps_rg/fact_inventory/master_candidate_skills_fact_ledger_20260518T1100Z.json"
     p2 = root / "resume_graph_engine/artifacts/apps_rg/fact_inventory/master_candidate_skills_fact_ledger_20260518T1100Z.json"
     cand_path = candidate_ledger_path or (p1 if p1.is_file() else p2)
-    if not cand_path.is_file():
+    fact_map: dict[str, Any] = {}
+    if cand_path.is_file():
+        try:
+            cand_data = json.loads(cand_path.read_text(encoding="utf-8"))
+            facts = cand_data.get("candidate_facts") or []
+            fact_map = {f.get("candidate_fact_id"): f for f in facts if f.get("candidate_fact_id")}
+        except (OSError, json.JSONDecodeError, TypeError, AttributeError):
+            fact_map = {}
+    elif not repo_stub_labels:
         return
 
-    try:
-        cand_data = json.loads(cand_path.read_text(encoding="utf-8"))
-        facts = cand_data.get("candidate_facts") or []
-        fact_map = {f.get("candidate_fact_id"): f for f in facts if f.get("candidate_fact_id")}
-    except (OSError, json.JSONDecodeError, TypeError, AttributeError):
-        return
+    stub_overrides = dict(repo_stub_labels or {})
 
     for nid, node in node_rows.items():
         ntype = str(node.get("node_type") or "")
-        if ntype == "fact" and nid in fact_map:
+        if ntype == "repo_evidence" and nid in stub_overrides:
+            override = stub_overrides[nid]
+            if isinstance(override, Mapping):
+                new_lbl = str(override.get("label") or override.get("new_label") or "").strip()
+                new_desc = str(override.get("description") or "").strip()
+                relpath = str(override.get("target_relpath") or "").strip()
+                if new_lbl:
+                    node["label"] = new_lbl
+                if new_desc:
+                    node["description"] = new_desc
+                elif new_lbl:
+                    node["description"] = (
+                        f"Production implementation evidence: {new_lbl} ({relpath})"
+                        if relpath
+                        else f"Production implementation evidence: {new_lbl}"
+                    )
+            elif isinstance(override, str) and override.strip():
+                clean_lbl = override.strip()
+                node["label"] = clean_lbl
+                node["description"] = f"Production implementation evidence: {clean_lbl}"
+        elif ntype == "fact" and nid in fact_map:
             cf = fact_map[nid]
             claim = str(cf.get("claim_text") or "").strip()
             company = str(cf.get("company") or "").strip()
@@ -372,10 +397,14 @@ def build_domain_hierarchy_edges(
     *,
     ts: str = "",
     build_run_id: str = "",
+    domain_redirects: Mapping[str, str] | None = None,
 ) -> list[dict[str, Any]]:
     """Build career_track_contains_capability_domain edges for unparented domains,
     and capability_domain_contains_skill for domain_reasoning_planning_decomposition."""
     edges: list[dict[str, Any]] = []
+    active_domain_set = set(domain_ids)
+    redirects = {str(k): str(v) for k, v in (domain_redirects or {}).items() if k and v}
+    retired_domains = set(redirects.keys()) - active_domain_set
 
     domain_track_map = {
         # Track: Actuarial, Risk & Derivatives
@@ -414,6 +443,8 @@ def build_domain_hierarchy_edges(
     }
 
     for did in sorted(domain_ids):
+        if did in retired_domains:
+            continue
         trk = domain_track_map.get(did)
         if trk:
             eid = f"edge_career_track_contains_capability_domain__{trk}__{did}"
@@ -457,46 +488,51 @@ def build_domain_hierarchy_edges(
             )
 
     # Reasoning / planning domain skill edge
-    edges.append(
-        {
-            "edge_id": "edge_capability_domain_contains_skill__domain_reasoning_planning_decomposition__skill_agentic_control_plane_design",
-            "source_node_id": "domain_reasoning_planning_decomposition",
-            "target_node_id": "skill_agentic_control_plane_design",
-            "edge_family": "domain_skill",
-            "edge_type": "capability_domain_contains_skill",
-            "weight": 1.0,
-            "confidence": "HIGH",
-            "directional": 1,
-            "evidence_status": "approved_graph_ssot",
-            "section_fit": "ALL",
-            "source_authority": "augmented_skills_graph",
-            "rationale": "Reasoning domain contains control plane design skill.",
-            "projection_behavior": "graph_structure",
-            "external_claim_policy": "approved_by_graph_presence",
-            "validation_status": "validated",
-            "edge_note": "",
-            "operator_note": "",
-            "business_story": "",
-            "technical_story": "",
-            "assertion_type": "STRUCTURAL_CONTAINMENT",
-            "assertion_basis": "taxonomy_rule",
-            "assertion_basis_refs_json": json.dumps(
-                ["domain:domain_reasoning_planning_decomposition", "skill:skill_agentic_control_plane_design"]
-            ),
-            "canonical_assertion_text": "Reasoning and planning domain contains agentic control plane design skill.",
-            "lifecycle_disposition": "ACTIVE_POLICY_GATED",
-            "semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v2",
-            "origin_kind": "derived_projection",
-            "origin_ref": "domain_reasoning_planning_decomposition->skill_agentic_control_plane_design",
-            "origin_artifact_sha256": "",
-            "derivation_rule_id": "rule_domain_skill_containment",
-            "build_run_id": build_run_id,
-            "confidence_score": 0.95,
-            "confidence_tier": "HIGH",
-            "confidence_method": "deterministic_domain_skill_containment",
-            "traversable": 1,
-        }
+    reasoning_dom = redirects.get(
+        "domain_reasoning_planning_decomposition",
+        "domain_reasoning_planning_decomposition",
     )
+    if not active_domain_set or reasoning_dom in active_domain_set:
+        edges.append(
+            {
+                "edge_id": f"edge_capability_domain_contains_skill__{reasoning_dom}__skill_agentic_control_plane_design",
+                "source_node_id": reasoning_dom,
+                "target_node_id": "skill_agentic_control_plane_design",
+                "edge_family": "domain_skill",
+                "edge_type": "capability_domain_contains_skill",
+                "weight": 1.0,
+                "confidence": "HIGH",
+                "directional": 1,
+                "evidence_status": "approved_graph_ssot",
+                "section_fit": "ALL",
+                "source_authority": "augmented_skills_graph",
+                "rationale": "Reasoning domain contains control plane design skill.",
+                "projection_behavior": "graph_structure",
+                "external_claim_policy": "approved_by_graph_presence",
+                "validation_status": "validated",
+                "edge_note": "",
+                "operator_note": "",
+                "business_story": "",
+                "technical_story": "",
+                "assertion_type": "STRUCTURAL_CONTAINMENT",
+                "assertion_basis": "taxonomy_rule",
+                "assertion_basis_refs_json": json.dumps(
+                    [f"domain:{reasoning_dom}", "skill:skill_agentic_control_plane_design"]
+                ),
+                "canonical_assertion_text": "Reasoning and planning domain contains agentic control plane design skill.",
+                "lifecycle_disposition": "ACTIVE_POLICY_GATED",
+                "semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v2",
+                "origin_kind": "derived_projection",
+                "origin_ref": f"{reasoning_dom}->skill_agentic_control_plane_design",
+                "origin_artifact_sha256": "",
+                "derivation_rule_id": "rule_domain_skill_containment",
+                "build_run_id": build_run_id,
+                "confidence_score": 0.95,
+                "confidence_tier": "HIGH",
+                "confidence_method": "deterministic_domain_skill_containment",
+                "traversable": 1,
+            }
+        )
 
     # C03 Hardening capability domain skill edges
     c03_skill_bindings = [
@@ -504,7 +540,10 @@ def build_domain_hierarchy_edges(
         ("capability_reverse_graph_traversal", "skill_c03_reverse_traversal_receipts"),
         ("capability_sibling_rejection_receipts", "skill_c03_sibling_skill_rejection_reasoning"),
     ]
-    for c_dom, c_sk in c03_skill_bindings:
+    for raw_c_dom, c_sk in c03_skill_bindings:
+        c_dom = redirects.get(raw_c_dom, raw_c_dom)
+        if active_domain_set and c_dom not in active_domain_set:
+            continue
         edges.append(
             {
                 "edge_id": f"edge_capability_domain_contains_skill__{c_dom}__{c_sk}",

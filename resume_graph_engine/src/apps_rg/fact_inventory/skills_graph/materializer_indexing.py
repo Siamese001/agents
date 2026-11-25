@@ -188,6 +188,16 @@ def run_materializer_indexing(ctx: dict[str, Any]) -> None:
         validate_graphdb_capability_integrity,
     )
 
+    gm = payload.get("graph_metadata") if isinstance(payload.get("graph_metadata"), dict) else {}
+    raw_max_siblings = gm.get("max_siblings_per_node")
+    max_siblings_per_node = (
+        int(raw_max_siblings)
+        if isinstance(raw_max_siblings, int)
+        and not isinstance(raw_max_siblings, bool)
+        and raw_max_siblings > 0
+        else None
+    )
+
     graph_index_rows = build_graph_index_rows(
         node_rows=list(node_rows.values()),
         edge_rows=edge_rows,
@@ -195,9 +205,9 @@ def run_materializer_indexing(ctx: dict[str, Any]) -> None:
         role_family_projection_rows=projection_rows,
         created_at=ts,
         build_run_id=ctx.get("build_run_id", ""),
+        max_siblings_per_node=max_siblings_per_node,
     )
 
-    gm = payload.get("graph_metadata") if isinstance(payload.get("graph_metadata"), dict) else {}
     summary = {
         "c03_sqlite_materializer_code_version": C03_SQLITE_MATERIALIZER_CODE_VERSION,
         "node_count_json": gm.get("node_count"),
@@ -218,6 +228,8 @@ def run_materializer_indexing(ctx: dict[str, Any]) -> None:
         "projected_registered_edge_count": projected_signature_report["registered_edge_count"],
         "projected_registered_edge_signature_valid_count": projected_signature_report["valid_edge_count"],
     }
+    if max_siblings_per_node is not None:
+        summary["max_siblings_per_node"] = max_siblings_per_node
 
 
     ctx["selection_feature_rows"] = selection_feature_rows

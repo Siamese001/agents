@@ -101,9 +101,17 @@ def _required_unique_string_list(
     return normalized
 
 
-def discover_role_episode_bundle_files(repo_root: Path) -> list[Path]:
+def discover_role_episode_bundle_files(
+    repo_root: Path,
+    *,
+    bundles_dir: Path | None = None,
+) -> list[Path]:
     """Return all ``*_role_episode_bundles.json`` under ``apps_rg/fact_inventory/``."""
-    base = (apps_rg_package_root(repo_root) / "fact_inventory").resolve()
+    base = (
+        Path(bundles_dir).resolve()
+        if bundles_dir is not None
+        else (apps_rg_package_root(repo_root) / "fact_inventory").resolve()
+    )
     if not base.is_dir():
         return []
     return sorted(base.glob(ROLE_EPISODE_BUNDLE_GLOB))
@@ -276,7 +284,11 @@ def _metric_outcome_to_edge_rows(
     return edges
 
 
-def load_metric_outcome_rows_from_bundles(repo_root: Path) -> dict[str, dict[str, Any]]:
+def load_metric_outcome_rows_from_bundles(
+    repo_root: Path,
+    *,
+    bundles_dir: Path | None = None,
+) -> dict[str, dict[str, Any]]:
     """Discover all role_episode_bundle JSONs and return ``{metric_id: metric_dict}``.
 
     Bundle file employer is carried onto each metric row as ``employer_node_id``
@@ -286,7 +298,7 @@ def load_metric_outcome_rows_from_bundles(repo_root: Path) -> dict[str, dict[str
     declared in two bundles raises ``ValueError`` (provenance conflict).
     """
     out: dict[str, dict[str, Any]] = {}
-    for path in discover_role_episode_bundle_files(repo_root):
+    for path in discover_role_episode_bundle_files(repo_root, bundles_dir=bundles_dir):
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as exc:
@@ -356,6 +368,8 @@ def metric_outcome_node_and_edge_rows(
     known_node_ids: set[str],
     build_run_id: str = "",
     blocked_skill_ids: set[str] | frozenset[str] | None = None,
+    bundles_dir: Path | None = None,
+    ledger_payload: dict[str, Any] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Return ``(node_rows, edge_rows)`` for all metric_outcome materialization.
 
@@ -366,7 +380,7 @@ def metric_outcome_node_and_edge_rows(
     by other code paths and may not be in known_node_ids at the time of
     this call).
     """
-    rows = load_metric_outcome_rows_from_bundles(repo_root)
+    rows = load_metric_outcome_rows_from_bundles(repo_root, bundles_dir=bundles_dir)
     node_rows: list[dict[str, Any]] = []
     edge_rows: list[dict[str, Any]] = []
     for mid, metric in rows.items():
@@ -379,9 +393,18 @@ def metric_outcome_node_and_edge_rows(
         ledger_path = repo_root / "resume_graph_engine/src/apps_rg/fact_inventory/master_skills_arsenal_ledger.json"
     skill_fact_pairs: set[tuple[str, str]] = set()
     effective_blocked_skill_ids: set[str] = set(blocked_skill_ids or ())
-    if ledger_path.is_file():
+    skill_redirect_map: dict[str, str] = {}
+    ledger_data: dict[str, Any] | None = ledger_payload
+    if ledger_data is None and ledger_path.is_file():
         try:
             ledger_data = json.loads(ledger_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError, TypeError, ValueError):
+            ledger_data = None
+    if isinstance(ledger_data, dict):
+        try:
+            for red in ledger_data.get("_graph_hygiene_redirects") or []:
+                if isinstance(red, dict) and red.get("retired_node_id") and red.get("survivor_node_id"):
+                    skill_redirect_map[str(red["retired_node_id"])] = str(red["survivor_node_id"])
             for l in ledger_data.get("skill_fact_links", []):
                 skill_fact_pairs.add((str(l.get("skill_id")), str(l.get("fact_id"))))
             for e in ledger_data.get("graph_edges", []):
@@ -394,6 +417,8 @@ def metric_outcome_node_and_edge_rows(
             ):
                 sid = item.get("skill_id") or item.get("node_id")
                 if not sid:
+                    continue
+                if str(item.get("operator_hygiene_decision") or "").strip().upper() == "PROMOTE_EXTERNAL":
                     continue
                 is_blocked_val = any(
                     str(item.get(k, "")).upper() in ("BLOCKED", "DO_NOT_PROMOTE")
@@ -408,14 +433,23 @@ def metric_outcome_node_and_edge_rows(
                 is_internal_only = (
                     str(item.get("visibility_rule") or "").strip().lower() == "never_external"
                     or str(item.get("support_level") or "").strip().upper() in ("INTERNAL_ONLY", "REPO_EVIDENCE_PORTFOLIO")
+                    or str(item.get("operator_hold_mode") or "").strip().upper() in ("INTERNAL_ONLY", "PORTFOLIO_ONLY", "RETIRED")
                 )
                 if is_blocked_val or is_internal_only:
                     effective_blocked_skill_ids.add(str(sid))
-        except (OSError, json.JSONDecodeError, TypeError, ValueError):
+        except (TypeError, ValueError):
             pass
 
+    def _resolve_skill_redirect(raw_sid: str) -> str:
+        seen: set[str] = set()
+        cur = raw_sid
+        while cur in skill_redirect_map and cur not in seen:
+            seen.add(cur)
+            cur = skill_redirect_map[cur]
+        return cur
+
     # Multi-hop metric outcomes: link bundle facts and skills to candidate metrics
-    for path in discover_role_episode_bundle_files(repo_root):
+    for path in discover_role_episode_bundle_files(repo_root, bundles_dir=bundles_dir):
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
@@ -491,7 +525,7 @@ def metric_outcome_node_and_edge_rows(
                 ):
                     continue
                 for sid in sids:
-                    sid_s = str(sid).strip()
+                    sid_s = _resolve_skill_redirect(str(sid).strip())
                     if not sid_s or sid_s in effective_blocked_skill_ids:
                         continue
                     # Proof chain verification: find connecting facts in bundle that sid supports
@@ -530,6 +564,60 @@ def metric_outcome_node_and_edge_rows(
                             "traversable": 1,
                         }
                     )
+
+    # Explicit operator-wired linked_skill_ids on metric_outcome_nodes (CLUSTER-03)
+    metric_facts_map: dict[str, set[str]] = {}
+    for er in edge_rows:
+        if er.get("edge_type") in ("fact_has_metric_outcome", "locked_bullet_has_metric_outcome"):
+            metric_facts_map.setdefault(str(er["target_node_id"]), set()).add(str(er["source_node_id"]))
+    for mid_s, metric_row in sorted(rows.items()):
+        explicit_skills = metric_row.get("linked_skill_ids") or []
+        if not isinstance(explicit_skills, list) or not explicit_skills:
+            continue
+        metric_approval = str(metric_row.get("approval_status") or "").strip().upper()
+        if (
+            not bool(metric_row.get("approved"))
+            or metric_approval in ("QUARANTINED_UNVERIFIED_SYNTHETIC", "BLOCKED", "RETIRED")
+        ):
+            continue
+        primary_reb = (
+            str((metric_row.get("bundle_bindings") or [""])[0]).strip() or mid_s
+        )
+        m_facts = metric_facts_map.get(mid_s, set())
+        for sid in explicit_skills:
+            sid_s = _resolve_skill_redirect(str(sid).strip())
+            if not sid_s or sid_s not in known_node_ids or sid_s in effective_blocked_skill_ids:
+                continue
+            shared_facts = sorted(
+                fid for (sk, fid) in skill_fact_pairs if sk == sid_s and (not m_facts or fid in m_facts)
+            )
+            if not shared_facts:
+                shared_facts = sorted(fid for (sk, fid) in skill_fact_pairs if sk == sid_s)[:2]
+            edge_rows.append(
+                {
+                    "edge_id": f"edge_skill_surfaces_metric_outcome__{sid_s}__{mid_s}",
+                    "source_node_id": sid_s,
+                    "target_node_id": mid_s,
+                    "edge_family": "skill_metric",
+                    "edge_type": "skill_surfaces_metric_outcome",
+                    "weight": 1.0,
+                    "confidence": "HIGH",
+                    "directional": 1,
+                    "evidence_status": "approved_graph_ssot",
+                    "section_fit": "ALL",
+                    "source_authority": "augmented_skills_graph",
+                    "assertion_type": "METRIC_BINDING",
+                    "assertion_basis": "source_field_derivation",
+                    "origin_kind": "bundle_row",
+                    "origin_ref": f"{primary_reb}::{sid_s}->{mid_s}",
+                    "derivation_rule_id": "rule_skill_surfaces_metric_outcome",
+                    "canonical_assertion_text": f"Skill {sid_s} surfaces metric outcome {mid_s}.",
+                    "lifecycle_disposition": "ACTIVE_POLICY_GATED",
+                    "assertion_basis_refs": [f"skill:{sid_s}", f"metric:{mid_s}"]
+                    + [f"fact:{cf}" for cf in shared_facts],
+                    "traversable": 1,
+                }
+            )
 
     # Deduplicate edge_rows by edge_id and endpoint signature tuple
     seen_edge_ids: set[str] = set()

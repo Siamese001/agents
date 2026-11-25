@@ -858,6 +858,17 @@ def validate_graphdb_capability_integrity(
         f"'{node_type}'" for node_type in sorted(SKILL_FACT_EVIDENCE_NODE_TYPES)
     )
     sibling_node_types_sql = ",".join(f"'{node_type}'" for node_type in sorted(SIBLING_NODE_TYPES))
+    configured_max_siblings: int | None = None
+    if table_exists(conn, "graph_metadata"):
+        _meta_row = conn.execute("SELECT graph_count_summary FROM graph_metadata LIMIT 1").fetchone()
+        if _meta_row and _meta_row[0]:
+            try:
+                _meta_obj = json.loads(_meta_row[0])
+                _raw_cap = _meta_obj.get("max_siblings_per_node") if isinstance(_meta_obj, dict) else None
+                if isinstance(_raw_cap, int) and not isinstance(_raw_cap, bool) and _raw_cap > 0:
+                    configured_max_siblings = int(_raw_cap)
+            except (TypeError, ValueError, json.JSONDecodeError):
+                configured_max_siblings = None
     checks = {
         "duplicate_graph_edge_triples": """
             SELECT COUNT(*) FROM (
@@ -988,15 +999,6 @@ def validate_graphdb_capability_integrity(
                OR g.node_id = g.sibling_node_id
                OR (g.shared_parent_node_id <> '' AND p.node_id IS NULL)
         """,
-        "nonreciprocal_graph_sibling_links": """
-            SELECT COUNT(*) FROM graph_sibling_links g
-            LEFT JOIN graph_sibling_links r
-             ON r.node_id = g.sibling_node_id
-             AND r.sibling_node_id = g.node_id
-             AND r.shared_parent_node_id = g.shared_parent_node_id
-             AND r.shared_edge_type = g.shared_edge_type
-            WHERE r.node_id IS NULL
-        """,
         "broken_graph_sibling_parent_edges": """
             SELECT COUNT(*) FROM graph_sibling_links g
             LEFT JOIN graph_edges n
@@ -1010,51 +1012,105 @@ def validate_graphdb_capability_integrity(
             WHERE g.shared_parent_node_id <> ''
               AND (n.edge_id IS NULL OR s.edge_id IS NULL)
         """,
-        "graph_sibling_context_set_mismatches": f"""
-            WITH sanctioned_children AS (
-                SELECT e.source_node_id AS parent_node_id,
-                       e.edge_type,
-                       e.target_node_id AS child_node_id
-                FROM graph_edges e
-                JOIN graph_nodes n ON n.node_id = e.target_node_id
-                WHERE n.node_type IN ({sibling_node_types_sql})
-                  AND COALESCE(e.traversable, 1) = 1
-            ),
-            expected AS (
-                SELECT a.child_node_id AS node_id,
-                       b.child_node_id AS sibling_node_id,
-                       a.parent_node_id AS shared_parent_node_id,
-                       a.edge_type AS shared_edge_type
-                FROM sanctioned_children a
-                JOIN sanctioned_children b
-                  ON b.parent_node_id = a.parent_node_id
-                 AND b.edge_type = a.edge_type
-                 AND b.child_node_id <> a.child_node_id
-            )
-            SELECT
-                (SELECT COUNT(*) FROM (
-                    SELECT e.node_id, e.sibling_node_id,
-                            e.shared_parent_node_id, e.shared_edge_type
-                    FROM expected e
-                    LEFT JOIN graph_sibling_links g
-                      ON g.node_id = e.node_id
-                     AND g.sibling_node_id = e.sibling_node_id
-                     AND g.shared_parent_node_id = e.shared_parent_node_id
-                     AND g.shared_edge_type = e.shared_edge_type
-                    GROUP BY e.node_id, e.sibling_node_id,
-                             e.shared_parent_node_id, e.shared_edge_type
-                    HAVING COUNT(g.rowid) <> 1
-                ))
-                +
-                (SELECT COUNT(*)
-                 FROM graph_sibling_links g
-                 LEFT JOIN expected e
-                   ON e.node_id = g.node_id
-                  AND e.sibling_node_id = g.sibling_node_id
-                  AND e.shared_parent_node_id = g.shared_parent_node_id
-                  AND e.shared_edge_type = g.shared_edge_type
-                 WHERE e.node_id IS NULL)
-        """,
+        **(
+            {
+                "phantom_capped_graph_sibling_links": f"""
+                    WITH sanctioned_children AS (
+                        SELECT e.source_node_id AS parent_node_id,
+                               e.edge_type,
+                               e.target_node_id AS child_node_id
+                        FROM graph_edges e
+                        JOIN graph_nodes n ON n.node_id = e.target_node_id
+                        WHERE n.node_type IN ({sibling_node_types_sql})
+                          AND COALESCE(e.traversable, 1) = 1
+                    ),
+                    expected AS (
+                        SELECT a.child_node_id AS node_id,
+                               b.child_node_id AS sibling_node_id,
+                               a.parent_node_id AS shared_parent_node_id,
+                               a.edge_type AS shared_edge_type
+                        FROM sanctioned_children a
+                        JOIN sanctioned_children b
+                          ON b.parent_node_id = a.parent_node_id
+                         AND b.edge_type = a.edge_type
+                         AND b.child_node_id <> a.child_node_id
+                    )
+                    SELECT COUNT(*)
+                    FROM graph_sibling_links g
+                    LEFT JOIN expected e
+                      ON e.node_id = g.node_id
+                     AND e.sibling_node_id = g.sibling_node_id
+                     AND e.shared_parent_node_id = g.shared_parent_node_id
+                     AND e.shared_edge_type = g.shared_edge_type
+                    WHERE e.node_id IS NULL
+                """,
+                "exceeded_max_siblings_per_node": f"""
+                    SELECT COUNT(*) FROM (
+                        SELECT node_id
+                        FROM graph_sibling_links
+                        GROUP BY node_id
+                        HAVING COUNT(*) > {int(configured_max_siblings)}
+                    )
+                """,
+            }
+            if configured_max_siblings is not None
+            else {
+                "nonreciprocal_graph_sibling_links": """
+                    SELECT COUNT(*) FROM graph_sibling_links g
+                    LEFT JOIN graph_sibling_links r
+                     ON r.node_id = g.sibling_node_id
+                     AND r.sibling_node_id = g.node_id
+                     AND r.shared_parent_node_id = g.shared_parent_node_id
+                     AND r.shared_edge_type = g.shared_edge_type
+                    WHERE r.node_id IS NULL
+                """,
+                "graph_sibling_context_set_mismatches": f"""
+                    WITH sanctioned_children AS (
+                        SELECT e.source_node_id AS parent_node_id,
+                               e.edge_type,
+                               e.target_node_id AS child_node_id
+                        FROM graph_edges e
+                        JOIN graph_nodes n ON n.node_id = e.target_node_id
+                        WHERE n.node_type IN ({sibling_node_types_sql})
+                          AND COALESCE(e.traversable, 1) = 1
+                    ),
+                    expected AS (
+                        SELECT a.child_node_id AS node_id,
+                               b.child_node_id AS sibling_node_id,
+                               a.parent_node_id AS shared_parent_node_id,
+                               a.edge_type AS shared_edge_type
+                        FROM sanctioned_children a
+                        JOIN sanctioned_children b
+                          ON b.parent_node_id = a.parent_node_id
+                         AND b.edge_type = a.edge_type
+                         AND b.child_node_id <> a.child_node_id
+                    )
+                    SELECT
+                        (SELECT COUNT(*) FROM (
+                            SELECT e.node_id, e.sibling_node_id,
+                                    e.shared_parent_node_id, e.shared_edge_type
+                            FROM expected e
+                            LEFT JOIN graph_sibling_links g
+                              ON g.node_id = e.node_id
+                             AND g.sibling_node_id = e.sibling_node_id
+                             AND g.shared_parent_node_id = e.shared_parent_node_id
+                             AND g.shared_edge_type = e.shared_edge_type
+                            GROUP BY e.node_id, e.sibling_node_id,
+                                     e.shared_parent_node_id, e.shared_edge_type
+                            HAVING COUNT(g.rowid) <> 1
+                        ))
+                        +
+                        (SELECT COUNT(*)
+                         FROM graph_sibling_links g
+                         LEFT JOIN expected e
+                           ON e.node_id = g.node_id
+                          AND e.sibling_node_id = g.sibling_node_id
+                          AND e.shared_parent_node_id = g.shared_parent_node_id
+                          AND e.shared_edge_type = g.shared_edge_type
+                         WHERE e.node_id IS NULL)
+                """,
+            }
+        ),
         "broken_graph_neighborhoods": """
             SELECT COUNT(*) FROM graph_neighborhoods g
             LEFT JOIN graph_nodes c ON c.node_id = g.center_node_id
@@ -1473,6 +1529,7 @@ def build_graph_index_rows(
     role_family_projection_rows: Iterable[dict[str, Any]],
     created_at: str,
     build_run_id: str = "",
+    max_siblings_per_node: int | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
     """Build generated graph-index rows before the SQLite file exists."""
     nodes = {str(row.get("node_id") or ""): dict(row) for row in node_rows if row.get("node_id")}
@@ -1568,6 +1625,29 @@ def build_graph_index_rows(
                         "build_run_id": build_run_id,
                     }
                 )
+
+    if (
+        max_siblings_per_node is not None
+        and isinstance(max_siblings_per_node, int)
+        and not isinstance(max_siblings_per_node, bool)
+        and max_siblings_per_node > 0
+    ):
+        siblings_by_node: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        for srow in graph_sibling_links:
+            siblings_by_node[str(srow["node_id"])].append(srow)
+        capped_siblings: list[dict[str, Any]] = []
+        for nid in sorted(siblings_by_node):
+            ordered_sibs = sorted(
+                siblings_by_node[nid],
+                key=lambda r: (
+                    -float(r["sibling_score"]),
+                    str(r["sibling_node_id"]),
+                    str(r["shared_parent_node_id"]),
+                    str(r.get("shared_edge_type") or ""),
+                ),
+            )
+            capped_siblings.extend(ordered_sibs[: int(max_siblings_per_node)])
+        graph_sibling_links = capped_siblings
 
     center_neighbor_edges: dict[tuple[str, str], list[tuple[str, str]]] = defaultdict(list)
     for edge in edges:

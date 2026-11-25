@@ -96,6 +96,7 @@ def run_materializer_ingress(
     repo_root: Path | None = None,
     db_path: Path | None = None,
     json_source_path: Path | None = None,
+    bundles_dir: Path | None = None,
 ) -> dict[str, Any]:
     """Execute materializer ingress: parse payload, assemble nodes, edges, promotions."""
     derive_registered_graph_endpoint_types = _get_derive_registered_graph_endpoint_types()
@@ -535,6 +536,8 @@ def run_materializer_ingress(
         known_node_ids=set(node_rows.keys()),
         build_run_id=build_run_id,
         blocked_skill_ids=_blocked_skill_ids,
+        bundles_dir=bundles_dir,
+        ledger_payload=payload,
     )
     for _row in _mo_node_rows:
         _nid = _row["node_id"]
@@ -581,6 +584,7 @@ def run_materializer_ingress(
         build_run_id=build_run_id,
         ts=ts,
         ledger_hash=ledger_hash,
+        bundles_dir=bundles_dir,
     )
     raw_redirects = payload.get("_graph_hygiene_redirects") or []
     if isinstance(raw_redirects, list) and raw_redirects:
