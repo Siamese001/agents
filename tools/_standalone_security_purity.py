@@ -1,15 +1,16 @@
 """Auto-synced standalone security, purity & commit linter fallback for CI and public clones."""
-from __future__ import annotations
 
-CORE_GOVERNANCE_LINTERS_SHA256 = "8b1a3c5bd91d00f2766f5aeb3fbf80da0f7a6a0a9db91074e244141d9f7e8c0d"
+from __future__ import annotations
 
 import ast
 import json
 import math
-from pathlib import Path
 import re
 import subprocess
+from pathlib import Path
 from typing import Any, NamedTuple, Sequence
+
+CORE_GOVERNANCE_LINTERS_SHA256 = "e53e89fe8112360214ee789eebe8d91c40e5e730ae5c094e153813a4fafeec09"
 
 SECRET_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("Private Key", re.compile(r"-----BEGIN (?:[A-Z ]+)?PRIVATE KEY-----")),

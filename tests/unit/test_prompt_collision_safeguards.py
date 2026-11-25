@@ -24,7 +24,6 @@ from tools.hook_dispatch import (
     handle_pre_file_write,
     handle_pre_subagent_delegation,
 )
-from tools.pr_governance_core.common import slugify_branch
 from tools.prompt_scope_isolation import (
     PROMPT_STAGE_ALLOWED_WRITE_PATHS,
     evaluate_active_subagent_write_scope,
@@ -50,6 +49,8 @@ from tools.storage_worktree_hygiene import (
 )
 from tools.unified_agent_architecture import validate_delegation_contract
 from tools.verify_graph_integrity_and_embeddings import verify_learned_sparse_and_colbert
+
+from tools.pr_governance_core.common import slugify_branch
 
 
 def _git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -286,7 +287,12 @@ def test_wave4_subagent_scope_hooks_and_prompt_catalog_parity(tmp_path: Path, mo
 
     # Edge cases: empty select_impacted_tests, explicit >4 batch size, and split-package model baseline inheritance
     from tools.adg_impact_tests import select_impacted_tests
-    from tools.verify_commit import _MODEL_BASELINE_COUNTS, _resolve_model_baseline_count, check_architectural_governance
+
+    from tools.verify_commit import (
+        _MODEL_BASELINE_COUNTS,
+        _resolve_model_baseline_count,
+        check_architectural_governance,
+    )
 
     empty_impact = select_impacted_tests([], repo_root=REPO_ROOT)
     assert empty_impact["batches"] == [] and empty_impact["total_selected"] == 0

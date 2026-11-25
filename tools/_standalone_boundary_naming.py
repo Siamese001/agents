@@ -1,14 +1,15 @@
 """Auto-synced standalone model-neutral naming & layer-import linter fallback for CI and public clones."""
+
 from __future__ import annotations
 
-CORE_GOVERNANCE_LINTERS_SHA256 = "8b1a3c5bd91d00f2766f5aeb3fbf80da0f7a6a0a9db91074e244141d9f7e8c0d"
-
 import ast
-from collections import defaultdict
 import json
-from pathlib import Path
 import re
-from typing import Any, NamedTuple, Sequence
+from collections import defaultdict
+from pathlib import Path
+from typing import NamedTuple, Sequence
+
+CORE_GOVERNANCE_LINTERS_SHA256 = "e53e89fe8112360214ee789eebe8d91c40e5e730ae5c094e153813a4fafeec09"
 
 PROHIBITED_PATH_MODEL_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"(?i)\bgpt[0-9_\-a-z]*\b"),

@@ -1,14 +1,15 @@
 """Auto-synced standalone wave-plan validator fallback for CI and public clones."""
-from __future__ import annotations
 
-CORE_GOVERNANCE_PLAN_VALIDATOR_SHA256 = "36a1c21ad16bbbf1d586698888ce567fd46bee8f3afaabc940aad74fa4393643"
+from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
 import re
 import subprocess
+from pathlib import Path
 from typing import Any, Sequence
+
+CORE_GOVERNANCE_PLAN_VALIDATOR_SHA256 = "c26e78982b9837972a864167685d14f388c86d246866d816b748fd197c84b8e2"
 
 RE_TITLE = re.compile(r"^#\s+(.+)$", re.MULTILINE)
 RE_WAVE_HEADER = re.compile(r"^(#{2,3})\s+Wave\s+(\d+)([A-Z]{0,2})(?:[:\s\-]+(.*))?$", re.IGNORECASE)
