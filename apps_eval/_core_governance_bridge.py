@@ -44,9 +44,12 @@ _shld = _load_core_gov_module("eval_flywheel_shield_core")
 
 PEAK_EROSION_FLOOR_PCT = _life.PEAK_EROSION_FLOOR_PCT
 POST_FIX_BASELINE_CLEAN_STREAK = _life.POST_FIX_BASELINE_CLEAN_STREAK
+SHIELD_SLA_SECONDS = _life.SHIELD_SLA_SECONDS
 STALE_APPROVED_HOURS = _life.STALE_APPROVED_HOURS
+UNIVERSAL_FLYWHEEL_POLICY = _life.UNIVERSAL_FLYWHEEL_POLICY
 collect_stale_approved_findings = _life.collect_stale_approved_findings
 evaluate_dual_anchor_rolling_drift = _life.evaluate_dual_anchor_rolling_drift
+load_universal_flywheel_policy = _life.load_universal_flywheel_policy
 normalize_iso_z = _life.normalize_iso_z
 resolve_lifecycle_transition = _life.resolve_lifecycle_transition
 resolve_runtime_version_stamps = _life.resolve_runtime_version_stamps
@@ -63,11 +66,14 @@ harvest_borderline_candidates = _harv.harvest_borderline_candidates
 verify_judge_drift_receipt = _harv.verify_judge_drift_receipt
 
 expand_reverse_python_importers = _shld.expand_reverse_python_importers
+verify_unmocked_runtime_environment = _shld.verify_unmocked_runtime_environment
 
 __all__ = [
     "PEAK_EROSION_FLOOR_PCT",
     "POST_FIX_BASELINE_CLEAN_STREAK",
+    "SHIELD_SLA_SECONDS",
     "STALE_APPROVED_HOURS",
+    "UNIVERSAL_FLYWHEEL_POLICY",
     "collect_judge_and_aux_drift_findings",
     "collect_stale_approved_findings",
     "compute_finding_fingerprint",
@@ -76,6 +82,7 @@ __all__ = [
     "expand_reverse_python_importers",
     "extract_correction_source_id",
     "harvest_borderline_candidates",
+    "load_universal_flywheel_policy",
     "normalize_iso_z",
     "resolve_lifecycle_transition",
     "resolve_runtime_version_stamps",
@@ -83,4 +90,5 @@ __all__ = [
     "stamp_resolution_watermark",
     "verify_finding_closeout_proof",
     "verify_judge_drift_receipt",
+    "verify_unmocked_runtime_environment",
 ]

@@ -3,9 +3,9 @@ trigger: always_on
 description: Governed hybrid post-runtime flywheel remediation: automatic Tier A bounded tuning and atomic one-at-a-time ask_question dispatch for Tier B, Tier C, and close-margin updates.
 ---
 
-# Flywheel Hybrid Auto-Apply & Atomic HITL Remediation (`INV-FLYWHEEL-AUTO-REMEDIATE`)
+# Flywheel Hybrid Auto-Apply & Atomic HITL Remediation (`INV-FLYWHEEL-AUTO-REMEDIATE`, `INV-CENTRALIZED-EVAL-FLYWHEEL`)
 
-Governs post-runtime learning commits and defect remediation across `agents` (`config/governance/auto_apply_policy.yaml` and `config/governance/policy_registry.yaml`).
+Governs post-runtime learning commits and defect remediation across `agents` (`config/governance/auto_apply_policy.yaml`, `config/governance/policy_registry.yaml`, and centralized `core-governance` `eval_flywheel_policy_v1.json` with `0` SSOT violations).
 
 ## 1. Hybrid 3-Tier Remediation Policy
 

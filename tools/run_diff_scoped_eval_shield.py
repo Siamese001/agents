@@ -20,13 +20,14 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
+from apps_eval._core_governance_bridge import SHIELD_SLA_SECONDS
 from tools.change_lane_classifier import classify_paths, collect_git_changed_paths
 from tools.eval_shield_core.domain_eval_checks import (
     DOMAIN_RUNNERS,
     verify_unmocked_runtime_environment,
 )
 
-PER_DOMAIN_SLA_SECONDS: float = 10.0
+PER_DOMAIN_SLA_SECONDS: float = SHIELD_SLA_SECONDS
 
 ALL_SHIELD_TRIGGER_PREFIXES: tuple[str, ...] = (
     "apps_eval/suites/",
@@ -149,7 +150,7 @@ def run_eval_shield(
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run unmocked diff-scoped domain eval shield.")
-    parser.add_argument("--repo-root", default=".", help="Repository root path.")
+    parser.add_argument("--repo-root", default=str(_REPO_ROOT), help="Repository root path.")
     parser.add_argument(
         "--all",
         "--all-domains",
