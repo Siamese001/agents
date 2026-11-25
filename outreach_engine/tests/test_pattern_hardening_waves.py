@@ -144,3 +144,31 @@ def test_wave3_physical_output_verification_and_stage_resume(
     resumed = orch.resume_or_patch_run(lic_dir)
     assert resumed["status"] == "RESUMED"
     assert "briefing_resolution" in resumed["reused_stages"]
+
+
+def test_wave1_cli_flywheel_trace_delegation_and_learning_seam(tmp_path: Path) -> None:
+    import argparse
+
+    from resume_engine.cli import _build_parser
+    from resume_engine.cli_inspectors import build_run_flywheel_trace_kwargs
+    from tools.snapshot_agent_learning_registry import scan_module_learning_hooks
+
+    repo_root = Path(__file__).resolve().parents[2]
+    cli_path = repo_root / "resume_engine" / "cli.py"
+    assert "emit_post_run_trace_safe" in scan_module_learning_hooks(cli_path)
+
+    parser = _build_parser()
+    parsed = parser.parse_args(["models", "--json"])
+    assert parsed.action == "models"
+    assert parsed.json is True
+
+    ns = argparse.Namespace(company="Acme", role="VP AI", jd="", offline_smoke=True, demo=False)
+    kwargs = build_run_flywheel_trace_kwargs(
+        ns,
+        {"run_id": "run_test_1", "status": "SUCCESS", "artifact_dir": str(tmp_path / "run_test_1")},
+        42.5,
+    )
+    assert kwargs["app_id"] == "apps_rg"
+    assert kwargs["terminal_status"] == "PASS"
+    assert kwargs["is_smoke_or_demo"] is True
+    assert kwargs["telemetry"]["latency_ms"] == 42.5

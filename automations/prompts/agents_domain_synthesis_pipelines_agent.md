@@ -17,7 +17,7 @@ export PYTHONDONTWRITEBYTECODE=1
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/lint_apps_rg_domain_literals.py"
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/lint_no_jd_overfitting.py" --all --repo-root "${PRIMARY_REPO_ROOT}" --json
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/ops_scripts/run_e2e_authoritative_smoke.py" --read-only
-"${PRIMARY_REPO_ROOT}/.venv/bin/python" -m pytest "${PRIMARY_REPO_ROOT}/tests/unit/test_e2e_and_retrieval_full_parity.py" "${PRIMARY_REPO_ROOT}/tests/unit/test_domain_synthesis_auditor_v2_spine_rigor.py" "${PRIMARY_REPO_ROOT}/outreach_engine/tests" "${PRIMARY_REPO_ROOT}/resume_graph_engine/tests/unit/test_prompt_validator_vocab_symmetry.py" -q -p no:cacheprovider --timeout=60
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" -m pytest "${PRIMARY_REPO_ROOT}/tests/unit/test_e2e_and_retrieval_full_parity.py" "${PRIMARY_REPO_ROOT}/tests/unit/test_domain_synthesis_auditor_v2_spine_rigor.py" "${PRIMARY_REPO_ROOT}/outreach_engine/tests" "${PRIMARY_REPO_ROOT}/tests/unit/test_lint_prompt_validator_vocab_symmetry.py" -q -p no:cacheprovider --timeout=60
 ```
 If all preflight gates exit `0` (`is_clean == true`), fast-exit `COMPLETE` immediately (`PREFLIGHT_ZERO_DEFECT_FAST_EXIT`).
 
