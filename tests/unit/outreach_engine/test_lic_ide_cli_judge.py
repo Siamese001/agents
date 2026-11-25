@@ -39,10 +39,12 @@ def _sample_packet() -> GradeOnlyJudgePacket:
 def test_x1d_ide_cli_dual_quorum_passes_with_real_receipts(monkeypatch: pytest.MonkeyPatch) -> None:
     clear_agy_quota_cooldowns()
     calls: list[str] = []
+    efforts: list[str | None] = []
     monkeypatch.setattr(lic_ide, "ide_cli_ready", lambda b=None: (True, ""))
 
-    def fake_run_agy(prompt: str, *, model: str, json_schema=None, timeout_s=240, agy_bin=None) -> AgyResult:
+    def fake_run_agy(prompt: str, *, model: str, json_schema=None, effort=None, timeout_s=240, agy_bin=None) -> AgyResult:
         calls.append(model)
+        efforts.append(effort)
         payload = {
             "cold_read_takeaway": "Grounded peer-level sequence with clean low-friction CTA.",
             "checks": {
@@ -70,6 +72,7 @@ def test_x1d_ide_cli_dual_quorum_passes_with_real_receipts(monkeypatch: pytest.M
     assert report.recommended_x3_disposition == "X3D_ALLOW_FINISH"
     assert len(calls) == 2
     assert calls[0] != calls[1]
+    assert efforts == ["high", "high"]
     assert all(v.transport == "ide_cli" for v in report.votes)
     assert all(v.evaluator_mode == "MODEL_BACKED" for v in report.votes)
     assert all(v.llm_judge_executed is True for v in report.votes)

@@ -81,7 +81,8 @@ def test_outreach_v3_schemas_put_cold_read_first_and_enforce_critical_veto_and_s
         "failure_tags": ["HALLUCINATED_FACT"],
     }
     unit, passed, _, _, _, viols = _score_v3_payload(laundered_resp, seq_prof, 0.85)
-    assert unit == 0.70
+    expected_rem = round(sum(c.weight for c in seq_prof.checks if c.id != "pct_and_fact_grounding"), 4)
+    assert unit == expected_rem
     assert passed is False
     assert any("HALLUCINATED_FACT" in v for v in viols)
 
@@ -214,3 +215,65 @@ def test_apps_research_v3_brief_judge_and_zero_false_calibrated_stubs() -> None:
         + "\n",
         encoding="utf-8",
     )
+
+
+def test_outreach_yaml_transport_company_brief_engine_marker_and_trajectory_governance_v3() -> None:
+    from apps_eval.contracts.schemas import RunTrace
+    from apps_eval.graders.judge.v3_trajectory_judge import evaluate_trajectory_governance_v3
+    from apps_lic.judges.ide_cli_judge import resolve_lic_judge_transport
+    from apps_research.engines.company_brief_engine import _emit_company_brief_marker
+
+    # 1. Outreach YAML config_path resolves "ide_cli" when env override is absent
+    yaml_path = REPO_ROOT / "outreach_engine" / "config" / "provider_profiles.yaml"
+    assert resolve_lic_judge_transport(environ={}, config_path=yaml_path) == "ide_cli"
+
+    # 2. CompanyBriefEngine marker emits real JudgeV3Scorecard fields instead of hardcoded composite=0.0
+    _, card = evaluate_research_brief_v3(
+        artifact_id="brief-marker-1",
+        brief_payload={"company_name": "Anthropic", "summary": "Enterprise safety research."},
+        llm_raw_response=None,
+    )
+    marker_str = _emit_company_brief_marker(
+        accepted=True,
+        model_used="gpt-5.6-terra",
+        fallback_reason="none",
+        latency_ms=12.5,
+        scorecard=card,
+    )
+    assert "rubric_id=company_research_brief:company_brief_synthesis" in marker_str
+    assert "llm_judge_executed=False" in marker_str
+    assert "normalized_unit_score=null" in marker_str
+    assert "composite=0.0" not in marker_str
+
+    # 3. Trajectory governance Judge v3 evaluates RunTrace tool-evidence packets
+    trace = RunTrace(
+        trace_id="tr-gov-001",
+        app_id="agents_core",
+        run_id="run-gov-001",
+        session_id="sess-001",
+        git_sha="02e61d26",
+        config_digest="cfg-001",
+        started_at_utc="2026-11-24T20:00:00Z",
+        finished_at_utc="2026-11-24T20:00:05Z",
+        terminal_status="PASS",
+        input_redacted={"goal": "Verify repository governance"},
+        output_summary={"summary": "All 8 vectors passed."},
+        trajectory_steps=[{"step_id": "s1", "tool": "audit_multi_ssot_judge_gate_drift", "status": "ok"}],
+    )
+    reg = JudgeRubricRegistryV3.load()
+    traj_prof = reg.get_profile("agent_trace_and_calibration:agent_trajectory_governance")
+    traj_resp = {
+        "cold_read_takeaway": "Clean governed tool trajectory with verified output.",
+        "checks": {c.id: {"verdict": "YES", "evidence_span": "audit_multi_ssot_judge_gate_drift"} for c in traj_prof.checks},
+        "failure_tags": [],
+    }
+    pf_t, card_t = evaluate_trajectory_governance_v3(
+        trace,
+        author_model_family="anthropic",
+        llm_raw_response=traj_resp,
+        judge_model_id="gemini-4-argon-high",
+        repo_root=REPO_ROOT,
+    )
+    assert pf_t.passed is True
+    assert card_t.passed is True
+    assert card_t.normalized_unit_score == 1.0

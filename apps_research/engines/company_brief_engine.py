@@ -144,28 +144,36 @@ def _emit_company_brief_marker(
     model_used: str,
     fallback_reason: str,
     latency_ms: float = 0.0,
-) -> None:
-    """Best-effort ``JUDGE_DECISION`` emission for synthesis observability. Never raises."""
-    try:
-        from tools.capture.append_marker import append_marker  # noqa: PLC0415
-    except ImportError:
-        return
+    scorecard: Any = None,
+) -> str:
+    """Best-effort ``JUDGE_DECISION`` emission with real Judge v3 provenance (never fake composite=0.0)."""
+    rubric_id = getattr(scorecard, "profile_id", None) or "company_research_brief:company_brief_synthesis"
+    rubric_hash = (getattr(scorecard, "rubric_sha256", "") or "judge_v3")[:16]
+    llm_exec = bool(getattr(scorecard, "llm_judge_executed", False))
+    unit_sc = getattr(scorecard, "normalized_unit_score", None)
+    failed_gates = list(getattr(scorecard, "preflight_failed_gates", ()) or getattr(scorecard, "failed_check_ids", ()) or ())
+    first_gate = failed_gates[0] if failed_gates else "none"
+    score_tok = f"{float(unit_sc):.4f}" if unit_sc is not None else "null"
     payload = (
         "JUDGE_DECISION: type=judge_decision, "
         "app_name=apps_research.company_brief, "
-        "rubric_id=company_brief_synthesis_v1, "
-        "rubric_hash=inline, "
+        f"rubric_id={rubric_id}, "
+        f"rubric_hash={rubric_hash}, "
         f"accepted={accepted}, "
-        "composite=0.0, "
+        f"llm_judge_executed={llm_exec}, "
+        f"normalized_unit_score={score_tok}, "
         f"model_used={model_used}, "
         f"fallback_reason={fallback_reason}, "
-        "first_failed_gate=none, "
+        f"first_failed_gate={first_gate}, "
         f"latency_ms={latency_ms:.1f}"
     )
     try:
+        from tools.capture.append_marker import append_marker  # noqa: PLC0415
+
         append_marker(payload, session_hint="apps_research.company_brief")
-    except (OSError, PermissionError):
+    except (ImportError, OSError, PermissionError):
         pass
+    return payload
 
 
 def _company_brief_prompt_token_cap() -> int:
@@ -397,6 +405,74 @@ class CompanyBriefEngine(
             "status": "PASS",
             "duration_ms": round((time.perf_counter() - _t_assemble) * 1000, 3),
             "meta": {},
+        })
+
+        _t_judge = time.perf_counter()
+        from apps_research.engines.judges.v3_brief_judge import (  # noqa: PLC0415
+            RESEARCH_JUDGE_TRANSPORT_ENV,
+            evaluate_research_brief_v3,
+            run_research_brief_ide_cli_judge,
+        )
+
+        judge_transport = get_env_str(RESEARCH_JUDGE_TRANSPORT_ENV, "").strip().lower()
+        public_brief_view = {k: v for k, v in brief.items() if not str(k).startswith("_")}
+        if judge_transport == "ide_cli":
+            _, brief_scorecard = run_research_brief_ide_cli_judge(
+                artifact_id=f"company_brief:{topic}",
+                brief_payload=public_brief_view,
+                profile_token="company_research_brief:company_brief_synthesis",
+                author_model_family="openai",
+            )
+        else:
+            _, brief_scorecard = evaluate_research_brief_v3(
+                artifact_id=f"company_brief:{topic}",
+                brief_payload=public_brief_view,
+                profile_token="company_research_brief:company_brief_synthesis",
+                author_model_family="openai",
+                llm_raw_response=None,
+            )
+        brief["_judge_v3_scorecard"] = brief_scorecard.to_dict()
+
+        if brief.get("targeting_brief_disposition") == "SEALED" and brief.get("apps_rg_targeting_brief_text"):
+            t_payload = {
+                "company_name": topic,
+                "targeting_brief_text": brief.get("apps_rg_targeting_brief_text"),
+                "sidecar": brief.get("apps_rg_targeting_brief_sidecar") or {},
+            }
+            if judge_transport == "ide_cli":
+                _, t_card = run_research_brief_ide_cli_judge(
+                    artifact_id=f"targeting_brief:{topic}",
+                    brief_payload=t_payload,
+                    profile_token="company_research_brief:targeting_brief_handoff",
+                    author_model_family="openai",
+                )
+            else:
+                _, t_card = evaluate_research_brief_v3(
+                    artifact_id=f"targeting_brief:{topic}",
+                    brief_payload=t_payload,
+                    profile_token="company_research_brief:targeting_brief_handoff",
+                    author_model_family="openai",
+                    llm_raw_response=None,
+                )
+            brief["_targeting_judge_v3_scorecard"] = t_card.to_dict()
+
+        _emit_company_brief_marker(
+            accepted=str(gate_verdict).upper() == "PASS",
+            model_used=getattr(self, "_last_company_brief_generation_model_observed", APPS_RESEARCH_BRIEF_MODEL),
+            fallback_reason="none",
+            latency_ms=(time.perf_counter() - _t_judge) * 1000.0,
+            scorecard=brief_scorecard,
+        )
+        _sub_stages.append({
+            "sub_stage_id": "research.judge_v3",
+            "sub_stage_name": "Clean-Slate Judge v3 Evaluation",
+            "status": "PASS" if (not brief_scorecard.llm_judge_executed or brief_scorecard.passed) else "FAIL",
+            "duration_ms": round((time.perf_counter() - _t_judge) * 1000, 3),
+            "meta": {
+                "profile_id": brief_scorecard.profile_id,
+                "llm_judge_executed": brief_scorecard.llm_judge_executed,
+                "normalized_unit_score": brief_scorecard.normalized_unit_score,
+            },
         })
 
         self.record_pass(

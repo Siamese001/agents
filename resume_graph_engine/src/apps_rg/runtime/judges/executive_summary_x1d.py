@@ -193,9 +193,9 @@ def _invoke_judge_with_bounded_retries(invoke: Callable[[int], JudgeOutput], *, 
     return last
 
 
-def _make_model_backed_output(provider_key: str, input_hash: str, model_name: str, result: dict[str, Any], raw_response_ref: str | None = None, original_model: str | None = None, fallback_model: str | None = None, *, deterministic_gate_summary: dict[str, Any] | None = None, section_id: str | None = None) -> JudgeOutput:
+def _make_model_backed_output(provider_key: str, input_hash: str, model_name: str, result: dict[str, Any], raw_response_ref: str | None = None, original_model: str | None = None, fallback_model: str | None = None, *, deterministic_gate_summary: dict[str, Any] | None = None, section_id: str | None = None, candidate_text: str | None = None) -> JudgeOutput:
     try:
-        proj = evaluate_v3_judge_response_to_dict(result, section_id=section_id or "executive_summary")
+        proj = evaluate_v3_judge_response_to_dict(result, section_id=section_id or "executive_summary", candidate_text=candidate_text)
     except JudgeV3SchemaError as exc:
         return _make_blocked_output(provider_key, input_hash, "BLOCKED_SCHEMA_VALIDATION_ERROR", "BLOCKED_SCHEMA_VALIDATION_ERROR", str(exc), raw_response_ref=raw_response_ref, model_name=model_name)
     proj, dv_inf = ensure_dimension_verdicts(proj, deterministic_gate_summary=deterministic_gate_summary, section_id=section_id)

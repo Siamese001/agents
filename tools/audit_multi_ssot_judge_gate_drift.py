@@ -50,8 +50,16 @@ def audit_multi_ssot_judge_gate_drift(repo_root: Path) -> dict[str, Any]:
     violations: list[dict[str, str]] = []
     vectors: dict[str, str] = {}
 
-    # Vector 1: Rubrics & trace rubric parse cleanly.
+    # Vector 1: Primary Judge v3 rubrics (`judge_rubrics_v3.json` & `external_judge_rubric_v2.json`) + deprecated v1 YAML tombstones.
     v1_errs: list[str] = []
+    for v3_rel in ("config/governance/judge_rubrics_v3.json", "config/governance/external_judge_rubric_v2.json"):
+        vp = root / v3_rel
+        if not vp.is_file():
+            v1_errs.append(f"missing:{v3_rel}")
+        else:
+            vdoc = json.loads(vp.read_text(encoding="utf-8"))
+            if not isinstance(vdoc, dict) or not vdoc.get("rubric_sha256"):
+                v1_errs.append(f"invalid_v3_ssot:{v3_rel}")
     for rel in ("config/judges/rubrics.yaml", "config/judges/trace_rubric.yaml"):
         p = root / rel
         if not p.is_file():
@@ -60,6 +68,8 @@ def audit_multi_ssot_judge_gate_drift(repo_root: Path) -> dict[str, Any]:
             parsed = yaml.safe_load(p.read_text(encoding="utf-8"))
             if not isinstance(parsed, dict) or not parsed:
                 v1_errs.append(f"empty_or_invalid:{rel}")
+            elif parsed.get("status") != "deprecated_legacy_v1":
+                v1_errs.append(f"legacy_yaml_not_marked_deprecated:{rel}")
     vectors["V1_RUBRIC_TO_CONFIG"] = "PASS" if not v1_errs else "FAIL"
     for e in v1_errs:
         violations.append({"vector": "V1_RUBRIC_TO_CONFIG", "message": e})
@@ -323,10 +333,14 @@ def audit_multi_ssot_judge_gate_drift(repo_root: Path) -> dict[str, Any]:
     for e in v7_errs:
         violations.append({"vector": "V7_EXTERNAL_RUBRIC_HUMAN_DRIFT", "message": e})
 
-    # Vector 8: Clean-Slate Judge v3 Rubric SSOT, 300-Word Anti-Bloat Cap, and v2 Human Parity.
+    # Vector 8: Clean-Slate Judge v3 Rubric SSOT, 300-Word Anti-Bloat Cap, Anti-Fork Bridge, and v2 Human Parity.
     v8_errs: list[str] = []
     try:
-        from apps_eval.graders.judge.external_rubric_store import load_and_verify_external_rubric_v2
+        import ast
+        from apps_eval.graders.judge.external_rubric_store import (
+            VALID_JUDGE_SURFACES,
+            load_and_verify_external_rubric_v2,
+        )
         from apps_eval.graders.judge.v3_evaluator import (
             JudgeV3SchemaError,
             build_v3_evaluation_bundle,
@@ -342,6 +356,52 @@ def audit_multi_ssot_judge_gate_drift(repo_root: Path) -> dict[str, Any]:
         if not ok_v3:
             v8_errs.extend(f"v3_rubric_gate:{err}" for err in (errs_v3 or ["failed"]))
         load_and_verify_external_rubric_v2(root / "config" / "governance" / "external_judge_rubric_v2.json")
+
+        # Enforce INV-CENTRALIZED-JUDGE-V3-CORE: all 5 bridge accessors must be wired in apps_eval/graders/judge/*.py
+        required_bridge_fns = {
+            "get_judge_v3_rigor_engine",
+            "get_judge_ide_router_v3",
+            "get_judge_blind_protocol_v3",
+            "get_judge_disjoint_jury_v3",
+            "get_studio_session_contract",
+        }
+        observed_bridge_calls: set[str] = set()
+        judge_pkg_dir = root / "apps_eval" / "graders" / "judge"
+        for py_file in sorted(judge_pkg_dir.glob("*.py")):
+            if py_file.name == "_core_governance_bridge.py":
+                continue
+            tree = ast.parse(py_file.read_text(encoding="utf-8"), filename=str(py_file))
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in required_bridge_fns:
+                    observed_bridge_calls.add(node.func.id)
+        unwired_bridge = sorted(required_bridge_fns - observed_bridge_calls)
+        if unwired_bridge:
+            v8_errs.append(f"unwired_core_governance_bridge_accessors:{unwired_bridge}")
+
+        # Verify 100% of enabled_profiles are registered in VALID_JUDGE_SURFACES and referenced in production code
+        manifest_doc = json.loads((root / "config" / "governance" / "judge_rubrics_v3.json").read_text(encoding="utf-8"))
+        enabled_profiles = [str(p) for p in (manifest_doc.get("enabled_profiles") or [])]
+        missing_surfaces = sorted(set(enabled_profiles) - set(VALID_JUDGE_SURFACES))
+        if missing_surfaces:
+            v8_errs.append(f"enabled_profiles_missing_from_VALID_JUDGE_SURFACES:{missing_surfaces}")
+
+        prod_roots = (
+            root / "resume_graph_engine" / "src",
+            root / "outreach_engine" / "src",
+            root / "apps_research",
+            root / "apps_eval",
+        )
+        prod_corpus = "\n".join(
+            p.read_text(encoding="utf-8", errors="ignore")
+            for pr in prod_roots
+            if pr.is_dir()
+            for p in pr.rglob("*.py")
+        )
+        orphan_profiles = [
+            pid for pid in enabled_profiles if pid not in prod_corpus and pid.split(":")[-1] not in prod_corpus
+        ]
+        if orphan_profiles:
+            v8_errs.append(f"orphan_enabled_judge_v3_profiles:{orphan_profiles}")
 
         reg = JudgeRubricRegistryV3.load(root / "config" / "governance" / "judge_rubrics_v3.json")
         probe_bundle, probe_prof, _ = build_v3_evaluation_bundle(

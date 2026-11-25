@@ -84,8 +84,6 @@ def compact_evidence_packet_for_prompt(evidence_packet: dict[str, Any]) -> dict[
         compact_sections.append(
             {
                 "section_id": sec.get("section_id"),
-                "allocation_plan_digest": sec.get("allocation_plan_digest"),
-                "claim_binding_pass": sec.get("claim_binding_pass"),
                 "selected_candidate_facts": facts_compact,
                 "graph_claim_bindings": bindings_compact,
             }

@@ -5,7 +5,7 @@ Scans AGENTS.md, .agents/rules/*.md, .agents/skills/*/SKILL.md, .agents/hooks.js
 config/governance/policy_registry.yaml, and config/governance/risk_lanes_policy.json for:
 1. Context budget compliance (AGENTS.md <= 200 lines, skills < 4000 tokens).
 2. Policy registry & threshold parity (risk lanes fail-closed default, HITL margin,
-   executive_summary 4.7/5.0 floor, required AI-SDLC policy IDs).
+   Judge v3 0.80/0.85 unit floors, required AI-SDLC policy IDs).
 3. Broken script cross-references in rules and skills.
 4. Hook-to-dispatcher handler parity in .agents/hooks.json vs tools/hook_dispatch.py.
 """
@@ -37,6 +37,8 @@ REQUIRED_AI_SDLC_POLICY_IDS: tuple[str, ...] = (
     "INV-MULTI-JD-NO-WHIPLASH",
     "INV-JUDGE-NEGATIVE-CONTROL-GOLDEN",
     "INV-PROMPT-VALIDATOR-VOCAB-SYMMETRY",
+    "INV-CENTRALIZED-JUDGE-V3-CORE",
+    "INV-JUDGE-NON-DEGENERATE-WEIGHTS",
 )
 
 SCRIPT_REF_RE = re.compile(r"`((?:tools|ops_scripts|scripts)/[a-zA-Z0-9_./-]+\.py)`")

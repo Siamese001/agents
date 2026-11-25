@@ -5,7 +5,11 @@ from dataclasses import asdict, dataclass, field
 import json
 from typing import Any, Mapping
 
-from apps_eval.graders.judge.v3_evaluator import JudgeV3SchemaError, build_v3_response_schema
+from apps_eval.graders.judge.v3_evaluator import (
+    JudgeV3SchemaError,
+    build_v3_response_schema,
+    verify_verbatim_failure_span,
+)
 from apps_eval.graders.judge.v3_registry import (
     JudgeProfileV3,
     JudgeRubricRegistryV3,
@@ -116,7 +120,13 @@ def build_section_v3_response_schema(section_id: str | None) -> dict[str, Any]:
     return build_v3_response_schema(get_apps_rg_v3_profile(section_id))
 
 
-def evaluate_v3_judge_response_to_dict(raw_parsed: Mapping[str, Any], *, section_id: str | None) -> dict[str, Any]:
+def evaluate_v3_judge_response_to_dict(
+    raw_parsed: Mapping[str, Any],
+    *,
+    section_id: str | None,
+    candidate_text: str | None = None,
+    source_text: str = "",
+) -> dict[str, Any]:
     profile = get_apps_rg_v3_profile(section_id)
     if "checks" not in raw_parsed and "score_scale" in raw_parsed:
         return dict(raw_parsed)
@@ -142,13 +152,28 @@ def evaluate_v3_judge_response_to_dict(raw_parsed: Mapping[str, Any], *, section
         if verdict == "NO":
             if len(span) < 3:
                 raise JudgeV3SchemaError(f"Check '{spec.id}' answered NO without a verbatim evidence_span.")
-            dim_verdicts[spec.id] = {"pass": False, "severity": "major" if spec.critical else "minor", "codes": [spec.failure_tag]}
+            if candidate_text is not None and not verify_verbatim_failure_span(
+                span,
+                candidate_text=candidate_text,
+                source_text=source_text,
+                min_chars=3,
+                require_substring_match=True,
+            ):
+                raise JudgeV3SchemaError(
+                    f"Check '{spec.id}' failure evidence_span {span!r} not found verbatim in candidate text."
+                )
+            dim_verdicts[spec.id] = {
+                "pass": False,
+                "critical": spec.critical,
+                "severity": "major" if spec.critical else "minor",
+                "codes": [spec.failure_tag],
+            }
             findings.append(f"{spec.id} [{spec.failure_tag}]: {span}")
             if spec.critical:
                 critical_veto = True
         else:
             passed_weight += spec.weight
-            dim_verdicts[spec.id] = {"pass": True, "severity": "none", "codes": []}
+            dim_verdicts[spec.id] = {"pass": True, "critical": spec.critical, "severity": "none", "codes": []}
 
     unit_score = round(min(1.0, max(0.0, passed_weight)), 4)
     passed = (not critical_veto) and (unit_score >= profile.pass_threshold)

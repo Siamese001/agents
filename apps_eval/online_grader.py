@@ -49,6 +49,12 @@ class OnlineEvalRecord:
     marginal_api_cost_usd: float = 0.0
     external_http_allowed: bool = False
     model_id: str = "local-deterministic"
+    deterministic_passed: bool | None = None
+    judge_passed: bool | None = None
+    groundedness: float | None = None
+    prompt_text: str = ""
+    output_text: str = ""
+    topic_family: str = ""
     contract_id: str = ONLINE_EVAL_CONTRACT_ID
     schema_version: str = "1.0.0"
     record_digest: str = ""
@@ -135,6 +141,43 @@ def grade_run_trace(
         2,
     )
 
+    raw_judge = trace.gate_outcomes.get("judge_passed")
+    if raw_judge is None and isinstance(trace.gate_outcomes.get("x1d_judge"), Mapping):
+        raw_judge = trace.gate_outcomes["x1d_judge"].get("passed")
+    judge_passed = bool(raw_judge) if raw_judge is not None else None
+
+    raw_grnd = trace.telemetry.get("groundedness", trace.gate_outcomes.get("groundedness"))
+    groundedness = round(float(raw_grnd), 4) if raw_grnd is not None and not isinstance(raw_grnd, bool) else None
+
+    prompt_text = str(
+        trace.input_redacted.get("prompt_text")
+        or trace.input_redacted.get("target_context")
+        or trace.input_redacted.get("query")
+        or ""
+    )
+    output_text = str(
+        trace.output_summary.get("output_text")
+        or trace.output_summary.get("candidate_text")
+        or trace.output_summary.get("summary")
+        or ""
+    )
+    topic_family = str(
+        trace.input_redacted.get("topic_family")
+        or trace.telemetry.get("topic_family")
+        or f"{trace.app_id}_{trace.run_id}"
+    )
+
+    metrics_dict: dict[str, float] = {
+        "x2_pass_rate": round(x2_pass_rate, 4),
+        "trajectory_score": round(traj_score, 2),
+        "latency_ms": round(latency_ms, 2),
+        "cost_usd": round(cost_usd, 6),
+        "retry_count": float(retry_count),
+        "unresolved_errors": float(unresolved_errors),
+    }
+    if groundedness is not None:
+        metrics_dict["groundedness"] = groundedness
+
     return OnlineEvalRecord(
         trace_id=trace.trace_id,
         app_id=trace.app_id,
@@ -143,18 +186,17 @@ def grade_run_trace(
         git_sha=trace.git_sha,
         evaluated_at_utc=utc_now_iso(),
         trace_finished_at_utc=trace.finished_at_utc,
-        metrics={
-            "x2_pass_rate": round(x2_pass_rate, 4),
-            "trajectory_score": round(traj_score, 2),
-            "latency_ms": round(latency_ms, 2),
-            "cost_usd": round(cost_usd, 6),
-            "retry_count": float(retry_count),
-            "unresolved_errors": float(unresolved_errors),
-        },
+        metrics=metrics_dict,
         gates=gates,
         failed_gates=failed_gates,
         composite_score=composite,
         passed=all(gates.values()),
+        deterministic_passed=x2_ok and traj_ok,
+        judge_passed=judge_passed,
+        groundedness=groundedness,
+        prompt_text=prompt_text,
+        output_text=output_text,
+        topic_family=topic_family,
     )
 
 

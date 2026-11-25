@@ -295,6 +295,7 @@ def run_eval_flywheel_cycle(
             {
                 **r,
                 "case_id": r.get("trace_id") or r.get("run_id"),
+                "surface": r.get("surface") or r.get("app_id") or "agents_core",
                 "groundedness": (r.get("metrics") or {}).get("groundedness", r.get("groundedness")),
                 "prompt_text": r.get("prompt_text") or r.get("input_summary") or f"Trace {r.get('trace_id')}",
                 "output_text": r.get("output_text") or r.get("output_summary") or "",

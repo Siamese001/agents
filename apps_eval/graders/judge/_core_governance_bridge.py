@@ -2,18 +2,31 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 from pathlib import Path
 import sys
 from types import ModuleType
 
-CORE_GOVERNANCE_MCP_DIR = Path.home() / ".gemini" / "config" / "plugins" / "core-governance" / "mcp"
+_DEFAULT_CORE_GOVERNANCE_MCP_DIR = Path.home() / ".gemini" / "config" / "plugins" / "core-governance" / "mcp"
+CORE_GOVERNANCE_MCP_DIR = Path(
+    os.environ.get("CORE_GOVERNANCE_MCP_DIR") or _DEFAULT_CORE_GOVERNANCE_MCP_DIR
+).resolve()
 CORE_GOVERNANCE_UI_HTML_PATH = CORE_GOVERNANCE_MCP_DIR / "ui" / "studio_app.html"
 
 
+def get_core_governance_mcp_dir() -> Path:
+    override = os.environ.get("CORE_GOVERNANCE_MCP_DIR")
+    return Path(override).resolve() if override else CORE_GOVERNANCE_MCP_DIR
+
+
 def _load_core_gov_module(module_name: str, filename: str) -> ModuleType:
-    if module_name in sys.modules:
-        return sys.modules[module_name]
-    target = CORE_GOVERNANCE_MCP_DIR / filename
+    mcp_dir = get_core_governance_mcp_dir()
+    target = mcp_dir / filename
+    existing = sys.modules.get(module_name)
+    if existing is not None:
+        existing_file = getattr(existing, "__file__", None)
+        if existing_file and Path(existing_file).resolve() == target.resolve():
+            return existing
     if not target.is_file():
         raise FileNotFoundError(f"Centralized core-governance module missing at '{target}'.")
     spec = importlib.util.spec_from_file_location(module_name, target)
@@ -52,6 +65,7 @@ def get_studio_session_contract() -> ModuleType:
 __all__ = [
     "CORE_GOVERNANCE_MCP_DIR",
     "CORE_GOVERNANCE_UI_HTML_PATH",
+    "get_core_governance_mcp_dir",
     "get_judge_blind_protocol_v3",
     "get_judge_disjoint_jury_v3",
     "get_judge_ide_router_v3",

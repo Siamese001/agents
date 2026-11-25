@@ -25,6 +25,8 @@ DEFAULT_JUDGE_GOVERNED_SURFACES: tuple[JudgeGovernedSurface, ...] = (
         surface_id="apps_rg_executive_summary",
         source_globs=(
             "resume_graph_engine/src/apps_rg/runtime/sections/executive_summary_*.py",
+            "resume_graph_engine/src/apps_rg/runtime/sections/*_v2/*.py",
+            "resume_graph_engine/src/apps_rg/runtime/judges/*.py",
             "resume_graph_engine/src/apps_rg/prompt_assembly/templates/executive_summary*.yaml",
         ),
         receipt_rel_path="artifacts/eval_harness/judge_receipts/apps_rg_executive_summary_receipt.json",
@@ -35,6 +37,7 @@ DEFAULT_JUDGE_GOVERNED_SURFACES: tuple[JudgeGovernedSurface, ...] = (
         surface_id="apps_rg_whole_coherence",
         source_globs=(
             "resume_graph_engine/src/apps_rg/runtime/assembly/final_resume_assembly*.py",
+            "resume_graph_engine/src/apps_rg/runtime/assembly/full_resume_llm_coherence*.py",
         ),
         receipt_rel_path="artifacts/eval_harness/judge_receipts/apps_rg_whole_coherence_receipt.json",
         artifact_rel_path="artifacts/eval_harness/judge_receipts/apps_rg_whole_coherence_artifact.json",
@@ -44,6 +47,8 @@ DEFAULT_JUDGE_GOVERNED_SURFACES: tuple[JudgeGovernedSurface, ...] = (
         surface_id="apps_lic_outreach_sequence",
         source_globs=(
             "outreach_engine/src/apps_lic/pipeline/orchestrator_pkg/*.py",
+            "outreach_engine/src/apps_lic/judges/*.py",
+            "outreach_engine/src/apps_lic/judges/*/*.py",
         ),
         receipt_rel_path="artifacts/eval_harness/judge_receipts/apps_lic_outreach_receipt.json",
         artifact_rel_path="artifacts/eval_harness/judge_receipts/apps_lic_outreach_artifact.json",
@@ -53,6 +58,8 @@ DEFAULT_JUDGE_GOVERNED_SURFACES: tuple[JudgeGovernedSurface, ...] = (
         surface_id="apps_research_company_brief",
         source_globs=(
             "apps_research/engines/company_brief_engine.py",
+            "apps_research/engines/company_brief/*.py",
+            "apps_research/engines/judges/*.py",
         ),
         receipt_rel_path="artifacts/eval_harness/judge_receipts/apps_research_company_brief_receipt.json",
         artifact_rel_path="artifacts/eval_harness/judge_receipts/apps_research_company_brief_artifact.json",

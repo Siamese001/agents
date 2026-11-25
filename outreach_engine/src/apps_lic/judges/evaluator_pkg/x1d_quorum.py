@@ -324,7 +324,8 @@ def evaluate_x1d_judge_quorum(packet: GradeOnlyJudgePacket | Mapping[str, Any] |
 
     p_sc, s_sc = round(float(primary_score), 4), round(float(secondary_score), 4)
     mean_sc, spread = round((p_sc + s_sc) / 2.0, 4), round(abs(p_sc - s_sc), 4)
-    both_eligible = bool(primary_pin.proof_eligible and not primary_pin.advisory_only and secondary_pin.proof_eligible and not secondary_pin.advisory_only and primary_pin.reasoning_effort == "low" and secondary_pin.reasoning_effort == "low")
+    _allowed_efforts = {"low", "medium", "high"}
+    both_eligible = bool(primary_pin.proof_eligible and not primary_pin.advisory_only and secondary_pin.proof_eligible and not secondary_pin.advisory_only and primary_pin.reasoning_effort in _allowed_efforts and secondary_pin.reasoning_effort in _allowed_efforts)
     quorum_ok = bool(both_eligible and mean_sc >= eff_threshold and spread <= eff_max_spread and target_free_ok and not violations)
     disp = "X3D_ALLOW_FINISH" if quorum_ok else ("X3B_ESCALATE_HITL" if spread > eff_max_spread else "X3E_SAFE_ABSTAIN")
     reasons.append("X1D_DUAL_QUORUM_PASSED" if quorum_ok else ("X1D_JUDGE_SPREAD_EXCEEDED" if spread > eff_max_spread else "X1D_MEAN_SCORE_BELOW_THRESHOLD"))

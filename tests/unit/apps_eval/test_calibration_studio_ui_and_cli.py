@@ -1,10 +1,12 @@
-"""Unit tests for centralized `core-governance` Pure-White 18px `judge_v3_6check` Studio binding and CLI."""
+"""Unit tests for centralized `core-governance` Pure-White 14px `judge_v3_6check` Studio binding and CLI."""
 from __future__ import annotations
 
 import json
 from pathlib import Path
+import pytest
 
 from apps_eval.graders.judge._core_governance_bridge import get_studio_session_contract
+from apps_eval.graders.judge.gold_corpus import build_studio_blind_pool_dict, load_gold_candidates_jsonl
 from apps_eval.graders.judge.studio_session_binder import (
     bind_centralized_judge_v3_studio,
     load_centralized_studio_html,
@@ -28,6 +30,16 @@ from ops_scripts.run_ide_judge_drift import (
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+
+
+def _write_studio_pool(tmp_path: Path, engine: str) -> Path:
+    prefix = "resume" if engine == "resume_engine" else "outreach"
+    cands = load_gold_candidates_jsonl(REPO_ROOT / "data" / "judge_calibration" / f"{prefix}_gold_candidates.v1.jsonl")
+    pool_doc = build_studio_blind_pool_dict(cands, engine=engine, repo_root=REPO_ROOT)
+    assert pool_doc["external_rubric_id"] == "external_judge_rubric_v2"
+    pool_p = tmp_path / f"{prefix}_blind_pool.v1.json"
+    pool_p.write_text(json.dumps(pool_doc, indent=2) + "\n", encoding="utf-8")
+    return pool_p
 
 
 def test_pure_white_centralized_studio_bundle_invariants() -> None:
@@ -84,7 +96,7 @@ def test_pure_white_centralized_studio_bundle_invariants() -> None:
     assert mech_pass is False
 
 
-def test_compact_human_grades_parser_and_chat_card() -> None:
+def test_compact_human_grades_parser_and_chat_card(tmp_path: Path) -> None:
     parsed = parse_compact_human_grades("F=5, C=4, R=4, A=4, Verdict=PASS")
     assert parsed == {
         "factual_faithfulness": 5,
@@ -92,13 +104,10 @@ def test_compact_human_grades_parser_and_chat_card() -> None:
         "cold_reader_clarity": 4,
         "actionability_and_proportion": 4,
     }
-    pool_doc = json.loads(
-        (REPO_ROOT / "artifacts" / "eval_harness" / "blind_packets" / "resume_blind_pool.v1.json").read_text(
-            encoding="utf-8"
-        )
-    )
+    pool_path = _write_studio_pool(tmp_path, "resume_engine")
+    pool_doc = json.loads(pool_path.read_text(encoding="utf-8"))
     rubric_doc = json.loads(
-        (REPO_ROOT / "config" / "governance" / "external_judge_rubric_v1.json").read_text(encoding="utf-8")
+        (REPO_ROOT / "config" / "governance" / "external_judge_rubric_v2.json").read_text(encoding="utf-8")
     )
     card = format_one_by_one_blind_chat_card(pool_doc["items"][0], rubric_doc)
     assert "Blind Human Calibration Item" in card
@@ -120,7 +129,7 @@ def test_compact_human_grades_parser_and_chat_card() -> None:
 
 
 def test_centralized_studio_session_binding_save_and_quarantine(tmp_path: Path) -> None:
-    pool_path = REPO_ROOT / "artifacts" / "eval_harness" / "blind_packets" / "resume_blind_pool.v1.json"
+    pool_path = _write_studio_pool(tmp_path, "resume_engine")
     store_path = tmp_path / "studio_labels.json"
     data_dir = tmp_path / "plugin_data"
 
@@ -170,8 +179,10 @@ def test_centralized_studio_session_binding_save_and_quarantine(tmp_path: Path) 
 
 
 def test_cli_judge_calibrate_ui_check_only_and_grade(tmp_path: Path) -> None:
-    pool_path = REPO_ROOT / "artifacts" / "eval_harness" / "blind_packets" / "outreach_blind_pool.v1.json"
+    pool_path = _write_studio_pool(tmp_path, "outreach_engine")
     store_path = tmp_path / "cli_labels.json"
+    with pytest.raises(SystemExit):
+        cli_main(["judge-calibrate-ui", "--pool", str(pool_path), "--port", "8765"])
     rc_ui = cli_main(
         [
             "judge-calibrate-ui",
@@ -179,8 +190,6 @@ def test_cli_judge_calibrate_ui_check_only_and_grade(tmp_path: Path) -> None:
             str(pool_path),
             "--store-path",
             str(store_path),
-            "--port",
-            "0",
             "--annotator",
             "human-exec-rater",
             "--check-only",
@@ -214,8 +223,34 @@ def test_cli_judge_calibrate_ui_check_only_and_grade(tmp_path: Path) -> None:
         ]
     )
     assert rc_grade == 0
+    q_item = pool_doc["items"][1]
+    rc_q = cli_main(
+        [
+            "judge-calibrate-grade",
+            "--case-id",
+            q_item["case_id"],
+            "--surface",
+            q_item["judge_surface"],
+            "--partition",
+            q_item["partition"],
+            "--topic-family",
+            q_item["topic_family"],
+            "--artifact-sha256",
+            q_item["artifact_sha256"],
+            "--quarantine",
+            "STRAWMAN_BENCHMARK_ITEM",
+            "--annotator",
+            "human-exec-rater",
+            "--store-path",
+            str(store_path),
+        ]
+    )
+    assert rc_q == 0
     saved = json.loads(store_path.read_text(encoding="utf-8"))
     assert len(saved["records"]) == 1
+    assert saved["records"][0]["external_rubric_id"] == "external_judge_rubric_v2"
+    assert len(saved["quarantined_records"]) == 1
+    assert saved["quarantined_records"][0]["reason"] == "STRAWMAN_BENCHMARK_ITEM"
 
 
 def test_studio_sync_to_human_provenance_and_real_multibullet_blocks(tmp_path: Path) -> None:
@@ -226,7 +261,7 @@ def test_studio_sync_to_human_provenance_and_real_multibullet_blocks(tmp_path: P
     assert rg_items["rg_gold_023"].candidate_text.count("20% joint revenue growth") == 2
 
     store_path = tmp_path / "studio_labels.json"
-    pool_path = REPO_ROOT / "artifacts" / "eval_harness" / "blind_packets" / "resume_blind_pool.v1.json"
+    pool_path = _write_studio_pool(tmp_path, "resume_engine")
     pool_doc = json.loads(pool_path.read_text(encoding="utf-8"))
     first_item = pool_doc["items"][0]
     rc_grade = cli_main(

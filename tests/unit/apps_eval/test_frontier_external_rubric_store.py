@@ -8,6 +8,7 @@ import pytest
 from apps_eval.graders.judge.external_rubric_store import (
     DEFAULT_EXTERNAL_RUBRIC_REL_PATH,
     EXTERNAL_RUBRIC_DIMENSIONS,
+    LEGACY_EXTERNAL_RUBRIC_V1_REL_PATH,
     ExternalRubricHumanStore,
     compute_external_rubric_sha256,
     compute_payload_sha256,
@@ -18,7 +19,10 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 def test_external_judge_rubric_v1_matches_die_sha256_and_four_pillars() -> None:
-    rubric = load_and_verify_external_rubric(REPO_ROOT / DEFAULT_EXTERNAL_RUBRIC_REL_PATH)
+    assert DEFAULT_EXTERNAL_RUBRIC_REL_PATH == Path("config/governance/external_judge_rubric_v2.json")
+    default_v2 = load_and_verify_external_rubric()
+    assert default_v2["rubric_id"] == "external_judge_rubric_v2"
+    rubric = load_and_verify_external_rubric(REPO_ROOT / LEGACY_EXTERNAL_RUBRIC_V1_REL_PATH)
     assert rubric["rubric_id"] == "external_judge_rubric_v1"
     assert rubric["rubric_sha256"] == "d0888a34cf4d0154621eec3c347c29a6fbdc48f8e4f5d303b1e1dd4f4fd17607"
     assert compute_external_rubric_sha256(rubric) == rubric["rubric_sha256"]
@@ -28,7 +32,7 @@ def test_external_judge_rubric_v1_matches_die_sha256_and_four_pillars() -> None:
 def test_pass_rule_and_critique_before_fail_enforced_fail_closed(tmp_path: Path) -> None:
     store = ExternalRubricHumanStore(
         store_path=tmp_path / "labels.json",
-        rubric_path=REPO_ROOT / DEFAULT_EXTERNAL_RUBRIC_REL_PATH,
+        rubric_path=REPO_ROOT / LEGACY_EXTERNAL_RUBRIC_V1_REL_PATH,
     )
     txt = "Candidate executive summary draft with verified Unify and Slalom metrics."
     sha = compute_payload_sha256(txt)
@@ -140,7 +144,7 @@ def test_pass_rule_and_critique_before_fail_enforced_fail_closed(tmp_path: Path)
 def test_quarantine_partition_isolation_and_synthetic_annotator_block(tmp_path: Path) -> None:
     store = ExternalRubricHumanStore(
         store_path=tmp_path / "labels.json",
-        rubric_path=REPO_ROOT / DEFAULT_EXTERNAL_RUBRIC_REL_PATH,
+        rubric_path=REPO_ROOT / LEGACY_EXTERNAL_RUBRIC_V1_REL_PATH,
     )
     q = store.append_quarantine(
         {

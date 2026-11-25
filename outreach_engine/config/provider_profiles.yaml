@@ -41,25 +41,28 @@ ide_cli_judging:
   cli_env_var: AGY_CLI_BIN
   primary_judge_model: gemini-4-argon-medium
   second_judge_by_writer_maker:
-    anthropic: gemini-3.8-flash-medium
+    anthropic: gpt-oss-120b-medium
     openai: gemini-4-neon-medium
-    google: gemini-3.8-flash-medium
+    google: gpt-oss-120b-medium
   quota_backup_primary_judge:
     - gemini-4-neon-medium
     - gemini-3.8-flash-high
   quota_backup_second_judge_by_writer_maker:
     anthropic:
-      - gpt-oss-120b-medium
       - gemini-4-neon-medium
+      - gemini-3.8-flash-medium
     openai:
       - gpt-oss-120b-medium
       - gemini-3.8-flash-medium
     google:
-      - gpt-oss-120b-medium
+      - gemini-4-neon-medium
   rubric_panel_judge_model: gemini-4-argon-medium
   rubric_panel_quota_backups:
     - gemini-4-neon-medium
-    - gemini-3.8-flash-medium
+    - gpt-oss-120b-medium
+  reasoning_effort_by_profile:
+    outreach_multi_touch_sequence: high
+    outreach_single_draft: medium
 
 profiles:
   executive_outreach_generator:

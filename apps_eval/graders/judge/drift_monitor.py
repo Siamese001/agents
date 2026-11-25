@@ -234,13 +234,22 @@ def evaluate_model_drift(
         j = judge_predictions[cid]
         h_pass = bool(h["human_pass"])
         j_pass = bool(j["judge_pass"])
-        h_sc = float(h["human_score_1_5"])
-        j_sc = float(j["judge_score_1_5"])
+        h_sc = (
+            float(h["human_score_1_5"])
+            if "human_score_1_5" in h
+            else (1.0 + 4.0 * float(h.get("normalized_human_score", 1.0 if h_pass else 0.0)))
+        )
+        if "judge_score_1_5" in j:
+            j_sc = float(j["judge_score_1_5"])
+            j_unit = max(0.0, min(1.0, (j_sc - 1.0) / 4.0))
+        else:
+            j_unit = max(0.0, min(1.0, float(j.get("normalized_unit_score", j.get("judge_unit_score", 1.0 if j_pass else 0.0)))))
+            j_sc = 1.0 + 4.0 * j_unit
         y_true.append(1 if h_pass else 0)
         y_pred.append(1 if j_pass else 0)
         h_scores.append(h_sc)
         j_scores.append(j_sc)
-        j_probs.append(max(0.0, min(1.0, (j_sc - 1.0) / 4.0)))
+        j_probs.append(j_unit)
         if bool(h.get("hard_fail_any", False)):
             hard_fail_count += 1
             if j_pass:
@@ -275,9 +284,17 @@ def evaluate_model_drift(
                 old_p = bool(baseline_predictions[cid]["judge_pass"])
                 if cur_p != old_p:
                     flips += 1
-                diff = float(judge_predictions[cid]["judge_score_1_5"]) - float(
-                    baseline_predictions[cid]["judge_score_1_5"]
+                cur_sc = (
+                    float(judge_predictions[cid]["judge_score_1_5"])
+                    if "judge_score_1_5" in judge_predictions[cid]
+                    else (1.0 + 4.0 * float(judge_predictions[cid].get("normalized_unit_score", 0.0)))
                 )
+                old_sc = (
+                    float(baseline_predictions[cid]["judge_score_1_5"])
+                    if "judge_score_1_5" in baseline_predictions[cid]
+                    else (1.0 + 4.0 * float(baseline_predictions[cid].get("normalized_unit_score", 0.0)))
+                )
+                diff = cur_sc - old_sc
                 abs_diffs.append(abs(diff))
                 signed_diffs.append(diff)
             flip_rate = round(flips / float(len(base_ids)), 4)
@@ -351,7 +368,7 @@ def build_drift_flywheel_escalation_payload(
         "remediation_tier": "TIER_B_OR_C_ATOMIC_HITL",
         "auto_apply_permitted": False,
         "never_auto_lower_judge_floors": True,
-        "protected_floors": {"resume_engine_x1d": 4.7, "outreach_engine_x1d": 0.85},
+        "protected_floors": {"resume_engine_x1d": 0.80, "outreach_engine_x1d": 0.85},
         "root_cause_codes": sorted(causes),
         "finding_digest": finding_digest,
         "violations": list(violations),
@@ -418,12 +435,31 @@ def evaluate_full_drift_suite(
             f"pooled_48_item_kappa {pooled_kappa:.4f} < floor {MIN_POOLED_KAPPA:.2f} (n={len(pooled_true)})."
         )
 
+    pooled_cm = (
+        compute_tpr_tnr_balanced_accuracy(
+            ["PASS" if y == 1 else "FAIL" for y in pooled_true],
+            ["PASS" if y == 1 else "FAIL" for y in pooled_pred],
+        )
+        if pooled_true
+        else {"fpr": 0.0}
+    )
+    v2_rub_path = root / "config" / "governance" / "external_judge_rubric_v2.json"
+    v2_raw_sha = ""
+    if v2_rub_path.is_file():
+        import hashlib
+
+        v2_raw_sha = hashlib.sha256(v2_rub_path.read_bytes()).hexdigest()
+
     passed = len(violations) == 0
     receipt: dict[str, Any] = {
         "schema_version": IDE_JUDGE_DRIFT_RECEIPT_SCHEMA_VERSION,
         "generated_at_utc": now_iso,
         "status": "PASS" if passed else "DRIFT_BLOCKED",
         "passed": passed,
+        "drift_detected": not passed,
+        "cohens_kappa": pooled_kappa,
+        "false_acceptance_rate": pooled_cm["fpr"],
+        "external_rubric_sha256": v2_raw_sha,
         "rubric_sha256": rubric_hashes,
         "human_chain_sha256": dict(human_chain_hashes),
         "active_ide_judge_bases": active_bases,

@@ -434,14 +434,34 @@ class OutreachDraftAndValidationBase:
         *,
         artifact_dir: Path | str | None = None,
     ) -> AuthoritativeVerdict:
-        """Evaluates draft with single-pass consolidated authoritative verdict."""
+        """Evaluates draft with single-pass consolidated authoritative verdict plus optional IDE CLI Judge v3."""
+        from dataclasses import replace as dc_replace
+        from apps_lic.judges.ide_cli_judge import resolve_lic_judge_transport
+
         verdict = self.judge.evaluate_authoritative(draft, candidate, opportunity)
+        ide_cli_payload: dict[str, Any] | None = None
+        if verdict.hard_gate_passed and resolve_lic_judge_transport() == "ide_cli":
+            ide_cli_payload = dict(self.judge.evaluate_ide_cli(draft, candidate, opportunity))
+            draft.metadata["ide_cli_judge"] = ide_cli_payload
+            if not bool(ide_cli_payload.get("passed", False)):
+                ide_sub = ide_cli_payload.get("ide_cli_judge") or {}
+                ide_viols = list(ide_sub.get("violations") or ()) if isinstance(ide_sub, dict) else []
+                verdict = dc_replace(
+                    verdict,
+                    passed=False,
+                    judge_passed=False,
+                    status="BLOCKED",
+                    violations=[*verdict.violations, *ide_viols],
+                    failure_reasons=[*verdict.failure_reasons, "IDE_CLI_JUDGE_V3_FAILED"],
+                )
         if artifact_dir is not None:
             a_dir = Path(artifact_dir)
             a_dir.mkdir(parents=True, exist_ok=True)
-            report = self.judge.report_from_verdict(verdict)
+            report_dict = self.judge.report_from_verdict(verdict).to_dict()
+            if ide_cli_payload is not None:
+                report_dict["ide_cli_judge"] = ide_cli_payload
             (a_dir / "evaluation_report.json").write_text(
-                json.dumps(report.to_dict(), indent=2) + "\n",
+                json.dumps(report_dict, indent=2) + "\n",
                 encoding="utf-8",
             )
         return verdict

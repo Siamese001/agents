@@ -1,13 +1,8 @@
-# SSOT rubric bank for LLM-as-Judge (hardening plan ENH5.2).
+# DEPRECATED LEGACY v1 RUBRIC BANK — Superseded by `config/governance/judge_rubrics_v3.json`
+# and `config/governance/external_judge_rubric_v2.json` (`apps_eval/graders/judge/v3_evaluator.py`).
+# Retained strictly for backward-compatible offline historical schema validation.
 #
-# Each rubric is consumed by the per-dimension isolated judges in
-# apps_eval/judges/llm_judge.py. The canonical prompt
-# strings live in the module (DIMENSION_RUBRICS) so the wire-level
-# content is deterministic; this yaml captures the intent, scale
-# anchors, default weights, and gating thresholds used by the
-# consensus aggregator and scorecard.
-#
-# Scoring conventions:
+# Scoring conventions (legacy 1-5):
 #   scale            : integer 1-5 per dimension (higher is better)
 #   unknown          : judges may return "Unknown" instead of a score
 #                      when evidence is insufficient (Anthropic best
@@ -19,6 +14,8 @@
 #                      re-calibration. Tracked per-run by scorecard.
 
 version: 1
+status: deprecated_legacy_v1
+superseded_by: config/governance/judge_rubrics_v3.json
 schema: apps_eval.judges.rubric_schema_v1
 
 reference_doc: https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents
