@@ -462,3 +462,26 @@ def test_apps_rg_runtime_diff_empty() -> None:
     if result.stdout.strip() and os.environ.get("CI") != "true":
         pytest.skip("apps_rg_runtime has local diff vs HEAD; assert on clean CI tree")
     assert result.stdout.strip() == ""
+
+
+def test_ledger_cache_isolates_mutations_and_invalidates_on_disk_change(
+    tmp_path: Path, ledger: dict
+) -> None:
+    import json as _json
+
+    copy_path = tmp_path / "arsenal_copy.json"
+    mutated_copy = copy.deepcopy(ledger)
+    copy_path.write_text(_json.dumps(mutated_copy), encoding="utf-8")
+
+    first = load_master_skills_arsenal_ledger(path=copy_path)
+    first["skill_rows"][0]["skill_id"] = "mutated_skill_id"
+
+    second = load_master_skills_arsenal_ledger(path=copy_path)
+    assert second["skill_rows"][0]["skill_id"] != "mutated_skill_id"
+
+    updated = copy.deepcopy(second)
+    updated["metadata"]["schema_version"] = "updated_cache_probe_v2"
+    copy_path.write_text(_json.dumps(updated), encoding="utf-8")
+
+    third = load_master_skills_arsenal_ledger(path=copy_path)
+    assert third["metadata"]["schema_version"] == "updated_cache_probe_v2"

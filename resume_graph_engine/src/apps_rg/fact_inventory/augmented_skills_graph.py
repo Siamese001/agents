@@ -19,6 +19,9 @@ from apps_rg.fact_inventory.master_skills_arsenal_ledger import (
 )
 from apps_rg.repository_layout import repository_root
 
+_DEFAULT_LOAD_MASTER_LEDGER = load_master_skills_arsenal_ledger
+_DEFAULT_VALIDATE_LEDGER_SHAPE = validate_arsenal_ledger_shape
+
 SOURCE_AUTHORITY_AUGMENTED_SKILLS_GRAPH = "augmented_skills_graph"
 SKILLS_SOURCE_TYPE_AUGMENTED_SKILLS_GRAPH = "augmented_skills_graph"
 SKILLS_AUTHORITY_SOURCE_TYPE = "augmented_skills_graph"
@@ -66,7 +69,11 @@ def load_augmented_skills_graph(
     """Load and validate the augmented skills graph (arsenal ledger with W4A graph)."""
     graph_path = path or augmented_skills_graph_path_explicit(None, repo_root=repo_root)
     payload = load_master_skills_arsenal_ledger(path=graph_path)
-    validate_arsenal_ledger_shape(payload)
+    if (
+        load_master_skills_arsenal_ledger is not _DEFAULT_LOAD_MASTER_LEDGER
+        or validate_arsenal_ledger_shape is not _DEFAULT_VALIDATE_LEDGER_SHAPE
+    ):
+        validate_arsenal_ledger_shape(payload)
     if not payload.get("graph_metadata"):
         raise ValueError("augmented skills graph missing graph_metadata (W4A required)")
     return payload

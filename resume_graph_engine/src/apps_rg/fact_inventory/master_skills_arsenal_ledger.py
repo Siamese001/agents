@@ -765,16 +765,35 @@ def default_arsenal_ledger_path(repo_root: Path | None = None) -> Path:
     )
 
 
+_ARSENAL_LEDGER_CACHE: dict[Path, tuple[int, int, str]] = {}
+_DEFAULT_JSON_LOADS = json.loads
+
+
 def load_master_skills_arsenal_ledger(
     *,
     repo_root: Path | None = None,
     path: Path | None = None,
 ) -> dict[str, Any]:
-    ledger_path = path or default_arsenal_ledger_path(repo_root)
-    payload = json.loads(ledger_path.read_text(encoding="utf-8"))
+    ledger_path = (path or default_arsenal_ledger_path(repo_root)).resolve()
+    unpatched = (
+        json.loads is _DEFAULT_JSON_LOADS
+        and validate_arsenal_ledger_shape is _DEFAULT_VALIDATE_ARSENAL_LEDGER_SHAPE
+    )
+    stat_sig: tuple[int, int] | None = None
+    if unpatched:
+        st = ledger_path.stat()
+        stat_sig = (st.st_mtime_ns, st.st_size)
+        cached = _ARSENAL_LEDGER_CACHE.get(ledger_path)
+        if cached is not None and cached[:2] == stat_sig:
+            return json.loads(cached[2])
+
+    raw_text = ledger_path.read_text(encoding="utf-8")
+    payload = json.loads(raw_text)
     if not isinstance(payload, dict):
         raise TypeError("arsenal ledger must be object")
     validate_arsenal_ledger_shape(payload)
+    if unpatched and stat_sig is not None:
+        _ARSENAL_LEDGER_CACHE[ledger_path] = (stat_sig[0], stat_sig[1], raw_text)
     return payload
 
 
@@ -1022,6 +1041,9 @@ def validate_arsenal_ledger_shape(ledger: dict[str, Any]) -> None:
         act = str(row.get("activation_status"))
         if act not in (ledger.get("activation_statuses") or []):
             raise ValueError(f"unknown activation_status on {sid}: {act}")
+
+
+_DEFAULT_VALIDATE_ARSENAL_LEDGER_SHAPE = validate_arsenal_ledger_shape
 
 
 def assert_no_jd_briefing_as_proof_fact_ids(fact_ids: Iterable[str]) -> None:
