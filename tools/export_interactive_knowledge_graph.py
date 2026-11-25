@@ -16,9 +16,11 @@ if str(ROOT) not in sys.path:
 from tools.interactive_graph_export_core.dataset_builder import (
     build_agents_explorer_dataset,
     render_explorer_html,
+    render_portal_shell_html,
     resolve_default_graph_db_path,
     resolve_primary_repo_root,
 )
+from tools.verify_graph_explorer_gate import run_agents_graph_quality_gate
 
 
 def export_interactive_knowledge_graph(
@@ -27,10 +29,19 @@ def export_interactive_knowledge_graph(
     output_dir: Path | str | None = None,
     default_mode: str = "graph",
 ) -> dict[str, Any]:
-    """Build live dataset from SQLite and atomically write interactive_knowledge_graph.html."""
+    """Build live dataset from SQLite, verify quality & firewall gate, and write interactive_knowledge_graph.html."""
     db_path = Path(graph_path).resolve() if graph_path else resolve_default_graph_db_path(ROOT)
     data = build_agents_explorer_dataset(db_path)
     html_text = render_explorer_html(data, default_mode=default_mode)
+    portal_html = render_portal_shell_html(data, default_mode=default_mode)
+    gate_res = run_agents_graph_quality_gate(
+        html_text,
+        portal_html_text=portal_html,
+        run_vm=(default_mode == "graph"),
+    )
+    if not gate_res["passed"]:
+        joined = "; ".join(gate_res["violations"])
+        raise RuntimeError(f"Graph Explorer quality/firewall gate failed: {joined}")
     out_dir = (
         Path(output_dir).resolve()
         if output_dir is not None
@@ -50,6 +61,9 @@ def export_interactive_knowledge_graph(
         "total_evidence_links": data["total_evidence_links"],
         "generation_id": data["generation_id"],
         "snapshot_date": data["snapshot_date"],
+        "quality_gate_passed": True,
+        "quality_gate_profile": gate_res["profile"],
+        "vm_hop_counts": gate_res["vm_metrics"].get("counts", []),
     }
 
 
