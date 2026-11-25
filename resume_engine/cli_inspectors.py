@@ -9,6 +9,171 @@ import os
 import sys
 import threading
 from pathlib import Path
+from typing import Any
+
+
+def add_inspector_subparsers(subparsers: Any) -> None:
+    """Register preflight, models, cache, and doctor subcommands on the CLI parser."""
+    preflight_parser = subparsers.add_parser(
+        "preflight", help="validate provider credentials and live execution readiness"
+    )
+    preflight_parser.add_argument(
+        "--json",
+        action="store_true",
+        default=False,
+        help="Emit structured JSON preflight status.",
+    )
+
+    models_parser = subparsers.add_parser(
+        "models", help="inspect resolved roles, pins, and catalog digest (read-only)"
+    )
+    models_parser.add_argument(
+        "--role",
+        default="",
+        help="Optional specific role or section to inspect.",
+    )
+    models_parser.add_argument(
+        "--json",
+        action="store_true",
+        default=False,
+        help="Emit structured JSON output.",
+    )
+
+    cache_parser = subparsers.add_parser(
+        "cache", help="inspect briefing and vector cache status (read-only)"
+    )
+    cache_parser.add_argument(
+        "--json",
+        action="store_true",
+        default=False,
+        help="Emit structured JSON output.",
+    )
+
+    doctor_parser = subparsers.add_parser(
+        "doctor", help="fresh-checkout preflight diagnostics"
+    )
+    doctor_parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Exit non-zero if any required prerequisite is missing.",
+    )
+    doctor_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit machine-readable JSON instead of a table.",
+    )
+    doctor_parser.add_argument(
+        "doctor_args",
+        nargs=argparse.REMAINDER,
+        help="Additional arguments forwarded to doctor CLI.",
+    )
+
+
+def build_run_flywheel_trace_kwargs(
+    args: argparse.Namespace,
+    result: dict[str, Any],
+    elapsed_ms: float,
+) -> dict[str, Any]:
+    """Assemble post-run flywheel trace arguments for ``emit_post_run_trace_safe``."""
+    from agents.observability.trace_collector import compute_scenario_fingerprint
+
+    run_dir_str = str(result.get("artifact_dir") or result.get("run_dir") or "")
+    is_smoke = bool(getattr(args, "offline_smoke", False) or getattr(args, "demo", False))
+    raw_in = {
+        "company": str(getattr(args, "company", "") or result.get("company") or ""),
+        "role": str(getattr(args, "role", "") or result.get("role") or ""),
+        "jd_path": str(getattr(args, "jd", "") or getattr(args, "jd_path", "") or ""),
+        "offline_smoke": is_smoke,
+    }
+    scen_fp = compute_scenario_fingerprint(
+        app_id="apps_rg",
+        raw_input=raw_in,
+        is_smoke_or_demo=is_smoke,
+    )
+    checks_map = result.get("checks") if isinstance(result.get("checks"), dict) else {}
+    x2_map = (
+        {str(k): bool(v) for k, v in checks_map.items()}
+        if checks_map
+        else {"terminal_success": result.get("status") == "SUCCESS"}
+    )
+    gate_outcomes: dict[str, Any] = {
+        "status": result.get("status"),
+        "outcome_label": str(result.get("outcome_label") or ""),
+        "x3_disposition": str(result.get("x3_disposition") or ""),
+        "x2_gates": x2_map,
+    }
+    if result.get("fault"):
+        gate_outcomes["fault"] = str(result.get("fault"))
+    if result.get("failure_stage"):
+        gate_outcomes["failure_stage"] = str(result.get("failure_stage"))
+    if result.get("error"):
+        gate_outcomes["error"] = str(result.get("error"))
+    return {
+        "app_id": "apps_rg",
+        "run_id": str(result.get("run_id") or "resume_run"),
+        "terminal_status": "PASS" if result.get("status") == "SUCCESS" else "FAIL",
+        "raw_input": raw_in,
+        "output_summary": {
+            "run_dir": run_dir_str,
+            "outcome_label": str(result.get("outcome_label") or ""),
+            "scenario_fingerprint": scen_fp,
+        },
+        "gate_outcomes": gate_outcomes,
+        "telemetry": {"latency_ms": float(result.get("latency_ms") or elapsed_ms)},
+        "scenario_fingerprint": scen_fp,
+        "is_smoke_or_demo": is_smoke,
+    }
+
+
+def record_eval_flywheel_observation(
+    run_path: Path,
+    report: dict[str, Any],
+    elapsed_ms: float,
+) -> dict[str, Any]:
+    """Ingest a read-only product evaluation into EvalFlywheelEngine and build trace kwargs."""
+    from agents.observability.eval_flywheel import EvalFlywheelEngine
+    from agents.observability.trace_collector import compute_scenario_fingerprint
+
+    passed = report.get("status") == "PASS"
+    observed_x3 = str(report.get("x3_disposition") or "").strip()
+    effective_x3 = (
+        "X3D_ALLOW_FINISH"
+        if passed
+        else (observed_x3 if observed_x3 and observed_x3 != "X3D_ALLOW_FINISH" else "X3A_DENY_REROUTE")
+    )
+    reasons = [str(r) for r in (report.get("failure_reasons") or ()) if str(r).strip()]
+    if not passed and not reasons:
+        reasons = [f"evaluation_status:{report.get('evaluation_status') or 'BLOCKED'}"]
+    scen_fp = compute_scenario_fingerprint(
+        app_id="apps_rg",
+        raw_input={"run_id": run_path.name, "company": str(report.get("company") or "")},
+    )
+    EvalFlywheelEngine().ingest_product_run(
+        app_id="apps_rg",
+        run_id=run_path.name,
+        x3_disposition=effective_x3,
+        passed=passed,
+        failure_reasons=reasons,
+        score=1.0 if passed else 0.0,
+        scenario_fingerprint=scen_fp,
+    )
+    checks_map = report.get("checks") if isinstance(report.get("checks"), dict) else {}
+    return {
+        "app_id": "apps_rg",
+        "run_id": run_path.name,
+        "terminal_status": "PASS" if passed else "FAIL",
+        "raw_input": {"run_dir": str(run_path), "scenario_fingerprint": scen_fp},
+        "output_summary": {"run_dir": str(run_path), "x3_disposition": effective_x3},
+        "gate_outcomes": {
+            "x3_disposition": effective_x3,
+            "failure_reasons": reasons,
+            "x2_gates": {str(k): bool(v) for k, v in checks_map.items()}
+            if checks_map
+            else {"eval_passed": passed},
+        },
+        "telemetry": {"latency_ms": elapsed_ms},
+        "scenario_fingerprint": scen_fp,
+    }
 
 
 def terminate_cli_cleanly(exit_code: int) -> None:
