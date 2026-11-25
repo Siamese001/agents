@@ -39,6 +39,7 @@ REQUIRED_AI_SDLC_POLICY_IDS: tuple[str, ...] = (
     "INV-PROMPT-VALIDATOR-VOCAB-SYMMETRY",
     "INV-CENTRALIZED-JUDGE-V3-CORE",
     "INV-JUDGE-NON-DEGENERATE-WEIGHTS",
+    "INV-REPO-SCOPED-CONVERSATION-ISOLATION",
 )
 
 SCRIPT_REF_RE = re.compile(r"`((?:tools|ops_scripts|scripts)/[a-zA-Z0-9_./-]+\.py)`")

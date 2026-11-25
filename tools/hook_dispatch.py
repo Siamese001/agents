@@ -233,9 +233,34 @@ def handle_stop_wave_summary(payload: Dict[str, Any], repo_root: Path) -> int:
     return 0
 
 
-def handle_pre_run_command(payload: Dict[str, Any]) -> int:
-    """PreToolUse guard on run_command (suite-wide and targeted pytest sweeps allowed; timeouts enforced via pytest.ini)."""
-    _ = payload
+def _evaluate_repo_scope_pre_tool(payload: Dict[str, Any], repo_root: Path = ROOT) -> Tuple[bool, str]:
+    """Delegate PreToolUse repository isolation checks to core-governance repo_scope_firewall.py."""
+    core_mcp = Path.home() / ".gemini" / "config" / "plugins" / "core-governance" / "mcp"
+    if not (core_mcp / "repo_scope_firewall.py").is_file():
+        return False, ""
+    if str(core_mcp) not in sys.path:
+        sys.path.insert(0, str(core_mcp))
+    try:
+        from repo_scope_firewall import evaluate_pre_tool_repo_isolation
+
+        res = evaluate_pre_tool_repo_isolation(
+            payload,
+            steps=_load_raw_steps_from_payload(payload),
+            fallback_repo_root=repo_root,
+        )
+        if res.get("decision") == "deny":
+            return True, str(res.get("reason") or "REPO_SCOPE_VIOLATION")
+    except Exception:  # guardian: allow-silent-swallow -- fail open only if external plugin helper fails to load
+        pass
+    return False, ""
+
+
+def handle_pre_run_command(payload: Dict[str, Any], repo_root: Path = ROOT) -> int:
+    """PreToolUse guard on run_command, read_file, search, and MCP calls enforcing repo-scoped isolation."""
+    blocked, reason = _evaluate_repo_scope_pre_tool(payload, repo_root)
+    if blocked:
+        sys.stderr.write(f"\n[Antigravity Hook BLOCK] {reason}\n")
+        return emit_decision("deny", reason=reason)
     return emit_decision("allow")
 
 
@@ -639,6 +664,10 @@ def evaluate_centralized_labeling_studio_guard(
 
 def handle_pre_file_write(payload: Dict[str, Any], repo_root: Path) -> int:
     """PreToolUse combined file-write guard: main-branch isolation + stage/subagent telemetry."""
+    scope_blocked, scope_reason = _evaluate_repo_scope_pre_tool(payload, repo_root)
+    if scope_blocked:
+        sys.stderr.write(f"\n[Antigravity Hook BLOCK] {scope_reason}\n")
+        return emit_decision("deny", reason=scope_reason)
     tool_call = payload.get("toolCall") if isinstance(payload.get("toolCall"), dict) else payload
     args = tool_call.get("args") if isinstance(tool_call.get("args"), dict) else (tool_call if isinstance(tool_call, dict) else {})
     target_file = str(args.get("TargetFile") or args.get("Path") or args.get("path") or "").strip()
@@ -718,7 +747,7 @@ def handle_pre_file_write(payload: Dict[str, Any], repo_root: Path) -> int:
 _POST_INVOCATION_INTERCEPT_MARKERS = (
     "[HITL GOVERNANCE INTERCEPT", "[LAYMAN ZERO-JARGON GOVERNANCE INTERCEPT",
     "[OUTPUT BREVITY GOVERNANCE INTERCEPT", "[AUTONOMOUS LEARN INTERCEPT",
-    "[CLOSEOUT PROMINENCE INTERCEPT",
+    "[CLOSEOUT PROMINENCE INTERCEPT", "[REPO SCOPE ISOLATION INTERCEPT",
 )
 
 
@@ -847,6 +876,32 @@ def handle_post_invocation(payload: Dict[str, Any], repo_root: Path) -> int:
         except Exception:  # guardian: allow-silent-swallow -- fail open if core-governance helper cannot load
             pass
 
+    # Centralized Repository & Worktree Conversation Isolation Gate (INV-REPO-SCOPED-CONVERSATION-ISOLATION)
+    if (_core_mcp / "repo_scope_firewall.py").is_file():
+        if str(_core_mcp) not in sys.path:
+            sys.path.insert(0, str(_core_mcp))
+        try:
+            from repo_scope_firewall import (
+                evaluate_post_invocation_repo_isolation,
+                extract_latest_user_prompt,
+                resolve_active_primary_repo,
+            )
+
+            eff_steps = list(steps) if steps else [{"type": "PLANNER_RESPONSE", "source": "MODEL", "content": candidate_text}]
+            active_primary = resolve_active_primary_repo(payload, fallback_root=repo_root)
+            user_prompt_txt = extract_latest_user_prompt(raw_steps, payload)
+            repo_iso_res = evaluate_post_invocation_repo_isolation(
+                eff_steps,
+                active_repo_root=active_primary,
+                user_prompt=user_prompt_txt,
+                candidate_text=candidate_text,
+            )
+            if repo_iso_res is not None:
+                print(json.dumps(repo_iso_res))
+                return 0
+        except Exception:  # guardian: allow-silent-swallow -- fail open if core-governance helper cannot load
+            pass
+
     decisive_res = validate_decisive_recommendation_gate(candidate_text)
     if decisive_res["status"] != "PASS" and disjunctive_retries < 1:
         print(json.dumps({"injectSteps": [{"userMessage": DISJUNCTIVE_INTERCEPT_PROMPT}], "terminationBehavior": "force_continue"}))
@@ -871,7 +926,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         payload["_cli_invocation"] = True
     handlers = {
         "pre_edit_plan": handle_pre_edit_plan, "stop_wave_summary": handle_stop_wave_summary,
-        "pre_run_command": lambda p, _r: handle_pre_run_command(p),
+        "pre_run_command": handle_pre_run_command,
         "pre_model_neutral": handle_pre_model_neutral, "pre_model_registry": handle_pre_model_registry,
         "pre_ask_question": handle_pre_ask_question, "post_ask_question": handle_post_ask_question,
         "pre_subagent_delegation": handle_pre_subagent_delegation,

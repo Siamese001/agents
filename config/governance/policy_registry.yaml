@@ -361,6 +361,24 @@ policies:
     enforcer: "tools/validate_judge_rubrics_v3.py"
     rule_reference: ".agents/rules/conformance-map.md"
 
+  - id: "INV-CENTRALIZED-EVAL-FLYWHEEL"
+    title: "Centralized Closed-Loop Evaluation Flywheel & Diff-Scoped Shield Delegation"
+    category: "ai_sdlc"
+    threshold: 0
+    unit: "uncentralized_flywheel_forks"
+    description: "Delegates evaluation flywheel lifecycle, rolling baselines, borderline Studio harvesting, and diff-scoped eval shield expansion to core-governance."
+    enforcer: "tools/run_diff_scoped_eval_shield.py"
+    rule_reference: ".agents/rules/conformance-map.md"
+
+  - id: "INV-REPO-SCOPED-CONVERSATION-ISOLATION"
+    title: "Repository-Scoped Conversation & Worktree Branch Isolation Gate"
+    category: "ai_sdlc"
+    threshold: 0
+    unit: "cross_repo_or_sibling_branch_leaks"
+    description: "Enforces strict single-repository tool/chat containment and task-branch worktree isolation via core-governance mcp/repo_scope_firewall.py and tools/hook_dispatch.py."
+    enforcer: "tools/hook_dispatch.py"
+    rule_reference: ".agents/rules/git-worktree-governance.md"
+
   - id: "INV-WAVE-MERGE-WORKTREE-CLOSEOUT-TABLE"
     title: "Centralized Top-Table Wave, Merge-to-Main & Worktree Deletion Green-Check Contract"
     category: "ai_sdlc"
