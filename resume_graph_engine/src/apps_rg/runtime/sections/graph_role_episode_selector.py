@@ -1,6 +1,7 @@
 """Graph-native role-episode selection with pre-target authority and real traversal receipts."""
 from __future__ import annotations
 
+import json
 import math
 import re
 from collections import Counter
@@ -212,11 +213,20 @@ _TARGET_TERMS = (
 _WORD_RE = re.compile(r"[a-z0-9]+")
 
 
-def _load_bundle_doc(repo_root: Path, filename: str) -> dict[str, Any]:
-    path = resolve_apps_rg_path(repo_root, "fact_inventory", filename)
-    import json
+_BUNDLE_DOC_CACHE: dict[Path, tuple[int, int, str]] = {}
 
-    return json.loads(path.read_text(encoding="utf-8"))
+
+def _load_bundle_doc(repo_root: Path, filename: str) -> dict[str, Any]:
+    path = resolve_apps_rg_path(repo_root, "fact_inventory", filename).resolve()
+    st = path.stat()
+    sig = (st.st_mtime_ns, st.st_size)
+    cached = _BUNDLE_DOC_CACHE.get(path)
+    if cached is not None and cached[:2] == sig:
+        return json.loads(cached[2])
+    raw_text = path.read_text(encoding="utf-8")
+    doc = json.loads(raw_text)
+    _BUNDLE_DOC_CACHE[path] = (sig[0], sig[1], raw_text)
+    return doc
 
 
 def _bundle_metric_nodes(doc: dict[str, Any]) -> dict[str, dict[str, Any]]:
