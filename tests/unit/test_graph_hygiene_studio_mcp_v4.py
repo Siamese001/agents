@@ -128,3 +128,79 @@ def test_studio_v4_tools_bundle_state_and_fail_closed_promotion_guards(tmp_path:
     # 7. app_promote_to_main fails closed when targeting primary main (non-worktree)
     assert by_id[7]["result"].get("isError") is True
     assert "isolated feature worktree" in by_id[7]["result"]["content"][0]["text"]
+
+    # 8. State carries full freshness fingerprint + ui_build_sha + auto-refresh metadata
+    fp_initial = str(state.get("state_fingerprint") or "")
+    assert len(fp_initial) == 24
+    assert len(str(state.get("ui_build_sha") or "")) == 16
+    assert str(state.get("refreshed_at_utc") or "").endswith("Z")
+
+    # 9. Passing matching known_fingerprint returns UNCHANGED fast-path cleanly
+    unchanged_resps = _send_mcp_batch(
+        [
+            {
+                "jsonrpc": "2.0",
+                "id": 10,
+                "method": "tools/call",
+                "params": {
+                    "name": "app_get_state",
+                    "arguments": {
+                        "repo_root": str(REPO_ROOT),
+                        "force_rescan": False,
+                        "known_fingerprint": fp_initial,
+                    },
+                },
+            },
+            {
+                "jsonrpc": "2.0",
+                "id": 11,
+                "method": "tools/call",
+                "params": {
+                    "name": "app_get_state",
+                    "arguments": {
+                        "repo_root": str(REPO_ROOT),
+                        "force_rescan": False,
+                        "known_fingerprint": "000000000000000000000000",
+                    },
+                },
+            },
+        ],
+        data_dir=tmp_path / "studio_data",
+    )
+    u_by_id = {r["id"]: r for r in unchanged_resps}
+    assert u_by_id[10]["result"]["structuredContent"]["status"] == "UNCHANGED"
+    assert u_by_id[10]["result"]["structuredContent"]["state_fingerprint"] == fp_initial
+    assert u_by_id[11]["result"]["structuredContent"]["status"] == "READY"
+    assert u_by_id[11]["result"]["structuredContent"]["state_fingerprint"] == fp_initial
+
+
+def test_studio_v4_hot_reload_dispatcher_reloads_updated_server_module(tmp_path: Path) -> None:
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("_ghs_test_mod", str(SERVER_SCRIPT))
+    assert spec is not None and spec.loader is not None
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    dummy_server = tmp_path / "dummy_server.py"
+    dummy_server.write_text(
+        "def handle_mcp_request(req, *, data_dir):\n"
+        "    return {'jsonrpc': '2.0', 'id': req.get('id'), 'result': {'rev': 1}}\n",
+        encoding="utf-8",
+    )
+    disp = mod._HotReloadDispatcher(dummy_server)
+    # Force initial load from dummy_server by bumping signature mismatch
+    disp._sig = (0, 0, "")
+    r1 = disp.dispatch({"id": 1, "method": "ping"}, data_dir=tmp_path)
+    assert r1 is not None and r1["result"]["rev"] == 1
+    assert disp._reload_count == 1
+
+    # Update file on disk and verify next dispatch transparently hot-reloads rev 2
+    dummy_server.write_text(
+        "def handle_mcp_request(req, *, data_dir):\n"
+        "    return {'jsonrpc': '2.0', 'id': req.get('id'), 'result': {'rev': 2, 'fresh': True}}\n",
+        encoding="utf-8",
+    )
+    r2 = disp.dispatch({"id": 2, "method": "ping"}, data_dir=tmp_path)
+    assert r2 is not None and r2["result"]["rev"] == 2 and r2["result"]["fresh"] is True
+    assert disp._reload_count == 2
