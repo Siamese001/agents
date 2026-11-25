@@ -198,6 +198,17 @@ def _save_cache(cache_path: Path, cache: Mapping[str, Any]) -> None:
 
 
 def _build_live_probe_prompt(item: GoldCandidateRecord, rubric_doc: Mapping[str, Any]) -> str:
+    if isinstance(rubric_doc.get("checks"), list):
+        return (
+            f"You are an independent {item.engine} proof judge evaluating a {item.judge_family} candidate.\n"
+            "First write a cold_read_takeaway summarizing what stands out, then evaluate every atomic check "
+            "as YES or NO. For any NO verdict, quote a verbatim evidence_span from CANDIDATE_TEXT (or prefix "
+            "OMISSION: when required context is absent). Return strict JSON matching the schema.\n\n"
+            f"RUBRIC:\n{json.dumps(dict(rubric_doc), indent=2, sort_keys=True)}\n\n"
+            f"TARGET_CONTEXT:\n{item.target_context}\n\n"
+            f"ALLOWED_FACTS:\n{json.dumps(list(item.allowed_facts), indent=2)}\n\n"
+            f"CANDIDATE_TEXT:\n{item.candidate_text}\n"
+        )
     return (
         f"You are an independent {item.engine} proof judge evaluating a {item.judge_family} candidate.\n"
         "Grade strictly against the external stakeholder rubric on a 1.0 to 5.0 scale.\n"
@@ -236,18 +247,32 @@ def score_candidate_cached(
         agy_bin=agy_bin,
     )
     parsed = res.structured_output if isinstance(res.structured_output, dict) else json.loads(res.response)
-    mech_score, mech_pass, dim_scores, hard_flags = compute_mechanical_drift_score_and_pass(parsed, rubric_doc)
-    entry = {
-        "item_id": item.item_id,
-        "model_slug": res.model_reported,
-        "judge_score_1_5": mech_score,
-        "judge_pass": mech_pass,
-        "dimension_scores": dim_scores,
-        "hard_fail_flags": hard_flags,
-        "rationale": str(parsed.get("rationale") or ""),
-        "conversation_id": res.conversation_id,
-        "total_tokens": int((res.usage or {}).get("total_tokens", 0)),
-    }
+    if isinstance(rubric_doc.get("checks"), list):
+        unit_s, mech_pass, atomic_bools = compute_v3_drift_unit_score_and_pass(parsed, rubric_doc)
+        entry = {
+            "item_id": item.item_id,
+            "model_slug": res.model_reported,
+            "normalized_unit_score": unit_s,
+            "judge_score_1_5": round(1.0 + 4.0 * unit_s, 4),
+            "judge_pass": mech_pass,
+            "atomic_checks": atomic_bools,
+            "rationale": str(parsed.get("cold_read_takeaway") or ""),
+            "conversation_id": res.conversation_id,
+            "total_tokens": int((res.usage or {}).get("total_tokens", 0)),
+        }
+    else:
+        mech_score, mech_pass, dim_scores, hard_flags = compute_mechanical_drift_score_and_pass(parsed, rubric_doc)
+        entry = {
+            "item_id": item.item_id,
+            "model_slug": res.model_reported,
+            "judge_score_1_5": mech_score,
+            "judge_pass": mech_pass,
+            "dimension_scores": dim_scores,
+            "hard_fail_flags": hard_flags,
+            "rationale": str(parsed.get("rationale") or ""),
+            "conversation_id": res.conversation_id,
+            "total_tokens": int((res.usage or {}).get("total_tokens", 0)),
+        }
     cache[cache_key] = entry
     return entry
 
@@ -289,6 +314,12 @@ def main(argv: list[str] | None = None) -> int:
                 load_external_stakeholder_rubric(eng, repo_root=REPO_ROOT)
             except Exception as exc:  # guardian: allow-broad-exception -- report external rubric load error in preflight
                 preflight_violations.append(f"EXTERNAL_RUBRIC_ERROR:{eng}:{exc}")
+        try:
+            from apps_eval.graders.judge.external_rubric_store import load_and_verify_external_rubric_v2
+
+            load_and_verify_external_rubric_v2(REPO_ROOT / "config" / "governance" / "external_judge_rubric_v2.json")
+        except (OSError, ValueError, KeyError) as exc:
+            preflight_violations.append(f"EXTERNAL_RUBRIC_V2_ERROR:{exc}")
 
         if preflight_violations:
             print(json.dumps({"status": "FAIL", "violations": preflight_violations}, indent=2))

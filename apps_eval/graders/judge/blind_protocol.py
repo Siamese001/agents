@@ -19,57 +19,39 @@ import yaml
 
 from apps_eval.contracts.digests import canonical_sha256, sha256_file
 from apps_eval.contracts.schemas import utc_now_iso
-from apps_eval.graders.judge._core_governance_bridge import get_judge_ide_router_v3
+from apps_eval.graders.judge._core_governance_bridge import (
+    get_judge_blind_protocol_v3,
+    get_judge_ide_router_v3,
+)
+
+_ide_rtr = get_judge_ide_router_v3()
+_blind_v3 = get_judge_blind_protocol_v3()
 
 FORBIDDEN_DETERMINISTIC_PRIMING_KEYS: frozenset[str] = frozenset(
-    {
-        "deterministic_gate_summary",
-        "deterministic_violation_count",
-        "deterministic_visual_ui_metrics",
-        "visual_ui_metrics_summary",
-        "tier1_gate_receipt",
-        "x2_gate_outputs",
-        "min_light_contrast_ratio",
-        "min_dark_contrast_ratio",
-    }
+    _blind_v3.FORBIDDEN_DETERMINISTIC_PRIMING_KEYS
 )
 
 NON_LLM_EVALUATOR_KINDS: frozenset[str] = frozenset(
-    {
-        "deterministic_gate",
-        "heuristic",
-        "structural_heuristic",
-        "mock_judge",
-        "rule_based",
-        "static_stub",
-    }
+    _blind_v3.NON_LLM_EVALUATOR_KINDS
 )
 
-SYNTHETIC_MODEL_TOKENS: tuple[str, ...] = (
-    "model_family_a",
-    "model_family_b",
-    "fake_model",
-    "mock_model",
-    "stub_model",
-    "placeholder",
-    "dummy_judge",
-)
+SYNTHETIC_MODEL_TOKENS: tuple[str, ...] = tuple(_ide_rtr.SYNTHETIC_MODEL_TOKENS)
 
 
 def is_synthetic_model_id(model_id: str) -> bool:
-    """Return True if model_id matches a known synthetic/stub test token."""
-    norm = str(model_id or "").strip().lower()
-    if not norm:
-        return True
-    return any(tok in norm for tok in SYNTHETIC_MODEL_TOKENS)
+    """Delegate synthetic/stub judge model token detection to centralized IDE router v3."""
+    return bool(_ide_rtr.is_synthetic_judge_model(model_id))
 
 
 def infer_provider_family(model_id: str) -> str:
     """Infer canonical Antigravity IDE family (`neon`, `carbon`, `argon`) or provider family."""
     norm = str(model_id or "").strip().lower()
-    for ide_fam in ("neon", "carbon", "argon"):
-        if ide_fam in norm.replace("_", "-").split("-") or norm == ide_fam:
-            return ide_fam
+    if not norm:
+        return "unknown"
+    try:
+        return str(_ide_rtr.normalize_judge_model_family(norm))
+    except Exception:  # guardian: allow-broad-exception -- fall back cleanly for catalog provider pins outside IDE family names
+        pass
     if any(tok in norm for tok in ("claude", "anthropic")):
         return "anthropic"
     if any(tok in norm for tok in ("gpt", "openai", "o1", "o3", "o4")):
@@ -173,15 +155,15 @@ def build_sealed_blind_judge_bundle(
     artifact_path: Path | None = None,
     repo_root: Path | None = None,
     available_families: Sequence[str] | None = None,
+    fail_on_priming: bool = False,
 ) -> BlindJudgeBundle:
-    """Strip all forbidden deterministic priming keys and seal a SHA-256 blind judge bundle."""
-    stripped_keys: list[str] = []
-    clean_payload: dict[str, Any] = {}
-    for key, value in raw_input.items():
-        if key in FORBIDDEN_DETERMINISTIC_PRIMING_KEYS:
-            stripped_keys.append(key)
-            continue
-        clean_payload[key] = value
+    """Strip all forbidden deterministic priming keys via centralized blind protocol v3 and seal SHA-256."""
+    cleaned_map, stripped_tuple = _blind_v3.strip_or_reject_deterministic_priming(
+        raw_input,
+        fail_on_priming=fail_on_priming,
+    )
+    clean_payload = dict(cleaned_map) if isinstance(cleaned_map, Mapping) else {}
+    stripped_keys = list(stripped_tuple)
 
     artifact_sha = (
         sha256_file(artifact_path)
@@ -210,6 +192,11 @@ def build_sealed_blind_judge_bundle(
     )
 
 
+build_sealed_v3_blind_bundle = _blind_v3.build_sealed_v3_blind_bundle
+verify_sealed_v3_bundle_and_verdict = _blind_v3.verify_sealed_v3_bundle_and_verdict
+select_ide_judge_route = _ide_rtr.select_ide_judge_route
+
+
 def build_fail_closed_missing_verdict_receipt(bundle: BlindJudgeBundle) -> dict[str, Any]:
     """Fail-closed receipt returned whenever a required blind LLM judge verdict is absent."""
     return {
@@ -230,6 +217,8 @@ def is_borderline_judge_result(
     *,
     pass_threshold: float = 0.80,
     unit_margin: float = 0.08,
+    borderline_band: Sequence[float] | None = None,
+    profile: Any | None = None,
     lower_bound: float = 8.5,
     upper_bound: float = 9.4,
     dimension_floor: float = 8.0,
@@ -237,7 +226,19 @@ def is_borderline_judge_result(
 ) -> bool:
     """Identify near-threshold unit scores (`[0.0, 1.0]`) requiring second-family escalation."""
     dims = dimension_scores or {}
+    if profile is not None:
+        prof_thresh = getattr(profile, "pass_threshold", None)
+        if prof_thresh is not None:
+            pass_threshold = float(prof_thresh)
+        prof_band = getattr(profile, "borderline_band", None)
+        if borderline_band is None and isinstance(prof_band, (list, tuple)) and len(prof_band) == 2:
+            borderline_band = prof_band
     if overall_score <= 1.0 and all(float(v) <= 1.0 for v in dims.values()):
+        if borderline_band is not None and len(borderline_band) == 2:
+            lo_b, hi_b = float(borderline_band[0]), float(borderline_band[1])
+            if lo_b <= overall_score <= hi_b:
+                return True
+            return any(lo_b <= float(s) < pass_threshold for s in dims.values())
         if (pass_threshold - unit_margin) <= overall_score < (pass_threshold + unit_margin):
             return True
         return any(

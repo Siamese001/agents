@@ -14,35 +14,36 @@ import math
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
+from apps_eval.graders.judge._core_governance_bridge import (
+    get_judge_ide_router_v3,
+    get_judge_v3_rigor_engine,
+)
 from apps_eval.graders.judge.blind_protocol import NON_LLM_EVALUATOR_KINDS, is_synthetic_model_id
-from apps_eval.graders.judge.calibration import PositionSwapDebiaser, compute_brier_and_ece, compute_cohens_kappa
+from apps_eval.graders.judge.calibration import PositionSwapDebiaser
 from apps_eval.graders.judge.external_rubric_store import ExternalHumanLabelRecord, compute_payload_sha256
 from apps_eval.graders.judge.frontier_calibration_stats import (
     classify_cohort_power,
     compute_failure_tag_detection_recall,
     compute_ppi_calibrated_pass_rate,
     compute_rogan_gladen_prevalence,
-    compute_tpr_tnr_balanced_accuracy,
 )
-
-_KNOWN_IDE_FAMILIES: tuple[str, ...] = ("neon", "carbon", "argon", "open_weights", "anthropic", "google", "openai")
 
 
 def normalize_judge_family(raw_family: str) -> str:
-    """Normalize IDE judge family label to a canonical slug (`neon`, `carbon`, `argon`, `open_weights`, etc.)."""
+    """Normalize IDE judge family label to a canonical slug via centralized `core-governance` router."""
     low = str(raw_family or "").strip().lower()
     if low == "disjoint_jury":
         return "disjoint_jury"
     for tok in ("neon", "carbon", "argon"):
         if tok in low:
             return tok
-    if "claude" in low or "anthropic" in low:
-        return "carbon"
-    if "gemini" in low or "google" in low:
+    if not low:
         return "neon"
-    if "oss" in low or "openai" in low:
-        return "open_weights"
-    return low or "neon"
+    try:
+        fam = get_judge_ide_router_v3().normalize_judge_model_family(low)
+        return {"google": "neon", "anthropic": "carbon", "open_weights": "open_weights"}.get(fam, fam)
+    except (ValueError, KeyError, AttributeError):
+        return low
 
 
 def verify_ide_judge_receipt_provenance(verdict_obj: Mapping[str, Any]) -> list[str]:
@@ -415,28 +416,35 @@ class IDEJudgeDriftEvaluator:
                 prov_codes or ["NO_VALID_PAIRED_VERDICTS"],
                 now_utc,
             )
-        h_bins = [_quantize_unit_to_likert(x) for x in h_scores]
-        j_bins = [_quantize_unit_to_likert(x) for x in j_scores]
-        kappa = round(
-            compute_cohens_kappa(
-                [1 if v == "PASS" else 0 for v in h_verdicts],
-                [1 if v == "PASS" else 0 for v in j_verdicts],
-            ),
-            4,
-        )
-        w_kappa = compute_quadratic_weighted_kappa(h_bins, j_bins)
-        rho = compute_spearman_rho(h_scores, j_scores)
-        signed_bias = round(sum(j - h for j, h in zip(j_scores, h_scores)) / len(h_scores), 4)
-        cm = compute_tpr_tnr_balanced_accuracy(h_verdicts, j_verdicts)
-        far, frr = cm["fpr"], cm["fnr"]
+        paired_human: list[dict[str, Any]] = []
+        paired_judge: dict[str, dict[str, Any]] = {}
+        for rec, h_s, j_s, h_v, j_v in zip(
+            [r for r in human_records if not self._verify_single_verdict_binding(r, judge_verdicts_by_case.get(r.case_id))],
+            h_scores,
+            j_scores,
+            h_verdicts,
+            j_verdicts,
+        ):
+            paired_human.append({"case_id": rec.case_id, "human_verdict": h_v, "normalized_human_score": h_s})
+            paired_judge[rec.case_id] = {"normalized_unit_score": j_s, "verdict": j_v}
+
+        central_summary = get_judge_v3_rigor_engine().evaluate_judge_v3_drift_summary(paired_human, paired_judge)
+        kappa = float(central_summary["cohens_kappa"])
+        w_kappa = float(central_summary["weighted_quadratic_kappa"])
+        rho = float(central_summary["spearman_rho"])
+        signed_bias = float(central_summary["signed_leniency_bias"])
+        far = float(central_summary["false_acceptance_rate"])
+        frr = float(central_summary["false_rejection_rate"])
+        ece = float(central_summary["expected_calibration_error"])
+        tpr_val = float(central_summary["tpr"])
+        tnr_val = float(central_summary["tnr"])
+        bal_acc = float(central_summary["balanced_accuracy"])
         q_obs = sum(1 for v in j_verdicts if v == "PASS") / len(j_verdicts)
         rg = compute_rogan_gladen_prevalence(
-            q_obs, cm["tpr"], cm["tnr"], human_verdicts=h_verdicts, judge_verdicts=j_verdicts
+            q_obs, tpr_val, tnr_val, human_verdicts=h_verdicts, judge_verdicts=j_verdicts
         )
         ppi = compute_ppi_calibrated_pass_rate(h_verdicts, j_verdicts)
         tag_recall = compute_failure_tag_detection_recall(human_records, judge_verdicts_by_case)
-        _, ece_raw = compute_brier_and_ece([1 if v == "PASS" else 0 for v in h_verdicts], j_scores)
-        ece = round(ece_raw, 4)
         order_bias = self._compute_order_bias(swap_pairs, pairwise_judge_fn)
         drift_codes = self._collect_threshold_drift_codes(
             human_verdicts=h_verdicts,
@@ -469,9 +477,9 @@ class IDEJudgeDriftEvaluator:
             drift_detected=drift_detected,
             drift_codes=tuple(drift_codes),
             evaluated_at_utc=now_utc,
-            tpr=cm["tpr"],
-            tnr=cm["tnr"],
-            balanced_accuracy=cm["balanced_accuracy"],
+            tpr=tpr_val,
+            tnr=tnr_val,
+            balanced_accuracy=bal_acc,
             rogan_gladen_pass_rate=rg["corrected_pass_rate"],
             rogan_gladen_ci_95=(rg["ci_95"][0], rg["ci_95"][1]),
             ppi_pass_rate=ppi["ppi_pass_rate"],

@@ -1,4 +1,4 @@
-"""Centralized `core-governance` Pure-White 18px 6-Check Studio Session Binder for `agents`.
+"""Centralized `core-governance` Pure-White 14px 6-Check Studio Session Binder for `agents`.
 
 Replaces the retired standalone localhost HTTP server (`calibration_studio_server.py`) and
 template (`calibration_studio_template.py`) by binding `agents` blind calibration pools
@@ -40,7 +40,7 @@ class StudioSessionBinding:
 
 
 def load_centralized_studio_html() -> str:
-    """Return the compiled Pure-White 18px `ui://labeling-studio/app.html` bundle from `core-governance`."""
+    """Return the compiled Pure-White 14px `ui://labeling-studio/app.html` bundle from `core-governance`."""
     if not CORE_GOVERNANCE_UI_HTML_PATH.is_file():
         raise FileNotFoundError(f"Centralized Studio bundle missing at '{CORE_GOVERNANCE_UI_HTML_PATH}'.")
     return CORE_GOVERNANCE_UI_HTML_PATH.read_text(encoding="utf-8")
@@ -106,11 +106,21 @@ def sync_studio_store_to_human_provenance(
     """Sync Studio ExternalRubricHumanStore records into the hash-chained human provenance ledger & adjudicated JSON."""
     root = Path(repo_root).resolve() if repo_root is not None else Path(__file__).resolve().parents[3]
     raw_store = json.loads(Path(store_path).read_text(encoding="utf-8")) if Path(store_path).is_file() else {}
-    rub_id = str(raw_store.get("external_rubric_id") or "external_judge_rubric_v1")
+    rub_id = str(raw_store.get("external_rubric_id") or "external_judge_rubric_v2")
     rub_path = root / "config" / "governance" / f"{rub_id}.json"
     store = ExternalRubricHumanStore(store_path=store_path, rubric_path=rub_path if rub_path.is_file() else None)
-    prefix = "rg_" if engine == "resume_engine" else "lic_"
-    records = [r for r in store.load_records() if r.case_id.startswith(prefix) or r.judge_surface.startswith(engine)]
+    prefixes_by_engine = {
+        "resume_engine": ("rg_", "resume_"),
+        "outreach_engine": ("lic_", "outreach_"),
+        "apps_research": ("res_", "company_research_brief", "apps_research"),
+        "apps_eval": ("trace_", "cal_", "agent_trace_and_calibration", "apps_eval"),
+    }
+    prefixes = prefixes_by_engine.get(engine, (f"{engine[:3]}_", engine))
+    records = [
+        r
+        for r in store.load_records()
+        if r.case_id.startswith(prefixes) or r.judge_surface.startswith((engine, *prefixes))
+    ]
     existing_ledger = {e.blind_id: e for e in load_human_grade_ledger(ledger_path)}
     adjudicated_items: dict[str, dict[str, Any]] = {}
     if adjudicated_path.is_file():

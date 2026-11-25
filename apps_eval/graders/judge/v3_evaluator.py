@@ -15,13 +15,14 @@ import json
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+from apps_eval.graders.judge._core_governance_bridge import get_judge_v3_rigor_engine
 from apps_eval.graders.judge.blind_protocol import (
     BlindJudgeBundle,
     build_sealed_blind_judge_bundle,
     infer_provider_family,
     validate_blind_judge_verdict_provenance,
 )
-from apps_eval.graders.judge.frontier_rubric_contract import VALID_FAILURE_TAG_IDS, validate_failure_tags
+from apps_eval.graders.judge.frontier_rubric_contract import validate_failure_tags
 from apps_eval.graders.judge.preflight_lint import PreflightLintReceipt
 from apps_eval.graders.judge.v3_registry import (
     JudgeProfileV3,
@@ -29,15 +30,13 @@ from apps_eval.graders.judge.v3_registry import (
     render_v3_rubric_prompt,
 )
 
+_rigor = get_judge_v3_rigor_engine()
+
 JUDGE_V3_SCORECARD_SCHEMA_VERSION = "agents.judge_v3_scorecard.v3"
-
-
-class JudgeV3SchemaError(ValueError):
-    """Raised fail-closed when a Stage B LLM response violates the v3 atomic binary schema."""
-
-
-class JudgeV3ProvenanceError(ValueError):
-    """Raised fail-closed when Layer 0 SHA-256 or cross-family orthogonality fails."""
+JudgeV3SchemaError = _rigor.JudgeV3SchemaError
+JudgeV3ProvenanceError = _rigor.JudgeV3ProvenanceError
+verify_verbatim_failure_span = _rigor.verify_verbatim_failure_span
+score_v3_atomic_checks = _rigor.score_v3_atomic_checks
 
 
 @dataclass(frozen=True)
@@ -88,36 +87,8 @@ class JudgeV3Scorecard:
 
 
 def build_v3_response_schema(profile: JudgeProfileV3) -> dict[str, Any]:
-    """Build strict JSON schema requiring `cold_read_takeaway` BEFORE atomic `checks`."""
-    check_props: dict[str, Any] = {}
-    for chk in profile.checks:
-        check_props[chk.id] = {
-            "type": "object",
-            "properties": {
-                "verdict": {"type": "string", "enum": ["YES", "NO"]},
-                "evidence_span": {"type": "string"},
-            },
-            "required": ["verdict", "evidence_span"],
-            "additionalProperties": False,
-        }
-    return {
-        "type": "object",
-        "properties": {
-            "cold_read_takeaway": {"type": "string"},
-            "checks": {
-                "type": "object",
-                "properties": check_props,
-                "required": list(check_props.keys()),
-                "additionalProperties": False,
-            },
-            "failure_tags": {
-                "type": "array",
-                "items": {"type": "string", "enum": sorted(VALID_FAILURE_TAG_IDS)},
-            },
-        },
-        "required": ["cold_read_takeaway", "checks", "failure_tags"],
-        "additionalProperties": False,
-    }
+    """Delegate strict Stage B JSON schema generation to centralized `core-governance`."""
+    return dict(_rigor.build_v3_response_json_schema(profile))
 
 
 def build_v3_evaluation_bundle(
@@ -195,12 +166,13 @@ def parse_and_seal_v3_verdict(
     judge_model_family: str | None = None,
     artifact_disk_path: Path | None = None,
     verify_verbatim_in: str | None = None,
+    primary_source_text: str = "",
     allow_external_http: bool = False,
     external_http_call_count: int = 0,
     conversation_id: str | None = None,
     usage: Mapping[str, Any] | None = None,
 ) -> JudgeV3Scorecard:
-    """Parse Stage B atomic binary JSON, enforce failure spans & Layer 0 provenance, and compute score."""
+    """Parse Stage B atomic binary JSON via centralized `score_v3_atomic_checks` and seal Layer 0 provenance."""
     if isinstance(raw_response, str):
         cleaned = raw_response.strip()
         if cleaned.startswith("```"):
@@ -209,19 +181,13 @@ def parse_and_seal_v3_verdict(
             parsed = json.loads(cleaned)
         except json.JSONDecodeError as exc:
             raise JudgeV3SchemaError(f"Invalid Judge v3 JSON: {exc}") from exc
-    else:
+    elif isinstance(raw_response, Mapping):
         parsed = dict(raw_response)
+    else:
+        raise JudgeV3SchemaError("Judge v3 response must be a JSON object.")
 
     if not isinstance(parsed, Mapping):
         raise JudgeV3SchemaError("Judge v3 response must be a JSON object.")
-
-    takeaway = str(parsed.get("cold_read_takeaway") or "").strip()
-    if len(takeaway) < 5:
-        raise JudgeV3SchemaError("Judge v3 response requires non-empty 'cold_read_takeaway' first.")
-
-    raw_checks = parsed.get("checks")
-    if not isinstance(raw_checks, Mapping):
-        raise JudgeV3SchemaError("Judge v3 response missing 'checks' mapping.")
 
     resolved_judge_fam = infer_provider_family(judge_model_family or judge_model_id)
     prov_probe = {
@@ -245,46 +211,52 @@ def parse_and_seal_v3_verdict(
     if not prov_ok:
         raise JudgeV3ProvenanceError(f"BlindJudgeProvenanceError: {prov_errs}")
 
+    try:
+        raw_tags = validate_failure_tags(parsed.get("failure_tags") or ())
+    except ValueError as exc:
+        raise JudgeV3SchemaError(str(exc)) from exc
+
+    raw_checks_obj = parsed.get("checks")
+    if isinstance(raw_checks_obj, Mapping):
+        for spec in profile.checks:
+            c_raw = raw_checks_obj.get(spec.id)
+            if isinstance(c_raw, Mapping) and str(c_raw.get("verdict") or "").strip().upper() == "NO":
+                span_raw = str(c_raw.get("evidence_span") or "").strip()
+                if len(span_raw) < 3:
+                    raise JudgeV3SchemaError(f"Check '{spec.id}' answered NO without a verbatim evidence_span.")
+
+    try:
+        takeaway, check_verdicts, central_tags, unit_score, critical_veto, passed = _rigor.score_v3_atomic_checks(
+            parsed,
+            profile,
+            verify_verbatim_in=verify_verbatim_in,
+            primary_source_text=primary_source_text,
+        )
+    except JudgeV3SchemaError as exc:
+        msg = str(exc)
+        if "without a required verbatim 'evidence_span'" in msg:
+            raise JudgeV3SchemaError(msg.replace("without a required verbatim 'evidence_span'", "without a verbatim evidence_span")) from exc
+        if "not found verbatim in candidate text" in msg:
+            raise JudgeV3SchemaError(f"{msg} (not a verbatim substring of the evaluated packet)") from exc
+        raise
+
     sealed_checks: dict[str, dict[str, Any]] = {}
     failed_ids: list[str] = []
     auto_tags: list[str] = []
-    passed_weight = 0.0
-    critical_veto = False
-    corpus_low = verify_verbatim_in.lower() if verify_verbatim_in is not None else None
-
     for spec in profile.checks:
-        entry = raw_checks.get(spec.id)
-        if not isinstance(entry, Mapping):
-            raise JudgeV3SchemaError(f"Missing atomic check '{spec.id}' in Judge v3 response.")
-        verdict_tok = str(entry.get("verdict") or "").strip().upper()
-        if verdict_tok not in {"YES", "NO"}:
-            raise JudgeV3SchemaError(f"Check '{spec.id}' verdict must be 'YES' or 'NO', got {verdict_tok!r}.")
-        span = str(entry.get("evidence_span") or "").strip()
-        if verdict_tok == "NO":
-            if len(span) < 3:
-                raise JudgeV3SchemaError(f"Check '{spec.id}' answered NO without a verbatim evidence_span.")
-            if corpus_low is not None and span.lower() not in corpus_low:
-                raise JudgeV3SchemaError(
-                    f"Check '{spec.id}' evidence_span {span!r} is not a verbatim substring of the evaluated packet."
-                )
+        cv = check_verdicts[spec.id]
+        if not cv.passed:
             failed_ids.append(spec.id)
             auto_tags.append(spec.failure_tag)
-            if spec.critical:
-                critical_veto = True
-        else:
-            passed_weight += spec.weight
         sealed_checks[spec.id] = {
-            "verdict": verdict_tok,
-            "critical": spec.critical,
-            "weight": spec.weight,
-            "failure_tag": spec.failure_tag,
-            "evidence_span": span,
+            "verdict": cv.verdict,
+            "critical": cv.critical,
+            "weight": cv.weight,
+            "failure_tag": cv.failure_tag,
+            "evidence_span": cv.evidence_span,
         }
 
-    unit_score = round(min(1.0, max(0.0, passed_weight)), 4)
-    passed = (not critical_veto) and (unit_score >= profile.pass_threshold)
-    raw_tags = validate_failure_tags(parsed.get("failure_tags") or ())
-    merged_tags = tuple(dict.fromkeys([*auto_tags, *raw_tags])) if not passed else ()
+    merged_tags = tuple(dict.fromkeys([*auto_tags, *raw_tags, *central_tags])) if not passed else ()
 
     return JudgeV3Scorecard(
         schema_version=JUDGE_V3_SCORECARD_SCHEMA_VERSION,

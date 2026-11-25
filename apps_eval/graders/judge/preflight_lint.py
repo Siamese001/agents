@@ -12,8 +12,12 @@ import json
 import re
 from typing import Any, Mapping, Sequence
 
+from apps_eval.graders.judge._core_governance_bridge import get_judge_v3_rigor_engine
+
+_rigor = get_judge_v3_rigor_engine()
+
 _AI_BUZZWORD_RE = re.compile(
-    r"\b(delve|testament|tapestry|pivotal|foster|underscore|moreover|furthermore|synergy|holistic|paradigm|seamless)\b",
+    r"\b(delve|testament|tapestry|pivotal|foster|underscore|moreover|furthermore|synergy|holistic|paradigm|seamless|symphony|multifaceted|game-changer|cutting-edge)\b",
     re.IGNORECASE,
 )
 _EM_DASH_RE = re.compile(r"[\u2014\u2013]| -- ")
@@ -119,8 +123,15 @@ def run_preflight_lint(
     if forbid_markdown_links and text_surface and _MARKDOWN_LINK_RE.search(text_surface):
         failed_gates.append("markdown_link_forbidden")
 
-    if forbid_prompt_injection and text_surface and _PROMPT_INJECTION_RE.search(text_surface):
-        failed_gates.append("prompt_injection_directive_detected")
+    if forbid_prompt_injection and text_surface:
+        central_stage_a = _rigor.run_stage_a_preflight(
+            candidate if isinstance(candidate, (str, Mapping)) else text_surface,
+            min_words=0,
+            enforce_anti_ai_filter=False,
+            forbid_prompt_injection=True,
+        )
+        if _PROMPT_INJECTION_RE.search(text_surface) or "STAGE_A_PROMPT_INJECTION_DETECTED" in central_stage_a.failed_gates:
+            failed_gates.append("prompt_injection_directive_detected")
 
     if text_surface:
         words = text_surface.split()

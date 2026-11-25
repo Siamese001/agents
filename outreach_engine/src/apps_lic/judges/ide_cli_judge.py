@@ -11,12 +11,19 @@ sequence judging:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import inspect
 import json
 import os
 from pathlib import Path
+import sys
 from typing import Any, Mapping, Sequence
 
-from apps_eval.graders.judge.v3_evaluator import JudgeV3SchemaError, build_v3_response_schema
+from apps_eval.graders.judge._core_governance_bridge import get_judge_ide_router_v3
+from apps_eval.graders.judge.v3_evaluator import (
+    JudgeV3SchemaError,
+    build_v3_response_schema,
+    verify_verbatim_failure_span,
+)
 from apps_eval.graders.judge.v3_registry import JudgeProfileV3, JudgeRubricRegistryV3, render_v3_rubric_prompt
 from apps_lic.runtime.model_registry import OutreachModelRegistry
 from infrastructure.sdks_mcps.agy_cli_transport import (
@@ -118,7 +125,6 @@ def resolve_lic_judge_transport(
     environ: Mapping[str, str] | None = None,
     config_path: Path | str | None = None,
 ) -> str:
-    _ = config_path
     if explicit_transport is not None and str(explicit_transport).strip():
         val = str(explicit_transport).strip().lower()
     else:
@@ -126,7 +132,18 @@ def resolve_lic_judge_transport(
 
         env = snapshot_process_env() if environ is None else environ
         env_val = str(env.get(LIC_JUDGE_TRANSPORT_ENV) or "").strip().lower()
-        val = env_val or "deterministic"
+        if env_val:
+            val = env_val
+        elif config_path is not None:
+            val = str(_judging_cfg(config_path).get("transport") or "deterministic").strip().lower()
+        else:
+            in_pytest = bool(os.environ.get("PYTEST_CURRENT_TEST") or "pytest" in sys.modules)
+            cli_var = str(_judging_cfg(None).get("cli_env_var") or AGY_CLI_ENV_VAR)
+            cli_bin = str(env.get(cli_var) or "").strip()
+            if not in_pytest or (cli_bin and ide_cli_ready(cli_bin)[0]):
+                val = str(_judging_cfg(None).get("transport") or "deterministic").strip().lower()
+            else:
+                val = "deterministic"
     if val not in _VALID_TRANSPORTS:
         raise LicIdeCliJudgeConfigError(f"Unknown Outreach judge transport {val!r}; expected {sorted(_VALID_TRANSPORTS)}")
     return val
@@ -154,7 +171,13 @@ def resolve_lic_ide_judge_slots(
     return primary, secondary, p_backups, s_backups
 
 
-def _score_v3_payload(parsed: Mapping[str, Any], profile: JudgeProfileV3, pass_threshold: float) -> tuple[float, bool, dict[str, float], dict[str, dict[str, Any]], str, tuple[str, ...]]:
+def _score_v3_payload(
+    parsed: Mapping[str, Any],
+    profile: JudgeProfileV3,
+    pass_threshold: float,
+    *,
+    candidate_text: str | None = None,
+) -> tuple[float, bool, dict[str, float], dict[str, dict[str, Any]], str, tuple[str, ...]]:
     takeaway = str(parsed.get("cold_read_takeaway") or "").strip()
     if len(takeaway) < 5:
         raise JudgeV3SchemaError("Judge v3 response requires non-empty 'cold_read_takeaway' first.")
@@ -177,6 +200,15 @@ def _score_v3_payload(parsed: Mapping[str, Any], profile: JudgeProfileV3, pass_t
         if v == "NO":
             if len(span) < 3:
                 raise JudgeV3SchemaError(f"Check '{spec.id}' answered NO without verbatim evidence_span.")
+            if candidate_text is not None and not verify_verbatim_failure_span(
+                span,
+                candidate_text=candidate_text,
+                min_chars=3,
+                require_substring_match=True,
+            ):
+                raise JudgeV3SchemaError(
+                    f"Check '{spec.id}' failure evidence_span {span!r} not found verbatim in candidate text."
+                )
             dim_scores[spec.id] = 0.0
             viols.append(f"{spec.id} [{spec.failure_tag}]: {span}")
             if spec.critical:
@@ -216,11 +248,23 @@ def _run_with_failover(
     raw_t = str(env.get(LIC_JUDGE_TIMEOUT_ENV) or "").strip()
     timeout_s = int(raw_t) if raw_t.isdigit() and int(raw_t) > 0 else DEFAULT_LIC_JUDGE_TIMEOUT_S
     schema = build_v3_response_schema(profile)
+    effort = str(
+        get_judge_ide_router_v3().select_ide_reasoning_effort(
+            profile.archetype,
+            assurance_tier=profile.assurance_tier,
+            profile_reasoning=profile.reasoning_effort,
+        )
+    )
+    agy_params = inspect.signature(run_agy).parameters
+    supports_effort = "effort" in agy_params or any(p.kind == inspect.Parameter.VAR_KEYWORD for p in agy_params.values())
 
     for model_slug in ordered:
         attempted.append(model_slug)
         try:
-            agy_res = run_agy(prompt, model=model_slug, json_schema=schema, timeout_s=timeout_s, agy_bin=bin_path)
+            call_kw: dict[str, Any] = {"model": model_slug, "json_schema": schema, "timeout_s": timeout_s, "agy_bin": bin_path}
+            if supports_effort:
+                call_kw["effort"] = effort
+            agy_res = run_agy(prompt, **call_kw)
         except AgyTransportError as exc:
             last_err = str(exc)
             if is_agy_quota_error(exc):
@@ -229,7 +273,7 @@ def _run_with_failover(
             return LicIdeCliJudgeResult(slot, primary_model, model_slug, OutreachModelRegistry.normalize_provider_family(model_slug), evaluator_mode="BLOCKED_PROVIDER_UNAVAILABLE", llm_judge_executed=False, provider_blocked=True, normalized_unit_score=None, rationale=f"IDE CLI judge call failed: {last_err}", violations=(f"IDE_CLI_CALL_FAILED:{last_err[:160]}",), exact_provider_error=last_err, quota_failover_attempts=tuple(attempted))
         try:
             raw_obj = agy_res.structured_output if isinstance(agy_res.structured_output, dict) else json.loads(str(agy_res.response or "").strip().strip("`").lstrip("json").strip())
-            unit, passed_flag, dims, checks, takeaway, viols = _score_v3_payload(raw_obj, profile, pass_threshold)
+            unit, passed_flag, dims, checks, takeaway, viols = _score_v3_payload(raw_obj, profile, pass_threshold, candidate_text=prompt)
         except (ValueError, TypeError, json.JSONDecodeError, JudgeV3SchemaError) as exc:
             return LicIdeCliJudgeResult(slot, primary_model, agy_res.model_reported, OutreachModelRegistry.normalize_provider_family(agy_res.model_reported), evaluator_mode="BLOCKED_SCHEMA_INVALID", llm_judge_executed=True, provider_blocked=True, normalized_unit_score=None, rationale=f"Malformed Judge v3 output: {exc}", violations=(f"IDE_CLI_SCHEMA_INVALID:{exc}",), conversation_id=agy_res.conversation_id, usage=dict(agy_res.usage), exact_provider_error=str(exc), quota_failover_attempts=tuple(attempted))
         return LicIdeCliJudgeResult(slot, primary_model, agy_res.model_reported, OutreachModelRegistry.normalize_provider_family(agy_res.model_reported), evaluator_mode="MODEL_BACKED", llm_judge_executed=True, provider_blocked=False, score=unit, normalized_unit_score=unit, passed=passed_flag, dimension_scores=dims, checks=checks, rationale=takeaway, violations=viols, conversation_id=agy_res.conversation_id, usage=dict(agy_res.usage), quota_failover_attempts=tuple(attempted))

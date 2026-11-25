@@ -28,6 +28,7 @@ from apps_rg.runtime.judges.executive_summary_x1d import (
     resolve_x1d_provider_credentials,
 )
 from apps_rg.runtime.judges.section_judge_profile import resolve_section_proof_judge_model
+from apps_rg.runtime.judges.v3_section_judge import get_apps_rg_v3_profile
 from apps_rg.runtime.section_judge_policy import REQUIRED_JUDGE_PROVIDER_KEYS
 from apps_rg.runtime.sections.competencies_certification_contract import (
     check_competencies_no_reserved_certification_category,
@@ -46,8 +47,8 @@ from apps_rg.runtime.assembly.full_resume_llm_coherence_rubric import (
 # generator). Sourced from the SSOT — NOT a separate hardcoded roster that can silently diverge.
 DEFAULT_JUDGE_ROSTER: tuple[str, ...] = REQUIRED_JUDGE_PROVIDER_KEYS
 DEFAULT_QUORUM = int(os.environ.get("APPS_RG_FULL_RESUME_COHERENCE_QUORUM", "2"))
-DEFAULT_PASS_THRESHOLD_0_TO_5 = 4.4
-DEFAULT_PASS_THRESHOLD = 0.88
+DEFAULT_PASS_THRESHOLD = float(get_apps_rg_v3_profile("full_resume_coherence").pass_threshold)
+DEFAULT_PASS_THRESHOLD_0_TO_5 = round(DEFAULT_PASS_THRESHOLD * 5.0, 2)
 
 
 def full_resume_coherence_review_enabled() -> bool:
@@ -402,9 +403,8 @@ def _build_prompt(
             )
             + "\n"
         )
-    coherence_compact_output = JUDGE_COMPACT_OUTPUT.replace('"threshold":4.0', '"threshold":4.4')
     return (
-        f"{FULL_RESUME_COHERENCE_RUBRIC}\n\n{coherence_compact_output}\n\n"
+        f"{FULL_RESUME_COHERENCE_RUBRIC}\n\n{JUDGE_COMPACT_OUTPUT}\n\n"
         f"ASSEMBLED_RESUME_TEXT:\n{full_resume_text}\n"
         f"{evidence_block}"
         f"{jd_block}"
@@ -436,9 +436,9 @@ def _mocked(provider_key: str, input_hash: str) -> JudgeOutput:
         input_hash=input_hash,
         output_hash="mocked-output",
         score=0.0,
-        score_scale="0_to_5",
+        score_scale="0_to_1",
         normalized_score=0.0,
-        threshold=DEFAULT_PASS_THRESHOLD_0_TO_5,
+        threshold=DEFAULT_PASS_THRESHOLD,
         normalized_threshold=DEFAULT_PASS_THRESHOLD,
         pass_=False,
         decisive_failure=True,
@@ -711,10 +711,13 @@ def aggregate_full_resume_coherence(
             continue
         warnings.append(f"judge_dissent:{o.judge_id}")
         dim_verdicts = o.dimension_verdicts if isinstance(o.dimension_verdicts, dict) else {}
-        factual_dim = dim_verdicts.get("factual_support") if isinstance(dim_verdicts, dict) else None
-        factual_failed = (
-            bool(o.unsupported_claims)
-            or (isinstance(factual_dim, dict) and factual_dim.get("pass") is False)
+        factual_dims = (
+            dim_verdicts.get("end_to_end_factual_consistency"),
+            dim_verdicts.get("zero_cross_section_metric_echo"),
+            dim_verdicts.get("factual_support"),
+        )
+        factual_failed = bool(o.unsupported_claims) or any(
+            isinstance(fd, dict) and fd.get("pass") is False for fd in factual_dims
         )
         for f in o.findings or []:
             if _finding_is_negative_assertion(str(f)):

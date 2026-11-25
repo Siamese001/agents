@@ -67,8 +67,25 @@ def build_executive_summary_x1d_rubric_text(*, include_score_schema: str = "") -
     return f"{base}\n\n{include_score_schema}".strip() if include_score_schema else base
 
 
+_NON_CRITICAL_V3_ALLOWED_TAGS: frozenset[str] = frozenset(
+    {
+        "OMITTED_CONSTRAINT",
+        "OMITTED_QUERY_CONSTRAINT",
+        "OPAQUE_SHORTHAND",
+        "OPAQUE_COLD_READER_CLARITY",
+        "AI_FILLER_VOICE",
+        "UNACTIONABLE_TAKEAWAY",
+        "STYLE_OR_TRANSITION_DRIFT",
+        "UNSUPPORTED_EXTRAPOLATION",
+        "PERSPECTIVE_OR_COUNTERWEIGHT_ERASURE",
+        "OBVIOUS_WINNER_OR_STRAWMAN_VIEW",
+        "CLONED_UNDIFFERENTIATED_VIEWS",
+    }
+)
+
+
 def section_dimension_veto_passes(dimension_verdicts: Mapping[str, Any] | None) -> tuple[bool, list[str]]:
-    """Fail closed whenever any dimension fails, has major/critical severity, or carries overlap/fabrication codes."""
+    """Fail closed on critical/major failures or explicit overlap/fabrication codes while preserving non-critical v3 weights."""
     if not isinstance(dimension_verdicts, Mapping) or not dimension_verdicts:
         return True, []
     reasons: list[str] = []
@@ -76,14 +93,17 @@ def section_dimension_veto_passes(dimension_verdicts: Mapping[str, Any] | None) 
         if not isinstance(entry, Mapping):
             continue
         passed = bool(entry.get("pass", True))
+        is_non_critical_v3 = entry.get("critical") is False
         sev = str(entry.get("severity") or "none").strip().lower()
         codes = [str(c) for c in (entry.get("codes") or ()) if str(c).strip()]
-        if not passed:
+        if not passed and not is_non_critical_v3:
             reasons.append(f"dimension_failed:{dim_key}")
         if sev in {"major", "critical"}:
             reasons.append(f"dimension_major_severity:{dim_key}")
         for code in codes:
             up = code.upper()
+            if is_non_critical_v3 and up in _NON_CRITICAL_V3_ALLOWED_TAGS:
+                continue
             if any(tok in up for tok in _HARD_VETO_SUBSTRINGS):
                 reasons.append(f"section_judge_veto_code:{dim_key}:{code}")
     return len(reasons) == 0, reasons

@@ -16,64 +16,49 @@ import random
 from dataclasses import asdict, dataclass
 from typing import Any, Callable, Mapping, Sequence
 
-ATOMIC_RUBRIC_CHECKS: tuple[dict[str, Any], ...] = (
+from apps_eval.graders.judge._core_governance_bridge import get_judge_v3_rigor_engine
+
+_rigor = get_judge_v3_rigor_engine()
+
+ATOMIC_RUBRIC_CHECKS: tuple[dict[str, Any], ...] = tuple(
     {
-        "id": "unsupported_claim_absent",
-        "pillar": "factual_faithfulness",
-        "critical_for_pass": True,
-        "label": "No unsupported claim or invented date/metric",
-    },
-    {
-        "id": "source_contradiction_absent",
-        "pillar": "factual_faithfulness",
-        "critical_for_pass": True,
-        "label": "Zero contradictions against retrieved source evidence",
-    },
-    {
-        "id": "core_question_fully_answered",
-        "pillar": "completeness_and_relevance",
-        "critical_for_pass": False,
-        "label": "Directly answers the core question asked",
-    },
-    {
-        "id": "scope_constraints_covered",
-        "pillar": "completeness_and_relevance",
-        "critical_for_pass": False,
-        "label": "Covers requested constraints, risks, or dependencies",
-    },
-    {
-        "id": "cold_reader_jargon_free",
-        "pillar": "cold_reader_clarity",
-        "critical_for_pass": False,
-        "label": "Clear to a cold reader without insider shorthand or AI filler",
-    },
-    {
-        "id": "concrete_owner_and_next_step",
-        "pillar": "actionability_and_proportion",
-        "critical_for_pass": False,
-        "label": "Actionable takeaway with clear ownership and channel proportion",
-    },
+        "id": str(chk["id"]),
+        "pillar": str(chk["pillar"]),
+        "critical": bool(chk["critical"]),
+        "critical_for_pass": bool(chk["critical"]),
+        "weight": float(chk["weight"]),
+        "failure_tag": str(chk["failure_tag"]),
+        "label": str(chk["label"]),
+        "question": str(chk["question"]),
+    }
+    for chk in _rigor.CANONICAL_EXTERNAL_V2_CHECKS
 )
 
 ATOMIC_CHECK_IDS: frozenset[str] = frozenset(c["id"] for c in ATOMIC_RUBRIC_CHECKS)
-CRITICAL_FAITHFULNESS_CHECKS: tuple[str, ...] = (
-    "unsupported_claim_absent",
-    "source_contradiction_absent",
-)
+CRITICAL_FAITHFULNESS_CHECKS: tuple[str, ...] = tuple(_rigor.EXTERNAL_V2_CRITICAL_CHECKS)
 
-FAILURE_TAXONOMY_TAGS: tuple[dict[str, str], ...] = (
-    {"id": "HALLUCINATED_FACT", "label": "Hallucinated fact / invented date or metric"},
-    {"id": "UNSUPPORTED_EXTRAPOLATION", "label": "Extrapolates tentative claim as confirmed"},
-    {"id": "OMITTED_CONSTRAINT", "label": "Misses core question part or key constraint"},
-    {"id": "OPAQUE_SHORTHAND", "label": "Opaque insider shorthand / unexplained acronym"},
-    {"id": "AI_FILLER_VOICE", "label": "Robotic boilerplate or artificial AI voice"},
-    {"id": "UNACTIONABLE_TAKEAWAY", "label": "Vague unowned next step or bloated density"},
-)
+_FAILURE_TAG_LABELS: dict[str, str] = {
+    "HALLUCINATED_FACT": "Hallucinated fact / invented date or metric",
+    "UNSUPPORTED_EXTRAPOLATION": "Extrapolates tentative claim as confirmed",
+    "OMITTED_CONSTRAINT": "Misses core question part or key constraint",
+    "OPAQUE_SHORTHAND": "Opaque insider shorthand / unexplained acronym",
+    "AI_FILLER_VOICE": "Robotic boilerplate or artificial AI voice",
+    "UNACTIONABLE_TAKEAWAY": "Vague unowned next step or bloated density",
+    "PROHIBITED_CAUSAL_OR_CLINICAL_LEAP": "Prohibited causal or clinical leap beyond source evidence",
+    "PERSPECTIVE_OR_COUNTERWEIGHT_ERASURE": "Erases material competing view or counterweight",
+    "OBVIOUS_WINNER_OR_STRAWMAN_VIEW": "Frames competing view as obvious strawman",
+    "CLONED_UNDIFFERENTIATED_VIEWS": "Cloned or undifferentiated competing perspectives",
+    "OPAQUE_COLD_READER_CLARITY": "Opaque cold-reader structure or unclear synthesis",
+    "STYLE_OR_TRANSITION_DRIFT": "Abrupt transition or register/tone drift",
+    "OMITTED_QUERY_CONSTRAINT": "Omits explicit query or mandate constraint",
+}
 
-VALID_FAILURE_TAG_IDS: frozenset[str] = frozenset(t["id"] for t in FAILURE_TAXONOMY_TAGS)
-VALID_QUARANTINE_REASONS: frozenset[str] = frozenset(
-    {"ABSTAIN_INSUFFICIENT_EVIDENCE", "DEFECTIVE_PROMPT"}
+VALID_FAILURE_TAG_IDS: frozenset[str] = frozenset(_rigor.CANONICAL_FAILURE_TAG_IDS)
+FAILURE_TAXONOMY_TAGS: tuple[dict[str, str], ...] = tuple(
+    {"id": tag_id, "label": _FAILURE_TAG_LABELS.get(tag_id, tag_id.replace("_", " ").title())}
+    for tag_id in sorted(VALID_FAILURE_TAG_IDS)
 )
+VALID_QUARANTINE_REASONS: frozenset[str] = frozenset(_rigor.CANONICAL_QUARANTINE_REASONS)
 
 
 def validate_atomic_checks(raw: Mapping[str, Any] | None) -> dict[str, bool]:

@@ -16,6 +16,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from apps_eval.graders.judge.studio_session_binder import handle_judge_calibrate_ui
+from apps_eval.graders.judge.frontier_rubric_contract import VALID_QUARANTINE_REASONS
 from apps_eval.graders.judge.external_rubric_store import (
     EXTERNAL_RUBRIC_DIMENSIONS,
     VALID_JUDGE_SURFACES,
@@ -256,9 +257,20 @@ def _cmd_judge_calibrate_grade(args: argparse.Namespace) -> dict[str, Any]:
             }
         )
         return {"status": "PASS", "command": "judge-calibrate-grade", "quarantined": q_rec.to_dict()}
-    if not args.grades or not args.verdict:
-        raise ValueError("--grades and --verdict are required unless --quarantine is specified.")
+    if not args.verdict or (not args.grades and not getattr(args, "atomic_checks", None)):
+        raise ValueError("--verdict and (--grades or --atomic-checks) are required unless --quarantine is specified.")
+    parsed_grades = parse_compact_human_grades(args.grades) if args.grades else {}
     atomic_raw = json.loads(args.atomic_checks) if getattr(args, "atomic_checks", None) else {}
+    active_rubric_id = str(store.rubric["rubric_id"])
+    if active_rubric_id == "external_judge_rubric_v2" and not atomic_raw and parsed_grades:
+        atomic_raw = {
+            "unsupported_claim_absent": parsed_grades["factual_faithfulness"] >= 4,
+            "source_contradiction_absent": parsed_grades["factual_faithfulness"] >= 4,
+            "core_question_fully_answered": parsed_grades["completeness_and_relevance"] >= 4,
+            "scope_constraints_covered": parsed_grades["completeness_and_relevance"] >= 3,
+            "cold_reader_jargon_free": parsed_grades["cold_reader_clarity"] >= 3,
+            "concrete_owner_and_next_step": parsed_grades["actionability_and_proportion"] >= 3,
+        }
     saved = store.append_label(
         {
             "case_id": args.case_id,
@@ -266,9 +278,9 @@ def _cmd_judge_calibrate_grade(args: argparse.Namespace) -> dict[str, Any]:
             "topic_family": args.topic_family,
             "partition": args.partition,
             "artifact_sha256": art_sha,
-            "external_rubric_id": "external_judge_rubric_v1",
+            "external_rubric_id": active_rubric_id,
             "external_rubric_sha256": store.rubric_sha256,
-            "dimension_grades": parse_compact_human_grades(args.grades),
+            "dimension_grades": parsed_grades,
             "human_verdict": str(args.verdict).upper(),
             "atomic_checks": atomic_raw,
             "failure_tags": getattr(args, "failure_tags", ""),
@@ -337,7 +349,7 @@ def main(argv: list[str] | None = None) -> int:
     p_grade.add_argument("--verdict", default=None, choices=["PASS", "FAIL", "pass", "fail"])
     p_grade.add_argument("--atomic-checks", default=None)
     p_grade.add_argument("--failure-tags", default="")
-    p_grade.add_argument("--quarantine", default=None, choices=["ABSTAIN_INSUFFICIENT_EVIDENCE", "DEFECTIVE_PROMPT"])
+    p_grade.add_argument("--quarantine", default=None, choices=sorted(VALID_QUARANTINE_REASONS))
     p_grade.add_argument("--annotator", required=True)
     p_grade.add_argument("--notes", default="")
     p_grade.add_argument("--store-path", type=Path, default=None)
@@ -347,8 +359,6 @@ def main(argv: list[str] | None = None) -> int:
     p_ui.add_argument("--pool", type=Path, required=True)
     p_ui.add_argument("--store-path", type=Path, default=None)
     p_ui.add_argument("--rubric-path", type=Path, default=None)
-    p_ui.add_argument("--host", default="127.0.0.1")
-    p_ui.add_argument("--port", type=int, default=8765)
     p_ui.add_argument("--annotator", default="amit.ayer")
     p_ui.add_argument("--seed", type=int, default=None)
     p_ui.add_argument("--check-only", action="store_true", default=False)

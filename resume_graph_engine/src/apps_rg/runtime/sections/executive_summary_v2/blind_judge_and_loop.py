@@ -1,4 +1,4 @@
-"""Blind dual 4.7/5.0 judge evaluation & single bounded 3-attempt fresh-turn loop for executive_summary_v2."""
+"""Blind dual Judge v3 evaluation & single bounded 3-attempt fresh-turn loop for executive_summary_v2."""
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, is_dataclass
@@ -9,6 +9,7 @@ from typing import Any, Callable, Mapping, Sequence
 from apps_rg.runtime.judges.executive_summary_judge_packet import build_executive_summary_judge_packet, write_executive_summary_judge_packet
 from apps_rg.runtime.judges.executive_summary_x1d import run_llm_judges
 from apps_rg.runtime.judges.executive_summary_x1d_dimension_verdicts import executive_summary_human_dimension_floor_passes
+from apps_rg.runtime.judges.v3_section_judge import get_apps_rg_v3_profile
 from apps_rg.runtime.section_judge_policy import get_section_judge_policy
 
 from .evidence_firewall import APPS_RG_SRC_ROOT, LANE_KEY
@@ -16,8 +17,8 @@ from .prompt_and_generate import GenerationTurnOutput, generate_executive_summar
 from .x2_invariants import evaluate_executive_summary_v2_x2
 
 MAX_V2_ATTEMPTS = 3
+EXEC_SUMMARY_PASS_FLOOR_0_TO_1 = float(get_apps_rg_v3_profile("executive_summary").pass_threshold)
 EXEC_SUMMARY_PASS_FLOOR = 4.7
-EXEC_SUMMARY_PASS_FLOOR_0_TO_1 = round(EXEC_SUMMARY_PASS_FLOOR / 5.0, 4)
 
 
 @dataclass(frozen=True)
@@ -51,17 +52,21 @@ def judge_row_passes_4_7_human_bar(row: Mapping[str, Any]) -> bool:
     if mode != "MODEL_BACKED" or bool(row.get("provider_blocked")) or bool(row.get("decisive_failure")) or not bool(row.get("pass")):
         return False
     try:
-        score = float(row.get("score") or 0.0)
+        score = float(row.get("score") if row.get("score") is not None else row.get("normalized_unit_score") or 0.0)
     except (TypeError, ValueError):
         return False
-    scale = str(row.get("score_scale") or "0_to_5")
-    if (scale == "0_to_5" and score < EXEC_SUMMARY_PASS_FLOOR) or (scale == "0_to_1" and score < EXEC_SUMMARY_PASS_FLOOR_0_TO_1):
+    scale = str(row.get("score_scale") or ("0_to_1" if score <= 1.0 else "0_to_5"))
+    unit_floor = float(row.get("threshold") or EXEC_SUMMARY_PASS_FLOOR_0_TO_1) if scale == "0_to_1" else EXEC_SUMMARY_PASS_FLOOR
+    if (scale == "0_to_5" and score < EXEC_SUMMARY_PASS_FLOOR) or (scale == "0_to_1" and score < unit_floor - 1e-9):
         return False
     if isinstance(dim_verdicts := row.get("dimension_verdicts"), dict):
         dims_ok, _ = executive_summary_human_dimension_floor_passes(dim_verdicts)
         if not dims_ok:
             return False
     return True
+
+
+judge_row_passes_v3_bar = judge_row_passes_4_7_human_bar
 
 
 def format_x2_failure_feedback(failed_gates: Sequence[Mapping[str, Any]]) -> str:
@@ -72,12 +77,19 @@ def format_x2_failure_feedback(failed_gates: Sequence[Mapping[str, Any]]) -> str
 
 
 def format_blind_judge_feedback(x1d_rows: Sequence[Mapping[str, Any]]) -> str:
-    lines = ["Blind 4.7/5.0 human hiring-committee judge feedback (resolve every critique cleanly from scratch):"]
+    lines = ["Blind Judge v3 hiring-committee feedback (resolve every critique cleanly from scratch):"]
     for row in x1d_rows:
         if judge_row_passes_4_7_human_bar(row):
             continue
         pname = str(row.get("provider_name") or row.get("provider_key") or "judge")
-        lines.append(f"- [{pname}] score={row.get('score')}/5.0 (decisive_failure={bool(row.get('decisive_failure'))}): {str(row.get('rationale') or '').strip()[:360]}")
+        scale = str(row.get("score_scale") or "0_to_1")
+        raw_sc = float(row.get("score") or 0.0)
+        if scale == "0_to_1":
+            th = float(row.get("threshold") or EXEC_SUMMARY_PASS_FLOOR_0_TO_1)
+            score_label = f"unit_score={raw_sc:.2f} (threshold={th:.2f}, decisive_failure={bool(row.get('decisive_failure'))})"
+        else:
+            score_label = f"score={raw_sc}/5.0 (decisive_failure={bool(row.get('decisive_failure'))})"
+        lines.append(f"- [{pname}] {score_label}: {str(row.get('rationale') or '').strip()[:360]}")
         lines.extend(f"  * Finding: {f}" for f in (row.get("findings") or [])[:5])
         lines.extend(f"  * Suggestion: {s}" for s in (row.get("remediation_suggestions") or [])[:4])
         if isinstance(dims := row.get("dimension_verdicts"), Mapping):

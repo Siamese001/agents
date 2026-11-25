@@ -220,8 +220,9 @@ def write_judge_packet(path: Path, packet: dict[str, Any]) -> str:
 def render_judge_prompt_from_packet(packet: dict[str, Any]) -> str:
     """Render judge user message from JudgePacket — never the generator compiled_prompt.
 
-    Frontier-lab grader separation: omit ``deterministic_gate_summary`` from the rendered prompt
-    so section LLM judges evaluate candidate text blind to X2 pass flags.
+    Frontier-lab grader separation: omit ``deterministic_gate_summary``, ``overlap_engine_report``,
+    and ``graph_binding_materiality_summary`` from the rendered prompt so section LLM judges
+    evaluate candidate text blind to deterministic pass/fail flags.
     """
     candidate = packet.get("candidate_output") or {}
     return "\n\n".join(
@@ -240,12 +241,6 @@ def render_judge_prompt_from_packet(packet: dict[str, Any]) -> str:
             + json.dumps(packet.get("targeting_context") or {}, ensure_ascii=False, indent=2),
             "PROOF_BOUNDARY:\n"
             + json.dumps(packet.get("proof_boundary") or {}, ensure_ascii=False, indent=2),
-            "GRAPH_BINDING_MATERIALITY_SUMMARY:\n"
-            + json.dumps(
-                packet.get("graph_binding_materiality_summary") or {},
-                ensure_ascii=False,
-                indent=2,
-            ),
         ]
     )
 

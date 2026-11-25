@@ -1,10 +1,4 @@
-"""Keyless IDE CLI Transport for Clean-Slate Judge v3 (`<= 260L`).
-
-Routes proof-judge evaluations through `agy -p` (`transport: ide_cli`) at `$0.00`
-commercial API cost using strict v3 atomic binary JSON schemas (`cold_read_takeaway`
-first + `YES`/`NO` checks + verbatim `evidence_span`), cross-family Slot 1 / Slot 2
-diversity, and governed quota-backup failover.
-"""
+"""Keyless IDE CLI Transport for Clean-Slate Judge v3 (`<= 260L`)."""
 from __future__ import annotations
 
 from functools import lru_cache
@@ -15,19 +9,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Mapping
 
 from apps_rg.config_root import get_provider_profiles_path
-from apps_rg.runtime.judges.v3_section_judge import (
-    V3_JUDGE_SYSTEM_PROMPT,
-    build_section_v3_response_schema,
-)
+from apps_rg.runtime.judges.v3_section_judge import V3_JUDGE_SYSTEM_PROMPT, build_section_v3_response_schema
 from apps_rg.runtime.providers.agy_cli_transport import (
-    AGY_CLI_ENV_VAR,
-    AgyTransportError,
-    ide_cli_ready,
-    is_agy_model_quota_cooled_down,
-    is_agy_quota_error,
-    list_agy_models,
-    mark_agy_model_quota_exhausted,
-    run_agy,
+    AGY_CLI_ENV_VAR, AgyTransportError, ide_cli_ready, is_agy_model_quota_cooled_down,
+    is_agy_quota_error, list_agy_models, mark_agy_model_quota_exhausted, run_agy,
 )
 import yaml
 
@@ -68,13 +53,7 @@ def _judging_cfg() -> dict[str, Any]:
 
 def judge_transport(environ: Mapping[str, str] | None = None) -> str:
     from apps_rg.runtime.env_bootstrap import get_env_str
-
-    if environ is None:
-        override = str(get_env_str(JUDGE_TRANSPORT_ENV) or "").strip().lower()
-    elif JUDGE_TRANSPORT_ENV in environ:
-        override = str(environ.get(JUDGE_TRANSPORT_ENV) or "").strip().lower()
-    else:
-        override = str(get_env_str(JUDGE_TRANSPORT_ENV) or "").strip().lower()
+    override = str((environ.get(JUDGE_TRANSPORT_ENV) if (environ is not None and JUDGE_TRANSPORT_ENV in environ) else get_env_str(JUDGE_TRANSPORT_ENV)) or "").strip().lower()
     value = override or str(_judging_cfg().get("transport") or "external_api").strip().lower()
     if value not in _TRANSPORTS:
         raise IdeCliJudgeConfigError(f"unknown judge transport {value!r}; expected {sorted(_TRANSPORTS)}")
@@ -86,9 +65,7 @@ def uses_ide_cli_judges(environ: Mapping[str, str] | None = None) -> bool:
 
 
 def ide_cli_unavailable_reason(environ: Mapping[str, str] | None = None) -> str:
-    """Empty string when the headless CLI is configured and genuine; otherwise the reason."""
     from apps_rg.runtime.env_bootstrap import snapshot_process_env
-
     env = snapshot_process_env() if environ is None else environ
     var = str(_judging_cfg().get("cli_env_var") or AGY_CLI_ENV_VAR)
     ok, why = ide_cli_ready(str(env.get(var) or "") or None)
@@ -130,21 +107,40 @@ def maker_of(model_id: str | None) -> str:
     raise IdeCliJudgeConfigError(f"cannot determine the maker of writer model {model_id!r}")
 
 
+def _ide_family_token(slug: str | None) -> str:
+    low = str(slug or "").strip().lower()
+    for fam in ("neon", "carbon", "argon"):
+        if fam in low.replace("_", "-").split("-") or low == fam:
+            return fam
+    return ""
+
+
+def _collides_with_writer(judge_slug: str | None, writer_slug: str | None) -> bool:
+    if not judge_slug or not writer_slug:
+        return False
+    if _slug_base(judge_slug) == _slug_base(writer_slug):
+        return True
+    jf, wf = _ide_family_token(judge_slug), _ide_family_token(writer_slug)
+    return bool(jf and wf and jf == wf)
+
+
 def second_judge_model(section_id: str) -> tuple[str, str]:
     writer = lane_writer_model(section_id)
     maker = maker_of(writer) if writer else DEFAULT_WRITER_MAKER
+    actual_writer = actual_lane_writer_model(section_id)
     mapping = _judging_cfg().get("second_judge_by_writer_maker") or {}
     model = mapping.get(maker) if isinstance(mapping, dict) else None
+    if model and actual_writer and _collides_with_writer(str(model), actual_writer) and isinstance(mapping, dict):
+        alt = mapping.get(maker_of(actual_writer))
+        if alt and not _collides_with_writer(str(alt), actual_writer):
+            model = alt
     if not model:
-        raise IdeCliJudgeConfigError(
-            f"ide_cli_judging.second_judge_by_writer_maker missing writer maker {maker!r} ({section_id})"
-        )
+        raise IdeCliJudgeConfigError(f"ide_cli_judging.second_judge_by_writer_maker missing writer maker {maker!r} ({section_id})")
     return str(model), maker
 
 
 def _timeout_s() -> int:
     from apps_rg.runtime.env_bootstrap import get_env_str
-
     raw = str(get_env_str(JUDGE_TIMEOUT_ENV) or "").strip()
     return int(raw) if raw.isdigit() and int(raw) > 0 else DEFAULT_JUDGE_TIMEOUT_S
 
@@ -159,10 +155,9 @@ def _slug_base(slug: str) -> str:
 
 def _step_judge_pin_for_effort(pin_model: str, norm_effort: str | None) -> tuple[str, str | None]:
     from apps_rg.runtime.model_capabilities import try_model_capabilities
-
     caps = try_model_capabilities(pin_model)
-    allowed_efforts = tuple((caps.reasoning_efforts or ()) if caps is not None else ())
-    if not norm_effort or (caps is not None and norm_effort not in allowed_efforts):
+    allowed = tuple((caps.reasoning_efforts or ()) if caps is not None else ())
+    if not norm_effort or (caps is not None and norm_effort not in allowed):
         return pin_model, None
     cli_slug = f"{pin_model[:-5]}-medium" if (norm_effort == "medium" and pin_model.endswith("-high")) else pin_model
     return cli_slug, norm_effort
@@ -174,7 +169,8 @@ def _governed_judge_quota_backups(section_id: str, provider_key: str, primary_pi
 
     cfg = _judging_cfg()
     writer_pin = lane_writer_model(section_id)
-    writer_slug = resolve_ide_cli_generation_slug(writer_pin) if writer_pin else ""
+    actual_writer = actual_lane_writer_model(section_id) or ""
+    writer_slug = actual_writer or (resolve_ide_cli_generation_slug(writer_pin) if writer_pin else "")
     forbidden_bases = {_slug_base(primary_pin)}
     if writer_slug:
         forbidden_bases.add(_slug_base(writer_slug))
@@ -192,33 +188,28 @@ def _governed_judge_quota_backups(section_id: str, provider_key: str, primary_pi
         slot1_pin = str(((jm.get(tier_key) or {}) if isinstance(jm, Mapping) else {}).get("gemini_pro") or "")
         if slot1_pin:
             forbidden_bases.add(_slug_base(slot1_pin))
-        maker = maker_of(writer_pin) if writer_pin else DEFAULT_WRITER_MAKER
-        raw_backups = list(((cfg.get("quota_backup_second_judge_by_writer_maker") or {}).get(maker)) or [])
+        eff_maker = maker_of(actual_writer) if actual_writer else (maker_of(writer_pin) if writer_pin else DEFAULT_WRITER_MAKER)
+        decl_maker = maker_of(writer_pin) if writer_pin else DEFAULT_WRITER_MAKER
+        bmap = cfg.get("quota_backup_second_judge_by_writer_maker") or {}
+        raw_backups = list((bmap.get(decl_maker) or [])) + [m for m in (bmap.get(eff_maker) or []) if m not in (bmap.get(decl_maker) or [])]
     valid: list[str] = []
     for item in raw_backups:
         b_pin = str(item or "").strip()
         caps = try_model_capabilities(b_pin) if b_pin else None
-        if b_pin and _slug_base(b_pin) not in forbidden_bases and caps and caps.proof_eligible and caps.supports_endpoint("ide_cli"):
-            if b_pin not in valid:
-                valid.append(b_pin)
+        if (
+            b_pin
+            and _slug_base(b_pin) not in forbidden_bases
+            and not _collides_with_writer(b_pin, writer_slug)
+            and caps
+            and caps.proof_eligible
+            and caps.supports_endpoint("ide_cli")
+            and b_pin not in valid
+        ):
+            valid.append(b_pin)
     return valid
 
 
-def call_ide_cli_judge(
-    *,
-    prompt: str,
-    model: str,
-    input_hash: str,
-    provider_key: str,
-    artifact_base: Path | None = None,
-    model_requested: str | None = None,
-    judge_receipt: dict[str, Any] | None = None,
-    reasoning_effort: str | None = None,
-    attempt: int = 1,
-    section_id: str | None = None,
-    response_schema: dict[str, Any] | None = None,
-    agy_bin: str | None = None,
-) -> JudgeOutput:
+def call_ide_cli_judge(*, prompt: str, model: str, input_hash: str, provider_key: str, artifact_base: Path | None = None, model_requested: str | None = None, judge_receipt: dict[str, Any] | None = None, reasoning_effort: str | None = None, attempt: int = 1, section_id: str | None = None, response_schema: dict[str, Any] | None = None, agy_bin: str | None = None) -> JudgeOutput:
     """Execute one Judge v3 atomic binary evaluation via `agy -p` (fail-closed BLOCKED on error)."""
     from apps_rg.runtime.judges import executive_summary_x1d as x
 
@@ -234,17 +225,11 @@ def call_ide_cli_judge(
         b_slug, b_eff = _step_judge_pin_for_effort(b_pin, norm_effort)
         if all(c[0] != b_slug for c in candidates):
             candidates.append((b_slug, b_eff, b_pin))
-    ordered = [c for c in candidates if not is_agy_model_quota_cooled_down(c[0])] + [
-        c for c in candidates if is_agy_model_quota_cooled_down(c[0])
-    ]
+    ordered = [c for c in candidates if not is_agy_model_quota_cooled_down(c[0])] + [c for c in candidates if is_agy_model_quota_cooled_down(c[0])]
     cli_model, active_effort, _ = ordered[0]
     req_path = x._artifact_path(provider_key, "provider_request", artifact_base=artifact_base)
-    x._write_artifact(
-        req_path,
-        {"transport": "ide_cli", "provider_key": provider_key, "section_id": sid, "resolved_model": cli_model, "model_requested": model_requested or model, "reasoning_effort": active_effort, "attempt": attempt, "input_hash": input_hash, "prompt_sha256": hashlib.sha256(full_prompt.encode("utf-8")).hexdigest(), "blind_to_deterministic_gates": True, "api_key_used": False},
-    )
-    res = None
-    last_exc: AgyTransportError | None = None
+    x._write_artifact(req_path, {"transport": "ide_cli", "provider_key": provider_key, "section_id": sid, "resolved_model": cli_model, "model_requested": model_requested or model, "reasoning_effort": active_effort, "attempt": attempt, "input_hash": input_hash, "prompt_sha256": hashlib.sha256(full_prompt.encode("utf-8")).hexdigest(), "blind_to_deterministic_gates": True, "api_key_used": False})
+    res, last_exc = None, None
     for idx_c, (cand_slug, cand_eff, _) in enumerate(ordered):
         try:
             res = run_agy(full_prompt, model=cand_slug, json_schema=schema, effort=cand_eff, timeout_s=_timeout_s(), agy_bin=agy_bin)
@@ -276,7 +261,6 @@ def call_ide_cli_judge(
 def pinned_ide_models_for_preflight(environ: Mapping[str, str] | None = None) -> dict[str, list[str]]:
     """Return pinned IDE models grouped by role (`judges`, `generation`) active under current transport settings."""
     from apps_rg.runtime.env_bootstrap import snapshot_process_env
-
     env = snapshot_process_env() if environ is None else environ
     data = _profiles()
     out: dict[str, list[str]] = {"judges": [], "generation": []}
@@ -292,14 +276,9 @@ def pinned_ide_models_for_preflight(environ: Mapping[str, str] | None = None) ->
     return out
 
 
-def verify_ide_cli_preflight(
-    environ: Mapping[str, str] | None = None,
-    *,
-    agy_bin: str | None = None,
-) -> dict[str, Any]:
+def verify_ide_cli_preflight(environ: Mapping[str, str] | None = None, *, agy_bin: str | None = None) -> dict[str, Any]:
     """Verify CLI sign-in and confirm every active IDE judge/generation pin is present in `agy models`."""
     from apps_rg.runtime.env_bootstrap import snapshot_process_env
-
     env = snapshot_process_env() if environ is None else environ
     pins_by_role = pinned_ide_models_for_preflight(env)
     required = [p for role_pins in pins_by_role.values() for p in role_pins]

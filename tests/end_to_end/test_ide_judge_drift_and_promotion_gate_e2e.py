@@ -129,7 +129,7 @@ def test_e2e_hard_fail_false_pass_and_temporal_shift_block_and_escalate() -> Non
     assert esc["remediation_tier"] == "TIER_B_OR_C_ATOMIC_HITL"
     assert esc["auto_apply_permitted"] is False
     assert esc["never_auto_lower_judge_floors"] is True
-    assert esc["protected_floors"] == {"resume_engine_x1d": 4.7, "outreach_engine_x1d": 0.85}
+    assert esc["protected_floors"] == {"resume_engine_x1d": 0.80, "outreach_engine_x1d": 0.85}
     assert "HARD_FAIL_FALSE_PASS" in esc["root_cause_codes"]
     assert "MODEL_SLUG_SHIFT" in esc["root_cause_codes"]
 

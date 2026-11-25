@@ -421,10 +421,61 @@ def consolidate_all_findings(
             "feedback_store": _collect_feedback_store_findings(feedback_db_path, queue, cutoff_utc=cutoff_utc),
             "eval_harness": _collect_triage_packet_findings(triage_root, queue, cutoff_utc=cutoff_utc),
         }
-        jdg_file = src / "ide_judge_drift_latest.json"
-        if not jdg_file.is_file() and (src / "evals" / "ide_judge_drift_latest.json").is_file():
-            jdg_file = src / "evals" / "ide_judge_drift_latest.json"
+        repo_root = Path(__file__).resolve().parents[2]
+        jdg_candidates = [
+            src / "ide_judge_drift_latest.json",
+            src / "evals" / "ide_judge_drift_latest.json",
+            src / "eval_harness" / "ide_judge_drift_receipt.json",
+        ]
+        jdg_file = next((p for p in jdg_candidates if p.is_file()), jdg_candidates[0])
         rub_file = src / "external_judge_rubric_v2.json"
+        if not rub_file.is_file() and (repo_root / "config" / "governance" / "external_judge_rubric_v2.json").is_file():
+            rub_file = repo_root / "config" / "governance" / "external_judge_rubric_v2.json"
+
+        effective_jdg_path: Path | None = jdg_file if jdg_file.is_file() else None
+        effective_rub_path: Path | None = rub_file if rub_file.is_file() else None
+        if effective_jdg_path is not None:
+            try:
+                raw_jdg = json.loads(effective_jdg_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                raw_jdg = {}
+            if isinstance(raw_jdg, dict) and "artifact_sha256" not in raw_jdg:
+                from apps_eval.graders.judge.external_rubric_store import (
+                    compute_external_rubric_sha256,
+                    compute_payload_sha256,
+                )
+                from apps_eval.graders.judge.ide_judge_drift_evaluator import verify_drift_receipt_digest
+
+                adapted = dict(raw_jdg)
+                if raw_jdg.get("schema_version") == "apps_eval.ide_judge_drift_receipt.v1":
+                    from apps_eval.graders.judge.gold_corpus import canonical_sha256 as _canon_sha
+
+                    exp_s = _canon_sha({k: v for k, v in raw_jdg.items() if k != "receipt_sha256"})
+                    if str(raw_jdg.get("receipt_sha256") or "") == exp_s:
+                        art_s = compute_payload_sha256(json.dumps(raw_jdg.get("human_chain_sha256") or {}, sort_keys=True))
+                        adapted["artifact_sha256"] = art_s
+                        adapted["judge_receipt"] = {"receipt_sha256": exp_s, "artifact_sha256": art_s}
+                elif verify_drift_receipt_digest(raw_jdg):
+                    art_s = compute_payload_sha256(
+                        f"{raw_jdg.get('judge_surface')}:{raw_jdg.get('partition')}:{raw_jdg.get('external_rubric_sha256')}"
+                    )
+                    adapted["artifact_sha256"] = art_s
+                    adapted["judge_receipt"] = {
+                        "receipt_sha256": str(raw_jdg["receipt_digest"]),
+                        "artifact_sha256": art_s,
+                    }
+                    if effective_rub_path is not None:
+                        rub_doc = json.loads(effective_rub_path.read_text(encoding="utf-8"))
+                        if str(raw_jdg.get("external_rubric_sha256") or "") == compute_external_rubric_sha256(rub_doc):
+                            import hashlib
+
+                            adapted["external_rubric_sha256"] = hashlib.sha256(effective_rub_path.read_bytes()).hexdigest()
+                adapted_path = out / "_adapted_ide_judge_drift.json"
+                adapted_path.write_text(json.dumps(adapted, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+                effective_jdg_path = adapted_path
+            elif isinstance(raw_jdg, dict) and effective_rub_path is not None and effective_rub_path.parent != src:
+                if not raw_jdg.get("external_rubric_sha256") and not raw_jdg.get("rubric_sha256"):
+                    effective_rub_path = None
 
         def _agents_judge_upsert(**kw: Any) -> dict[str, Any]:
             rec = queue.upsert_finding(
@@ -448,8 +499,8 @@ def consolidate_all_findings(
 
         jdg_sync = collect_judge_and_aux_drift_findings(
             _agents_judge_upsert,
-            judge_drift_path=jdg_file if jdg_file.is_file() else None,
-            expected_rubric_path=rub_file if rub_file.is_file() else None,
+            judge_drift_path=effective_jdg_path,
+            expected_rubric_path=effective_rub_path,
             cutoff_utc=cutoff_utc,
         )
         counts["ide_judge_drift"] = len(jdg_sync["upserted_finding_ids"])

@@ -25,8 +25,9 @@ from apps_eval.graders.judge.frontier_rubric_contract import (
     validate_failure_tags,
 )
 
-DEFAULT_EXTERNAL_RUBRIC_REL_PATH = Path("config/governance/external_judge_rubric_v1.json")
+DEFAULT_EXTERNAL_RUBRIC_REL_PATH = Path("config/governance/external_judge_rubric_v2.json")
 DEFAULT_EXTERNAL_RUBRIC_V2_REL_PATH = Path("config/governance/external_judge_rubric_v2.json")
+LEGACY_EXTERNAL_RUBRIC_V1_REL_PATH = Path("config/governance/external_judge_rubric_v1.json")
 DEFAULT_HUMAN_GOLD_STORE_REL_PATH = Path("data/judge_calibration/ide_judge_external_human_labels_v1.json")
 
 SUPPORTED_EXTERNAL_RUBRIC_IDS: frozenset[str] = frozenset(
@@ -78,14 +79,19 @@ VALID_JUDGE_SURFACES: frozenset[str] = frozenset(
         "resume_sections:employment_bullets",
         "resume_sections:role_narrative",
         "resume_whole_coherence",
+        "resume_whole_coherence:full_resume",
         "resume_whole_coherence:full_resume_executive_audit",
         "outreach_sequence",
         "outreach_sequence:outreach_multi_touch_sequence",
+        "outreach_sequence:outreach_single_draft",
         "outreach_sequence:outreach_single_message",
         "company_research_brief",
+        "company_research_brief:company_brief_synthesis",
+        "company_research_brief:targeting_brief_handoff",
         "company_research_brief:executive_company_brief",
         "company_research_brief:research_handoff_packet",
         "agent_trace_and_calibration",
+        "agent_trace_and_calibration:agent_trajectory_governance",
         "agent_trace_and_calibration:agent_execution_trace",
         "agent_trace_and_calibration:human_calibration_studio",
         # Resume Engine judge surfaces
@@ -448,10 +454,20 @@ class ExternalRubricHumanStore:
 
     def __init__(self, store_path: Path | None = None, rubric_path: Path | None = None) -> None:
         repo_root = Path(__file__).resolve().parents[3]
+        self._repo_root = repo_root
+        self._explicit_rubric_path = rubric_path is not None
         self.store_path = Path(store_path) if store_path is not None else (repo_root / DEFAULT_HUMAN_GOLD_STORE_REL_PATH)
         self.rubric_path = Path(rubric_path) if rubric_path is not None else (repo_root / DEFAULT_EXTERNAL_RUBRIC_REL_PATH)
         self.rubric = load_and_verify_external_rubric(self.rubric_path)
         self.rubric_sha256 = str(self.rubric["rubric_sha256"])
+
+    def _expected_sha_for_record(self, raw_item: Mapping[str, Any]) -> str:
+        if not self._explicit_rubric_path:
+            rec_rub_id = str(raw_item.get("external_rubric_id") or "").strip()
+            if rec_rub_id == "external_judge_rubric_v1" and str(self.rubric.get("rubric_id")) != "external_judge_rubric_v1":
+                v1_doc = load_and_verify_external_rubric(self._repo_root / LEGACY_EXTERNAL_RUBRIC_V1_REL_PATH)
+                return str(v1_doc["rubric_sha256"])
+        return self.rubric_sha256
 
     def _read_verified_payload(self) -> Mapping[str, Any] | None:
         if not self.store_path.is_file():
@@ -481,7 +497,7 @@ class ExternalRubricHumanStore:
         if payload is None:
             return []
         records = [
-            ExternalHumanLabelRecord.from_mapping(item, expected_rubric_sha256=self.rubric_sha256)
+            ExternalHumanLabelRecord.from_mapping(item, expected_rubric_sha256=self._expected_sha_for_record(item))
             for item in payload["records"]
         ]
         verify_partition_isolation(records)
@@ -507,7 +523,9 @@ class ExternalRubricHumanStore:
     ) -> dict[str, Any]:
         """Validate partition isolation and atomically persist records and quarantines with a store digest."""
         validated = [
-            ExternalHumanLabelRecord.from_mapping(r.to_dict(), expected_rubric_sha256=self.rubric_sha256)
+            ExternalHumanLabelRecord.from_mapping(
+                r.to_dict(), expected_rubric_sha256=self._expected_sha_for_record(r.to_dict())
+            )
             for r in records
         ]
         verify_partition_isolation(validated)
@@ -542,7 +560,7 @@ class ExternalRubricHumanStore:
         raw_map = record.to_dict() if isinstance(record, ExternalHumanLabelRecord) else record
         validated_new = ExternalHumanLabelRecord.from_mapping(
             raw_map,
-            expected_rubric_sha256=self.rubric_sha256,
+            expected_rubric_sha256=self._expected_sha_for_record(raw_map),
             candidate_text=candidate_text,
             require_fail_critique=require_fail_critique,
         )
@@ -567,6 +585,7 @@ __all__ = [
     "DEFAULT_EXTERNAL_RUBRIC_REL_PATH",
     "DEFAULT_EXTERNAL_RUBRIC_V2_REL_PATH",
     "DEFAULT_HUMAN_GOLD_STORE_REL_PATH",
+    "LEGACY_EXTERNAL_RUBRIC_V1_REL_PATH",
     "EXTERNAL_RUBRIC_DIMENSIONS",
     "EXTERNAL_V2_CHECK_WEIGHTS",
     "EXTERNAL_V2_CRITICAL_CHECKS",

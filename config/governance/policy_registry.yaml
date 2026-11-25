@@ -335,12 +335,30 @@ policies:
     rule_reference: ".agents/rules/conformance-map.md"
 
   - id: "INV-CENTRALIZED-LABELING-STUDIO-ONLY"
-    title: "Centralized Pure-White 18px 2x2 Human Labeling Studio MCP App Only"
+    title: "Centralized Pure-White 14px 2x2 Human Labeling Studio MCP App Only"
     category: "ai_sdlc"
     threshold: 0
     unit: "violations"
-    description: "Routes all human QRELS (3-2-1-0) and AI output review (Pass/Fail) sessions through core-governance open_labeling_studio (ui://labeling-studio/app.html)."
+    description: "Routes all human QRELS (3-2-1-0), AI output review (Pass/Fail), and Judge v3 6-check calibration sessions through core-governance open_labeling_studio (ui://labeling-studio/app.html)."
     enforcer: "tools/audit_governance_harmonization.py"
+    rule_reference: ".agents/rules/conformance-map.md"
+
+  - id: "INV-CENTRALIZED-JUDGE-V3-CORE"
+    title: "Centralized Clean-Slate Judge v3 Kernel, Blind Protocol, Router & Jury Delegation"
+    category: "ai_sdlc"
+    threshold: 0
+    unit: "uncentralized_judge_forks"
+    description: "All repository LLM-as-a-Judge v3 evaluators, blind protocol strips, IDE family routers, disjoint juries, and Studio binders must delegate to core-governance via _core_governance_bridge.py with zero uncentralized forks."
+    enforcer: "tools/audit_multi_ssot_judge_gate_drift.py"
+    rule_reference: ".agents/rules/conformance-map.md"
+
+  - id: "INV-JUDGE-NON-DEGENERATE-WEIGHTS"
+    title: "Non-Degenerate Atomic Check Weights Across Judge v3 Profiles"
+    category: "ai_sdlc"
+    threshold: 0
+    unit: "degenerate_non_critical_checks"
+    description: "Every non-critical check in a Judge v3 profile must satisfy (1.0 - weight) >= pass_threshold so non-critical checks never act as disguised hard vetoes."
+    enforcer: "tools/validate_judge_rubrics_v3.py"
     rule_reference: ".agents/rules/conformance-map.md"
 
   - id: "INV-WAVE-MERGE-WORKTREE-CLOSEOUT-TABLE"

@@ -1,18 +1,9 @@
-# Runtime Trace-Grader Rubric (SSOT) — ADR-036
-#
-# Consumed by the runtime trace-grader at v33 §5 EXIT EVAL & CONTROL.
-# Distinct from config/judges/rubrics.yaml (dataset/final-response spine).
-#
-# Scoring conventions mirror rubrics.yaml:
-#   scale            : integer 1-5 per dimension (higher is better)
-#   unknown          : graders may return "Unknown" when evidence is insufficient
-#                      (Anthropic "give the LLM a way out")
-#   pass_threshold   : score >= this -> PASS
-#   warn_threshold   : score >= this but < pass_threshold -> WARN
-#   unknown_budget   : max fraction of a judge's dimensions that may be Unknown
-#                      before the judge itself is flagged for recalibration
+# DEPRECATED LEGACY v1 TRACE RUBRIC — Superseded by `agent_trace_and_calibration:agent_trajectory_governance`
+# in `config/governance/judge_rubrics_v3.json` (`apps_eval/graders/judge/v3_trajectory_judge.py`).
 
 version: 1
+status: deprecated_legacy_v1
+superseded_by: config/governance/judge_rubrics_v3.json#agent_trace_and_calibration:agent_trajectory_governance
 schema: apps_eval.judges.trace_rubric_schema_v1
 reference_doc: https://developers.openai.com/api/docs/guides/agent-evals
 cross_ref_adr: docs/architecture/adr/ADR-036-runtime-trace-grader.md

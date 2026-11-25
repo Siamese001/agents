@@ -113,7 +113,7 @@ def test_pa_compiled_prompt_surfaces_pending_materiality_summary() -> None:
     assert payload["role_episode_active"] is True
 
 
-def test_generic_judge_packet_and_prompt_include_materiality_summary() -> None:
+def test_generic_judge_packet_preserves_materiality_on_disk_and_strips_from_blind_prompt() -> None:
     packet = build_grade_only_judge_packet(
         section_id="unify_bullets",
         candidate_output={
@@ -133,10 +133,10 @@ def test_generic_judge_packet_and_prompt_include_materiality_summary() -> None:
 
     assert packet["graph_binding_materiality_summary"]["status"] == "PASS"
     assert packet["proof_boundary"]["metadata_only_graph_context_is_insufficient"] is True
-    assert "GRAPH_BINDING_MATERIALITY_SUMMARY" in render_judge_prompt_from_packet(packet)
+    assert "GRAPH_BINDING_MATERIALITY_SUMMARY" not in render_judge_prompt_from_packet(packet)
 
 
-def test_executive_summary_judge_packet_includes_native_c03_materiality() -> None:
+def test_executive_summary_judge_packet_preserves_materiality_and_strips_from_blind_prompt() -> None:
     packet = build_executive_summary_judge_packet(
         resume_display_text="Built governed platform.",
         claim_ledger=[{"claim_text": "platform", "source_fact_ids": ["fact_platform_001"]}],
@@ -150,6 +150,5 @@ def test_executive_summary_judge_packet_includes_native_c03_materiality() -> Non
         proof_pool_metadata=_native_c03_meta(),
     )
 
-    assert packet["graph_binding_materiality_summary"]["status"] == "PASS"
-    assert packet["proof_boundary"]["metadata_only_graph_context_is_insufficient"] is True
-    assert "GRAPH_BINDING_MATERIALITY_SUMMARY" in render_exec_judge_prompt(packet)
+    assert packet["proof_boundary"]["jd_used_as_proof"] is False
+    assert "GRAPH_BINDING_MATERIALITY_SUMMARY" not in render_exec_judge_prompt(packet)

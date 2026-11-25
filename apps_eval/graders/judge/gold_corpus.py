@@ -383,7 +383,7 @@ def build_studio_blind_pool_dict(
 ) -> dict[str, Any]:
     """Build DIE-compatible Studio pool JSON payload (`ide-judge-blind-sample-pool:1.2.0`) with zero leakage."""
     root = Path(repo_root).resolve() if repo_root is not None else Path(__file__).resolve().parents[3]
-    rubric_path = root / "config" / "governance" / "external_judge_rubric_v1.json"
+    rubric_path = root / "config" / "governance" / "external_judge_rubric_v2.json"
     rubric_payload = load_and_verify_external_rubric(rubric_path)
     rubric_sha = str(rubric_payload["rubric_sha256"])
     raw_items: list[dict[str, Any]] = []

@@ -17,12 +17,15 @@ from apps_eval.graders.judge.blind_protocol import (
     BlindJudgeBundle,
     build_fail_closed_missing_verdict_receipt,
     build_sealed_blind_judge_bundle,
+    build_sealed_v3_blind_bundle,
     infer_provider_family,
     is_borderline_judge_result,
     is_synthetic_model_id,
     load_approved_judge_families,
     resolve_orthogonal_judge_family,
+    select_ide_judge_route,
     validate_blind_judge_verdict_provenance,
+    verify_sealed_v3_bundle_and_verdict,
 )
 from apps_eval.graders.judge.calibration import (
     CalibrationReport,
@@ -141,6 +144,8 @@ from apps_eval.graders.judge.v3_evaluator import (
     build_v3_evaluation_bundle,
     build_v3_response_schema,
     parse_and_seal_v3_verdict,
+    score_v3_atomic_checks,
+    verify_verbatim_failure_span,
 )
 from apps_eval.graders.judge.v3_registry import (
     AtomicCheckSpec,
@@ -149,6 +154,14 @@ from apps_eval.graders.judge.v3_registry import (
     UnknownJudgeProfileError,
     compute_rubric_doc_sha256,
     render_v3_rubric_prompt,
+)
+from apps_eval.graders.judge.v3_trajectory_judge import (
+    TRAJECTORY_JUDGE_TRANSPORT_ENV,
+    TRAJECTORY_PROFILE_ID,
+    build_trajectory_judge_packet,
+    evaluate_trajectory_governance_v3,
+    run_trajectory_ide_cli_judge,
+    run_trajectory_preflight,
 )
 
 __all__ = [

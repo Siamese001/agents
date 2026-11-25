@@ -220,3 +220,153 @@ def test_pr_judge_receipt_gate_enforces_v3_unit_scale_and_rejects_stub_or_legacy
         for v in res_skip["violations"]
         for r in v["reasons"]
     )
+
+
+def test_studio_6check_all_12_surfaces_roundtrip_and_flywheel_harvest_e2e(tmp_path: Path) -> None:
+    """Verify Studio `persist_judge_v3_6check_label` roundtrips through default ExternalRubricHumanStore and Flywheel."""
+    from agents.observability.findings_consolidator import consolidate_all_findings
+    from apps_eval._core_governance_bridge import harvest_borderline_candidates
+    from apps_eval.contracts.schemas import RunTrace
+    from apps_eval.graders.judge._core_governance_bridge import get_studio_session_contract
+    from apps_eval.graders.judge.ide_judge_drift_evaluator import save_drift_receipt
+    from apps_eval.online_grader import grade_run_trace
+
+    manifest = json.loads((REPO_ROOT / "config" / "governance" / "judge_rubrics_v3.json").read_text(encoding="utf-8"))
+    enabled_profiles: list[str] = list(manifest["enabled_profiles"])
+    assert len(enabled_profiles) == 12
+
+    rub_v2 = load_and_verify_external_rubric_v2()
+    pool_items = []
+    for idx, prof_id in enumerate(enabled_profiles):
+        body = f"Grounded executive deliverable for {prof_id} achieving {15 + idx}% cycle time reduction."
+        pool_items.append(
+            {
+                "case_id": f"surf_{idx:02d}",
+                "judge_surface": prof_id,
+                "partition": "calibration",
+                "topic_family": f"surf_topic_{idx:02d}",
+                "prompt_text": f"Evaluate {prof_id}",
+                "core_answer_text": body,
+                "blinded_text": body,
+                "artifact_sha256": compute_payload_sha256(body),
+                "source_evidence_excerpts": [{"source": "Ledger", "excerpt": body}],
+            }
+        )
+    q_body = "Synthetic strawman benchmark item."
+    pool_items.append(
+        {
+            "case_id": "surf_quarantine_strawman",
+            "judge_surface": enabled_profiles[0],
+            "partition": "calibration",
+            "topic_family": "surf_topic_strawman",
+            "prompt_text": "Quarantine check",
+            "core_answer_text": q_body,
+            "blinded_text": q_body,
+            "artifact_sha256": compute_payload_sha256(q_body),
+            "source_evidence_excerpts": [],
+        }
+    )
+    pool_path = tmp_path / "all_12_pool.json"
+    store_path = tmp_path / "default_v2_store.json"
+    pool_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "ide-judge-blind-sample-pool:1.2.0",
+                "external_rubric_id": "external_judge_rubric_v2",
+                "external_rubric_sha256": rub_v2["rubric_sha256"],
+                "items": pool_items,
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    sc = get_studio_session_contract()
+    state = sc.build_judge_v3_6check_ui_state(pool_path, store_path, batch_index=1, repo_label="agents")
+    all_yes = {chk["id"]: True for chk in state["atomic_check_specs"]}
+    all_no = {chk["id"]: False for chk in state["atomic_check_specs"]}
+
+    for idx, item in enumerate(pool_items[:-1]):
+        is_pass = idx % 2 == 0
+        state = sc.persist_judge_v3_6check_label(
+            pool_path,
+            store_path,
+            session_sha256=state["session_sha256"],
+            case_id=item["case_id"],
+            atomic_checks=all_yes if is_pass else all_no,
+            verdict="PASS" if is_pass else "FAIL",
+            note="Verified clean executive claim." if is_pass else "Unsupported claim absent from source facts.",
+            annotator_id="amit.ayer",
+        )
+    state = sc.persist_judge_v3_6check_label(
+        pool_path,
+        store_path,
+        session_sha256=state["session_sha256"],
+        case_id="surf_quarantine_strawman",
+        verdict="Q",
+        quarantine_reason="STRAWMAN_BENCHMARK_ITEM",
+        note="Strawman negative control.",
+        annotator_id="amit.ayer",
+    )
+
+    # Default ExternalRubricHumanStore (zero explicit rubric_path) must load all 12 surfaces + quarantine cleanly
+    default_store = ExternalRubricHumanStore(store_path=store_path)
+    loaded = default_store.load_records(partition="calibration")
+    assert len(loaded) == 12
+    assert {r.judge_surface for r in loaded} == set(enabled_profiles)
+    quarantined = default_store.load_quarantined()
+    assert len(quarantined) == 1
+    assert quarantined[0].reason == "STRAWMAN_BENCHMARK_ITEM"
+
+    # Drift evaluator -> findings_consolidator closed-loop ingestion
+    drifted_verdicts = {
+        r.case_id: {
+            "evaluator_kind": "blind_subagent_judge",
+            "judge_model_family": "neon",
+            "external_http_call_count": 0,
+            "bundle_digest": "b" * 64,
+            "artifact_sha256": r.artifact_sha256,
+            "normalized_unit_score": 0.95,
+            "verdict": "PASS",
+        }
+        for r in loaded
+    }
+    drift_rep = IDEJudgeDriftEvaluator().evaluate(
+        loaded,
+        drifted_verdicts,
+        judge_surface="resume_sections:executive_summary",
+        partition="calibration",
+    )
+    assert drift_rep.drift_detected is True
+    src_dir = tmp_path / "runtime_src"
+    out_dir = tmp_path / "runtime_out"
+    save_drift_receipt(drift_rep, src_dir / "ide_judge_drift_latest.json")
+    consol = consolidate_all_findings(source_root=src_dir, output_root=out_dir)
+    assert consol["ingested_by_surface"]["ide_judge_drift"] == 1
+
+    # OnlineEvalRecord borderline harvesting
+    trace = RunTrace(
+        trace_id="tr-borderline-001",
+        app_id="apps_rg",
+        run_id="run-001",
+        session_id="sess-001",
+        git_sha="0" * 40,
+        config_digest="c" * 64,
+        started_at_utc="2026-11-24T12:00:00Z",
+        finished_at_utc="2026-11-24T12:00:05Z",
+        terminal_status="PASS",
+        input_redacted={"prompt_text": "Draft SVP Executive Summary", "topic_family": "rg_borderline_01"},
+        output_summary={"output_text": "Led global AI platform modernization cutting latency by 28%."},
+        gate_outcomes={"x2_gates": {"structural": True}, "judge_passed": False},
+        telemetry={"latency_ms": 1200.0, "groundedness": 0.79},
+    )
+    graded = grade_run_trace(trace)
+    assert graded.deterministic_passed is True
+    assert graded.judge_passed is False
+    assert graded.groundedness == 0.79
+    harvest_res = harvest_borderline_candidates(
+        [{**graded.to_dict(), "case_id": graded.trace_id, "surface": graded.app_id}],
+        tmp_path / "judge_calibration_queue.jsonl",
+        daily_cap=3,
+    )
+    assert harvest_res["harvested_count"] == 1
