@@ -186,7 +186,7 @@ class HITLDecisionStore:
         selected_option: str, operator_action: str, margin: float, calibrated_confidence: float,
         context_summary: str = "", outcome: str = "PENDING",
     ) -> dict[str, Any]:
-        """Record a decision into persistent store and update learning aggregates."""
+        """Record a decision into persistent store, update learning aggregates, and mirror to core-governance SSOT."""
         now = datetime.datetime.now(datetime.timezone.utc).isoformat()
         ctx_hash = hashlib.sha256(f"{category}:{context_summary}:{selected_option}".encode("utf-8")).hexdigest()[:16]
         opts_serialized = json.dumps([opt if isinstance(opt, (dict, list, str, int, float)) else str(opt) for opt in options])
@@ -201,6 +201,34 @@ class HITLDecisionStore:
                  selected_option, operator_action, margin, calibrated_confidence, outcome, now, now),
             )
             self._update_learning_aggregates(category, operator_action, outcome, margin, now)
+        if "PYTEST_CURRENT_TEST" not in os.environ and not str(self.db_path).startswith("/tmp/"):
+            with contextlib.suppress(Exception):
+                import importlib.util
+                import sys as _sys
+
+                _cg_mod = _sys.modules.get("hitl_decision_engine")
+                if _cg_mod is None:
+                    _cg_path = Path.home() / ".gemini" / "config" / "plugins" / "core-governance" / "mcp" / "hitl_decision_engine.py"
+                    if _cg_path.is_file():
+                        _spec = importlib.util.spec_from_file_location("hitl_decision_engine", _cg_path)
+                        if _spec and _spec.loader:
+                            _cg_mod = importlib.util.module_from_spec(_spec)
+                            _sys.modules["hitl_decision_engine"] = _cg_mod
+                            _spec.loader.exec_module(_cg_mod)
+                if _cg_mod is not None:
+                    _is_auto = operator_action == "PROCEED_AUTONOMOUSLY"
+                    _central = _cg_mod.CentralHitlDecisionStore(repo_root=Path(__file__).resolve().parents[1])
+                    _central.record_decision(
+                        decision_id=decision_id,
+                        category=category,
+                        prompt=context_summary or decision_id,
+                        options=options,
+                        selected_option=selected_option,
+                        operator_id=("autonomous_gate" if _is_auto else "human_operator"),
+                        operator_class=("autonomous_gate" if _is_auto else "human_operator"),
+                        operator_action=operator_action,
+                        outcome=outcome,
+                    )
         return {"decision_id": decision_id, "category": category, "operator_action": operator_action, "margin": margin, "status": "STORED"}
 
     def record_outcome(self, decision_id: str, outcome: str) -> bool:

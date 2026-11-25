@@ -291,14 +291,24 @@ def _extract_questions_list(args: Dict[str, Any]) -> List[Dict[str, Any]]:
     return []
 
 
-def _is_mandatory_hitl_question(q_text: str, q_item: Dict[str, Any], args: Dict[str, Any]) -> bool:
-    cat = str(q_item.get("category") or args.get("category") or "").strip().lower()
-    if cat in MANDATORY_HITL_CATEGORIES:
+def _is_mandatory_hitl_question(q_text: str, q_item: Dict[str, Any], args: Dict[str, Any], payload: Optional[Dict[str, Any]] = None) -> bool:
+    if bool(q_item.get("requires_isolated_scrutiny") or args.get("requires_isolated_scrutiny")):
         return True
+    cat = str(q_item.get("category") or args.get("category") or "").strip().lower()
+    if cat in MANDATORY_HITL_CATEGORIES or cat in {"grill_me_interview", "plan_scope_deviation", "disputed_quote_scrutiny"}:
+        return True
+    if isinstance(payload, dict):
+        steps = _load_turn_steps_from_payload(payload)
+        for step in reversed(steps):
+            if str(step.get("type", "")).upper() == "USER_INPUT" or str(step.get("source", "")).upper() == "USER_EXPLICIT":
+                u_txt = str(step.get("content") or "")
+                if re.search(r"(?:^|[\s>])(?:/grill-me|/plan)\b|<GRILL_ME>|<PLAN>", u_txt, re.IGNORECASE):
+                    return True
+                break
     lower = q_text.lower()
     return any(
         tok in lower
-        for tok in ("[mandatory approval]", "[merge authorization]", "pr_merge_authorization", "authorize governed merge", "approve merge of")
+        for tok in ("[mandatory approval]", "[merge authorization]", "pr_merge_authorization", "authorize governed merge", "approve merge of", "alias collision", "near-duplicate")
     )
 
 
@@ -323,7 +333,7 @@ def handle_pre_ask_question(payload: Dict[str, Any], repo_root: Path) -> int:
         return emit_decision("deny", reason=f"{'; '.join(pres_errors)} {ANTI_PLAINTEXT_FALLBACK_DIRECTIVE}")
 
     options = q_item.get("options", [])
-    if not _is_mandatory_hitl_question(q_text, q_item, args):
+    if not _is_mandatory_hitl_question(q_text, q_item, args, payload=payload):
         gate = evaluate_hitl_surfacing_gate(options)
         if not gate["should_surface"] and gate["top_score"] >= 0.65:
             try:
