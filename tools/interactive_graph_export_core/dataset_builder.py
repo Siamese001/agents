@@ -894,6 +894,103 @@ def filter_bundle_lens(bundle: dict[str, Any], lens_id: str) -> dict[str, Any]:
     }
 
 
+_NON_TRAVERSABLE_BRIDGE_RAW_TYPES: frozenset[str] = frozenset(
+    {"section", "policy", "policy_rule", "role_family", "graph_ref"}
+)
+_BROAD_CONTAINER_RAW_TYPES: frozenset[str] = frozenset(
+    {"career_track", "career_epoch", "employment"}
+)
+
+
+def compute_multihop_subgraph(
+    bundle: dict[str, Any],
+    center_id: str,
+    *,
+    hops: int = 2,
+    enabled_types: set[str] | None = None,
+) -> dict[str, Any]:
+    """Compute a strictly connected multi-hop subgraph around ``center_id`` without super-hub hairball bounce."""
+    max_hops = max(1, min(3, int(hops)))
+    nodes = list(bundle.get("nodes") or [])
+    edges = list(bundle.get("edges") or [])
+    node_by_id = {str(n["id"]): n for n in nodes}
+    center_node = node_by_id.get(center_id)
+    if center_node is None:
+        return {"center_id": center_id, "hops": max_hops, "nodes": [], "edges": []}
+
+    allowed_ids = {
+        str(n["id"])
+        for n in nodes
+        if str(n["id"]) == center_id
+        or enabled_types is None
+        or str(n.get("type") or "") in enabled_types
+    }
+    adj_edges: dict[str, list[tuple[str, dict[str, Any]]]] = defaultdict(list)
+    for e in edges:
+        u, v = str(e["from"]), str(e["to"])
+        if u in allowed_ids and v in allowed_ids and u != v:
+            adj_edges[u].append((v, e))
+            adj_edges[v].append((u, e))
+
+    keep: set[str] = {center_id}
+    hop_dist: dict[str, int] = {center_id: 0}
+    frontier: list[str] = [center_id]
+    center_raw = str(center_node.get("rawType") or "")
+
+    for h in range(1, max_hops + 1):
+        next_f: list[str] = []
+        for cid in frontier:
+            cur_node = node_by_id[cid]
+            cur_raw = str(cur_node.get("rawType") or "")
+            for nb_id, edge_obj in adj_edges.get(cid, []):
+                if nb_id in keep:
+                    continue
+                if h >= 2 and cid != center_id:
+                    if cid == IDENTITY_ROOT_ID or cur_raw in _NON_TRAVERSABLE_BRIDGE_RAW_TYPES:
+                        continue
+                    if edge_obj.get("traversable") is False:
+                        continue
+                    if center_raw not in _BROAD_CONTAINER_RAW_TYPES and center_id != IDENTITY_ROOT_ID:
+                        if cur_raw in _BROAD_CONTAINER_RAW_TYPES:
+                            continue
+                    if center_raw == "pillar" and cur_raw == "pillar":
+                        continue
+                    nb_raw = str(node_by_id[nb_id].get("rawType") or "")
+                    if nb_raw in _NON_TRAVERSABLE_BRIDGE_RAW_TYPES:
+                        continue
+                keep.add(nb_id)
+                hop_dist[nb_id] = h
+                next_f.append(nb_id)
+        frontier = next_f
+        if not frontier:
+            break
+
+    # Strict connected-component verification over induced edges
+    connected: set[str] = {center_id}
+    q: list[str] = [center_id]
+    while q:
+        cur = q.pop(0)
+        for nb_id, _ in adj_edges.get(cur, []):
+            if nb_id in keep and nb_id not in connected:
+                connected.add(nb_id)
+                q.append(nb_id)
+
+    sub_nodes = [
+        {**node_by_id[nid], "hopDistance": hop_dist.get(nid, 0)}
+        for nid in connected
+        if nid in node_by_id
+    ]
+    sub_edges = [e for e in edges if str(e["from"]) in connected and str(e["to"]) in connected]
+    return {
+        "center_id": center_id,
+        "hops": max_hops,
+        "node_count": len(sub_nodes),
+        "edge_count": len(sub_edges),
+        "nodes": sub_nodes,
+        "edges": sub_edges,
+    }
+
+
 def search_bundle_nodes(bundle: dict[str, Any], query: str, *, limit: int = 40) -> dict[str, Any]:
     """Search nodes across label, id, rawType, employer, pillar, and description."""
     q = str(query or "").strip().lower()

@@ -1094,6 +1094,7 @@
       if (dirMap.has(key)) {
         const ex = dirMap.get(key);
         if (rawE.mat === "critical") ex.mat = "critical";
+        if (rawE.traversable !== false) ex.traversable = true;
         if (rawE.confidence > ex.confidence) ex.confidence = rawE.confidence;
         if (rawE.label && !ex.label.includes(rawE.label) && ex.label.split(" / ").length < 2) {
           ex.label = `${ex.label} / ${rawE.label}`;
@@ -1128,12 +1129,31 @@
 
     const nodeDegree = new Map();
     const fullAdj = new Map(nodes.map((n) => [n.id, []]));
+    const fullAdjEdges = new Map(nodes.map((n) => [n.id, []]));
     edges.forEach((e) => {
       nodeDegree.set(e.source.id, (nodeDegree.get(e.source.id) || 0) + 1);
       nodeDegree.set(e.target.id, (nodeDegree.get(e.target.id) || 0) + 1);
       fullAdj.get(e.source.id).push(e.target.id);
       fullAdj.get(e.target.id).push(e.source.id);
+      fullAdjEdges.get(e.source.id).push({ otherId: e.target.id, edge: e });
+      fullAdjEdges.get(e.target.id).push({ otherId: e.source.id, edge: e });
     });
+
+    // Identify the main connected component from ROOT_NODE_ID so 0-degree metadata stubs never float as orphans
+    const mainConnectedIds = new Set();
+    if (nodeById.has(ROOT_NODE_ID)) {
+      const mq = [ROOT_NODE_ID];
+      mainConnectedIds.add(ROOT_NODE_ID);
+      while (mq.length) {
+        const cur = mq.shift();
+        for (const nb of fullAdj.get(cur) || []) {
+          if (!mainConnectedIds.has(nb)) {
+            mainConnectedIds.add(nb);
+            mq.push(nb);
+          }
+        }
+      }
+    }
 
     function computeNodeRadius(n) {
       const base = (TYPE_META[n.type] || TYPE_META.evidence).radius;
@@ -1213,6 +1233,25 @@
       );
     }
 
+    // Prevent 2nd/3rd-hop hairball explosion through global broadcast hubs (sections, policies, root identity, career-wide containers)
+    const NON_TRAVERSABLE_BRIDGE_RAW_TYPES = new Set(["section", "policy", "policy_rule", "role_family", "graph_ref"]);
+    const BROAD_CONTAINER_RAW_TYPES = new Set(["career_track", "career_epoch", "employment"]);
+
+    function canExpandIntermediateHop(centerNode, curNode, edgeObj, hopIndex) {
+      if (!centerNode || !curNode) return false;
+      if (hopIndex <= 1 || curNode.id === centerNode.id) return true;
+      // Never bounce at hop >= 2 through root identity or non-traversable broadcast hubs (e.g. Executive Summary w/ 339 edges)
+      if (curNode.id === ROOT_NODE_ID || NON_TRAVERSABLE_BRIDGE_RAW_TYPES.has(curNode.rawType)) return false;
+      if (edgeObj && edgeObj.traversable === false) return false;
+      // When inspecting a specific pillar/domain/skill/engagement/evidence node, do not bounce up into a broad track/epoch/employer and back down into unrelated career eras
+      if (!BROAD_CONTAINER_RAW_TYPES.has(centerNode.rawType) && centerNode.id !== ROOT_NODE_ID) {
+        if (BROAD_CONTAINER_RAW_TYPES.has(curNode.rawType)) return false;
+      }
+      // When inspecting a specific pillar, expand through its domains & skills rather than sideways through sibling pillars
+      if (centerNode.rawType === "pillar" && curNode.rawType === "pillar") return false;
+      return true;
+    }
+
     function getVisibleNodes() {
       const q = state.search.trim().toLowerCase();
       const useCleanBackbone =
@@ -1227,10 +1266,11 @@
         return nodes.filter((n) => n.coreBackbone);
       }
 
-      // Base scope filtering
-      let base = nodes.filter((n) => {
+      const isAllowedNode = (n) => {
         if (activeShortestPathNodeIds.has(n.id) || egoPinnedIds.has(n.id)) return true;
         if (selectedNode && n.id === selectedNode.id) return true;
+        if (!q && mainConnectedIds.size > 0 && !mainConnectedIds.has(n.id)) return false;
+        if (!enabledTypes.has(n.type)) return false;
         if (state.scope === "backbone") return n.coreBackbone;
         if (state.scope !== "all" && !n.cluster.includes(state.scope) && n.id !== state.scope) return false;
         if (q) {
@@ -1238,31 +1278,50 @@
           if (!hay.includes(q)) return false;
         }
         return true;
-      });
+      };
 
-      // Apply hop isolation when focused on a node (unless user switched to Full Topology with Depth Off)
+      const allowedList = nodes.filter(isAllowedNode);
+      const allowedSet = new Set(allowedList.map((n) => n.id));
+
+      // Apply multi-hop neighborhood isolation strictly over allowedSet so zero nodes can ever become stranded/disconnected
       if (selectedNode && isolateHopDepth > 0 && !q) {
-        const keep = new Set([selectedNode.id, ...activeShortestPathNodeIds, ...egoPinnedIds]);
+        const keep = new Set([selectedNode.id, ...activeShortestPathNodeIds]);
+        egoPinnedIds.forEach((id) => { if (allowedSet.has(id)) keep.add(id); });
         let frontier = new Set([selectedNode.id]);
         for (let h = 1; h <= isolateHopDepth; h++) {
           const nextF = new Set();
           for (const cid of frontier) {
-            for (const nb of fullAdj.get(cid) || []) {
-              if (!keep.has(nb)) {
-                keep.add(nb);
-                nextF.add(nb);
-              }
+            const curNode = nodeById.get(cid);
+            for (const { otherId, edge } of fullAdjEdges.get(cid) || []) {
+              if (!allowedSet.has(otherId) || keep.has(otherId)) continue;
+              if (!canExpandIntermediateHop(selectedNode, curNode, edge, h)) continue;
+              // At hop >= 2, also avoid pulling leaf role_family / section / policy broadcast targets unless explicitly pinned
+              const targetNode = nodeById.get(otherId);
+              if (h >= 2 && targetNode && NON_TRAVERSABLE_BRIDGE_RAW_TYPES.has(targetNode.rawType)) continue;
+              keep.add(otherId);
+              nextF.add(otherId);
             }
           }
           frontier = nextF;
           if (!frontier.size) break;
         }
-        const hopFiltered = nodes.filter((n) => keep.has(n.id) && (state.scope === "all" || n.cluster.includes(state.scope) || keep.has(n.id)));
-        if (hopFiltered.length > 0) base = hopFiltered;
+
+        // Enforce strict connected-component closure from selectedNode over visible edges
+        const connected = new Set([selectedNode.id, ...activeShortestPathNodeIds]);
+        const cq = [selectedNode.id];
+        while (cq.length) {
+          const cur = cq.shift();
+          for (const nb of fullAdj.get(cur) || []) {
+            if (keep.has(nb) && !connected.has(nb)) {
+              connected.add(nb);
+              cq.push(nb);
+            }
+          }
+        }
+        return allowedList.filter((n) => connected.has(n.id));
       }
 
-      // Apply category type filter pills
-      return base.filter((n) => enabledTypes.has(n.type) || (selectedNode && n.id === selectedNode.id) || activeShortestPathNodeIds.has(n.id));
+      return allowedList;
     }
 
     function getVisibleEdges(visSet) {
@@ -1363,12 +1422,12 @@
           b.vx += fx; b.vy += fy;
         }
       }
-      const springLen = nLen > 250 ? 110 : 145;
+      const springLen = nLen > 250 ? 105 : 128;
       for (const e of visEdges) {
         const dx = e.target.x - e.source.x;
         const dy = e.target.y - e.source.y;
         const d = Math.hypot(dx, dy) || 1;
-        const f = (d - springLen) * 0.012;
+        const f = (d - springLen) * 0.020;
         const fx = (dx / d) * f;
         const fy = (dy / d) * f;
         e.source.vx += fx; e.source.vy += fy;
@@ -1377,13 +1436,75 @@
       let energy = 0;
       for (const n of vis) {
         if (draggingNode && draggingNode.id === n.id) continue;
-        n.vx *= 0.82;
-        n.vy *= 0.82;
+        if (selectedNode && isolateHopDepth > 0 && n.id === selectedNode.id) {
+          n.x = 0; n.y = 0; n.vx = 0; n.vy = 0;
+          continue;
+        }
+        n.vx *= 0.80;
+        n.vy *= 0.80;
         n.x += Math.max(-24, Math.min(24, n.vx));
         n.y += Math.max(-24, Math.min(24, n.vy));
         energy += Math.abs(n.vx) + Math.abs(n.vy);
       }
       return energy / nLen;
+    }
+
+    function seedConnectedForcePositions(vis) {
+      const center = (selectedNode && vis.some((n) => n.id === selectedNode.id))
+        ? selectedNode
+        : (vis.find((n) => n.id === ROOT_NODE_ID) || vis[0]);
+      if (!center) return;
+      const visSet = new Set(vis.map((n) => n.id));
+      const parentOf = new Map([[center.id, null]]);
+      const hopOf = new Map([[center.id, 0]]);
+      const childrenOf = new Map();
+      const q = [center.id];
+      while (q.length) {
+        const cur = q.shift();
+        const d = hopOf.get(cur);
+        for (const nb of fullAdj.get(cur) || []) {
+          if (visSet.has(nb) && !hopOf.has(nb)) {
+            hopOf.set(nb, d + 1);
+            parentOf.set(nb, cur);
+            if (!childrenOf.has(cur)) childrenOf.set(cur, []);
+            childrenOf.get(cur).push(nb);
+            q.push(nb);
+          }
+        }
+      }
+      center.x = 0; center.y = 0; center.vx = 0; center.vy = 0;
+      const h1 = childrenOf.get(center.id) || [];
+      h1.forEach((id, i) => {
+        const ang = (i / Math.max(1, h1.length)) * Math.PI * 2 - Math.PI / 2;
+        const rad = 185 + Math.min(90, h1.length * 1.6);
+        const nd = nodeById.get(id);
+        nd.x = Math.cos(ang) * rad;
+        nd.y = Math.sin(ang) * rad;
+        nd.vx = 0; nd.vy = 0;
+        nd._seedAng = ang;
+      });
+      // Place 2-hop and 3-hop children radially outward in a fan around their 1-hop parent bridge
+      vis.forEach((n) => {
+        if (n.id === center.id || hopOf.get(n.id) === 1) return;
+        const pId = parentOf.get(n.id);
+        const pNode = pId ? nodeById.get(pId) : null;
+        if (pNode) {
+          const sibs = childrenOf.get(pId) || [n.id];
+          const sIdx = sibs.indexOf(n.id);
+          const baseAng = typeof pNode._seedAng === "number" ? pNode._seedAng : Math.atan2(pNode.y, pNode.x);
+          const spread = Math.min(Math.PI * 0.85, Math.max(0.35, sibs.length * 0.14));
+          const offset = sibs.length > 1 ? ((sIdx / (sibs.length - 1)) - 0.5) * spread : 0;
+          const ang = baseAng + offset;
+          const dist = 135 + (sIdx % 3) * 26;
+          n.x = pNode.x + Math.cos(ang) * dist;
+          n.y = pNode.y + Math.sin(ang) * dist;
+          n.vx = 0; n.vy = 0;
+          n._seedAng = ang;
+        } else {
+          const pos = initialPosition(0);
+          n.x = pos.x; n.y = pos.y; n.vx = 0; n.vy = 0;
+        }
+      });
     }
 
     function applyCurrentLayout({ fit = true } = {}) {
@@ -1397,11 +1518,8 @@
         simSleeping = true;
         applyRadialLayout(vis);
       } else {
-        vis.forEach((n, idx) => {
-          const p = initialPosition(idx);
-          n.x = p.x; n.y = p.y; n.vx = 0; n.vy = 0;
-        });
-        const warm = vis.length > 350 ? 35 : 95;
+        seedConnectedForcePositions(vis);
+        const warm = vis.length > 350 ? 40 : 110;
         for (let i = 0; i < warm; i++) stepForce(vis, visEdges);
         simSleeping = false;
         wakeSimulation();
@@ -1609,47 +1727,100 @@
       }
 
       // Full Interactive Circle Graph Rendering (Pass 1 Edges -> Pass 2 Nodes -> Pass 3 Collision-Free Labels -> Pass 4 Highlighted Edge Labels)
-      const activeFocusNode = selectedNode || hoveredNode;
+      const activeFocusNode = hoveredNode || selectedNode;
       const activeFocusEdge = selectedEdge || hoveredEdge;
       const neighborSet = new Set();
+      const hopDistMap = new Map();
+
       if (activeFocusNode) {
         neighborSet.add(activeFocusNode.id);
-        visEdges.forEach((e) => {
-          if (e.source.id === activeFocusNode.id) neighborSet.add(e.target.id);
-          if (e.target.id === activeFocusNode.id) neighborSet.add(e.source.id);
-        });
+        hopDistMap.set(activeFocusNode.id, 0);
+        const maxTrackHops = isolateHopDepth > 0 ? isolateHopDepth : 1;
+        let frontier = [activeFocusNode.id];
+        for (let h = 1; h <= maxTrackHops; h++) {
+          const next = [];
+          visEdges.forEach((e) => {
+            if (frontier.includes(e.source.id) && !hopDistMap.has(e.target.id)) {
+              hopDistMap.set(e.target.id, h);
+              neighborSet.add(e.target.id);
+              next.push(e.target.id);
+            }
+            if (frontier.includes(e.target.id) && !hopDistMap.has(e.source.id)) {
+              hopDistMap.set(e.source.id, h);
+              neighborSet.add(e.source.id);
+              next.push(e.source.id);
+            }
+          });
+          frontier = next;
+          if (!frontier.length) break;
+        }
+      } else if (activeFocusEdge) {
+        neighborSet.add(activeFocusEdge.source.id);
+        neighborSet.add(activeFocusEdge.target.id);
+        hopDistMap.set(activeFocusEdge.source.id, 1);
+        hopDistMap.set(activeFocusEdge.target.id, 1);
       }
-      activeShortestPathNodeIds.forEach((id) => neighborSet.add(id));
+      activeShortestPathNodeIds.forEach((id) => {
+        neighborSet.add(id);
+        hopDistMap.set(id, 0);
+      });
 
-      const highlightedEdges = [];
+      const directSpokeEdges = [];
+      const multiHopEdges = [];
       const bgEdges = [];
       for (const e of visEdges) {
-        const isHi = (activeFocusEdge && activeFocusEdge.id === e.id) ||
+        const isDirect = (activeFocusEdge && activeFocusEdge.id === e.id) ||
           activeShortestPathEdgeIds.has(e.id) ||
           (activeFocusNode && (e.source.id === activeFocusNode.id || e.target.id === activeFocusNode.id));
-        if (isHi) highlightedEdges.push(e);
+        const inActiveNeighborhood = neighborSet.has(e.source.id) && neighborSet.has(e.target.id);
+        if (isDirect) directSpokeEdges.push(e);
+        else if (inActiveNeighborhood && isolateHopDepth >= 2) multiHopEdges.push(e);
         else bgEdges.push(e);
       }
 
-      // Pass 1A: Background edges
+      // Pass 1A: Background edges (in Full Graph mode when Depth is Off)
       for (const e of bgEdges) {
         const eBand = getConfidenceBand(e.confidence);
-        const dim = Boolean(activeFocusNode || activeFocusEdge || activeShortestPathNodeIds.size) ||
+        const dim = Boolean((isolateHopDepth === 0 && activeFocusNode) || activeFocusEdge || activeShortestPathNodeIds.size) ||
           (activeConfidenceFilter !== "ALL" && eBand.key !== activeConfidenceFilter);
         const { cx, cy } = getEdgeControlPoint(e);
+        const col = dim
+          ? (isLight ? "rgba(100,116,139,0.16)" : "rgba(148,163,184,0.16)")
+          : (isLight ? eBand.edgeRgbaLight : eBand.edgeRgbaDark);
         ctx.beginPath();
         ctx.moveTo(e.source.x, e.source.y);
         if (e.curveOffset) ctx.quadraticCurveTo(cx, cy, e.target.x, e.target.y);
         else ctx.lineTo(e.target.x, e.target.y);
-        ctx.strokeStyle = dim
-          ? (isLight ? "rgba(100,116,139,0.12)" : "rgba(148,163,184,0.12)")
-          : (isLight ? eBand.edgeRgbaLight : eBand.edgeRgbaDark);
-        ctx.lineWidth = (0.65 / Math.pow(camera.zoom, 0.72));
+        ctx.strokeStyle = col;
+        ctx.lineWidth = (0.72 / Math.pow(camera.zoom, 0.72));
         ctx.stroke();
+        if (!dim && camera.zoom >= 0.55) {
+          drawArrowhead(ctx, cx, cy, e.target.x, e.target.y, e.target.r, camera.zoom, col);
+        }
       }
 
-      // Pass 1B: Highlighted spoke & shortest-path edges
-      for (const e of highlightedEdges) {
+      // Pass 1B: 2-Hop & 3-Hop Subgraph Edges (crisp, visible with directional arrowheads so multi-hop trees are 100% connected!)
+      for (const e of multiHopEdges) {
+        const eBand = getConfidenceBand(e.confidence);
+        const bandMismatch = activeConfidenceFilter !== "ALL" && eBand.key !== activeConfidenceFilter;
+        const { cx, cy } = getEdgeControlPoint(e);
+        const col = bandMismatch
+          ? (isLight ? "rgba(100,116,139,0.16)" : "rgba(148,163,184,0.16)")
+          : (isLight ? "rgba(37, 99, 235, 0.58)" : "rgba(96, 165, 250, 0.58)");
+        ctx.beginPath();
+        ctx.moveTo(e.source.x, e.source.y);
+        if (e.curveOffset) ctx.quadraticCurveTo(cx, cy, e.target.x, e.target.y);
+        else ctx.lineTo(e.target.x, e.target.y);
+        ctx.strokeStyle = col;
+        ctx.lineWidth = (1.08 / Math.pow(camera.zoom, 0.75));
+        ctx.stroke();
+        if (!bandMismatch) {
+          drawArrowhead(ctx, cx, cy, e.target.x, e.target.y, e.target.r, camera.zoom, col);
+        }
+      }
+
+      // Pass 1C: Direct 1-Hop Spoke & Shortest-Path Edges
+      for (const e of directSpokeEdges) {
         const isPath = activeShortestPathEdgeIds.has(e.id);
         const isSel = (activeFocusEdge && activeFocusEdge.id === e.id) || isPath;
         const eBand = getConfidenceBand(e.confidence);
@@ -1662,7 +1833,7 @@
         if (e.curveOffset) ctx.quadraticCurveTo(cx, cy, e.target.x, e.target.y);
         else ctx.lineTo(e.target.x, e.target.y);
         ctx.strokeStyle = col;
-        ctx.lineWidth = (isSel ? 2.1 : 1.3) / Math.pow(camera.zoom, 0.75);
+        ctx.lineWidth = (isSel ? 2.2 : 1.45) / Math.pow(camera.zoom, 0.75);
         ctx.stroke();
         drawArrowhead(ctx, cx, cy, e.target.x, e.target.y, e.target.r, camera.zoom, col);
       }
@@ -1671,8 +1842,8 @@
       const occupiedRects = [];
       const labelCandidates = [];
       const sortedVis = [...vis].sort((a, b) => {
-        const af = activeFocusNode && activeFocusNode.id === a.id ? 2 : (neighborSet.has(a.id) ? 1 : 0);
-        const bf = activeFocusNode && activeFocusNode.id === b.id ? 2 : (neighborSet.has(b.id) ? 1 : 0);
+        const af = activeFocusNode && activeFocusNode.id === a.id ? 3 : (hopDistMap.get(a.id) === 1 ? 2 : (neighborSet.has(a.id) ? 1 : 0));
+        const bf = activeFocusNode && activeFocusNode.id === b.id ? 3 : (hopDistMap.get(b.id) === 1 ? 2 : (neighborSet.has(b.id) ? 1 : 0));
         return af - bf;
       });
 
@@ -1681,18 +1852,27 @@
         const nBand = getConfidenceBand(n.confidence);
         const isFocus = Boolean((activeFocusNode && activeFocusNode.id === n.id) || (hoveredNode && hoveredNode.id === n.id));
         const isPath = activeShortestPathNodeIds.has(n.id);
+        const hopDist = hopDistMap.get(n.id);
         const isNb = neighborSet.has(n.id);
         const bandMismatch = activeConfidenceFilter !== "ALL" && nBand.key !== activeConfidenceFilter;
-        const isDim = bandMismatch || (Boolean(activeFocusNode || activeShortestPathNodeIds.size) && !isNb);
+        const hasSpotlight = Boolean((activeFocusNode && isolateHopDepth === 0) || activeFocusEdge || activeShortestPathNodeIds.size);
+        const isDim = bandMismatch || (hasSpotlight && !isNb);
+
+        let nodeAlpha = 1.0;
+        if (isDim) nodeAlpha = 0.28;
+        else if (hopDist === 2) nodeAlpha = 0.94;
+        else if (hopDist !== undefined && hopDist >= 3) nodeAlpha = 0.88;
 
         ctx.save();
-        ctx.globalAlpha = isDim ? 0.30 : 1.0;
+        ctx.globalAlpha = isDim ? 0.80 : 1.0;
 
         // Backing disc
         ctx.beginPath();
         ctx.arc(n.x, n.y, n.r + 1.2 / camera.zoom, 0, Math.PI * 2);
         ctx.fillStyle = isLight ? "#f1f5f9" : "#0b1120";
         ctx.fill();
+
+        ctx.globalAlpha = nodeAlpha;
 
         // Focus / path halo
         if (isFocus || isPath) {
@@ -1802,11 +1982,11 @@
       }
 
       // Pass 4: Highlighted edge labels on selection/path
-      if (camera.zoom >= 0.45 && highlightedEdges.length > 0 && highlightedEdges.length <= 24) {
-        for (const e of highlightedEdges) {
+      if (camera.zoom >= 0.45 && directSpokeEdges.length > 0 && directSpokeEdges.length <= 24) {
+        for (const e of directSpokeEdges) {
           const isPath = activeShortestPathEdgeIds.has(e.id);
           const isSel = (activeFocusEdge && activeFocusEdge.id === e.id) || isPath;
-          if (!isSel && highlightedEdges.length > 10) continue;
+          if (!isSel && directSpokeEdges.length > 10) continue;
           const { cx, cy } = getEdgeControlPoint(e);
           const fontSize = 10.5 / camera.zoom;
           const fontKey = `600 ${fontSize.toFixed(2)}px Inter, system-ui, sans-serif`;

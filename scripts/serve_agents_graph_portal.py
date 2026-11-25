@@ -29,6 +29,7 @@ if str(ROOT) not in sys.path:
 from tools.interactive_graph_export_core.dataset_builder import (
     DEFAULT_TEMPLATE_PATH,
     build_agents_explorer_dataset,
+    compute_multihop_subgraph,
     filter_bundle_lens,
     render_portal_shell_html,
     resolve_default_graph_db_path,
@@ -169,6 +170,15 @@ class AgentsGraphRequestHandler(http.server.BaseHTTPRequestHandler):
             node_obj = snap.node_by_id.get(node_id)
             if node_obj is None:
                 self._send_json(404, {"error": "Node not found", "node_id": node_id}, head_only=head_only)
+                return
+            raw_hops = (query.get("hops") or ["1"])[0]
+            try:
+                hops = int(raw_hops)
+            except ValueError:
+                hops = 1
+            if hops >= 2:
+                sub = compute_multihop_subgraph(snap.bundle, node_id, hops=hops)
+                self._send_json(200, {"node": node_obj, **sub}, head_only=head_only)
                 return
             connected = [
                 e
