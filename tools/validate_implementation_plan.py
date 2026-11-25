@@ -1,40 +1,56 @@
 #!/usr/bin/env python3
-"""Mechanical enforcement validator for wave-based implementation plans.
-
-Enforces governance rules defined in AGENTS.md and docs/refactoring-wave-protocol.md:
-1. Every implementation plan must be wave-based (decomposed into sequential numbered waves).
-2. Wave numbering must start at 0 or 1 and increment consecutively without gaps.
-3. Every wave must declare explicit milestones & deliverables, acceptance criteria,
-   and a runtime receipt or completion gate.
-4. Each wave must specify at least one concrete deliverable or target file.
-"""
+"""Wave-based implementation plan validator delegating to core-governance with standalone CI fallback."""
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import os
+from pathlib import Path
 import re
 import subprocess
 import sys
-from pathlib import Path
+from types import ModuleType
 from typing import List, Optional, Sequence, Tuple
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-try:
-    from tools.hitl_governance import validate_model_token_registry
-except ImportError:
-    from hitl_governance import validate_model_token_registry  # type: ignore
+from tools.hitl_governance import validate_model_token_registry
+from tools.implementation_plan_core.evidence_requirements import (
+    MAX_PLAN_WORDS,
+    validate_holistic_pipeline_alignment,
+)
+from tools.implementation_plan_core.wave_dag import (
+    strip_and_validate_shard_manifests,
+    validate_wave_dag_sequence,
+)
 
-try:
-    from tools.implementation_plan_core.evidence_requirements import MAX_PLAN_WORDS, validate_execution_evidence, validate_holistic_pipeline_alignment
-    from tools.implementation_plan_core.wave_dag import strip_and_validate_shard_manifests, validate_wave_dag_sequence
-except ImportError:
-    from implementation_plan_core.evidence_requirements import MAX_PLAN_WORDS, validate_execution_evidence, validate_holistic_pipeline_alignment  # type: ignore
-    from implementation_plan_core.wave_dag import strip_and_validate_shard_manifests, validate_wave_dag_sequence  # type: ignore
+_PLUGIN_FILE = Path.home() / ".gemini" / "config" / "plugins" / "core-governance" / "mcp" / "wave_plan_validator.py"
+_CACHED_PLUGIN_MOD: ModuleType | None = None
 
-# Historical / frozen plans grandfathered from strict wave schema
+
+def _load_backend() -> ModuleType:
+    """Resolve core-governance wave_plan_validator unless standalone mode is forced or plugin is absent."""
+    global _CACHED_PLUGIN_MOD
+    if os.environ.get("CORE_GOVERNANCE_FORCE_STANDALONE") != "1" and _PLUGIN_FILE.is_file():
+        if _CACHED_PLUGIN_MOD is None:
+            mod_name = "_core_governance_wave_plan_validator"
+            spec = importlib.util.spec_from_file_location(mod_name, _PLUGIN_FILE)
+            if spec is not None and spec.loader is not None:
+                mod = importlib.util.module_from_spec(spec)
+                sys.modules[mod_name] = mod
+                spec.loader.exec_module(mod)
+                _CACHED_PLUGIN_MOD = mod
+        if _CACHED_PLUGIN_MOD is not None:
+            return _CACHED_PLUGIN_MOD
+    from tools import _standalone_plan_validator
+
+    return _standalone_plan_validator
+
+
+_BACKEND = _load_backend()
+
 DEFAULT_LEGACY_EXEMPTIONS = {
     "core-judge-panel-harness-f3c8d1.md",
     "live-llm-enforcement-wave1-b7d14e.md",
@@ -43,28 +59,14 @@ DEFAULT_LEGACY_EXEMPTIONS = {
     "token-optimization-waves-c8d1e4.md",
 }
 
-# Regex patterns for wave parsing
-RE_TITLE = re.compile(r"^#\s+(.+)$", re.MULTILINE)
-RE_WAVE_HEADER = re.compile(r"^(#{2,3})\s+Wave\s+(\d+)([A-Z]{0,2})(?:[:\s\-]+(.*))?$", re.IGNORECASE)
-
-# Patterns for required wave subsections
-RE_OBJECTIVE = re.compile(
-    r"(?:^#{3,4}\s+.*(?:objective|scope).*)|(?:^\s*(?:[-*+]\s+)?\*\*(?:.*(?:objective|scope).*?)\*\*)",
-    re.IGNORECASE,
-)
-RE_MILESTONES = re.compile(
-    r"(?:^#{3,4}\s+.*(?:milestone|deliverable).*)|(?:^\s*(?:[-*+]\s+)?\*\*(?:.*(?:milestone|deliverable).*?)\*\*)",
-    re.IGNORECASE,
-)
-RE_CRITERIA = re.compile(
-    r"(?:^#{3,4}\s+.*(?:acceptance\s+criteria|criteria).*)|(?:^\s*(?:[-*+]\s+)?\*\*(?:.*(?:acceptance\s+criteria|criteria).*?)\*\*)",
-    re.IGNORECASE,
-)
-RE_RECEIPT_GATE = re.compile(
-    r"(?:^#{3,4}\s+.*(?:receipt|completion\s+gate|exit\s+gate|verification).*)|(?:^\s*(?:[-*+]\s+)?\*\*(?:.*(?:receipt|completion\s+gate|exit\s+gate|verification).*?)\*\*)",
-    re.IGNORECASE,
-)
-RE_ITEM = re.compile(r"^\s*(?:[-*+]|\d+\.)\s+(.+)$")
+RE_TITLE = _BACKEND.RE_TITLE
+RE_WAVE_HEADER = _BACKEND.RE_WAVE_HEADER
+RE_OBJECTIVE = _BACKEND.RE_OBJECTIVE
+RE_MILESTONES = _BACKEND.RE_MILESTONES
+RE_CRITERIA = _BACKEND.RE_CRITERIA
+RE_RECEIPT_GATE = _BACKEND.RE_RECEIPT_GATE
+RE_ITEM = _BACKEND.RE_ITEM
+WaveSection = _BACKEND.WaveSection
 
 VALID_STATUS_TOKENS = (
     "COMPLETED", "COMPLETE", "DONE", "IN_PROGRESS", "IN PROGRESS",
@@ -73,23 +75,13 @@ VALID_STATUS_TOKENS = (
 )
 
 
-
 def normalize_status(val: str) -> Optional[str]:
     """Normalize and match candidate status text against canonical status tokens."""
-    clean = val.strip()
-    # Strip leading/trailing markdown decorators, backticks, asterisks, brackets, emojis
-    clean = re.sub(r"^[`*#_\[\]\s\W]+", "", clean).strip()
+    clean = re.sub(r"^[`*#_\[\]\s\W]+", "", val.strip()).strip()
     clean = re.sub(r"[`*_\[\]]+$", "", clean).strip()
     upper = clean.upper()
     for token in VALID_STATUS_TOKENS:
-        if (
-            upper == token
-            or upper.startswith(token + " ")
-            or upper.startswith(token + ":")
-            or upper.startswith(token + "-")
-            or upper.startswith(token + "(")
-            or upper.startswith(token + "_")
-        ):
+        if upper == token or upper.startswith((token + " ", token + ":", token + "-", token + "(", token + "_")):
             return token
     return None
 
@@ -100,7 +92,7 @@ class MarkdownTable:
     def __init__(self, headers: List[str], start_line: int):
         self.headers = headers
         self.start_line = start_line
-        self.rows: List[Tuple[int, List[str]]] = []  # (line_number, cell_values)
+        self.rows: List[Tuple[int, List[str]]] = []
 
 
 def parse_markdown_tables(lines: List[str]) -> List[MarkdownTable]:
@@ -109,25 +101,23 @@ def parse_markdown_tables(lines: List[str]) -> List[MarkdownTable]:
     idx = 0
     while idx < len(lines):
         raw_line = lines[idx].strip()
-        if raw_line.count("|") >= 2:
-            if idx + 1 < len(lines):
-                sep_raw = lines[idx + 1].strip()
-                if sep_raw.count("|") >= 2:
-                    sep_cells = [c.strip() for c in sep_raw.strip("|").split("|")]
-                    if sep_cells and all(c and re.match(r"^[\s:\-]+$", c) and "-" in c for c in sep_cells):
-                        raw_headers = [c.strip() for c in raw_line.strip("|").split("|")]
-                        table = MarkdownTable(headers=raw_headers, start_line=idx + 1)
-                        idx += 2
-                        while idx < len(lines):
-                            row_raw = lines[idx].strip()
-                            if row_raw.count("|") >= 2:
-                                cells = [c.strip() for c in row_raw.strip("|").split("|")]
-                                table.rows.append((idx + 1, cells))
-                                idx += 1
-                            else:
-                                break
-                        tables.append(table)
-                        continue
+        if raw_line.count("|") >= 2 and idx + 1 < len(lines):
+            sep_raw = lines[idx + 1].strip()
+            if sep_raw.count("|") >= 2:
+                sep_cells = [c.strip() for c in sep_raw.strip("|").split("|")]
+                if sep_cells and all(c and re.match(r"^[\s:\-]+$", c) and "-" in c for c in sep_cells):
+                    raw_headers = [c.strip() for c in raw_line.strip("|").split("|")]
+                    table = MarkdownTable(headers=raw_headers, start_line=idx + 1)
+                    idx += 2
+                    while idx < len(lines):
+                        row_raw = lines[idx].strip()
+                        if row_raw.count("|") >= 2:
+                            table.rows.append((idx + 1, [c.strip() for c in row_raw.strip("|").split("|")]))
+                            idx += 1
+                        else:
+                            break
+                    tables.append(table)
+                    continue
         idx += 1
     return tables
 
@@ -135,212 +125,32 @@ def parse_markdown_tables(lines: List[str]) -> List[MarkdownTable]:
 def find_status_table(
     tables: List[MarkdownTable],
 ) -> Tuple[Optional[MarkdownTable], Optional[dict], List[Tuple[MarkdownTable, List[str]]]]:
-    """Locate the Implementation Status Table among parsed tables."""
+    """Locate the optional Implementation Status Table among parsed tables."""
     candidate_diagnostics: List[Tuple[MarkdownTable, List[str]]] = []
     for tbl in tables:
         h_lowers = [h.lower() for h in tbl.headers]
-        wave_idx = next(
-            (i for i, h in enumerate(h_lowers) if any(k in h for k in ("wave", "component", "phase"))),
-            None,
-        )
+        wave_idx = next((i for i, h in enumerate(h_lowers) if any(k in h for k in ("wave", "component", "phase"))), None)
         desc_idx = next(
-            (
-                i
-                for i, h in enumerate(h_lowers)
-                if i != wave_idx and any(k in h for k in ("description", "scope", "objective", "summary", "details"))
-            ),
+            (i for i, h in enumerate(h_lowers) if i != wave_idx and any(k in h for k in ("description", "scope", "objective", "summary", "details"))),
             None,
         )
         status_idx = next(
-            (
-                i
-                for i, h in enumerate(h_lowers)
-                if i not in (wave_idx, desc_idx) and any(k in h for k in ("status", "state", "progress"))
-            ),
+            (i for i, h in enumerate(h_lowers) if i not in (wave_idx, desc_idx) and any(k in h for k in ("status", "state", "progress"))),
             None,
         )
-
-        missing: List[str] = []
-        if wave_idx is None:
-            missing.append("Wave/Component")
-        if desc_idx is None:
-            missing.append("Description/Scope")
-        if status_idx is None:
-            missing.append("Status")
-
+        missing = [
+            name
+            for idx_val, name in ((wave_idx, "Wave/Component"), (desc_idx, "Description/Scope"), (status_idx, "Status"))
+            if idx_val is None
+        ]
         if not missing:
             return tbl, {"wave_idx": wave_idx, "desc_idx": desc_idx, "status_idx": status_idx}, candidate_diagnostics
-        elif len(missing) < 3 and (wave_idx is not None or status_idx is not None):
+        if len(missing) < 3 and (wave_idx is not None or status_idx is not None):
             candidate_diagnostics.append((tbl, missing))
-
     return None, None, candidate_diagnostics
 
 
-class WaveSection:
-    """Represents a parsed wave block within an implementation plan."""
-
-    def __init__(self, number: int, title: str, start_line: int, header_level: int = 2, shard_suffix: str = ""):
-        self.number = number
-        self.shard_suffix = (shard_suffix or "").upper()
-        self.wave_id = f"{number}{self.shard_suffix}"
-        self.title = title
-        self.start_line = start_line
-        self.header_level = header_level
-        self.lines: List[Tuple[int, str]] = []  # (line_number, line_text)
-        self.has_objective = False
-        self.has_milestones = False
-        self.has_criteria = False
-        self.has_receipt_gate = False
-        self.deliverable_items: List[str] = []
-
-    def analyze(self) -> None:
-        """Inspect contents of the wave block for required governance sections."""
-        current_sub: Optional[str] = None
-        for line_no, line in self.lines:
-            stripped = line.strip()
-            if not stripped:
-                continue
-
-            if RE_OBJECTIVE.search(stripped):
-                self.has_objective = True
-                current_sub = "objective"
-                continue
-            elif RE_MILESTONES.search(stripped):
-                self.has_milestones = True
-                current_sub = "milestones"
-                continue
-            elif RE_CRITERIA.search(stripped):
-                self.has_criteria = True
-                current_sub = "criteria"
-                continue
-            elif RE_RECEIPT_GATE.search(stripped):
-                self.has_receipt_gate = True
-                current_sub = "receipt"
-                continue
-            elif stripped.startswith("### ") or stripped.startswith("## "):
-                current_sub = "other"
-                continue
-
-            item_match = RE_ITEM.match(stripped)
-            if item_match:
-                content = item_match.group(1).strip()
-                if current_sub == "milestones":
-                    self.deliverable_items.append(content)
-                elif current_sub is None and any(
-                    k in content.lower() for k in ("deliverable", "milestone", "[new]", "[modify]", "[delete]")
-                ):
-                    self.deliverable_items.append(content)
-
-
-def _validate_wave_subsections(waves: List[WaveSection], filename: str, errors: List[str]) -> None:
-    for w in waves:
-        w.analyze()
-        prefix = f"{filename}: Line {w.start_line} (Wave {w.number})"
-
-        if not w.has_objective:
-            errors.append(
-                f"{prefix}: Missing required 'Objective & Scope' section "
-                f"(expected '### Objective & Scope' or '**Objective & Scope**')."
-            )
-
-        if not w.has_milestones:
-            errors.append(
-                f"{prefix}: Missing required 'Milestones & Deliverables' section "
-                f"(expected '### Milestones & Deliverables' or '**Milestones**')."
-            )
-        elif not w.deliverable_items:
-            errors.append(
-                f"{prefix}: 'Milestones & Deliverables' must contain at least one itemized output or target file."
-            )
-
-        if not w.has_criteria:
-            errors.append(
-                f"{prefix}: Missing required 'Acceptance Criteria' section "
-                f"(expected '### Acceptance Criteria' or '**Acceptance Criteria**')."
-            )
-
-        if not w.has_receipt_gate:
-            errors.append(
-                f"{prefix}: Missing required 'Runtime Receipt & Completion Gate' section "
-                f"(expected '### Runtime Receipt & Completion Gate', '### Exit Gate', or '**Runtime Receipt**')."
-            )
-
-
-def validate_plan_content(
-    content: str,
-    filename: str = "plan.md",
-    repo_root: Optional[Path | bool] = None,
-    strict: bool = True,
-) -> Tuple[bool, List[str]]:
-    """Validate markdown implementation plan text against wave-based governance schema.
-
-    Returns:
-        (is_compliant: bool, errors: list[str])
-    """
-    if isinstance(repo_root, bool):
-        strict = repo_root
-        actual_repo_root = None
-    else:
-        actual_repo_root = repo_root
-
-    errors: List[str] = []
-    lines = content.splitlines()
-
-    # 1. Document Title Verification
-    has_title = False
-    for line in lines:
-        if line.startswith("# ") and line[2:].strip():
-            has_title = True
-            break
-    if not has_title:
-        errors.append(f"{filename}: Missing required top-level title ('# <Plan Title>').")
-
-    # 2. Extract Wave Sections
-    waves: List[WaveSection] = []
-    current_wave: Optional[WaveSection] = None
-
-    for idx, raw_line in enumerate(lines, start=1):
-        stripped = raw_line.strip()
-        wave_match = RE_WAVE_HEADER.match(stripped)
-        if wave_match:
-            hashes = wave_match.group(1)
-            wave_num = int(wave_match.group(2))
-            wave_sfx = (wave_match.group(3) or "").upper()
-            wave_title = (wave_match.group(4) or "").strip()
-            current_wave = WaveSection(wave_num, wave_title, idx, header_level=len(hashes), shard_suffix=wave_sfx)
-            waves.append(current_wave)
-            continue
-
-        if current_wave is not None and stripped.startswith("#"):
-            # Check if this heading closes the current wave
-            heading_hashes = len(stripped) - len(stripped.lstrip("#"))
-            if heading_hashes <= current_wave.header_level:
-                current_wave = None
-
-        if current_wave is not None:
-            current_wave.lines.append((idx, raw_line))
-
-    if not waves:
-        errors.append(
-            f"{filename}: Implementation plan must be wave-based. Found 0 wave sections ('## Wave <N>'). "
-            "Flat or unstructured plans are strictly prohibited."
-        )
-        return False, errors
-
-    # 3. Validate Sequential or Fork-Join Sharded Wave Numbering & Depends On DAG
-    errors.extend(validate_wave_dag_sequence(waves, filename))
-
-    # 4. Validate Required Subsections and Deliverables per Wave
-    _validate_wave_subsections(waves, filename, errors)
-    if strict:
-        errors.extend(validate_execution_evidence(content, waves, filename))
-    else:
-        _, manifest_errs = strip_and_validate_shard_manifests(content, filename)
-        errors.extend(manifest_errs)
-
-    # 5. Status Table Validation (Optional)
-    # Plans without status tables pass unconditionally. If an implementation status table is provided,
-    # validate that rows have valid status tokens and declared waves are present.
+def _validate_optional_status_table(lines: List[str], waves: Sequence[object], filename: str, errors: List[str]) -> None:
     tables = parse_markdown_tables(lines)
     status_table, col_indices, candidates = find_status_table(tables)
     if status_table is None and candidates:
@@ -352,40 +162,78 @@ def validate_plan_content(
     elif status_table is not None and col_indices is not None:
         wave_idx = col_indices["wave_idx"]
         status_idx = col_indices["status_idx"]
-
         if not status_table.rows:
             errors.append(f"{filename}: Line {status_table.start_line}: Implementation Status Table has no rows.")
-        else:
-            # Check valid status in each row
-            for row_line, cells in status_table.rows:
-                if status_idx >= len(cells):
-                    errors.append(f"{filename}: Line {row_line}: Implementation Status Table row missing Status cell.")
-                    continue
-                raw_status = cells[status_idx]
-                norm_status = normalize_status(raw_status)
-                if not norm_status:
-                    errors.append(
-                        f"{filename}: Line {row_line}: Invalid status '{raw_status}' in Implementation Status Table. "
-                        "Valid statuses are: COMPLETED, IN_PROGRESS, PENDING, OPEN, BLOCKED, NOT_STARTED, PLANNED."
-                    )
+            return
+        for row_line, cells in status_table.rows:
+            if status_idx >= len(cells):
+                errors.append(f"{filename}: Line {row_line}: Implementation Status Table row missing Status cell.")
+                continue
+            raw_status = cells[status_idx]
+            if not normalize_status(raw_status):
+                errors.append(
+                    f"{filename}: Line {row_line}: Invalid status '{raw_status}' in Implementation Status Table. "
+                    "Valid statuses are: COMPLETED, IN_PROGRESS, PENDING, OPEN, BLOCKED, NOT_STARTED, PLANNED."
+                )
+        for w in waves:
+            wid = getattr(w, "wave_id", getattr(w, "number", ""))
+            wnum = getattr(w, "number", wid)
+            wline = getattr(w, "start_line", 1)
+            wave_pattern = re.compile(rf"\b(?:wave\s+)?(?:{wid}|{wnum})\b", re.IGNORECASE)
+            if not any(
+                wave_pattern.search(cells[wave_idx] if wave_idx < len(cells) else "") or wave_pattern.search(" ".join(cells))
+                for _, cells in status_table.rows
+            ):
+                errors.append(
+                    f"{filename}: Wave {wid} (declared at line {wline}) is missing from the Implementation Status Table."
+                )
 
-            # Check that all declared waves are represented in the status table
-            for w in waves:
-                wave_pattern = re.compile(rf"\b(?:wave\s+)?(?:{w.wave_id}|{w.number})\b", re.IGNORECASE)
-                matched = False
-                for _, cells in status_table.rows:
-                    wave_cell = cells[wave_idx] if wave_idx < len(cells) else ""
-                    if wave_pattern.search(wave_cell) or wave_pattern.search(" ".join(cells)):
-                        matched = True
-                        break
-                if not matched:
-                    errors.append(
-                        f"{filename}: Wave {w.wave_id} (declared at line {w.start_line}) is missing from the "
-                        "Implementation Status Table."
-                    )
 
-    # 6. Model Provider Registry Conformance
-    is_model_valid, unapproved_tokens, _ = validate_model_token_registry(content, repo_root=actual_repo_root or ROOT)
+def validate_plan_content(
+    content: str,
+    filename: str = "plan.md",
+    repo_root: Optional[Path | bool] = None,
+    strict: bool = True,
+) -> Tuple[bool, List[str]]:
+    """Validate markdown implementation plan text via core-governance wave_plan_validator + agents extensions."""
+    if isinstance(repo_root, bool):
+        strict = repo_root
+        actual_repo_root: Optional[Path] = None
+    else:
+        actual_repo_root = repo_root
+
+    effective_root = (actual_repo_root or ROOT).resolve()
+    backend = _load_backend()
+    prof = backend.load_repo_plan_profile(effective_root)
+
+    stripped_content, manifest_errs = strip_and_validate_shard_manifests(content, filename)
+    _ok, core_errs = backend.validate_plan_content(
+        stripped_content,
+        filename=filename,
+        strict=strict,
+        require_objective=bool(prof.get("require_objective", True)),
+        allow_sharded=bool(prof.get("allow_sharded", True)),
+        max_waves=int(prof.get("max_waves", 0)),
+        base_max_words=int(prof.get("base_max_words", MAX_PLAN_WORDS)),
+        max_scaled_words=int(prof.get("max_scaled_words", 3500)),
+    )
+    errors: List[str] = [
+        e.replace("must contain at least one itemized deliverable.", "must contain at least one itemized output or target file.")
+        for e in core_errs
+    ]
+    waves = backend.extract_waves(stripped_content)
+    if not waves:
+        return False, errors
+
+    errors.extend(manifest_errs)
+    if strict:
+        errors.extend(validate_holistic_pipeline_alignment(content, waves, filename))
+    else:
+        _ = validate_wave_dag_sequence
+
+    _validate_optional_status_table(content.splitlines(), waves, filename, errors)
+
+    is_model_valid, unapproved_tokens, _ = validate_model_token_registry(content, repo_root=effective_root)
     if not is_model_valid:
         for tok in unapproved_tokens:
             errors.append(
@@ -403,7 +251,9 @@ def validate_file(
     strict: bool = True,
 ) -> Tuple[bool, List[str]]:
     """Validate a single implementation plan file on disk."""
-    exemptions = legacy_exemptions or DEFAULT_LEGACY_EXEMPTIONS
+    effective_root = (repo_root or ROOT).resolve()
+    prof = _load_backend().load_repo_plan_profile(effective_root)
+    exemptions = set(legacy_exemptions or DEFAULT_LEGACY_EXEMPTIONS) | set(prof.get("legacy_exemptions", ()))
     if path.name in exemptions:
         return True, [f"[EXEMPT] Skipped legacy plan: {path.name}"]
 
@@ -412,10 +262,10 @@ def validate_file(
 
     try:
         content = path.read_text(encoding="utf-8")
-    except Exception as exc:
+    except OSError as exc:
         return False, [f"Failed reading {path}: {exc}"]
 
-    return validate_plan_content(content, filename=str(path.name), repo_root=repo_root or ROOT, strict=strict)
+    return validate_plan_content(content, filename=str(path.name), repo_root=effective_root, strict=strict)
 
 
 def extract_wave_summary_entries(content: str) -> Tuple[List[dict], List[str]]:
@@ -428,11 +278,9 @@ def extract_wave_summary_entries(content: str) -> Tuple[List[dict], List[str]]:
         for line in lines:
             m = RE_WAVE_HEADER.match(line.strip())
             if m:
-                w_num = f"Wave {m.group(2)}{(m.group(3) or '').upper()}"
-                w_title = (m.group(4) or "").strip()
                 waves.append({
-                    "wave": w_num,
-                    "description": w_title,
+                    "wave": f"Wave {m.group(2)}{(m.group(3) or '').upper()}",
+                    "description": (m.group(4) or "").strip(),
                     "status": "OPEN",
                     "check_open": "[ ] OPEN",
                     "is_checked": False,
@@ -442,95 +290,54 @@ def extract_wave_summary_entries(content: str) -> Tuple[List[dict], List[str]]:
     wave_idx = col_indices["wave_idx"]
     desc_idx = col_indices["desc_idx"]
     status_idx = col_indices["status_idx"]
-
     entries: List[dict] = []
     for line_no, cells in status_table.rows:
         wave_cell = cells[wave_idx] if wave_idx < len(cells) else f"Row {line_no}"
         desc_cell = cells[desc_idx] if desc_idx < len(cells) else ""
         raw_status = cells[status_idx] if status_idx < len(cells) else "UNKNOWN"
         norm_status = normalize_status(raw_status) or raw_status.strip()
-
         is_checked = norm_status.upper() in ("COMPLETED", "COMPLETE", "DONE")
-        check_open = "[x] CHECK" if is_checked else "[ ] OPEN"
-
         m = re.match(r"^(Wave\s+\d+)", wave_cell, re.IGNORECASE)
-        wave_num = m.group(1).title() if m else wave_cell.strip()
-
         entries.append({
-            "wave": wave_num,
+            "wave": m.group(1).title() if m else wave_cell.strip(),
             "wave_full": wave_cell.strip(),
             "description": desc_cell.strip(),
             "status": norm_status,
-            "check_open": check_open,
+            "check_open": "[x] CHECK" if is_checked else "[ ] OPEN",
             "is_checked": is_checked,
         })
     return entries, []
 
 
 def render_wave_summary_table(plan_name: str, entries: List[dict]) -> str:
-    """Render mandatory wave summary table confirming wave number, description, and check/open status."""
+    """Render wave summary table confirming wave number, description, and check/open status."""
     if not entries:
         return f"No wave summary entries found for {plan_name}."
-
     headers = ["Wave #", "Description / Scope", "Status", "Check/Open"]
-    rows = []
-    for e in entries:
-        desc = e["description"]
-        if len(desc) > 65:
-            desc = desc[:62] + "..."
-        rows.append([e["wave"], desc, e["status"], e["check_open"]])
-
-    col_widths = [len(h) for h in headers]
-    for r in rows:
-        for i, val in enumerate(r):
-            col_widths[i] = max(col_widths[i], len(val))
-
+    rows = [[e["wave"], e["description"][:62] + "..." if len(e["description"]) > 65 else e["description"], e["status"], e["check_open"]] for e in entries]
+    col_widths = [max([len(headers[i]), *(len(r[i]) for r in rows)]) for i in range(len(headers))]
     sep = "+-" + "-+-".join("-" * w for w in col_widths) + "-+"
     header_str = "| " + " | ".join(h.ljust(col_widths[i]) for i, h in enumerate(headers)) + " |"
-
-    lines = [
-        f"\n================================================================================",
-        f"  MANDATORY WAVE SUMMARY TABLE: {plan_name}",
-        f"================================================================================",
-        sep,
-        header_str,
-        sep,
-    ]
-    for r in rows:
-        row_str = "| " + " | ".join(r[i].ljust(col_widths[i]) for i in range(len(headers))) + " |"
-        lines.append(row_str)
-    lines.append(sep)
-    return "\n".join(lines)
+    out = ["\n" + "=" * 80, f"  MANDATORY WAVE SUMMARY TABLE: {plan_name}", "=" * 80, sep, header_str, sep]
+    out.extend("| " + " | ".join(r[i].ljust(col_widths[i]) for i in range(len(headers))) + " |" for r in rows)
+    out.append(sep)
+    return "\n".join(out)
 
 
 def render_markdown_wave_summary_table(plan_name: str, entries: List[dict]) -> str:
-    """Render mandatory wave summary table in standard GitHub-flavored Markdown for chat responses."""
+    """Render wave summary table in standard GitHub-flavored Markdown."""
     if not entries:
         return f"No wave summary entries found for {plan_name}."
-
-    lines = [
-        f"### Wave Summary Table: {plan_name}",
-        "",
-        "| Wave # | Description / Scope | Status | Check/Open |",
-        "| :--- | :--- | :--- | :--- |",
-    ]
+    lines = [f"### Wave Summary Table: {plan_name}", "", "| Wave # | Description / Scope | Status | Check/Open |", "| :--- | :--- | :--- | :--- |"]
     for e in entries:
-        desc = e["description"].replace("|", "\\|")
-        lines.append(f"| {e['wave']} | {desc} | {e['status']} | {e['check_open']} |")
+        lines.append(f"| {e['wave']} | {e['description'].replace('|', '\\|')} | {e['status']} | {e['check_open']} |")
     lines.append("")
     return "\n".join(lines)
 
 
 def _resolve_common_repo_root(root: Path) -> Path:
     try:
-        res = subprocess.run(
-            ["git", "rev-parse", "--git-common-dir"],
-            cwd=root,
-            capture_output=True,
-            text=True,
-            check=False,
-            timeout=5,
-        )
+        res = subprocess.run(["git", "rev-parse", "--git-common-dir"], cwd=root, capture_output=True, text=True, check=False, timeout=5)
         raw = res.stdout.strip()
         if res.returncode == 0 and raw:
             common_git = Path(raw) if Path(raw).is_absolute() else (root / raw).resolve()
@@ -555,104 +362,56 @@ def get_active_plan_file(repo_root: Optional[Path] = None) -> Optional[Path]:
     """Discover the active implementation plan file on disk, prioritizing workspace and IDE artifacts."""
     root = (repo_root or ROOT).resolve()
     common_root = _resolve_common_repo_root(root)
-
     explicit_plan = os.environ.get("AGY_PLAN_FILE")
     if explicit_plan and Path(explicit_plan).is_file():
         return Path(explicit_plan).resolve()
-
-    # 1. Check explicit environment variables
     for env_var in ("ANTIGRAVITY_ARTIFACTS_DIR", "ARTIFACT_DIRECTORY_PATH"):
         val = os.environ.get(env_var)
-        if val:
-            cand = Path(val) / "implementation_plan.md"
-            if cand.is_file():
-                return cand
-
-    # 2. Check workspace repo root implementation_plan.md
-    imp_plan = root / "implementation_plan.md"
-    if imp_plan.is_file():
-        return imp_plan
-
-    # 3. Check Antigravity IDE conversation-specific brain artifacts directories
+        if val and (Path(val) / "implementation_plan.md").is_file():
+            return Path(val) / "implementation_plan.md"
+    if (root / "implementation_plan.md").is_file():
+        return root / "implementation_plan.md"
     conv_id = os.environ.get("ANTIGRAVITY_CONVERSATION_ID")
     app_data = os.environ.get("ANTIGRAVITY_APP_DATA_DIR")
-    brain_dirs = [
-        *(
-            [Path(app_data) / "brain"]
-            if app_data
-            else []
-        ),
-        Path.home() / ".gemini" / "antigravity" / "brain",
-        Path.home() / ".gemini" / "antigravity-ide" / "brain",
-    ]
+    brain_dirs = [*([Path(app_data) / "brain"] if app_data else []), Path.home() / ".gemini" / "antigravity" / "brain", Path.home() / ".gemini" / "antigravity-ide" / "brain"]
     if conv_id:
         for bdir in brain_dirs:
-            if bdir.is_dir():
-                conv_plan = bdir / conv_id / "implementation_plan.md"
-                if conv_plan.is_file():
-                    return conv_plan
-
-    # 4. Check recent brain plans when no conversation ID is bound
-    if not conv_id:
+            if (bdir / conv_id / "implementation_plan.md").is_file():
+                return bdir / conv_id / "implementation_plan.md"
+    else:
         for bdir in brain_dirs:
             if not bdir.is_dir():
                 continue
-            recent_brain_plans = sorted(
-                bdir.glob("*/implementation_plan.md"),
-                key=lambda p: p.stat().st_mtime,
-                reverse=True,
-            )
-            for cand in recent_brain_plans:
+            for cand in sorted(bdir.glob("*/implementation_plan.md"), key=lambda p: p.stat().st_mtime, reverse=True):
                 try:
                     content = cand.read_text(encoding="utf-8")
-                    git_dir_matches = re.findall(r"/Users/[^/\s]+/Git/([^/\s\"'\`\)]+)", content)
-                    if git_dir_matches and not any(m in (root.name, common_root.name) for m in git_dir_matches):
+                    git_matches = re.findall(r"/Git/([^/\s\"'\`\)]+)", content)
+                    if git_matches and not any(m in (root.name, common_root.name) for m in git_matches):
                         continue
                     for base_root in (root, common_root):
-                        recent_plans = sorted(
-                            [p for p in get_governed_plan_files(base_root) if _has_wave_header(p)],
-                            key=lambda p: p.stat().st_mtime,
-                            reverse=True,
-                        )
-                        if recent_plans and recent_plans[0].stat().st_mtime > cand.stat().st_mtime:
-                            return recent_plans[0]
+                        recent = sorted([p for p in get_governed_plan_files(base_root) if _has_wave_header(p)], key=lambda p: p.stat().st_mtime, reverse=True)
+                        if recent and recent[0].stat().st_mtime > cand.stat().st_mtime:
+                            return recent[0]
                     return cand
                 except (OSError, ValueError):
                     continue
-
-    # 5. Fall back to governed plans/ files (ignoring untracked gitignored legacy/scratch files)
     for base_root in (root, common_root):
-        recent_plans = sorted(
-            [p for p in get_governed_plan_files(base_root) if _has_wave_header(p)],
-            key=lambda p: p.stat().st_mtime,
-            reverse=True,
-        )
-        if recent_plans:
-            return recent_plans[0]
+        recent = sorted([p for p in get_governed_plan_files(base_root) if _has_wave_header(p)], key=lambda p: p.stat().st_mtime, reverse=True)
+        if recent:
+            return recent[0]
     return None
 
 
 def get_governed_plan_files(repo_root: Path) -> List[Path]:
-    """Return tracked or staged plans under plans/ (falling back to wave-headed files only when none are tracked)."""
+    """Return tracked or staged plans under plans/."""
     plans_dir = repo_root / "plans"
     if not plans_dir.is_dir():
         return []
     if (repo_root / ".git").exists():
         try:
-            res = subprocess.run(
-                ["git", "ls-files", "plans"],
-                cwd=repo_root,
-                capture_output=True,
-                text=True,
-                check=False,
-                timeout=10,
-            )
+            res = subprocess.run(["git", "ls-files", "plans"], cwd=repo_root, capture_output=True, text=True, check=False, timeout=10)
             if res.returncode == 0:
-                tracked = {
-                    (repo_root / ln.strip())
-                    for ln in res.stdout.splitlines()
-                    if ln.strip().endswith(".md") and (repo_root / ln.strip()).is_file()
-                }
+                tracked = {(repo_root / ln.strip()) for ln in res.stdout.splitlines() if ln.strip().endswith(".md") and (repo_root / ln.strip()).is_file()}
                 for sp in get_staged_plan_files(repo_root):
                     if sp.parent.resolve() == plans_dir.resolve():
                         tracked.add(sp)
@@ -666,21 +425,11 @@ def get_governed_plan_files(repo_root: Path) -> List[Path]:
 def get_staged_plan_files(repo_root: Path) -> List[Path]:
     """Retrieve staged markdown files matching implementation plan naming patterns."""
     try:
-        res = subprocess.run(
-            ["git", "diff", "--cached", "--name-only", "--diff-filter=ACM"],
-            cwd=repo_root,
-            capture_output=True,
-            text=True,
-            check=True,
-            timeout=30,
-        )
+        res = subprocess.run(["git", "diff", "--cached", "--name-only", "--diff-filter=ACM"], cwd=repo_root, capture_output=True, text=True, check=True, timeout=30)
         staged: List[Path] = []
         for line in res.stdout.splitlines():
             clean = line.strip()
-            if not clean.endswith(".md"):
-                continue
-            lower = clean.lower()
-            if "implementation_plan" in lower or (clean.startswith("plans/") and lower.endswith(".md")):
+            if clean.endswith(".md") and ("implementation_plan" in clean.lower() or clean.startswith("plans/")):
                 full_path = repo_root / clean
                 if full_path.is_file():
                     staged.append(full_path)
@@ -690,45 +439,24 @@ def get_staged_plan_files(repo_root: Path) -> List[Path]:
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
-    parser = argparse.ArgumentParser(
-        description="Validate wave-based implementation plans against repository governance invariants."
-    )
+    parser = argparse.ArgumentParser(description="Validate wave-based implementation plans against repository governance invariants.")
     parser.add_argument("--file", type=Path, help="Path to a specific implementation plan file to validate.")
-    parser.add_argument(
-        "--staged",
-        action="store_true",
-        help="Validate any implementation plan files currently staged in git.",
-    )
-    parser.add_argument(
-        "--all-plans",
-        action="store_true",
-        help="Validate all active plans under plans/.",
-    )
-    parser.add_argument(
-        "--repository-root",
-        type=Path,
-        default=ROOT,
-        help="Repository root directory.",
-    )
-    parser.add_argument(
-        "--markdown",
-        action="store_true",
-        help="Render wave summary table in standard Markdown format for chat responses.",
-    )
+    parser.add_argument("--staged", action="store_true", help="Validate any implementation plan files currently staged in git.")
+    parser.add_argument("--all-plans", action="store_true", help="Validate all active plans under plans/.")
+    parser.add_argument("--repository-root", type=Path, default=ROOT, help="Repository root directory.")
+    parser.add_argument("--markdown", action="store_true", help="Render wave summary table in standard Markdown format.")
     args = parser.parse_args(argv)
 
     root = args.repository_root.resolve()
     target_files: List[Path] = []
-
     if args.file:
         target_files.append(args.file if args.file.is_absolute() else root / args.file)
     elif args.staged:
         staged_files = get_staged_plan_files(root)
-        if staged_files:
-            target_files.extend(staged_files)
-        else:
+        if not staged_files:
             print("No implementation plan files currently staged.")
             return 0
+        target_files.extend(staged_files)
     elif args.all_plans:
         target_files.extend(get_governed_plan_files(root))
     else:
@@ -743,8 +471,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     all_passed = True
     for plan_file in target_files:
         passed, issues = validate_file(plan_file, repo_root=root)
-        prefix = "[PASS]" if passed else "[FAIL]"
-        print(f"{prefix} {plan_file.name}")
+        print(f"{'[PASS]' if passed else '[FAIL]'} {plan_file.name}")
         for err in issues:
             print(f"       - {err}" if not passed else f"       {err}")
         if not passed:
@@ -752,17 +479,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         try:
             entries, _ = extract_wave_summary_entries(plan_file.read_text(encoding="utf-8"))
             if entries:
-                if args.markdown:
-                    print(render_markdown_wave_summary_table(plan_file.name, entries))
-                else:
-                    print(render_wave_summary_table(plan_file.name, entries))
+                print(render_markdown_wave_summary_table(plan_file.name, entries) if args.markdown else render_wave_summary_table(plan_file.name, entries))
         except (OSError, ValueError, KeyError, TypeError):
             pass
-
     return 0 if all_passed else 1
 
 
 if __name__ == "__main__":
     sys.exit(main())
-
-

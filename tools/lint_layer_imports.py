@@ -1,21 +1,45 @@
 #!/usr/bin/env python3
-"""Deterministic layer import linter enforcing architectural layer boundaries and isolation.
-
-Governance Rules:
-    1. Production code cannot import from tests/, fixtures/, archives/, or docs/.
-    2. Testing frameworks (pytest, unittest.mock) must not be imported in production code.
-    3. Cross-layer violations require explicit guardian exemption:
-       `# guardian: allow-layer-violation -- <specific justification>`
-"""
+"""Deterministic layer import linter delegating to core-governance with standalone CI fallback."""
 
 from __future__ import annotations
 
 import argparse
 import ast
-import re
-import sys
+import importlib.util
+import os
 from pathlib import Path
+import sys
+from types import ModuleType
 from typing import Sequence
+
+_ROOT = Path(__file__).resolve().parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
+_PLUGIN_FILE = Path.home() / ".gemini" / "config" / "plugins" / "core-governance" / "mcp" / "boundary_naming_linters.py"
+_CACHED_PLUGIN_MOD: ModuleType | None = None
+
+
+def _load_backend() -> ModuleType:
+    """Resolve core-governance boundary_naming_linters unless standalone mode is forced or plugin is absent."""
+    global _CACHED_PLUGIN_MOD
+    if os.environ.get("CORE_GOVERNANCE_FORCE_STANDALONE") != "1" and _PLUGIN_FILE.is_file():
+        if _CACHED_PLUGIN_MOD is None:
+            mod_name = "_core_governance_boundary_naming_linters"
+            spec = importlib.util.spec_from_file_location(mod_name, _PLUGIN_FILE)
+            if spec is not None and spec.loader is not None:
+                mod = importlib.util.module_from_spec(spec)
+                sys.modules[mod_name] = mod
+                spec.loader.exec_module(mod)
+                _CACHED_PLUGIN_MOD = mod
+        if _CACHED_PLUGIN_MOD is not None:
+            return _CACHED_PLUGIN_MOD
+    from tools import _standalone_boundary_naming
+
+    return _standalone_boundary_naming
+
+
+_BACKEND = _load_backend()
 
 PRODUCTION_DIRECTORIES: tuple[str, ...] = (
     "scripts",
@@ -41,20 +65,8 @@ NON_PRODUCTION_DIRECTORIES: tuple[str, ...] = (
     ".venv",
 )
 
-FORBIDDEN_IMPORT_PREFIXES: tuple[str, ...] = (
-    "tests",
-    "fixtures",
-    "archive",
-    "archives",
-    "docs",
-    "pytest",
-    "unittest.mock",
-)
-
-GUARDIAN_PATTERN = re.compile(
-    r"#\s*guardian:\s*allow-layer-violation\s*--\s*(.+)",
-    re.IGNORECASE,
-)
+FORBIDDEN_IMPORT_PREFIXES: tuple[str, ...] = _BACKEND.DEFAULT_FORBIDDEN_IMPORTS
+GUARDIAN_PATTERN = _BACKEND.LAYER_GUARDIAN_RE
 
 
 def is_production_path(path: Path | str, repo_root: Path) -> bool:
@@ -65,20 +77,14 @@ def is_production_path(path: Path | str, repo_root: Path) -> bool:
     except ValueError:
         return False
 
-    # Exclude non-production paths explicitly
     for non_prod in NON_PRODUCTION_DIRECTORIES:
         if rel == non_prod or rel.startswith(f"{non_prod}/") or f"/{non_prod}/" in rel:
             return False
 
-    # Skip files with test_ in name
     if "/tests/" in rel or rel.endswith("_test.py") or Path(rel).name.startswith("test_"):
         return False
 
-    for prod in PRODUCTION_DIRECTORIES:
-        if rel == prod or rel.startswith(f"{prod}/"):
-            return True
-
-    return False
+    return any(rel == prod or rel.startswith(f"{prod}/") for prod in PRODUCTION_DIRECTORIES)
 
 
 def check_file_layer_imports(
@@ -87,48 +93,18 @@ def check_file_layer_imports(
     tree: ast.AST | None = None,
     lines: list[str] | None = None,
 ) -> list[tuple[int, str, str]]:
-    """Inspect Python file AST for layer boundary violations.
-
-    Returns:
-        List of (line_number, imported_module, reason)
-    """
-    if not file_path.exists() or not is_production_path(file_path, repo_root):
-        return []
-
-    if lines is None:
-        lines = file_path.read_text(encoding="utf-8", errors="replace").splitlines()
-    violations: list[tuple[int, str, str]] = []
-
-    if tree is None:
-        try:
-            tree = ast.parse("\n".join(lines), filename=str(file_path))
-        except SyntaxError:
-            return []
-
-    for node in ast.walk(tree):
-        imported_names = []
-        if isinstance(node, ast.Import):
-            for alias in node.names:
-                imported_names.append((alias.name, node.lineno))
-        elif isinstance(node, ast.ImportFrom) and node.module:
-            imported_names.append((node.module, node.lineno))
-
-        for name, lineno in imported_names:
-            first_part = name.split(".")[0]
-            if first_part in FORBIDDEN_IMPORT_PREFIXES or any(name.startswith(f"{p}.") for p in FORBIDDEN_IMPORT_PREFIXES):
-                # Check line for guardian exemption
-                line_content = lines[lineno - 1] if 1 <= lineno <= len(lines) else ""
-                if GUARDIAN_PATTERN.search(line_content):
-                    continue
-                violations.append(
-                    (
-                        lineno,
-                        name,
-                        f"Forbidden production import '{name}' (cannot import tests/fixtures/archives/pytest in production)",
-                    )
-                )
-
-    return violations
+    """Inspect Python file AST for layer boundary violations via core-governance or standalone fallback."""
+    return list(
+        _load_backend().check_forbidden_production_imports(
+            file_path,
+            repo_root,
+            production_dirs=PRODUCTION_DIRECTORIES,
+            non_production_dirs=NON_PRODUCTION_DIRECTORIES,
+            forbidden_prefixes=FORBIDDEN_IMPORT_PREFIXES,
+            tree=tree,
+            lines=lines,
+        )
+    )
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -153,18 +129,17 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     for f in files_to_check:
         if f.suffix == ".py":
-            v = check_file_layer_imports(f, repo_root)
-            for lineno, mod, msg in v:
+            for lineno, mod, msg in check_file_layer_imports(f, repo_root):
                 rel = str(f.relative_to(repo_root)) if f.is_relative_to(repo_root) else str(f)
                 all_violations.append((rel, lineno, mod, msg))
 
     if all_violations:
         print(f"[FAIL] Layer import violations found ({len(all_violations)} violations):", file=sys.stderr)
-        for rel, lineno, mod, msg in all_violations:
+        for rel, lineno, _mod, msg in all_violations:
             print(f"  - {rel}:{lineno}: {msg}", file=sys.stderr)
         return 1
 
-    print(f"[PASS] Layer imports clean (no illegal cross-layer or test/fixture imports in production).")
+    print("[PASS] Layer imports clean (no illegal cross-layer or test/fixture imports in production).")
     return 0
 
 

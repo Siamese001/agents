@@ -1,23 +1,47 @@
 #!/usr/bin/env python3
-"""Deterministic model-neutral naming and path linter.
-
-Governance Rules:
-1. Production code must not contain hardcoded proprietary model IDs
-   (e.g., 'gpt-4', 'claude-3-5-sonnet', 'gemini-1.5-pro', 'gpt-5.6-luna')
-   outside of canonical configuration SSOT and catalog files.
-2. File paths and filenames across reports, plans, docs, and production paths
-   must not embed LLM model tags, provider names, or reasoning tier tags.
-   Model identity belongs exclusively in JSON metadata fields or execution scratchpads.
-"""
+"""Deterministic model-neutral naming and literal linter delegating to core-governance with standalone fallback."""
 
 from __future__ import annotations
 
 import argparse
 import ast
+import importlib.util
+import json
+import os
+from pathlib import Path
 import re
 import sys
-from pathlib import Path
+from types import ModuleType
 from typing import Sequence
+
+_ROOT = Path(__file__).resolve().parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
+_PLUGIN_FILE = Path.home() / ".gemini" / "config" / "plugins" / "core-governance" / "mcp" / "boundary_naming_linters.py"
+_CACHED_PLUGIN_MOD: ModuleType | None = None
+
+
+def _load_backend() -> ModuleType:
+    """Resolve core-governance boundary_naming_linters unless standalone mode is forced or plugin is absent."""
+    global _CACHED_PLUGIN_MOD
+    if os.environ.get("CORE_GOVERNANCE_FORCE_STANDALONE") != "1" and _PLUGIN_FILE.is_file():
+        if _CACHED_PLUGIN_MOD is None:
+            mod_name = "_core_governance_boundary_naming_linters"
+            spec = importlib.util.spec_from_file_location(mod_name, _PLUGIN_FILE)
+            if spec is not None and spec.loader is not None:
+                mod = importlib.util.module_from_spec(spec)
+                sys.modules[mod_name] = mod
+                spec.loader.exec_module(mod)
+                _CACHED_PLUGIN_MOD = mod
+        if _CACHED_PLUGIN_MOD is not None:
+            return _CACHED_PLUGIN_MOD
+    from tools import _standalone_boundary_naming
+
+    return _standalone_boundary_naming
+
+
+_BACKEND = _load_backend()
 
 PRODUCTION_DIRECTORIES: tuple[str, ...] = (
     "scripts",
@@ -47,23 +71,9 @@ CANONICAL_MODEL_CATALOG_FILES: tuple[str, ...] = (
     "core_model_catalog.py",
 )
 
-MODEL_PATTERN = re.compile(
-    r"(?:gpt-[0-9a-z_.-]+|claude-[0-9a-z_.-]+|gemini-[0-9a-z_.-]+|\bo[134]-[0-9a-z_.-]+|text-embedding-[0-9a-z_.-]+|BAAI/[0-9a-z_.-]+|qwen[0-9a-z_.-]*|llama[0-9a-z_.-]*|mistral[0-9a-z_.-]*)",
-    re.IGNORECASE,
-)
-
-PROHIBITED_TOKEN_PATTERNS = [
-    re.compile(r"(?i)\bgpt[0-9_\-a-z]*\b"),
-    re.compile(r"(?i)\bastra\b"),
-    re.compile(r"(?i)\bluna\b"),
-    re.compile(r"(?i)\bterra\b"),
-    re.compile(r"(?i)\bsol(?:_medium|_high|-medium|-high)?\b"),
-    re.compile(r"(?i)\bclaude[0-9_\-a-z]*\b"),
-    re.compile(r"(?i)\bgemini[0-9_\-a-z]*\b"),
-    re.compile(r"(?i)\bllama[0-9_\-a-z]*\b"),
-    re.compile(r"(?i)\b(?:sonnet|haiku|opus)\b"),
-    re.compile(r"\b(?:o1|o3)(?:-[a-z0-9]+)?\b"),
-]
+MODEL_PATTERN = _BACKEND.AST_MODEL_LITERAL_RE
+PROHIBITED_TOKEN_PATTERNS = list(_BACKEND.PROHIBITED_PATH_MODEL_PATTERNS)
+GUARDIAN_PATTERN = _BACKEND.MODEL_GUARDIAN_RE
 
 EXEMPT_PATH_PATTERNS = [
     re.compile(r"^\.git/"),
@@ -79,58 +89,22 @@ EXEMPT_PATH_PATTERNS = [
     re.compile(r"^scratch/"),
 ]
 
-# Legacy/exempted single-file modules that may be refactored into submodule packages;
-# child submodules inherit the parent exemption when their own subpath is model-neutral.
 EXEMPT_PACKAGE_PREFIX_PATTERNS = [
     r"^tools/run_luna_[^/]+",
     r"^infrastructure/sdks_mcps/gemini_client",
     r"^resume_graph_engine/src/apps_rg/runtime/judges/bullet_pool_claude_selector",
 ]
 
-GUARDIAN_PATTERN = re.compile(
-    r"#\s*(?:guardian|ssot):\s*(?:allow-(?:model-literal|model-id|model)\s*--\s*.+|exempt\s*\(\s*HARDCODED_MODEL_LITERAL\s*\))",
-    re.IGNORECASE,
-)
-
-
-def _find_prohibited_token_violations(subpath: str, display_rel: str) -> list[str]:
-    tokens = [t for t in re.split(r"[/\\._\-]+", subpath) if t]
-    violations: list[str] = []
-    for pattern in PROHIBITED_TOKEN_PATTERNS:
-        for token in tokens:
-            if pattern.fullmatch(token) or pattern.search(token):
-                violations.append(
-                    f"Path '{display_rel}' contains prohibited model identifier '{token}' matching '{pattern.pattern}'."
-                )
-                break
-    return violations
-
 
 def is_path_exempt(rel_path: str) -> bool:
     """Check if the given relative path is exempt from model-naming constraints."""
-    normalized = rel_path.replace("\\", "/")
-    for pattern in EXEMPT_PATH_PATTERNS:
-        if pattern.search(normalized):
-            return True
-    for prefix_pat in EXEMPT_PACKAGE_PREFIX_PATTERNS:
-        if re.search(f"{prefix_pat}(?:\\.py)?$", normalized):
-            return True
-        match = re.match(f"{prefix_pat}/(.+)$", normalized)
-        if match and not _find_prohibited_token_violations(match.group(1), normalized):
-            return True
-    return False
-
-
-def _is_canonical_model_catalog_path(file_path: Path, repo_root: Path) -> bool:
-    """Return True for canonical model catalog files or extracted catalog submodule packages."""
-    if any(file_path.name == b or file_path.name.endswith(b) for b in CANONICAL_MODEL_CATALOG_FILES):
-        return True
-    catalog_stems = {Path(b).stem for b in CANONICAL_MODEL_CATALOG_FILES}
-    try:
-        rel_parts = file_path.resolve().relative_to(repo_root.resolve()).parts[:-1]
-    except ValueError:
-        rel_parts = file_path.parts[:-1]
-    return any(part in catalog_stems for part in rel_parts)
+    return bool(
+        _load_backend().is_model_path_exempt(
+            rel_path,
+            exempt_patterns=EXEMPT_PATH_PATTERNS,
+            exempt_package_prefixes=EXEMPT_PACKAGE_PREFIX_PATTERNS,
+        )
+    )
 
 
 def check_path_model_neutrality(
@@ -144,11 +118,12 @@ def check_path_model_neutrality(
         rel = str(path).replace("\\", "/")
         rel = re.sub(r"^.*?/\.gemini/(?:antigravity/brain/[^/]+|config/plugins)/", "", rel)
 
-    rel = re.sub(r"^(?:.*/)?\.worktrees/[^/]+/", "", rel)
-    if is_path_exempt(rel):
-        return []
-
-    return _find_prohibited_token_violations(rel, rel)
+    hits = _load_backend().scan_path_for_model_tokens(
+        rel,
+        exempt_patterns=EXEMPT_PATH_PATTERNS,
+        exempt_package_prefixes=EXEMPT_PACKAGE_PREFIX_PATTERNS,
+    )
+    return [v.detail for v in hits]
 
 
 def is_production_file(path: Path, repo_root: Path) -> bool:
@@ -157,15 +132,10 @@ def is_production_file(path: Path, repo_root: Path) -> bool:
     except ValueError:
         return False
 
-    for exc in EXCLUDED_DIRECTORIES:
-        if exc in rel.split("/"):
-            return False
+    if any(exc in rel.split("/") for exc in EXCLUDED_DIRECTORIES):
+        return False
 
-    for prod in PRODUCTION_DIRECTORIES:
-        if rel == prod or rel.startswith(f"{prod}/"):
-            return True
-
-    return False
+    return any(rel == prod or rel.startswith(f"{prod}/") for prod in PRODUCTION_DIRECTORIES)
 
 
 def check_file_model_neutrality(
@@ -175,58 +145,22 @@ def check_file_model_neutrality(
     lines: list[str] | None = None,
 ) -> list[tuple[int, str, str]]:
     """Scan a Python file for hardcoded model literals and filename branding."""
-    if not file_path.exists() or not is_production_file(file_path, repo_root):
-        return []
-
-    violations: list[tuple[int, str, str]] = []
-
-    # 1. Check path naming for production files
-    path_issues = check_path_model_neutrality(file_path, repo_root)
-    for issue in path_issues:
-        violations.append((1, file_path.name, issue))
-
-    # 2. Skip hardcoded model-ID literal scanning inside canonical model catalog files/packages
-    if _is_canonical_model_catalog_path(file_path, repo_root):
-        return violations
-
-    if lines is None:
-        lines = file_path.read_text(encoding="utf-8", errors="replace").splitlines()
-
-    if tree is None:
-        try:
-            tree = ast.parse("\n".join(lines), filename=str(file_path))
-        except SyntaxError:
-            return violations
-
-    docstring_ids = set()
-    for node in ast.walk(tree):
-        if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
-            if node.body and isinstance(node.body[0], ast.Expr) and isinstance(node.body[0].value, ast.Constant):
-                docstring_ids.add(id(node.body[0].value))
-
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Constant) and isinstance(node.value, str):
-            if id(node) in docstring_ids:
-                continue
-            val = node.value.strip()
-            match = MODEL_PATTERN.search(val)
-            if match:
-                line_idx = node.lineno - 1
-                line_str = lines[line_idx] if line_idx < len(lines) else ""
-                guardian_match = GUARDIAN_PATTERN.search(line_str)
-                if not guardian_match:
-                    violations.append((
-                        node.lineno,
-                        match.group(0),
-                        f"Hardcoded model literal '{match.group(0)}' found in '{val}'. Model IDs must be resolved via model_capabilities/env_bootstrap.",
-                    ))
-
-    return violations
+    return list(
+        _load_backend().check_file_model_neutrality(
+            file_path,
+            repo_root,
+            production_dirs=PRODUCTION_DIRECTORIES,
+            excluded_dirs=EXCLUDED_DIRECTORIES,
+            exempt_patterns=EXEMPT_PATH_PATTERNS,
+            exempt_package_prefixes=EXEMPT_PACKAGE_PREFIX_PATTERNS,
+            catalog_files=CANONICAL_MODEL_CATALOG_FILES,
+            tree=tree,
+            lines=lines,
+        )
+    )
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    import json
-
     parser = argparse.ArgumentParser(description="Deterministic model-neutral naming linter.")
     parser.add_argument("--files", nargs="*", help="Specific files to check")
     parser.add_argument("--all", action="store_true", help="Scan all production Python files")
@@ -250,8 +184,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 files_to_check.extend(d.rglob("*.py"))
 
     for f in files_to_check:
-        v = check_file_model_neutrality(f, repo_root)
-        for lineno, val, msg in v:
+        for lineno, val, msg in check_file_model_neutrality(f, repo_root):
             rel = str(f.relative_to(repo_root)) if f.is_relative_to(repo_root) else str(f)
             violations.append((rel, lineno, val, msg))
 
@@ -261,7 +194,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             baseline_path = repo_root / baseline_path
         baseline_path.parent.mkdir(parents=True, exist_ok=True)
         file_counts: dict[str, int] = {}
-        for rel, lineno, val, msg in violations:
+        for rel, *_ in violations:
             file_counts[rel] = file_counts.get(rel, 0) + 1
         payload = {
             "version": 1,
@@ -276,40 +209,19 @@ def main(argv: Sequence[str] | None = None) -> int:
         baseline_path = Path(args.baseline)
         if not baseline_path.is_absolute():
             baseline_path = repo_root / baseline_path
-        if not baseline_path.is_file():
-            print(f"[FAIL] Baseline file not found: {baseline_path}", file=sys.stderr)
-            return 1
-        baseline_data = json.loads(baseline_path.read_text(encoding="utf-8"))
-        baseline_counts: dict[str, int] = baseline_data.get("file_counts", {})
-        baseline_total: int = baseline_data.get("total_violations", 0)
-
-        current_counts: dict[str, int] = {}
-        for rel, lineno, val, msg in violations:
-            current_counts[rel] = current_counts.get(rel, 0) + 1
-
-        regressions: list[str] = []
-        for rel, count in current_counts.items():
-            base_count = baseline_counts.get(rel, 0)
-            if base_count == 0:
-                regressions.append(f"New file introduced with model literals: {rel} ({count} violations)")
-            elif count > base_count:
-                regressions.append(f"Model literal count increased in {rel}: {count} > {base_count}")
-
-        if len(violations) > baseline_total:
-            regressions.append(f"Total model literal violations increased: {len(violations)} > {baseline_total}")
-
-        if regressions:
+        passed, regressions = _load_backend().evaluate_model_ratchet(violations, baseline_path)
+        if not passed:
             print(f"[FAIL] Model-neutral naming ratchet failure ({len(regressions)} regressions):", file=sys.stderr)
             for r in regressions:
                 print(f"  - {r}", file=sys.stderr)
             return 1
-
-        print(f"[PASS] Model-neutral naming ratchet passed: {len(violations)} violations <= baseline {baseline_total} across {len(current_counts)} files.")
+        cur_files = {rel for rel, *_ in violations}
+        print(f"[PASS] Model-neutral naming ratchet passed: {len(violations)} violations within baseline across {len(cur_files)} files.")
         return 0
 
     if violations:
         print(f"[FAIL] Model-neutral naming violations found ({len(violations)} violations):", file=sys.stderr)
-        for rel, lineno, val, msg in violations:
+        for rel, lineno, _val, msg in violations:
             print(f"  - {rel}:{lineno}: {msg}", file=sys.stderr)
         return 1
 

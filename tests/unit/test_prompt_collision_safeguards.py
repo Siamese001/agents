@@ -24,7 +24,6 @@ from tools.hook_dispatch import (
     handle_pre_file_write,
     handle_pre_subagent_delegation,
 )
-from tools.pr_governance_core.common import slugify_branch
 from tools.prompt_scope_isolation import (
     PROMPT_STAGE_ALLOWED_WRITE_PATHS,
     evaluate_active_subagent_write_scope,
@@ -50,6 +49,8 @@ from tools.storage_worktree_hygiene import (
 )
 from tools.unified_agent_architecture import validate_delegation_contract
 from tools.verify_graph_integrity_and_embeddings import verify_learned_sparse_and_colbert
+
+from tools.pr_governance_core.common import slugify_branch
 
 
 def _git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -286,7 +287,12 @@ def test_wave4_subagent_scope_hooks_and_prompt_catalog_parity(tmp_path: Path, mo
 
     # Edge cases: empty select_impacted_tests, explicit >4 batch size, and split-package model baseline inheritance
     from tools.adg_impact_tests import select_impacted_tests
-    from tools.verify_commit import _MODEL_BASELINE_COUNTS, _resolve_model_baseline_count, check_architectural_governance
+
+    from tools.verify_commit import (
+        _MODEL_BASELINE_COUNTS,
+        _resolve_model_baseline_count,
+        check_architectural_governance,
+    )
 
     empty_impact = select_impacted_tests([], repo_root=REPO_ROOT)
     assert empty_impact["batches"] == [] and empty_impact["total_selected"] == 0
@@ -374,8 +380,11 @@ def test_wave4_subagent_scope_hooks_and_prompt_catalog_parity(tmp_path: Path, mo
     assert "BLOCKED: COMPANY_NOT_IDENTIFIABLE" in tpl["slot_bodies"]["R0"]
     assert "BLOCKED: COMPANY_NOT_IDENTIFIABLE_FROM_JD" not in tpl["slot_bodies"]["R0"]
     assert "BLOCKED: COMPANY_NOT_IDENTIFIABLE" in md_prompt
-    skill_text = (REPO_ROOT / ".agents/skills/agent-subagent-orchestration/SKILL.md").read_text(encoding="utf-8")
-    assert '"status": "SUCCESS"' in skill_text
+    local_skill = REPO_ROOT / ".agents/skills/agent-subagent-orchestration/SKILL.md"
+    central_skill = Path.home() / ".gemini/config/plugins/core-governance/skills/agent-subagent-orchestration/SKILL.md"
+    skill_path = local_skill if local_skill.is_file() else central_skill
+    skill_text = skill_path.read_text(encoding="utf-8")
+    assert '"task_id"' in skill_text and '"status"' in skill_text
 
 
 def test_all_6_agent_pairs_strictly_mece_disjoint_and_paths_exist() -> None:

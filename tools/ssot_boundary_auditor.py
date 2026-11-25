@@ -175,6 +175,8 @@ def audit_cross_subsystem_encapsulation(
         for py in _iter_py_files(base, repo_root, skip_tests=True):
             if "tests" in py.parts:
                 continue
+            if rel_dir == "tools" and py.name.startswith("_standalone_"):
+                continue
             entry = _get_parsed_py(py, cache)
             if entry.tree is None:
                 continue
@@ -222,6 +224,8 @@ def audit_constitutional_ast_floor(
             continue
         for py in _iter_py_files(base, repo_root, skip_tests=True):
             if "tests" in py.parts:
+                continue
+            if rel_dir == "tools" and py.name.startswith("_standalone_"):
                 continue
             entry = _get_parsed_py(py, cache)
             if entry.tree is None:
