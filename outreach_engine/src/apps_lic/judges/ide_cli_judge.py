@@ -137,7 +137,7 @@ def resolve_lic_judge_transport(
         elif config_path is not None:
             val = str(_judging_cfg(config_path).get("transport") or "deterministic").strip().lower()
         else:
-            in_pytest = bool(os.environ.get("PYTEST_CURRENT_TEST") or "pytest" in sys.modules)
+            in_pytest = bool(env.get("PYTEST_CURRENT_TEST") or "pytest" in sys.modules)
             cli_var = str(_judging_cfg(None).get("cli_env_var") or AGY_CLI_ENV_VAR)
             cli_bin = str(env.get(cli_var) or "").strip()
             if not in_pytest or (cli_bin and ide_cli_ready(cli_bin)[0]):

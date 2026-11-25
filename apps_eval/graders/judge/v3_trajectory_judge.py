@@ -147,7 +147,9 @@ def run_trajectory_ide_cli_judge(
         return preflight, build_skipped_v3_scorecard(
             bundle=bundle, profile=profile, rubric_sha256=reg.rubric_sha256, preflight_receipt=preflight
         )
-    env = os.environ if environ is None else environ
+    from infrastructure.config.env_loader import snapshot_process_env
+
+    env = snapshot_process_env() if environ is None else environ
     bin_path = str(agy_bin or env.get(AGY_CLI_ENV_VAR) or "")
     ok, _ = ide_cli_ready(bin_path or None)
     if not ok:

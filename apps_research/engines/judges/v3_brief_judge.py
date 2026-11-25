@@ -143,7 +143,9 @@ def run_research_brief_ide_cli_judge(
             rubric_sha256=reg.rubric_sha256,
             preflight_receipt=preflight,
         )
-    env = os.environ if environ is None else environ
+    from infrastructure.config.env_loader import snapshot_process_env
+
+    env = snapshot_process_env() if environ is None else environ
     bin_path = str(agy_bin or env.get(AGY_CLI_ENV_VAR) or "")
     ok, _why = ide_cli_ready(bin_path or None)
     if not ok:

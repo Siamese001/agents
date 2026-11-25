@@ -55,8 +55,8 @@ def resolve_live_git_sha(repo_root: Path | None = None) -> str:
         cand = proc.stdout.strip()
         if proc.returncode == 0 and len(cand) == 40 and all(c in "0123456789abcdefABCDEF" for c in cand):
             sha = cand.lower()
-    except (OSError, subprocess.SubprocessError):
-        pass
+    except (OSError, subprocess.SubprocessError) as exc:  # guardian: allow-silent-swallow -- fallback to zero SHA in non-git sandboxes
+        logger.debug("Unable to resolve live git SHA from %s: %s", base, exc)
     with _PROVENANCE_LOCK:
         prev_cfg = _PROVENANCE_CACHE.get(key, (_ZERO_SHA40, _ZERO_SHA64))[1]
         _PROVENANCE_CACHE[key] = (sha, prev_cfg)

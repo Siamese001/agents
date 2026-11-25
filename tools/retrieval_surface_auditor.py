@@ -158,8 +158,9 @@ def _probe_graph_and_embeddings(repo_root: Path, *, read_only: bool = True) -> d
                 gaps.append(f"outreach_engine C0 solve_sequence_allocation failed: {lic_plan.uniqueness_receipt}")
 
             rg_root = (repo_root / "resume_graph_engine") if (repo_root / "resume_graph_engine").is_dir() else repo_root
-            sel_db = Path(td) / "c03_selection_probe.sqlite"
-            ensure_c03_graph_sqlite(rg_root, sel_db)
+            sel_db = active_db if active_db.is_file() else (Path(td) / "c03_selection_probe.sqlite")
+            if not sel_db.is_file():
+                ensure_c03_graph_sqlite(rg_root, sel_db)
             c03_sel = select_c03_sqlite_graph_candidates(
                 section_id="executive_summary", selected_fact_ids=["fact_engineering_platform_001"],
                 role_family_key="SVP_ENGINEERING_AI_PLATFORM", pillar_hints=["pillar_agentic_runtime_governance"],
@@ -167,6 +168,10 @@ def _probe_graph_and_embeddings(repo_root: Path, *, read_only: bool = True) -> d
             )
             if not c03_sel.get("selected_candidates"):
                 gaps.append("select_c03_sqlite_graph_candidates returned 0 selected_candidates for executive_summary")
+            try:
+                graph_mod.verify_graph_promotion_and_bundle_hygiene(repo_root)
+            except Exception as prom_exc:
+                gaps.append(f"verify_graph_promotion_and_bundle_hygiene failed: {prom_exc}")
             import sqlite3
             with sqlite3.connect(f"file:{active_db.as_posix()}?mode=ro" if read_only else str(active_db), uri=read_only) as conn:
                 blank_emp = conn.execute(
@@ -184,6 +189,22 @@ def _probe_graph_and_embeddings(repo_root: Path, *, read_only: bool = True) -> d
                 ).fetchone()[0]
                 if orphan_rf > 0:
                     gaps.append(f"augmented_skills_graph.sqlite has {orphan_rf} orphaned role_family nodes")
+                dup_entities = conn.execute(
+                    "SELECT n1.node_type, LOWER(TRIM(n1.label)), COUNT(DISTINCT n1.node_id) + 1 "
+                    "FROM graph_nodes n1 "
+                    "JOIN graph_nodes n2 ON n1.node_id < n2.node_id "
+                    "AND n1.node_type = n2.node_type "
+                    "AND LOWER(TRIM(n1.label)) = LOWER(TRIM(n2.label)) "
+                    "WHERE n1.node_type IN ('skill', 'capability_domain', 'role_family') "
+                    "AND COALESCE(TRIM(n1.label), '') != '' "
+                    "AND (n1.node_type IN ('capability_domain', 'role_family') "
+                    "OR COALESCE(TRIM(n1.source_refs_json), '[]') = COALESCE(TRIM(n2.source_refs_json), '[]') "
+                    "OR COALESCE(TRIM(n1.source_refs_json), '[]') = '[]' "
+                    "OR COALESCE(TRIM(n2.source_refs_json), '[]') = '[]') "
+                    "GROUP BY n1.node_type, LOWER(TRIM(n1.label))"
+                ).fetchall()
+                if dup_entities:
+                    gaps.append(f"augmented_skills_graph.sqlite has {len(dup_entities)} duplicate entity label clusters: {dup_entities[:5]}")
             fv_fts = rg_root / "data/cache/sparse/fact_vectors.db"
             if fv_fts.is_file():
                 with sqlite3.connect(f"file:{fv_fts.as_posix()}?mode=ro" if read_only else str(fv_fts), uri=read_only) as fconn:
