@@ -708,6 +708,7 @@ def handle_pre_file_write(payload: Dict[str, Any], repo_root: Path) -> int:
 _POST_INVOCATION_INTERCEPT_MARKERS = (
     "[HITL GOVERNANCE INTERCEPT", "[LAYMAN ZERO-JARGON GOVERNANCE INTERCEPT",
     "[OUTPUT BREVITY GOVERNANCE INTERCEPT", "[AUTONOMOUS LEARN INTERCEPT",
+    "[CLOSEOUT PROMINENCE INTERCEPT",
 )
 
 
@@ -819,6 +820,22 @@ def handle_post_invocation(payload: Dict[str, Any], repo_root: Path) -> int:
         _ = validate_word_budget_gate(candidate_text, max_words=max_words, max_chars=max_chars)
     except Exception:  # guardian: allow-silent-swallow -- non-blocking telemetry evaluation
         pass
+
+    # Centralized Wave, Merge-to-Main & Worktree Deletion Green-Check Closeout Gate (INV-WAVE-MERGE-WORKTREE-CLOSEOUT-TABLE)
+    _core_mcp = Path.home() / ".gemini" / "config" / "plugins" / "core-governance" / "mcp"
+    if (_core_mcp / "closeout_checkmark_contract.py").is_file():
+        if str(_core_mcp) not in sys.path:
+            sys.path.insert(0, str(_core_mcp))
+        try:
+            from closeout_checkmark_contract import evaluate_post_invocation_closeout_gate
+
+            effective_steps = list(steps) if steps else [{"type": "PLANNER_RESPONSE", "source": "MODEL", "content": candidate_text}]
+            closeout_res = evaluate_post_invocation_closeout_gate(effective_steps)
+            if closeout_res is not None:
+                print(json.dumps(closeout_res))
+                return 0
+        except Exception:  # guardian: allow-silent-swallow -- fail open if core-governance helper cannot load
+            pass
 
     decisive_res = validate_decisive_recommendation_gate(candidate_text)
     if decisive_res["status"] != "PASS" and disjunctive_retries < 1:

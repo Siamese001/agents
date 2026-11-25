@@ -343,4 +343,13 @@ policies:
     enforcer: "tools/audit_governance_harmonization.py"
     rule_reference: ".agents/rules/conformance-map.md"
 
+  - id: "INV-WAVE-MERGE-WORKTREE-CLOSEOUT-TABLE"
+    title: "Centralized Top-Table Wave, Merge-to-Main & Worktree Deletion Green-Check Contract"
+    category: "ai_sdlc"
+    threshold: 0
+    unit: "violations"
+    description: "Requires top-positioned 3-column green-checkmark tables (Plan, Learning, Wave 1..N, Merge to Main, and Worktree Deletion) delegated to core-governance mcp/closeout_checkmark_contract.py via tools/hook_dispatch.py."
+    enforcer: "tools/hook_dispatch.py"
+    rule_reference: ".agents/rules/wave-progression.md"
+
 
