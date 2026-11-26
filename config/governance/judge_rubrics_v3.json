@@ -18,7 +18,7 @@
   ],
   "external_rubric_ref": "config/governance/external_judge_rubric_v2.json",
   "rubric_id": "judge_rubrics_v3",
-  "rubric_sha256": "0c5bd6e7ec455ee45427ffd498f2cc5116dc7e49f8dc8bcf498c740a8ad1e936",
+  "rubric_sha256": "1660d7fd80894f503ae859124273332228e419d79e3e258f0610e1490c728112",
   "schema_version": "3.1.0",
   "surface_aliases": {
     "agent_trajectory_governance": "agent_trace_and_calibration:agent_trajectory_governance",
@@ -44,6 +44,7 @@
     "resume_headline": "resume_sections:headline",
     "resume_role_narrative": "resume_sections:role_narrative",
     "resume_whole_coherence": "resume_whole_coherence:full_resume",
+    "resume_x1d_quorum": "resume_whole_coherence:full_resume",
     "role_episode": "resume_sections:role_narrative",
     "role_narrative": "resume_sections:role_narrative",
     "targeting_brief": "company_research_brief:targeting_brief_handoff",

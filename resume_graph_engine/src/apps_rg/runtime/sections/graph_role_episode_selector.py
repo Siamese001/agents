@@ -45,6 +45,7 @@ _BUNDLE_FILES: tuple[tuple[str, str], ...] = (
     ("ibm", "ibm_role_episode_bundles.json"),
     ("insurtech", "insurtech_role_episode_bundles.json"),
     ("ey", "ey_role_episode_bundles.json"),
+    ("early_career", "early_career_role_episode_bundles.json"),
 )
 
 _EMPLOYER_SECTION_LIMITS: dict[str, int] = {
@@ -56,8 +57,10 @@ _EMPLOYER_SECTION_LIMITS: dict[str, int] = {
     "ibm_narrative": 10,
     "insurtech_bullets": 12,
     "insurtech_narrative": 12,
-    "ey_bullets": 5,
-    "ey_narrative": 5,
+    "ey_bullets": 6,
+    "ey_narrative": 6,
+    "early_career_bullets": 6,
+    "early_career_narrative": 6,
 }
 
 _SHARED_SECTION_LIMITS: dict[str, int] = {
@@ -80,6 +83,8 @@ _SHARED_CROSS_EMPLOYER_ELIGIBILITY: tuple[str, ...] = (
     "insurtech_narrative",
     "ey_bullets",
     "ey_narrative",
+    "early_career_bullets",
+    "early_career_narrative",
 )
 _SHARED_SECTION_ELIGIBILITY = {
     "executive_summary": _SHARED_CROSS_EMPLOYER_ELIGIBILITY,
@@ -87,14 +92,10 @@ _SHARED_SECTION_ELIGIBILITY = {
     "competencies": _SHARED_CROSS_EMPLOYER_ELIGIBILITY,
 }
 
-_ROLE_EMPLOYER_WEIGHTS: dict[str, dict[str, float]] = {
-    "svp_agentic_engineering": {"slalom": 1.00, "unify": 0.90, "ibm": 0.65, "insurtech": 0.35, "ey": 0.20},
-    "executive_agentic_transformation": {"slalom": 1.00, "unify": 1.00, "ibm": 1.00, "ey": 0.90, "insurtech": 0.60},
-    "ai_partnerships_gtm": {"slalom": 1.00, "unify": 0.95, "ibm": 0.90, "insurtech": 0.35, "ey": 0.10},
-    "insurance_it_strategy": {"insurtech": 1.00, "unify": 0.80, "ey": 0.70, "slalom": 0.65, "ibm": 0.60},
-    "insurance_agentic_ai": {"slalom": 1.00, "unify": 0.95, "insurtech": 0.90, "ey": 0.75, "ibm": 0.65},
-    "balanced_enterprise_ai": {"slalom": 0.85, "unify": 0.75, "ibm": 0.70, "insurtech": 0.55, "ey": 0.45},
-}
+from apps_rg.runtime.c0.mandate_routing_engine import (
+    SELECTOR_EMPLOYER_WEIGHTS as _ROLE_EMPLOYER_WEIGHTS,
+    resolve_mandate_route,
+)
 
 # A role episode is always admitted by graph authority before it reaches this
 # selector.  These requirement ids therefore describe *targeting coverage*,
@@ -109,8 +110,11 @@ _CANONICAL_REQUIREMENT_PATTERNS: dict[str, tuple[str, ...]] = {
     "partner_gtm": ("partner gtm", "partner motion", "channel", "ecosystem", "partner-led"),
     "forward_deployed_execution": ("forward deployed", "forward deployment", "rapid prototyping", "prototype to production", "client delivery"),
     "engineering_org_leadership": ("105 software engineers", "engineering practice leadership", "build the fde team", "operating model"),
-    "regulated_ai_governance": ("model risk", "sr 11 7", "bcbs 239", "ccar", "regulated financial", "banking", "ai governance", "regulatory", "compliance"),
-    "insurance_core_modernization": ("insurance", "underwriting", "claims", "guidewire", "policy administration", "brokerage", "carrier"),
+    "regulated_ai_governance": ("model risk", "sr 11 7", "bcbs 239", "ccar", "regulated financial", "banking", "ai governance", "regulatory", "compliance", "basel"),
+    "insurance_core_modernization": ("insurance", "insurer", "insurtech", "underwriting", "claims", "guidewire", "policy administration", "brokerage", "carrier", "actuarial", "fsa", "reserving", "annuity"),
+    "actuarial_quant_hpc": ("actuarial", "fsa", "derivatives", "greeks", "stochastic", "hpc", "capital modeling", "ifrs 17", "solvency ii", "economic capital"),
+    "healthcare_biostat_data": ("healthcare", "payer", "health plan", "mlr", "medical loss ratio", "hipaa", "biostatistics", "clinical", "medicare", "medicaid"),
+    "commercial_pnl_value": ("p l", "ebitda", "margin expansion", "ip revenue", "private equity", "operating partner", "commercialization", "value creation"),
 }
 _PARTNER_ONLY_REQUIREMENT_IDS = frozenset({"partner_cosell", "hyperscaler_alliance", "si_enablement", "partner_gtm"})
 _COSELL_HEAVY_ROOT_IDS = frozenset({
@@ -146,6 +150,9 @@ _HEADLINE_FAMILIES_BY_PROFILE: dict[str, tuple[str, ...]] = {
     "ai_partnerships_gtm": ("svp_engineering_leadership", "partner_applied_ai_architecture", "platform_productization", "enterprise_ai_architecture"),
     "insurance_it_strategy": ("svp_engineering_leadership", "regulated_ai_systems", "enterprise_ai_architecture", "runtime_governance"),
     "insurance_agentic_ai": ("agentic_ai_platforms", "regulated_ai_systems", "runtime_governance", "enterprise_ai_architecture"),
+    "banking_model_risk_ai": ("regulated_ai_systems", "runtime_governance", "agentic_ai_platforms", "enterprise_ai_architecture"),
+    "healthcare_payer_data_ai": ("regulated_ai_systems", "enterprise_ai_architecture", "agentic_ai_platforms", "runtime_governance"),
+    "quant_risk_hpc": ("regulated_ai_systems", "distributed_ai_infrastructure", "enterprise_ai_architecture", "runtime_governance"),
     "balanced_enterprise_ai": ("svp_engineering_leadership", "enterprise_ai_architecture", "distributed_ai_infrastructure", "runtime_governance"),
 }
 
@@ -185,6 +192,36 @@ _COMPETENCY_FAMILIES_BY_PROFILE: dict[str, tuple[str, ...]] = {
         "runtime_governance",
     ),
     "insurance_agentic_ai": ("agentic_platforms", "insurance_domain_modernization", "runtime_governance", "retrieval_context_engineering", "llmops_reliability", "distributed_systems_engineering", "platform_productization", "engineering_leadership"),
+    "banking_model_risk_ai": (
+        "runtime_governance",
+        "data_governance_security",
+        "agentic_platforms",
+        "insurance_domain_modernization",
+        "cloud_hpc_modernization",
+        "distributed_systems_engineering",
+        "engineering_leadership",
+        "platform_productization",
+    ),
+    "healthcare_payer_data_ai": (
+        "data_governance_security",
+        "agentic_platforms",
+        "insurance_domain_modernization",
+        "runtime_governance",
+        "cloud_hpc_modernization",
+        "distributed_systems_engineering",
+        "engineering_leadership",
+        "platform_productization",
+    ),
+    "quant_risk_hpc": (
+        "cloud_hpc_modernization",
+        "insurance_domain_modernization",
+        "data_governance_security",
+        "distributed_systems_engineering",
+        "runtime_governance",
+        "agentic_platforms",
+        "engineering_leadership",
+        "platform_productization",
+    ),
     "balanced_enterprise_ai": (
         "distributed_systems_engineering",
         "runtime_governance",
@@ -201,13 +238,17 @@ _TARGET_TERMS = (
     "agentic", "graphrag", "multi agent", "llm", "runtime", "orchestration",
     "control plane", "ai", "aws", "gcp", "google cloud", "vertex ai",
     "model armor", "anthropic", "claude", "openai", "codex", "cloud",
-    "insurance", "brokerage", "policy", "underwriting", "claims", "guidewire",
+    "insurance", "insurer", "insurtech", "brokerage", "policy", "underwriting", "claims", "guidewire",
+    "actuarial", "actuary", "fsa", "reserving", "annuity", "solvency ii", "ifrs 17",
+    "derivatives", "greeks", "stochastic", "hpc", "capital modeling", "economic capital",
+    "healthcare", "payer", "health plan", "mlr", "medical loss ratio", "hipaa", "biostatistics", "clinical",
+    "private equity", "operating partner", "ebitda", "margin", "board", "value creation",
     "data", "platform", "gtm", "partnership", "alliance", "co sell",
     "modernization", "governance", "risk", "regulatory", "revenue",
     "engineering leadership", "architected", "directed", "engineered", "scaled",
     "compressed", "automated", "commercialized", "delivered",
     "forward deployed", "rapid prototyping", "prototype", "deployment",
-    "operating model", "model risk", "sr 11 7", "bcbs 239", "ccar", "banking",
+    "operating model", "model risk", "sr 11 7", "bcbs 239", "ccar", "basel", "banking",
     "financial services", "devsecops", "microservices", "105",
 )
 _WORD_RE = re.compile(r"[a-z0-9]+")
@@ -243,75 +284,11 @@ def _bundle_metric_nodes(doc: dict[str, Any]) -> dict[str, dict[str, Any]]:
 
 
 def _infer_target_role_profile(*, target_role: str, jd_text: str, briefing_text: str) -> str:
-    blob = f"{target_role}\n{jd_text}\n{briefing_text}".lower()
-    insurance_hits = sum(
-        token in blob
-        for token in (
-            "brown & brown",
-            "insurance brokerage",
-            "insurance",
-            "carrier",
-            "underwriting",
-            "claims",
-            "policy administration",
-            "guidewire",
-            "it strategy",
-            "enterprise architecture",
-            "innovation incubation",
-        )
-    )
-    if insurance_hits >= 3:
-        return "insurance_agentic_ai" if "agentic" in target_role.lower() else "insurance_it_strategy"
-    if "firmwide ai" in blob or ("ai strategy" in target_role.lower() and any(k in blob for k in ("banking", "institutional", "capital markets", "global bank"))):
-        return "balanced_enterprise_ai"
-    transformation_consulting_hits = sum(
-        token in blob
-        for token in (
-            "transformation",
-            "private equity",
-            "management consulting",
-            "consulting firm",
-            "advisory",
-            "operating model redesign",
-            "c-suite",
-            "steering committee",
-            "board-level",
-            "fortune 1000",
-            "agentic transformation",
-        )
-    )
-    if transformation_consulting_hits >= 3 or ("transformation" in target_role.lower() and "consulting" in blob):
-        return "executive_agentic_transformation"
-    role_lower = target_role.lower()
-    if any(k in role_lower for k in ("forward deployed", "forward-deployed", "deployed engineering")) and not any(
-        k in role_lower for k in ("partner", "alliance", "gtm", "co-sell", "cosell")
-    ):
-        return "svp_agentic_engineering"
-    gtm_hits = sum(
-        token in blob
-        for token in (
-            "partnerships", "partner ecosystem", "channel partner", "partner-led",
-            "alliance", "gtm", "go-to-market", "co-sell", "cosell",
-            "hyperscaler", "aws partner", "revenue", "quota",
-        )
-    )
-    agentic_hits = sum(
-        token in blob
-        for token in (
-            "agentic", "multi-agent", "graphrag", "llm", "runtime",
-            "orchestration", "control plane", "svp engineering",
-            "forward deployed", "forward-deployed", "deployed engineering",
-            "rapid prototyping", "prototype to production", "ai platform",
-            "model risk", "sr 11-7",
-        )
-    )
-    if gtm_hits >= 3 and gtm_hits >= agentic_hits:
-        return "ai_partnerships_gtm"
-    if agentic_hits >= 2:
-        return "svp_agentic_engineering"
-    if gtm_hits >= 2:
-        return "ai_partnerships_gtm"
-    return "balanced_enterprise_ai"
+    return resolve_mandate_route(
+        target_role=target_role,
+        jd_text=jd_text,
+        briefing_text=briefing_text,
+    ).selector_profile
 
 
 def _weight_band(weight: float) -> str:
@@ -949,9 +926,11 @@ def build_selected_graph_evidence_plan_for_section(
         raise ValueError(f"selected graph evidence plan produced empty traversal for {section_id!r}")
 
     # Pass 2: target relevance is computed only for authority-passing evidence.
-    target_role_profile = _infer_target_role_profile(
+    mandate_route = resolve_mandate_route(
         target_role=target_role, jd_text=jd_text, briefing_text=briefing_text
     )
+    target_role_profile = mandate_route.selector_profile
+    canonical_projection_role = mandate_route.canonical_projection_role
     unify_slot_bundle_map: dict[str, str] = {}
     required_unify_root_ids: set[str] = set()
     ibm_slot_bundle_map: dict[str, str] = {}
@@ -962,7 +941,7 @@ def build_selected_graph_evidence_plan_for_section(
         )
 
         unify_slot_bundle_map = resolve_unify_bullet_slot_bundle_map_with_fallback(
-            target_role_profile,
+            canonical_projection_role,
             repo_root=repo_root,
         )
         required_unify_root_ids = {
@@ -976,7 +955,7 @@ def build_selected_graph_evidence_plan_for_section(
         )
 
         ibm_slot_bundle_map = resolve_ibm_bullet_slot_bundle_map_with_fallback(
-            target_role_profile,
+            canonical_projection_role,
             repo_root=repo_root,
         )
         required_ibm_root_ids = {
@@ -993,14 +972,13 @@ def build_selected_graph_evidence_plan_for_section(
         rid for rid in _canonical_requirement_ids(target_blob)
         if target_role_profile == "ai_partnerships_gtm" or has_explicit_cosell or rid not in _PARTNER_ONLY_REQUIREMENT_IDS
     )
-    fde_context = target_role_profile == "svp_agentic_engineering" and any(
-        k in target_blob.lower() for k in ("forward deployed", "forward-deployed", "sr 11-7", "model risk")
-    )
+    fde_context = mandate_route.fde_context
     briefing_signal_packet = {
         **extract_briefing_signal_packet(briefing_text),
-        "role_family_key": target_role_profile,
+        "role_family_key": canonical_projection_role,
+        "target_role_profile": target_role_profile,
     }
-    employer_weights = dict(_ROLE_EMPLOYER_WEIGHTS[target_role_profile])
+    employer_weights = dict(mandate_route.employer_weights)
     eligible_roots: list[dict[str, Any]] = []
     for root in prepared_roots:
         if not root["authority"]["authority_pass"]:
@@ -1040,8 +1018,13 @@ def build_selected_graph_evidence_plan_for_section(
             briefing_signal_packet=briefing_signal_packet,
         )
         bundle_id_str = str(root["bundle"].get("role_episode_bundle_id") or "")
-        if target_role_profile != "ai_partnerships_gtm" and not has_explicit_cosell and bundle_id_str in _COSELL_HEAVY_ROOT_IDS:
-            root_alignment = max(0.1, round(root_alignment - 1.5, 6))
+        if (
+            target_role_profile != "ai_partnerships_gtm"
+            and not has_explicit_cosell
+            and not mandate_route.requires_commercial_pairing
+            and bundle_id_str in _COSELL_HEAVY_ROOT_IDS
+        ):
+            root_alignment = max(0.1, round(root_alignment - 0.5, 6))
         elif fde_context and bundle_id_str in _FDE_CORE_ROOT_IDS:
             root_alignment = round(root_alignment + 1.25, 6)
         root["target_alignment_score"] = root_alignment
@@ -1633,7 +1616,11 @@ def build_selected_graph_evidence_plan_for_section(
         },
         "pretarget_authority_receipt": pretarget_authority_receipt,
         "target_role_profile": target_role_profile,
-        "role_family_key": target_role_profile,
+        "role_family_key": canonical_projection_role,
+        "canonical_projection_role": canonical_projection_role,
+        "mandate_route": mandate_route.as_dict(),
+        "credential_elevation_ids": list(mandate_route.credential_elevation_ids),
+        "slot_budget_profile": dict(mandate_route.slot_budget_profile),
         "unify_bullet_slot_bundle_map_resolved": unify_slot_bundle_map,
         "ibm_bullet_slot_bundle_map_resolved": ibm_slot_bundle_map,
         "graph_weight_profile": {

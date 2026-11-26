@@ -91,23 +91,33 @@ def run_role_episode_generation_stage(
     )
     parent_attr("write_json", write_json)(artifact_dir / "provider_request.json", provider_req.to_dict())
     generation_meta: dict[str, Any] = {}
-    if sid == "ey_bullets":
-        # Short-circuit EY bullets: 0 standalone bullets, no external provider call.
+    is_optional_zero_budget = (
+        sid in {"ey_bullets", "ey_narrative", "early_career_bullets", "early_career_narrative"}
+        and not facts
+    )
+    if is_optional_zero_budget and cfg.is_bullet_lane:
+        # Honest skip when the mandate router allocated zero slots (never stamp fake REAL_LLM).
         provider_result = ProviderResult(
             provider_requested=str(args.provider),
             provider_attempted=False,
             provider_available=True,
             exact_provider_error=None,
-            runtime_generation_status="REAL_LLM",
-            model="zero_bullet_consolidation",
+            runtime_generation_status="SKIPPED_BY_MANDATE_BUDGET",
+            model="zero_bullet_mandate_budget",
             raw_model_output=json.dumps({"bullets": [], "claim_ledger": [], "jd_alignment": {"targeting_only": True}}),
-            provider_response={"status": "zero_bullets_consolidated", "section_lane": sid},
+            provider_response={"status": "skipped_by_mandate_budget", "section_lane": sid},
         )
         parent_attr("write_json", write_json)(artifact_dir / "provider_response.json", provider_result.to_dict())
         raw_output = provider_result.raw_model_output
         parsed = {"bullets": [], "claim_ledger": [], "jd_alignment": {"targeting_only": True}}
         parse_error = ""
     elif cfg.is_bullet_lane and is_employment_bullet_lane(sid):
+        allocated_bullet_ids = tuple(
+            str(f.get("fact_id") or "").strip()
+            for f in (facts or [])
+            if isinstance(f, dict) and str(f.get("fact_id") or "").startswith(f"{cfg.bullet_prefix}_")
+        )
+        effective_required_ids = allocated_bullet_ids or REQUIRED_BULLET_IDS.get(sid, ())
         provider_result, raw_output, parsed, parse_error, generation_meta = (
             parent_attr("generate_bullet_lane_with_sc_and_claude", generate_bullet_lane_with_sc_and_claude)(
                 section_lane=sid,
@@ -123,7 +133,7 @@ def run_role_episode_generation_stage(
                 artifact_dir=artifact_dir,
                 run_id=run_id,
                 base_temperature=float(args.temperature),
-                required_bullet_ids=REQUIRED_BULLET_IDS.get(sid, ()),
+                required_bullet_ids=effective_required_ids,
                 targeting_context=build_employment_targeting_context(
                     runtime_payload,
                     section_lane=sid,
@@ -148,17 +158,17 @@ def run_role_episode_generation_stage(
                 "generation_meta": generation_meta,
             },
         )
-    elif sid == "ey_narrative":
-        # Short-circuit EY narrative: 0 standalone narrative sentences, no external provider call.
+    elif is_optional_zero_budget and not cfg.is_bullet_lane:
+        # Honest skip when the mandate router allocated zero narrative slots.
         provider_result = ProviderResult(
             provider_requested=str(args.provider),
             provider_attempted=False,
             provider_available=True,
             exact_provider_error=None,
-            runtime_generation_status="REAL_LLM",
-            model="zero_narrative_consolidation",
+            runtime_generation_status="SKIPPED_BY_MANDATE_BUDGET",
+            model="zero_narrative_mandate_budget",
             raw_model_output=json.dumps({"narrative_sentence": "", "claim_ledger": [], "jd_alignment": {"targeting_only": True}}),
-            provider_response={"status": "zero_narrative_consolidated", "section_lane": sid},
+            provider_response={"status": "skipped_by_mandate_budget", "section_lane": sid},
         )
         parent_attr("write_json", write_json)(artifact_dir / "provider_response.json", provider_result.to_dict())
         raw_output = provider_result.raw_model_output
@@ -229,11 +239,11 @@ def run_role_episode_generation_stage(
         l2["generation_receipt"] = dict(generation_receipt)
     else:
         model_surface_used = False
-        if sid == "ey_narrative":
+        if is_optional_zero_budget:
             narrative_from_model = False
             narrative = ""
             source_ids = []
-            narrative_selection_source = "zero_narrative_consolidation"
+            narrative_selection_source = "skipped_by_mandate_budget"
             narrative_source_repairs = []
             claim_ledger = []
         else:

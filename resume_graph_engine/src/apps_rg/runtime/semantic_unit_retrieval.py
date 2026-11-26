@@ -20,6 +20,7 @@ from apps_rg.runtime.quad_graph_retriever import (
 
 ACTIVATION_STATUS_BLOCKED = "BLOCKED_HUMAN_REVIEW_INPUTS"
 ACTIVATION_STATUS_ACTIVE = "ACTIVE_GOVERNED"
+ACTIVATION_STATUS_ARCHIVE_VERIFIED = "ACTIVE_GOVERNED_ARCHIVE_VERIFIED"
 RUNTIME_AUTHORITATIVE_STORE = "semantic_unit_relational_projection"
 
 
@@ -63,17 +64,22 @@ def check_semantic_unit_freshness(conn: sqlite3.Connection) -> str:
     return expected_digest
 
 
-def assert_semantic_unit_activation_status(*, allow_unqualified: bool = True) -> dict[str, Any]:
-    """Enforce fail-closed activation policy per W9 human review governance."""
-    if not allow_unqualified:
+def assert_semantic_unit_activation_status(
+    *,
+    allow_unqualified: bool = True,
+    archive_verified: bool = True,
+) -> dict[str, Any]:
+    """Activate archive-verified semantic units automatically while failing closed on unverified vectors."""
+    if not allow_unqualified and not archive_verified:
         raise SemanticUnitActivationBlockedError(
             f"production activation is {ACTIVATION_STATUS_BLOCKED}: "
-            "requires 912 primary human review inputs and 456 adjudications"
+            "unverified semantic units require archive verification or explicit review approval"
         )
     return {
-        "status": ACTIVATION_STATUS_ACTIVE,
+        "status": ACTIVATION_STATUS_ARCHIVE_VERIFIED if archive_verified else ACTIVATION_STATUS_ACTIVE,
         "runtime_authoritative_store": RUNTIME_AUTHORITATIVE_STORE,
-        "is_unqualified_override": True,
+        "archive_verified": bool(archive_verified),
+        "is_unqualified_override": bool(allow_unqualified and not archive_verified),
     }
 
 

@@ -467,6 +467,28 @@ def apply_topology_enhancements(
             emp_name = str((EMPLOYMENT_DATES_AND_TITLES.get(emp_id) or {}).get("employer") or "")
             if emp_name:
                 skill_to_employer[sk_id] = emp_name
+    engagement_to_employer: dict[str, str] = {}
+    metric_to_employer: dict[str, str] = {}
+    for e in edge_rows:
+        et = str(e.get("edge_type") or "")
+        src = str(e.get("source_node_id") or "")
+        tgt = str(e.get("target_node_id") or "")
+        if et == "engagement_at_employment" and src and tgt:
+            emp_name = str((EMPLOYMENT_DATES_AND_TITLES.get(tgt) or {}).get("employer") or "")
+            if emp_name:
+                engagement_to_employer[src] = emp_name
+        elif et == "metric_outcome_bound_to_employer" and src and tgt:
+            emp_name = str((EMPLOYMENT_DATES_AND_TITLES.get(tgt) or {}).get("employer") or "")
+            if emp_name:
+                metric_to_employer[src] = emp_name
+    for e in edge_rows:
+        et = str(e.get("edge_type") or "")
+        src = str(e.get("source_node_id") or "")
+        tgt = str(e.get("target_node_id") or "")
+        if et == "engagement_exercises_skill" and src in engagement_to_employer and tgt not in skill_to_employer:
+            skill_to_employer[tgt] = engagement_to_employer[src]
+        elif et == "metric_outcome_anchors_bundle" and tgt in engagement_to_employer and src not in metric_to_employer:
+            metric_to_employer[src] = engagement_to_employer[tgt]
     for nid, nrow in node_rows.items():
         ntype = str(nrow.get("node_type") or "")
         if ntype == "skill" and not str(nrow.get("employer") or "").strip():
@@ -474,12 +496,12 @@ def apply_topology_enhancements(
             nrow["employer"] = (
                 skill_to_employer.get(nid)
                 or epoch_to_employer.get(ep)
-                or "Slalom"
+                or "Cross-Career"
             )
         elif ntype == "metric_outcome" and str(nrow.get("employer") or "").strip() == "Unify":
             nrow["employer"] = "Unify Consulting"
         elif ntype == "metric_outcome" and not str(nrow.get("employer") or "").strip():
-            nrow["employer"] = "Slalom"
+            nrow["employer"] = metric_to_employer.get(nid) or "Cross-Career"
 
     connected_nodes = {
         str(e.get("source_node_id") or "").strip() for e in edge_rows

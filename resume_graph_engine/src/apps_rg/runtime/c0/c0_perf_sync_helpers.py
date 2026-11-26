@@ -348,22 +348,33 @@ def compute_career_band_filter(
     employer_weights = {
         str(k): float(v) for k, v in dict(((sec_plan.get("graph_weight_profile") or {}).get("employer_weights")) or {}).items()
     }
+    mandate_route = sec_plan.get("mandate_route") if isinstance(sec_plan.get("mandate_route"), dict) else {}
+    track_weights = mandate_route.get("track_weights") if isinstance(mandate_route.get("track_weights"), dict) else {}
+    actuarial_weight = float(track_weights.get("track_actuarial_risk_derivatives") or 0.0)
     is_shared_top_section = section_id in {"executive_summary", "headline", "competencies"}
+    # Adaptive three-era band: never lock out Track 1 (early_career/ey/insurtech) on domain-relevant
+    # mandates or in shared top sections where three-era positioning is required.
+    min_band_weight = 0.45 if actuarial_weight >= 0.20 else 0.50
     primary_secondary_roots = {
         r_id
         for r_id, bkt in grouped_section_buckets.items()
         for r_row in bkt["root"]
         if r_row.get("authority_pass") is True
         and (
-            float(employer_root_weights.get(r_id, employer_weights.get(str(r_row.get("employer_lane") or ""), 1.0))) >= 0.55
+            float(employer_root_weights.get(r_id, employer_weights.get(str(r_row.get("employer_lane") or ""), 1.0))) >= min_band_weight
             or (is_shared_top_section and str(r_row.get("employer_lane") or "") in {"slalom", "unify"})
+            or (
+                is_shared_top_section
+                and actuarial_weight >= 0.25
+                and str(r_row.get("employer_lane") or "") in {"early_career", "ey", "insurtech"}
+            )
         )
     }
     if section_id == "executive_summary":
         for r_id, bkt in grouped_section_buckets.items():
             if any(
                 r_row.get("authority_pass") is True
-                and float(employer_root_weights.get(r_id, employer_weights.get(str(r_row.get("employer_lane") or ""), 1.0))) >= 0.55
+                and float(employer_root_weights.get(r_id, employer_weights.get(str(r_row.get("employer_lane") or ""), 1.0))) >= min_band_weight
                 for r_row in bkt["root"]
             ) and any(m_row.get("authority_pass") is True for m_row in bkt.get("metric_outcome", ())):
                 primary_secondary_roots.add(r_id)
@@ -379,6 +390,7 @@ _ARCHETYPE_ROOT_BOOSTS: dict[str, tuple[tuple[str, ...], dict[str, float]]] = {
             "reb_unify_distributed_ecosystem_engineering": 1.8, "reb_unify_dependency_graph_accelerator": 1.7, "reb_unify_hyperscaler_joint_solution_architecture": 1.6, "reb_unify_production_adoption_lifecycle": 1.5,
             "reb_unify_runtime_reliability_governance": 1.4, "reb_unify_platform_commercialization_leadership": 1.3, "reb_ibm_aws_modernization_architecture": 1.8, "reb_ibm_cognitive_business_decision_support": 1.7,
             "reb_ibm_devsecops_release_resilience": 1.6, "reb_ibm_offering_accelerator_management": 1.5, "reb_ibm_aws_alliance_partner_cosell_gtm": 1.4, "reb_insurtech_aws_cloud_economics": 1.7, "reb_insurtech_public_vs_private_cloud_strategy": 1.6,
+            "reb_early_career_stochastic_capital_hpc": 1.5,
         },
     ),
     "ai_ml_platform": (
@@ -386,9 +398,10 @@ _ARCHETYPE_ROOT_BOOSTS: dict[str, tuple[tuple[str, ...], dict[str, float]]] = {
         {
             "reb_slalom_bitemporal_graphrag_uwg": 2.1, "reb_slalom_bi_temporal_knowledge_graph_hybrid_retrieval": 1.9, "reb_slalom_autonomous_agentic_sdlc_mcp": 1.9, "reb_slalom_live_copilot_acoustic_airgap": 1.8,
             "reb_slalom_dialectical_decision_bayesian_hitl": 1.7, "reb_slalom_ecosystem_accelerators": 1.6, "reb_unify_agentic_platform_architecture": 1.9, "reb_unify_runtime_reliability_governance": 1.8,
-            "reb_unify_regulated_enterprise_ai_governance": 1.7, "reb_unify_production_adoption_lifecycle": 1.6, "reb_unify_enterprise_adoption_revenue": 1.6, "reb_unify_partner_channel_cosell": 1.7,
-            "reb_unify_hyperscaler_joint_solution_architecture": 1.6, "reb_ibm_nlp_ml_decision_support": 1.8, "reb_ibm_data_modeling_bi_decision_support": 1.7, "reb_ibm_presales_solution_engineering": 1.6,
-            "reb_ibm_revenue_sales_target_execution": 1.4, "reb_insurtech_insurance_data_bi_decisioning": 1.7,
+            "reb_unify_regulated_enterprise_ai_governance": 1.7, "reb_unify_production_adoption_lifecycle": 1.6, "reb_unify_enterprise_adoption_revenue": 1.75, "reb_unify_platform_commercialization_leadership": 1.65,
+            "reb_unify_partner_channel_cosell": 1.7, "reb_unify_hyperscaler_joint_solution_architecture": 1.6, "reb_ibm_nlp_ml_decision_support": 1.8, "reb_ibm_data_modeling_bi_decision_support": 1.7,
+            "reb_ibm_presales_solution_engineering": 1.6, "reb_ibm_revenue_sales_target_execution": 1.4, "reb_insurtech_insurance_data_bi_decisioning": 1.7,
+            "reb_early_career_stochastic_capital_hpc": 1.5,
         },
     ),
     "ai_partnerships_gtm": (
@@ -396,15 +409,75 @@ _ARCHETYPE_ROOT_BOOSTS: dict[str, tuple[tuple[str, ...], dict[str, float]]] = {
         {
             "reb_slalom_ecosystem_accelerators": 2.1, "reb_slalom_nextgen_ai_solutions": 1.8, "reb_slalom_agentic_client_delivery": 1.7, "reb_slalom_governed_runtime_scaling": 1.6,
             "reb_unify_partner_channel_cosell": 2.1, "reb_unify_hyperscaler_joint_solution_architecture": 2.0, "reb_unify_enterprise_adoption_revenue": 1.9, "reb_unify_platform_commercialization_leadership": 1.8,
-            "reb_unify_agentic_platform_architecture": 1.7, "reb_ibm_aws_alliance_partner_cosell_gtm": 2.3, "reb_ibm_offering_accelerator_management": 2.1, "reb_ibm_presales_solution_engineering": 1.9, "reb_ibm_customer_success_value_realization": 1.75, "reb_ibm_revenue_sales_target_execution": 1.65,
+            "reb_unify_agentic_platform_architecture": 1.7, "reb_ibm_aws_alliance_partner_cosell_gtm": 2.4, "reb_ibm_offering_accelerator_management": 2.2, "reb_ibm_presales_solution_engineering": 2.1,
+            "reb_ibm_customer_success_value_realization": 2.0, "reb_ibm_revenue_sales_target_execution": 2.1,
         },
     ),
     "insurance_domain": (
-        ("insurance", "brokerage", "underwriting", "claims", "guidewire", "policy", "carrier", "modernization", "governance", "regulatory", "aws"),
+        ("insurance", "brokerage", "underwriting", "claims", "guidewire", "policy", "carrier", "modernization", "governance", "regulatory", "actuarial", "fsa", "reserving", "solvency", "aws"),
         {
-            "reb_insurtech_aws_guidewire_core_modernization": 2.0, "reb_insurtech_regulated_aws_control_implementation": 1.9, "reb_insurtech_aws_migration_execution": 1.9, "reb_insurtech_insurance_data_bi_decisioning": 1.8,
-            "reb_insurtech_aws_shared_responsibility_operating_model": 1.7, "reb_unify_regulated_enterprise_ai_governance": 2.2, "reb_unify_agentic_platform_architecture": 1.9, "reb_unify_distributed_ecosystem_engineering": 1.7,
-            "reb_ey_insurance_core_modernization": 1.8, "reb_ey_erm_risk_governance": 1.7, "reb_ibm_aws_modernization_architecture": 1.8, "reb_ibm_data_modeling_bi_decision_support": 1.7,
+            "reb_insurtech_aws_guidewire_core_modernization": 2.1, "reb_insurtech_regulated_aws_control_implementation": 2.0, "reb_insurtech_aws_migration_execution": 1.9,
+            "reb_insurtech_insurance_data_bi_decisioning": 1.9, "reb_insurtech_aws_shared_responsibility_operating_model": 1.7,
+            "reb_early_career_actuarial_pricing_reserving": 2.2, "reb_early_career_stochastic_capital_hpc": 1.9, "reb_early_career_derivatives_greeks_hedging": 1.8,
+            "reb_early_career_credentials_quantitative_pedigree": 2.0,
+            "reb_unify_regulated_enterprise_ai_governance": 2.2, "reb_unify_agentic_platform_architecture": 1.9, "reb_unify_distributed_ecosystem_engineering": 1.7,
+            "reb_ey_insurance_core_modernization": 2.1, "reb_ey_capital_optimization_solvency": 2.0, "reb_ey_erm_risk_governance": 1.8,
+            "reb_ibm_aws_modernization_architecture": 1.8, "reb_ibm_data_modeling_bi_decision_support": 1.7,
+        },
+    ),
+    "insurance_agentic_ai": (
+        ("insurance", "insurer", "underwriting", "claims", "actuarial", "fsa", "reserving", "policy", "agentic", "llm", "guidewire", "solvency", "capital", "pricing", "hpc"),
+        {
+            "reb_early_career_actuarial_pricing_reserving": 2.4, "reb_early_career_stochastic_capital_hpc": 2.1, "reb_early_career_derivatives_greeks_hedging": 1.9,
+            "reb_early_career_credentials_quantitative_pedigree": 2.2,
+            "reb_insurtech_aws_guidewire_core_modernization": 2.2, "reb_insurtech_regulated_aws_control_implementation": 2.1, "reb_insurtech_insurance_data_bi_decisioning": 2.0,
+            "reb_ey_insurance_core_modernization": 2.1, "reb_ey_capital_optimization_solvency": 2.0, "reb_ey_erm_risk_governance": 1.8,
+            "reb_slalom_agentic_client_delivery": 2.1, "reb_slalom_governed_runtime_scaling": 2.0, "reb_slalom_engineering_practice_leadership": 1.9,
+            "reb_unify_regulated_enterprise_ai_governance": 2.2, "reb_unify_agentic_platform_architecture": 2.0, "reb_unify_platform_commercialization_leadership": 1.8,
+            "reb_ibm_aws_modernization_architecture": 1.8, "reb_ibm_nlp_ml_decision_support": 1.7,
+        },
+    ),
+    "banking_model_risk_ai": (
+        ("sr 11-7", "bcbs 239", "model risk", "mrm", "erm", "banking", "solvency", "derivatives", "stress testing", "governance", "audit", "regulatory", "capital", "greeks"),
+        {
+            "reb_ey_erm_risk_governance": 2.4, "reb_ey_capital_optimization_solvency": 2.2, "reb_early_career_derivatives_greeks_hedging": 2.2,
+            "reb_early_career_actuarial_pricing_reserving": 2.0, "reb_early_career_stochastic_capital_hpc": 1.9,
+            "reb_unify_regulated_enterprise_ai_governance": 2.4, "reb_unify_runtime_reliability_governance": 2.1, "reb_unify_agentic_platform_architecture": 1.9,
+            "reb_slalom_governed_runtime_scaling": 2.2, "reb_slalom_bitemporal_graphrag_uwg": 2.0, "reb_slalom_dialectical_decision_bayesian_hitl": 1.9,
+            "reb_ibm_nlp_ml_decision_support": 2.1, "reb_ibm_cognitive_business_decision_support": 2.0, "reb_ibm_aws_modernization_architecture": 1.7,
+            "reb_insurtech_regulated_aws_control_implementation": 1.8,
+        },
+    ),
+    "healthcare_payer_data_ai": (
+        ("healthcare", "payer", "biostatistics", "columbia", "claims", "medical loss", "mlr", "clinical", "actuarial", "fsa", "hipaa", "reserving", "analytics", "population health"),
+        {
+            "reb_early_career_credentials_quantitative_pedigree": 2.6, "reb_early_career_actuarial_pricing_reserving": 2.3, "reb_early_career_stochastic_capital_hpc": 2.0,
+            "reb_ey_erm_risk_governance": 2.0, "reb_ey_insurance_core_modernization": 1.9,
+            "reb_insurtech_insurance_data_bi_decisioning": 2.1, "reb_insurtech_regulated_aws_control_implementation": 1.9,
+            "reb_unify_regulated_enterprise_ai_governance": 2.2, "reb_unify_agentic_platform_architecture": 2.0, "reb_unify_enterprise_adoption_revenue": 1.8,
+            "reb_slalom_bitemporal_graphrag_uwg": 2.1, "reb_slalom_governed_runtime_scaling": 2.0, "reb_slalom_engineering_practice_leadership": 1.9,
+            "reb_ibm_data_modeling_bi_decision_support": 2.0, "reb_ibm_nlp_ml_decision_support": 1.9,
+        },
+    ),
+    "quant_risk_hpc": (
+        ("stochastic", "monte carlo", "hpc", "high-performance", "derivatives", "greeks", "hedge", "actuarial", "biostatistics", "quant", "c++", "pricing", "solvency", "capital"),
+        {
+            "reb_early_career_stochastic_capital_hpc": 2.6, "reb_early_career_derivatives_greeks_hedging": 2.5,
+            "reb_early_career_actuarial_pricing_reserving": 2.3, "reb_early_career_credentials_quantitative_pedigree": 2.2,
+            "reb_ey_capital_optimization_solvency": 2.3, "reb_ey_erm_risk_governance": 2.0,
+            "reb_unify_distributed_ecosystem_engineering": 2.0, "reb_unify_runtime_reliability_governance": 1.9,
+            "reb_slalom_bitemporal_graphrag_uwg": 1.9, "reb_slalom_dialectical_decision_bayesian_hitl": 1.9,
+            "reb_ibm_cognitive_business_decision_support": 2.0, "reb_insurtech_aws_cloud_economics": 1.8,
+        },
+    ),
+    "executive_agentic_transformation": (
+        ("ebitda", "margin", "operating partner", "portfolio", "p&l", "value creation", "commercial", "transformation", "governance", "advisory", "revenue"),
+        {
+            "reb_unify_platform_commercialization_leadership": 2.3, "reb_unify_enterprise_adoption_revenue": 2.2, "reb_unify_regulated_enterprise_ai_governance": 2.0,
+            "reb_slalom_engineering_practice_leadership": 2.2, "reb_slalom_ecosystem_accelerators": 2.1, "reb_slalom_agentic_client_delivery": 2.0,
+            "reb_ey_erm_risk_governance": 2.1, "reb_ey_insurance_core_modernization": 2.0, "reb_ey_capital_optimization_solvency": 1.9,
+            "reb_ibm_revenue_sales_target_execution": 2.1, "reb_ibm_aws_alliance_partner_cosell_gtm": 2.0, "reb_ibm_customer_success_value_realization": 1.9,
+            "reb_early_career_actuarial_pricing_reserving": 1.8, "reb_insurtech_aws_cloud_economics": 1.9,
         },
     ),
 }
@@ -444,17 +517,23 @@ def compute_candidate_alignment_and_independence(
         ).lower()
         skill_text = f"{skill.get('candidate_id', '')} {skill.get('skill_label', '')}".lower()
         cand_blob = f"{root_text} {skill_text}"
-        active_arch = (
-            "ai_ml_platform" if profile in {"svp_agentic_engineering", "insurance_agentic_ai"} else (
-                "ai_partnerships_gtm" if profile == "ai_partnerships_gtm" else (
-                    "insurance_domain" if profile == "insurance_it_strategy" else "cloud_arch"
-                )
-            )
-        )
+        _profile_to_arch = {
+            "svp_agentic_engineering": "ai_ml_platform",
+            "insurance_agentic_ai": "insurance_agentic_ai",
+            "ai_partnerships_gtm": "ai_partnerships_gtm",
+            "insurance_it_strategy": "insurance_domain",
+            "banking_model_risk_ai": "banking_model_risk_ai",
+            "healthcare_payer_data_ai": "healthcare_payer_data_ai",
+            "quant_risk_hpc": "quant_risk_hpc",
+            "executive_agentic_transformation": "executive_agentic_transformation",
+        }
+        active_arch = _profile_to_arch.get(profile, "cloud_arch")
         triggers, root_boosts = _ARCHETYPE_ROOT_BOOSTS.get(active_arch, ((), {}))
         sec_id = str((sec_plan or {}).get("section_id") or "")
         sec_reqs = set((sec_plan or {}).get("canonical_jd_requirement_ids") or ())
-        if active_arch == "ai_ml_platform" and "forward_deployed_execution" in sec_reqs:
+        mandate_route = (sec_plan or {}).get("mandate_route") if isinstance((sec_plan or {}).get("mandate_route"), Mapping) else {}
+        is_fde = bool(mandate_route.get("fde_context")) or ("forward_deployed_execution" in sec_reqs)
+        if active_arch == "ai_ml_platform" and is_fde:
             fde_root_boosts = {
                 "reb_slalom_engineering_practice_leadership": 3.5, "reb_slalom_agentic_client_delivery": 3.4,
                 "reb_slalom_governed_runtime_scaling": 3.3, "reb_slalom_nextgen_ai_solutions": 3.1,
@@ -483,19 +562,13 @@ def compute_candidate_alignment_and_independence(
         hit_count = sum(1 for t in triggers if t in cand_blob)
         if hit_count:
             raw_align += hit_count * 0.25
-    proof_score = (
-        1.0
-        if (
-            raw_proof >= 1.0
-            or (
-                raw_proof >= 0.85
-                and root_id.startswith("reb_")
-                and root.get("authority_pass") is True
-                and skill.get("authority_pass") is True
-            )
-        )
-        else raw_proof
-    )
+    # Preserve real proof differentiation below 1.0 (no >= 0.85 -> 1.0 clamp), while capping
+    # HIGH-verified skills at 1.0 for lexicographic tiering and carrying extra corroboration depth into alignment.
+    if raw_proof > 1.0:
+        raw_align += min(raw_proof - 1.0, 0.4) * 0.35
+        proof_score = 1.0
+    else:
+        proof_score = round(max(0.0, raw_proof), 6)
     align_score = round(raw_align * root_weight, 6)
     indep_score = (
         1.0

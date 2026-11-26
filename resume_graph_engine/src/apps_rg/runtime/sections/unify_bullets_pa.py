@@ -63,13 +63,16 @@ def _candidate_facts_block(runtime_payload: dict[str, Any]) -> str:
 
 
 def _jd_targeting_block(runtime_payload: dict[str, Any]) -> str:
-    return format_jd_targeting_block(
+    base = format_jd_targeting_block(
         target_title=str(runtime_payload.get("target_title") or ""),
         target_company=str(runtime_payload.get("target_company") or ""),
         jd_text=str(runtime_payload.get("jd_text") or ""),
         briefing=str(runtime_payload.get("briefing") or runtime_payload.get("briefing_text") or ""),
         graph_proof_pool_mode=True,
     )
+    from apps_rg.runtime.reasoning.CareerThesisAlignmentAgent import format_career_thesis_u0_block
+    thesis_block = format_career_thesis_u0_block(runtime_payload, section_id="unify_bullets")
+    return f"{base}\n\n{thesis_block}" if thesis_block else base
 
 
 def _legacy_i0(runtime_payload: dict[str, Any]) -> str:

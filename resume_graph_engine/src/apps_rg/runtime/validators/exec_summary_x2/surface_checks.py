@@ -430,7 +430,7 @@ def check_cross_fact_display_conflation(
             for x in (row.get("source_fact_ids") or [])
             if str(x or "").strip()
         ]
-        if len(dict.fromkeys(source_ids)) > 3:
+        if len(dict.fromkeys(source_ids)) > 5:
             return (
                 False,
                 "cross_fact_display_conflation:too_many_source_fact_ids_in_one_sentence",

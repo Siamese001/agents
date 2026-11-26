@@ -171,7 +171,8 @@ def test_runtime_contract_and_model_manifest_remain_offline_pinned() -> None:
         ).read_text(encoding="utf-8")
     )
 
-    assert contract["promoted_device"] == "cuda:0"
+    assert contract["promoted_device"] == "mps"
+    assert contract["fallback_device"] == "cpu"
     assert contract["network_allowed"] is False
     assert contract["fallback_allowed"] is False
     assert manifest["revision"] == contract["model"]["revision"]

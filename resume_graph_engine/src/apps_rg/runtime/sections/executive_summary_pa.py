@@ -470,6 +470,10 @@ def build_executive_summary_assembly_input(
         product_patch += "\n\n" + format_graph_evidence_style_quality_block()
     if composition_block:
         product_patch += "\n\n" + composition_block
+    from apps_rg.runtime.reasoning.CareerThesisAlignmentAgent import format_career_thesis_u0_block
+    thesis_block = format_career_thesis_u0_block(runtime_payload, section_id="executive_summary")
+    if thesis_block:
+        product_patch += "\n\n" + thesis_block
     return PromptAssemblyInput(
         template_id="strategic_tailor_v1",
         request_id=request_id,

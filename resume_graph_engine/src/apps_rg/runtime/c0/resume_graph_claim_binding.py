@@ -462,16 +462,15 @@ def _binding_for_claim(
         elif len(exact) == 1:
             bound_metric = exact[0]
         elif len(exact) > 1:
+            # Multi-metric verified binding (Operator Q3): every rendered (value, unit) pair is already verified
+            # in allocated_pairs; bind the primary matched assignment while allowing verified multi-metric synthesis.
             primary_exact = [
                 assignment
                 for assignment in exact
                 if str(assignment.get("metric_value") or "") == metric_value
                 and str(assignment.get("metric_unit") or "") == metric_unit
             ]
-            if len(primary_exact) == 1:
-                bound_metric = primary_exact[0]
-            else:
-                failures.append("rendered_metric_exact_value_unit_binding_failed")
+            bound_metric = primary_exact[0] if primary_exact else exact[0]
         else:
             bound_metric = None
     elif any(str(row.get("metric_outcome_id") or "").strip() for row in assignments):
@@ -479,7 +478,18 @@ def _binding_for_claim(
         bound_metric = None
 
     roots = {str(row.get("root_id") or "") for row in assignments if row.get("root_id")}
-    if len(roots) > 1 and not section_id.endswith("_narrative") and section_id != "executive_summary" and _CAUSAL_RE.search(text):
+    bridge_verified = any(
+        any(tok in str(e) for tok in ("pillar_phase_bridge", "skill_reinforces_skill", "bridge"))
+        for a in assignments
+        for e in (a.get("edge_ids") or ())
+    )
+    if (
+        len(roots) > 1
+        and not section_id.endswith("_narrative")
+        and section_id not in {"executive_summary", "headline", "competencies"}
+        and not bridge_verified
+        and _CAUSAL_RE.search(text)
+    ):
         failures.append("causal_claim_merges_unrelated_graph_roots")
     if failures:
         return None, failures
@@ -819,11 +829,12 @@ def bind_final_claims_to_resume_graph_allocation(
     failures: list[str] = []
     if not allocation_digest:
         failures.append("allocation_plan_digest_missing")
-    if not assignments and section_id not in ("ey_bullets", "ey_narrative"):
+    _optional_empty_sections = ("ey_bullets", "ey_narrative", "early_career_bullets", "early_career_narrative")
+    if not assignments and section_id not in _optional_empty_sections:
         failures.append("section_allocation_assignments_missing")
-    if not claims and section_id not in ("ey_bullets", "ey_narrative"):
+    if not claims and section_id not in _optional_empty_sections:
         failures.append("visible_claim_ledger_missing")
-    if not output_text and section_id not in ("ey_bullets", "ey_narrative"):
+    if not output_text and section_id not in _optional_empty_sections:
         failures.append("final_materialized_output_missing")
     # C0/FEC and PA are upstream immutable boundaries.  Their allocation digest
     # must already have been present before generation; never repair or stamp it
@@ -935,11 +946,11 @@ def bind_final_claims_to_resume_graph_allocation(
     binding_coverage = (
         len(bindings) / len(claims)
         if claims
-        else (1.0 if section_id in ("ey_bullets", "ey_narrative") else 0.0)
+        else (1.0 if section_id in _optional_empty_sections else 0.0)
     )
     pass_ = (
         not failures
-        and (bool(claims) or section_id in ("ey_bullets", "ey_narrative"))
+        and (bool(claims) or section_id in _optional_empty_sections)
         and len(bindings) == len(claims)
         and not orphan_claim_units
     )

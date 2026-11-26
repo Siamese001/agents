@@ -49,6 +49,8 @@ def _authority_rows_by_root(
 
 def _default_slot_specs(
     section_plans: Mapping[str, Mapping[str, Any]],
+    *,
+    mandate_route: Mapping[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     slots: list[dict[str, Any]] = []
     for index in range(1, 9):
@@ -59,6 +61,17 @@ def _default_slot_specs(
                 "metric_required": False,
             }
         )
+    exec_plan = section_plans.get("executive_summary") or {}
+    route = (
+        dict(mandate_route)
+        if isinstance(mandate_route, Mapping)
+        else dict(exec_plan.get("mandate_route") or {})
+    )
+    slot_budget_profile = dict(
+        route.get("slot_budget_profile")
+        or exec_plan.get("slot_budget_profile")
+        or {}
+    )
     unify_slot_roots = section_plans.get("unify_bullets", {}).get("unify_bullet_slot_bundle_map_resolved")
     if not isinstance(unify_slot_roots, Mapping) or set(unify_slot_roots) != set(CANONICAL_BULLET_CLAIM_UNITS["unify_bullets"]):
         raise ResumeGraphAllocationError(
@@ -74,23 +87,68 @@ def _default_slot_specs(
             "unify_bullets: slot-to-role-episode contract contains an empty root",
             receipt={"schema_version": "resume_graph_allocation_failure_v1", "unsatisfied_constraints": ["unify_slot_role_episode_contract"]},
         )
-    for section_id, claim_units in CANONICAL_BULLET_CLAIM_UNITS.items():
-        if not claim_units:
+    for section_id, all_claim_units in CANONICAL_BULLET_CLAIM_UNITS.items():
+        if section_id not in section_plans or not all_claim_units:
             continue
         section_roots_map = _authority_rows_by_root(section_plans.get(section_id, {}))
+        authorized_root_count = sum(
+            1
+            for bucket in section_roots_map.values()
+            if any(r.get("authority_pass") is True for r in bucket["root"])
+            and any(r.get("authority_pass") is True for r in bucket["leaf_skill"])
+            and any(r.get("authority_pass") is True for r in bucket["source_fact"])
+        )
+        if authorized_root_count == 0:
+            continue
+        requested_count = slot_budget_profile.get(section_id)
+        if requested_count is None:
+            requested_count = (
+                2 if section_id in {"insurtech_bullets", "ey_bullets"}
+                else (1 if section_id == "early_career_bullets" else len(all_claim_units))
+            )
+        active_count = max(0, min(int(requested_count), len(all_claim_units), authorized_root_count))
+        if active_count == 0:
+            continue
+        if section_id == "unify_bullets" and active_count < len(all_claim_units):
+            # Keep numeric-outcome tail slots (bul_unify_005, bul_unify_006) prioritized alongside leading slots.
+            tail_numeric = [cid for cid in ("bul_unify_005", "bul_unify_006") if cid in all_claim_units]
+            head_slots = [cid for cid in all_claim_units if cid not in tail_numeric][: max(0, active_count - len(tail_numeric))]
+            claim_units = tuple(sorted(head_slots + tail_numeric[:active_count]))
+        else:
+            claim_units = all_claim_units[:active_count]
         metric_available = any(
             extract_exact_metric_value_unit(str(row.get("metric") or ""))[0]
             for bucket in section_roots_map.values()
             for row in bucket["metric_outcome"]
             if row.get("authority_pass") is True
         )
+        numeric_unify_roots_count = (
+            sum(
+                1
+                for bucket in section_roots_map.values()
+                if any(
+                    extract_exact_metric_value_unit(str(row.get("metric") or ""))[0]
+                    for row in bucket["metric_outcome"]
+                    if row.get("authority_pass") is True
+                )
+            )
+            if section_id == "unify_bullets"
+            else 0
+        )
         for index, claim_unit in enumerate(claim_units):
             unify_req_root = str(unify_slot_roots.get(claim_unit) or "").strip() if section_id == "unify_bullets" else ""
             unify_slot_numeric_eligible = (
-                section_id == "unify_bullets" and bool(unify_req_root) and any(
-                    extract_exact_metric_value_unit(str(row.get("metric") or ""))[0]
-                    for row in section_roots_map.get(unify_req_root, {}).get("metric_outcome", [])
-                    if row.get("authority_pass") is True
+                section_id == "unify_bullets"
+                and (
+                    (
+                        bool(unify_req_root)
+                        and any(
+                            extract_exact_metric_value_unit(str(row.get("metric") or ""))[0]
+                            for row in section_roots_map.get(unify_req_root, {}).get("metric_outcome", [])
+                            if row.get("authority_pass") is True
+                        )
+                    )
+                    or (claim_unit in ("bul_unify_005", "bul_unify_006") and numeric_unify_roots_count >= 2)
                 )
             )
             slots.append(
@@ -100,32 +158,51 @@ def _default_slot_specs(
                     "metric_required": (
                         metric_available
                         and (
-                            (index == 0 and section_id not in ("unify_bullets", "ibm_bullets", "slalom_bullets", "insurtech_bullets"))
+                            (
+                                index == 0
+                                and section_id not in (
+                                    "unify_bullets",
+                                    "ibm_bullets",
+                                    "slalom_bullets",
+                                    "insurtech_bullets",
+                                    "ey_bullets",
+                                    "early_career_bullets",
+                                )
+                            )
                             or (section_id == "unify_bullets" and unify_slot_numeric_eligible)
                             or (section_id == "ibm_bullets" and index == len(claim_units) - 1)
-                            or (section_id == "slalom_bullets" and index == 2)
+                            or (section_id == "slalom_bullets" and index == min(2, len(claim_units) - 1))
                         )
                     ),
                     "metric_outcome_required": section_id == "unify_bullets",
                     "employer_lane": EMPLOYER_LANE_BY_SECTION[section_id],
                 }
             )
-    exec_plan = section_plans.get("executive_summary") or {}
-    exec_profile = str(exec_plan.get("target_role_profile") or "").strip()
-    exec_emp_weights = (
-        (exec_plan.get("graph_weight_profile") or {}).get("employer_weights")
-        or {}
+    exec_profile = str(route.get("selector_profile") or exec_plan.get("target_role_profile") or "").strip()
+    exec_grouped = _authority_rows_by_root(exec_plan)
+    available_exec_lanes = {
+        str(r.get("employer_lane") or "")
+        for bucket in exec_grouped.values()
+        for r in bucket["root"]
+        if r.get("authority_pass") is True
+        and any(s.get("authority_pass") is True for s in bucket["leaf_skill"])
+        and any(f.get("authority_pass") is True for f in bucket["source_fact"])
+    }
+    track1_candidates_by_profile: dict[str, tuple[str, ...]] = {
+        "insurance_it_strategy": ("insurtech", "ey", "early_career"),
+        "insurance_agentic_ai": ("early_career", "ey", "insurtech"),
+        "banking_model_risk_ai": ("ey", "early_career"),
+        "healthcare_payer_data_ai": ("early_career", "ey"),
+        "quant_risk_hpc": ("early_career", "ey"),
+        "executive_agentic_transformation": ("ey", "early_career", "insurtech"),
+        "ai_partnerships_gtm": ("early_career",),
+        "svp_agentic_engineering": ("early_career",),
+    }
+    preferred_t1 = track1_candidates_by_profile.get(
+        exec_profile, ("early_career", "ey", "insurtech")
     )
-    include_insurtech_in_exec = (
-        exec_profile == "insurance_it_strategy"
-        or float(exec_emp_weights.get("insurtech") or 0.0) > 0.55
-    )
-    exec_employer_lanes = (
-        ("slalom", "unify", "ibm", "insurtech")
-        if include_insurtech_in_exec
-        else ("slalom", "unify", "ibm")
-    )
-    for index, employer_lane in enumerate(exec_employer_lanes, start=1):
+    available_t1 = tuple(lane for lane in preferred_t1 if lane in available_exec_lanes)
+    for index, employer_lane in enumerate(("slalom", "unify", "ibm"), start=1):
         slots.append(
             {
                 "slot_id": f"executive_summary:claim:{index:02d}",
@@ -134,20 +211,57 @@ def _default_slot_specs(
                 "employer_lane": employer_lane,
             }
         )
-    for index in range(1, 4):
+    if available_t1:
         slots.append(
             {
-                "slot_id": f"headline:skill:{index:02d}",
-                "section_id": "headline",
+                "slot_id": "executive_summary:claim:04",
+                "section_id": "executive_summary",
                 "metric_required": False,
+                "employer_lane": "",
+                "allowed_employer_lanes": available_t1,
             }
         )
+    track_weights = dict(route.get("track_weights") or {})
+    actuarial_weight = float(track_weights.get("track_actuarial_risk_derivatives") or 0.0)
+    headline_grouped = _authority_rows_by_root(section_plans.get("headline") or {})
+    available_headline_t1 = tuple(
+        lane
+        for lane in preferred_t1
+        if any(
+            str(r.get("employer_lane") or "") == lane and r.get("authority_pass") is True
+            for bucket in headline_grouped.values()
+            for r in bucket["root"]
+            if any(s.get("authority_pass") is True for s in bucket["leaf_skill"])
+            and any(f.get("authority_pass") is True for f in bucket["source_fact"])
+        )
+    )
+    require_t1_headline_slot = bool(available_headline_t1) and (
+        actuarial_weight >= 0.25
+        or exec_profile in {
+            "insurance_agentic_ai",
+            "insurance_it_strategy",
+            "banking_model_risk_ai",
+            "healthcare_payer_data_ai",
+            "quant_risk_hpc",
+        }
+    )
+    for index in range(1, 4):
+        headline_slot: dict[str, Any] = {
+            "slot_id": f"headline:skill:{index:02d}",
+            "section_id": "headline",
+            "metric_required": False,
+        }
+        if index == 3 and require_t1_headline_slot:
+            headline_slot["allowed_employer_lanes"] = available_headline_t1
+        slots.append(headline_slot)
     return slots
 
 
 def _candidate_sets_from_section_plans(
     section_plans: Mapping[str, Mapping[str, Any]],
     slot_specs: Sequence[Mapping[str, Any]],
+    *,
+    mandate_route: Mapping[str, Any] | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
     from apps_rg.runtime.c0.c0_perf_sync_helpers import (
         compute_candidate_alignment_and_independence,
@@ -167,6 +281,13 @@ def _candidate_sets_from_section_plans(
         sec_profile = str(sec_plan.get("target_role_profile") or "")
         sec_reqs = set(sec_plan.get("canonical_jd_requirement_ids") or ())
         has_explicit_cosell = bool(sec_reqs & {"partner_cosell", "hyperscaler_alliance", "si_enablement", "partner_gtm"})
+        route = (
+            dict(mandate_route)
+            if isinstance(mandate_route, Mapping)
+            else dict(sec_plan.get("mandate_route") or {})
+        )
+        is_fde_only = bool(route.get("fde_context")) or ("forward_deployed_execution" in sec_reqs)
+        requires_commercial = bool(route.get("requires_commercial_pairing"))
         employer_root_weights, employer_weights, enforce_career_band, primary_secondary_roots = compute_career_band_filter(
             section_id=slot.section_id, sec_plan=sec_plan, grouped_section_buckets=grouped_by_section[slot.section_id],
         )
@@ -188,11 +309,25 @@ def _candidate_sets_from_section_plans(
         sec_slot_count = sum(1 for rs in slot_specs if str(rs.get("section_id") or "") == slot.section_id)
         rows: list[dict[str, Any]] = []
         for root_id, bucket in grouped_by_section[slot.section_id].items():
-            if enforce_career_band and not slot.employer_lane and root_id not in primary_secondary_roots:
+            if (
+                enforce_career_band
+                and not slot.employer_lane
+                and not slot.allowed_employer_lanes
+                and root_id not in primary_secondary_roots
+            ):
+                continue
+            if (
+                is_fde_only
+                and not has_explicit_cosell
+                and not slot.required_root_id
+                and root_id in cosell_roots
+                and non_cosell_root_count >= sec_slot_count
+            ):
                 continue
             if (
                 sec_profile in {"svp_agentic_engineering", "insurance_it_strategy"}
                 and not has_explicit_cosell
+                and not requires_commercial
                 and not slot.required_root_id
                 and root_id in cosell_roots
                 and non_cosell_root_count >= sec_slot_count
@@ -217,6 +352,8 @@ def _candidate_sets_from_section_plans(
             employer_lane = str(root.get("employer_lane") or "")
             root_weight = float(employer_root_weights.get(root_id, employer_weights.get(employer_lane, 1.0)))
             if slot.employer_lane and employer_lane != slot.employer_lane:
+                continue
+            if slot.allowed_employer_lanes and employer_lane not in slot.allowed_employer_lanes:
                 continue
             if slot.required_root_id and root_id != slot.required_root_id:
                 continue

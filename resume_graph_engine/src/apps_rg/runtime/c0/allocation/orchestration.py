@@ -9,6 +9,7 @@ from typing import Any, Mapping, Sequence
 
 from apps_rg.runtime.c0.allocation.contracts_and_validation import (
     ALL_CLAIM_BEARING_SECTIONS,
+    LEGACY_CLAIM_BEARING_SECTIONS,
     NARRATIVE_DERIVATION_POLICY,
     SECTION_ONLY_SCOPE,
     ResumeGraphAllocationError,
@@ -56,13 +57,22 @@ def build_whole_resume_graph_allocation(
             pass
 
     from apps_rg.runtime.c0.c03_resume_graph_contracts import ResumeGraphSelectionPolicyV2, finalize_canonical_section_plan
+    from apps_rg.runtime.c0.mandate_routing_engine import resolve_mandate_route
     from apps_rg.runtime.sections.graph_role_episode_selector import (
         build_selected_graph_evidence_plan_for_section,
     )
 
+    mandate_route = resolve_mandate_route(
+        target_role=target_role,
+        jd_text=jd_text,
+        briefing_text=briefing_text,
+    )
+    mandate_route_dict = mandate_route.as_dict()
+
     requested = list(section_order or ALL_CLAIM_BEARING_SECTIONS)
-    if set(requested) != set(ALL_CLAIM_BEARING_SECTIONS):
-        raise ValueError("whole-resume allocation requires all eleven claim-bearing sections")
+    requested_set = set(requested)
+    if requested_set not in (set(ALL_CLAIM_BEARING_SECTIONS), set(LEGACY_CLAIM_BEARING_SECTIONS)):
+        raise ValueError("whole-resume allocation requires all canonical claim-bearing sections")
     section_plans: dict[str, dict[str, Any]] = {}
     for section_id in requested:
         plan, _ordered, _allowed = build_selected_graph_evidence_plan_for_section(
@@ -101,7 +111,7 @@ def build_whole_resume_graph_allocation(
         )
     graph_digest = next(iter(graph_digests))
     graph_version = next(iter(graph_versions))
-    slot_specs = _default_slot_specs(section_plans)
+    slot_specs = _default_slot_specs(section_plans, mandate_route=mandate_route_dict)
     section_budgets: dict[str, dict[str, int]] = {}
     for slot in slot_specs:
         section_id = str(slot["section_id"])
@@ -113,7 +123,9 @@ def build_whole_resume_graph_allocation(
         graph_version=graph_version,
         section_budgets=section_budgets,
     )
-    candidates = _candidate_sets_from_section_plans(section_plans, slot_specs)
+    candidates = _candidate_sets_from_section_plans(
+        section_plans, slot_specs, mandate_route=mandate_route_dict
+    )
     if embedding_skill_scores_by_section is not None:
         candidates = _bind_embedding_candidates(
             candidates,
@@ -139,6 +151,34 @@ def build_whole_resume_graph_allocation(
         max_source_family_share=policy.max_source_family_share,
     )
     plan["selection_policy"] = policy.to_dict()
+    plan["mandate_route"] = mandate_route_dict
+    plan["credential_elevation_ids"] = list(mandate_route.credential_elevation_ids)
+    plan["two_page_slot_budget"] = dict(mandate_route.slot_budget_profile)
+    try:
+        from apps_rg.fact_inventory.augmented_skills_graph import load_augmented_skills_graph
+        from apps_rg.fact_inventory.track_weighted_graph_expansion import build_track_weighted_expansion
+
+        _graph = load_augmented_skills_graph(repo_root=repo_root)
+        _exp = build_track_weighted_expansion(
+            graph=_graph,
+            role_family_key=mandate_route.canonical_projection_role,
+            jd_text=jd_text or target_role,
+            enforce_hybrid_contract=False,
+            bind_c03=False,
+            repo_root=repo_root,
+        )
+        plan["track_expansion_summary"] = {
+            "role_family_key": _exp.get("role_family_key"),
+            "track_weights": _exp.get("track_weights"),
+            "tracks_with_facts": _exp.get("tracks_with_facts"),
+            "selected_skill_count": len(_exp.get("selected_skills") or ()),
+            "graph_hop_edge_types_used": _exp.get("graph_hop_edge_types_used"),
+        }
+    except (OSError, ValueError, KeyError, FileNotFoundError):
+        plan["track_expansion_summary"] = {
+            "role_family_key": mandate_route.canonical_projection_role,
+            "track_weights": dict(mandate_route.track_weights),
+        }
     unify_alloc = {str(r["claim_unit_id"]).split(":", 1)[-1]: str(r["root_id"]) for r in plan.get("assignments") or [] if str(r.get("section_id") or "") == "unify_bullets" and ":" in str(r.get("claim_unit_id") or "")}
     if unify_alloc and section_plans.get("unify_bullets", {}).get("unify_bullet_slot_bundle_map_resolved") != unify_alloc:
         u_plan = {k: v for k, v in section_plans["unify_bullets"].items() if k not in ("plan_id", "plan_digest")}

@@ -191,7 +191,11 @@ DERIVED_GRAPH_ENDPOINT_EXACT_TYPES: dict[str, str] = {
     "section:selected_achievements": "resume_section_projection",
     "section_competencies": "resume_section_projection",
     "section_early_career": "resume_section_projection",
+    "section_early_career_bullets": "resume_section_projection",
+    "section_early_career_narrative": "resume_section_projection",
     "section_executive_summary": "resume_section_projection",
+    "section_ey_bullets": "resume_section_projection",
+    "section_ey_narrative": "resume_section_projection",
     "section_headline": "resume_section_projection",
     "section_ibm_bullets": "resume_section_projection",
     "section_ibm_narrative": "resume_section_projection",
@@ -274,7 +278,14 @@ REGISTERED_GRAPH_EDGE_SIGNATURES: dict[str, frozenset[tuple[str, str]]] = {
     "skill_external_claim_eligible": frozenset({("skill", "policy"), ("skill_row", "policy")}),
     "skill_has_metric_bucket": frozenset({("skill", "metric_bucket")}),
     "skill_projection_only_internal": frozenset({("skill", "policy"), ("skill_row", "policy")}),
-    "skill_reinforces_skill": frozenset({("skill", "skill")}),
+    "skill_reinforces_skill": frozenset(
+        {
+            ("skill", "skill"),
+            ("skill", "skill_row"),
+            ("skill_row", "skill"),
+            ("skill_row", "skill_row"),
+        }
+    ),
     "skill_requires_human_confirmation": frozenset({("skill", "policy"), ("skill_row", "policy")}),
     "skill_supported_by_certification": frozenset(
         {("skill", "certification_evidence"), ("skill_row", "certification_evidence"), ("skill", "certification")}

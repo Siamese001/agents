@@ -105,10 +105,21 @@ class CareerThesisAlignmentAgent:
         c0_evidence_items: Sequence[str | Mapping[str, Any]] | None = None,
         job_description_text: str = "",
         model_synthesizer: Any | None = None,
+        mandate_route: Mapping[str, Any] | None = None,
     ) -> CareerThesisAlignmentPlan:
-        """Synthesize strategic fit from target context and C0 evidence pool."""
+        """Synthesize strategic fit from target context, unified mandate route, and 3-era C0 evidence."""
+        from apps_rg.runtime.c0.mandate_routing_engine import resolve_mandate_route
+
         normalized_reqs = self._normalize_requirements(jd_requirements, job_description_text)
         evidence_items = self._normalize_evidence(c0_evidence_items)
+        resolved_route = (
+            dict(mandate_route)
+            if isinstance(mandate_route, Mapping)
+            else resolve_mandate_route(
+                target_role=target_role,
+                jd_text=job_description_text or " ".join(r.get("text", "") for r in normalized_reqs),
+            ).as_dict()
+        )
         active_synthesizer = model_synthesizer or self.model_synthesizer
         if callable(active_synthesizer):
             raw_model_plan = active_synthesizer(
@@ -119,6 +130,7 @@ class CareerThesisAlignmentAgent:
                     "target_level": target_level,
                     "requirements": normalized_reqs,
                     "evidence": evidence_items,
+                    "mandate_route": resolved_route,
                 }
             )
             if isinstance(raw_model_plan, Mapping):
@@ -136,6 +148,7 @@ class CareerThesisAlignmentAgent:
             target_level=target_level,
             requirements=normalized_reqs,
             evidence=evidence_items,
+            mandate_route=resolved_route,
         )
         gaps = self._mitigate_evidence_gaps(
             requirements=normalized_reqs,
@@ -145,6 +158,7 @@ class CareerThesisAlignmentAgent:
             thesis=thesis,
             requirements=normalized_reqs,
             evidence=evidence_items,
+            mandate_route=resolved_route,
         )
         plan = CareerThesisAlignmentPlan(
             target_company=target_company,
@@ -333,19 +347,39 @@ class CareerThesisAlignmentAgent:
         target_level: str,
         requirements: list[dict[str, Any]],
         evidence: list[dict[str, Any]],
+        mandate_route: Mapping[str, Any] | None = None,
     ) -> CareerThesis:
+        route = dict(mandate_route or {})
+        cred_ids = list(route.get("credential_elevation_ids") or [])
+        cred_map = {
+            "cert_fsa_001": "FSA Actuarial Fellow",
+            "edu_columbia_ms_biostat_001": "Columbia MS Biostatistics",
+            "cert_aws_sap_001": "AWS Solutions Architect Professional",
+            "edu_brown_ba_001": "Brown University",
+        }
+        elevated_creds = [cred_map[c] for c in cred_ids if c in cred_map]
+        cred_clause = f" ({', '.join(elevated_creds[:2])})" if elevated_creds else ""
         level_prefix = f"{target_level.capitalize()} " if target_level else "Executive "
-        primary = f"{level_prefix}{target_role} specializing in enterprise platform transformation and strategic technology delivery"
-        anchor = f"Proven track record delivering mission-critical engineering initiatives aligned with {target_company or 'enterprise'} strategic priorities."
+        primary = (
+            f"{level_prefix}{target_role}{cred_clause} uniting governed agentic AI engineering, "
+            f"cloud and commercial P&L scale, and regulated actuarial/quantitative risk depth"
+        )
+        anchor = (
+            f"Three-era leadership arc connecting Track 3 governed agentic AI scale, "
+            f"Track 2 cloud modernization and commercial revenue growth, and Track 1 quantitative risk rigor "
+            f"aligned with {target_company or 'enterprise'} priorities."
+        )
         arc = (
-            f"Progressive trajectory from deep technical architecture to organizational leadership, "
-            f"consistently translating complex technological challenges into measurable business leverage."
+            "Progressive three-era trajectory from FSA actuarial modeling and stochastic HPC risk "
+            "through AWS cloud modernization and P&L commercialization to governed multi-agent AI engineering leadership."
         )
         themes: list[str] = [
-            "Enterprise Architecture & Scalability",
-            "Executive Leadership & Talent Elevation",
-            "Operational Resilience & Cost Efficiency",
+            "Governed Agentic AI & Platform Engineering (Track 3)",
+            "Cloud Modernization, P&L & Commercial Growth (Track 2)",
+            "Actuarial, Quantitative Risk & Regulatory Governance (Track 1)",
         ]
+        if elevated_creds:
+            themes.append("Differentiating Credentials: " + " / ".join(elevated_creds[:3]))
         combined_context = (
             f"{target_role} {target_company} "
             + " ".join(r.get("text", "") for r in requirements)
@@ -421,10 +455,13 @@ class CareerThesisAlignmentAgent:
         thesis: CareerThesis,
         requirements: list[dict[str, Any]],
         evidence: list[dict[str, Any]],
+        mandate_route: Mapping[str, Any] | None = None,
     ) -> ThematicAllocation:
         """O1: Asset Allocation Negotiator (A2A Loop) Turn 1: Career Thesis Strategist proposes allocations. Turn 2: Section Asset Arbiter audits and finalizes allocations to prevent starvation."""
         strategist_proposal = self._call_strategist_agent(thesis, requirements, evidence)
-        final_allocation = self._call_asset_arbiter_agent(strategist_proposal, evidence)
+        final_allocation = self._call_asset_arbiter_agent(
+            strategist_proposal, evidence, mandate_route=mandate_route
+        )
         if not final_allocation:
             final_allocation = self._deterministic_fallback_allocation(thesis, evidence)
         return final_allocation
@@ -438,18 +475,24 @@ class CareerThesisAlignmentAgent:
             if sec:
                 by_section.setdefault(sec, []).append(ev["id"])
         proposed_lanes = {
+            "slalom_bullets": by_section.get("slalom_bullets") or ["ev_slalom_001"],
             "unify_bullets": by_section.get("unify_bullets") or ["ev_001", "ev_002"],
             "ibm_bullets": by_section.get("ibm_bullets") or ["ev_003"],
+            "insurtech_bullets": by_section.get("insurtech_bullets") or ["ev_insurtech_001"],
+            "ey_bullets": by_section.get("ey_bullets") or ["ev_ey_001"],
+            "early_career_bullets": by_section.get("early_career_bullets") or ["ev_early_001"],
         }
-        if by_section.get("slalom_bullets"):
-            proposed_lanes["slalom_bullets"] = by_section["slalom_bullets"]
         return {
-            "headline_focus": thesis.key_themes[:2] if thesis.key_themes else [],
-            "executive_summary_focus": thesis.key_themes[:3] if thesis.key_themes else [],
+            "headline_focus": thesis.key_themes[:3] if thesis.key_themes else [],
+            "executive_summary_focus": thesis.key_themes[:4] if thesis.key_themes else [],
             "proposed_lane_allocations": proposed_lanes,
         }
     def _call_asset_arbiter_agent(
-        self, strategist_proposal: dict[str, Any], evidence: list[dict[str, Any]]
+        self,
+        strategist_proposal: dict[str, Any],
+        evidence: list[dict[str, Any]],
+        *,
+        mandate_route: Mapping[str, Any] | None = None,
     ) -> ThematicAllocation | None:
         """Turn 2: Section Asset Arbiter audits proposed allocations against C0.3 uniqueness and lane density."""
         all_skills = [s for ev in evidence for s in ev.get("skills", [])]
@@ -457,19 +500,23 @@ class CareerThesisAlignmentAgent:
             sorted(list(dict.fromkeys(all_skills)))[:9]
             if all_skills
             else [
-                "Strategic Technology Planning",
-                "Distributed Systems Architecture",
-                "Cross-Functional Leadership",
-                "Cloud-Native Infrastructure",
-                "Product & Engineering Alignment",
-                "Risk Governance & Security",
+                "Governed Agentic AI Platforms",
+                "Distributed Cloud Systems Architecture",
+                "Commercial P&L & Hyperscaler GTM",
+                "Actuarial Modeling & Stochastic HPC",
+                "Model Risk & Regulatory Governance",
+                "Executive Engineering Leadership",
             ]
         )
         bullet_lanes_focus: dict[str, list[str]] = {
-            "unify_bullets": ["Scale, distributed architectures, and platform velocity"],
-            "ibm_bullets": ["Enterprise client outcomes, revenue generation, and technical governance"],
+            "slalom_bullets": ["Governed multi-agent AI engineering scale, 105-engineer leadership, and safety validation"],
+            "unify_bullets": ["Platform commercialization ($22M IP, 20% margin expansion), regulated AI governance, and distributed architecture"],
+            "ibm_bullets": ["AWS cloud modernization, enterprise ML decision support, and joint partner revenue growth"],
+            "insurtech_bullets": ["Regulated insurance core modernization, Guidewire/AWS migration, and cloud economics"],
+            "ey_bullets": ["ERM operating models, BCBS 239 risk aggregation, solvency capital optimization, and insurance modernization"],
+            "early_career_bullets": ["FSA actuarial reserving, stochastic HPC pricing, multi-Greek derivatives hedging, and Columbia MS Biostatistics"],
             "narrative": [
-                "Strategic career progression, organizational leverage, and executive sponsorship"
+                "Three-era executive progression uniting quantitative risk rigor, cloud/commercial scale, and governed agentic AI"
             ],
         }
         for ev in evidence:
@@ -482,11 +529,11 @@ class CareerThesisAlignmentAgent:
         return ThematicAllocation(
             headline_focus=list(
                 strategist_proposal.get("headline_focus")
-                or ["Enterprise Architecture & Scalability"]
+                or ["Governed Agentic AI & Quantitative Risk Leadership"]
             ),
             executive_summary_focus=list(
                 strategist_proposal.get("executive_summary_focus")
-                or ["Enterprise Architecture & Scalability", "Executive Leadership & Talent Elevation"]
+                or ["Governed Agentic AI Platforms", "Cloud & Commercial P&L Scale", "Actuarial & Regulatory Governance"]
             ),
             competencies_focus=comp_focus,
             bullet_lanes_focus=bullet_lanes_focus,
@@ -570,6 +617,44 @@ def execute_career_thesis_alignment(
     return plan
 
 
+def format_career_thesis_u0_block(
+    runtime_payload: Mapping[str, Any],
+    *,
+    section_id: str,
+) -> str:
+    """Format optional three-era career thesis & section thematic focus for prompt U0 (targeting only, never proof)."""
+    plan = runtime_payload.get("career_thesis_plan")
+    if not isinstance(plan, Mapping):
+        return ""
+    thesis = plan.get("career_thesis") if isinstance(plan.get("career_thesis"), Mapping) else {}
+    alloc = plan.get("thematic_allocation") if isinstance(plan.get("thematic_allocation"), Mapping) else {}
+    primary = str(thesis.get("primary_positioning") or "").strip()
+    arc = str(thesis.get("narrative_arc") or "").strip()
+    section_focus: list[str] = []
+    if section_id == "headline":
+        section_focus = [str(x) for x in (alloc.get("headline_focus") or []) if str(x).strip()]
+    elif section_id == "executive_summary":
+        section_focus = [str(x) for x in (alloc.get("executive_summary_focus") or []) if str(x).strip()]
+    elif section_id == "competencies":
+        section_focus = [str(x) for x in (alloc.get("competencies_focus") or []) if str(x).strip()]
+    elif section_id.endswith("_bullets"):
+        lanes = alloc.get("bullet_lanes_focus") if isinstance(alloc.get("bullet_lanes_focus"), Mapping) else {}
+        section_focus = [str(x) for x in (lanes.get(section_id) or []) if str(x).strip()]
+    elif section_id.endswith("_narrative"):
+        lanes = alloc.get("bullet_lanes_focus") if isinstance(alloc.get("bullet_lanes_focus"), Mapping) else {}
+        section_focus = [str(x) for x in (lanes.get("narrative") or []) if str(x).strip()]
+    if not primary and not section_focus:
+        return ""
+    lines = ["CAREER_THESIS_GUIDANCE (U0 targeting & coherence lens only; never proof):"]
+    if primary:
+        lines.append(f"- primary_positioning: {primary}")
+    if arc:
+        lines.append(f"- three_era_arc: {arc}")
+    if section_focus:
+        lines.append(f"- {section_id}_focus: " + "; ".join(section_focus[:4]))
+    return "\n".join(lines)
+
+
 # Backward compatibility aliases
 L15StrategicFitAgent = CareerThesisAlignmentAgent
 L15StrategicFitPlan = CareerThesisAlignmentPlan
@@ -584,6 +669,7 @@ __all__ = [
     "EvidenceGapMitigation",
     "ThematicAllocation",
     "execute_career_thesis_alignment",
+    "format_career_thesis_u0_block",
     "CAREER_THESIS_ALIGNMENT_SCHEMA",
     "CAREER_THESIS_ALIGNMENT_FILENAME",
     # Aliases

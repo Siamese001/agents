@@ -12,7 +12,7 @@ from typing import Any, Sequence
 
 from infrastructure.config.env_loader import snapshot_process_env
 
-from apps_rg.runtime.bindings.l1_cognitive_treatment import L1_COGNITIVE_V2_CONTROL_ARM
+from apps_rg.runtime.bindings.l1_cognitive_treatment import L1_COGNITIVE_V3_CANDIDATE_ARM
 from apps_rg.runtime.env_bootstrap import bootstrap_apps_rg_env
 from apps_rg.runtime.live_judge_only_guard import assert_production_runtime
 from apps_rg.runtime.runtime_boundary import RuntimeBoundaryViolation
@@ -76,8 +76,8 @@ def _build_parser(prog: str = "python -m apps_rg") -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--l1-cognitive-treatment-arm",
-        default=L1_COGNITIVE_V2_CONTROL_ARM,
-        help="Apps RG-local experiment arm assignment.",
+        default=L1_COGNITIVE_V3_CANDIDATE_ARM,
+        help="Apps RG-local cognitive arm assignment (defaults to l1_cognitive_v3).",
     )
     subparsers = parser.add_subparsers(dest="action", metavar="ACTION")
 

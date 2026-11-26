@@ -28,6 +28,9 @@ from apps_rg.fact_inventory.graph_sqlite_path_index import (
 PRESERVED_TABLES = {
     "c03_role_family_skill_weights",
     "c03_skill_selection_features",
+    "edge_evidence",
+    "graph_build_inputs",
+    "graph_build_runs",
     "graph_edges",
     "graph_nodes",
     "graph_selection_rejections",
@@ -384,7 +387,7 @@ def _logical_derived_rows(db_path: Path) -> dict[str, list[tuple[object, ...]]]:
             columns = [
                 str(row[1])
                 for row in conn.execute(f"PRAGMA table_info({table_name})")
-                if str(row[1]) != "created_at"
+                if str(row[1]) not in {"created_at", "build_run_id"}
             ]
             out[table_name] = sorted(
                 conn.execute(f"SELECT {','.join(columns)} FROM {table_name}").fetchall(),
@@ -395,7 +398,7 @@ def _logical_derived_rows(db_path: Path) -> dict[str, list[tuple[object, ...]]]:
         conn.close()
 
 
-def test_fresh_and_atomic_hardening_share_exact_direct_only_index_capability(
+def test_fresh_and_atomic_hardening_share_exact_multihop_index_capability(
     tmp_path: Path,
 ) -> None:
     fresh_path = tmp_path / "fresh.sqlite"
@@ -410,12 +413,14 @@ def test_fresh_and_atomic_hardening_share_exact_direct_only_index_capability(
     )
 
     assert receipt["materialization"]["graph_index_capability_version"] == (GRAPH_INDEX_CAPABILITY_VERSION)
-    assert receipt["materialization"]["index_mode"] == "direct_only"
+    assert receipt["materialization"]["index_mode"] == "multihop_bounded"
     assert _logical_derived_rows(hardened_path) == fresh_rows
     conn = sqlite3.connect(hardened_path)
     try:
-        assert conn.execute("SELECT DISTINCT path_depth FROM graph_paths").fetchall() == [(1,)]
-        assert conn.execute("SELECT DISTINCT distance FROM graph_neighborhoods").fetchall() == [(1,)]
+        depths = [r[0] for r in conn.execute("SELECT DISTINCT path_depth FROM graph_paths ORDER BY path_depth").fetchall()]
+        dists = [r[0] for r in conn.execute("SELECT DISTINCT distance FROM graph_neighborhoods ORDER BY distance").fetchall()]
+        assert 1 in depths and max(depths) >= 2
+        assert 1 in dists and max(dists) >= 2
         raw_summary = conn.execute("SELECT graph_count_summary FROM graph_metadata").fetchone()[0]
         summary = json.loads(raw_summary)
         assert summary["graph_index_schema_version"] == GRAPH_INDEX_SCHEMA_VERSION

@@ -1,6 +1,7 @@
 """Companion helpers for Competencies, Headline, Role Episode, and Graph Selector lanes."""
 from __future__ import annotations
 
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -109,32 +110,54 @@ def select_non_colliding_competency_synonym(
     return sub
 
 
+@lru_cache(maxsize=64)
+def _index_target_alignment_terms(
+    target: str,
+    target_terms: tuple[str, ...],
+) -> tuple[frozenset[str], frozenset[str], tuple[str, ...], bool, bool]:
+    """Precompute target word sets and matched domain terms once per unique target JD."""
+    from apps_rg.runtime.c0.mandate_routing_engine import has_word_signal
+
+    target_words = frozenset(target.split())
+    target_content = target_words - _STOPWORDS
+    matched_terms: list[str] = []
+    for term in target_terms:
+        clean_term = str(term or "").strip()
+        if clean_term and has_word_signal(target, clean_term):
+            matched_terms.append(clean_term)
+    has_insurance_ctx = bool(target_words & _INSURANCE_CONTEXT_TOKENS)
+    has_ai_gov_ctx = bool(target_words & _AI_GOVERNANCE_CONTEXT_TOKENS)
+    return target_words, target_content, tuple(matched_terms), has_insurance_ctx, has_ai_gov_ctx
+
+
 def score_domain_aware_target_alignment(
     target: str,
     candidate: str,
     target_terms: tuple[str, ...] | list[str],
 ) -> float:
+    from apps_rg.runtime.c0.mandate_routing_engine import has_word_signal
+
     if not target or not candidate:
         return 0.0
-    padded_target = f" {target} "
-    padded_candidate = f" {candidate} "
-    target_words = set(target.split())
+    terms_key = target_terms if isinstance(target_terms, tuple) else tuple(target_terms)
+    _, target_content, matched_terms, target_has_ins, target_has_ai = _index_target_alignment_terms(
+        target,
+        terms_key,
+    )
     candidate_words = set(candidate.split())
     score = 0.0
-    for term in target_terms:
-        if term == "policy":
-            if f" {term} " not in padded_target or f" {term} " not in padded_candidate:
-                continue
+    for clean_term in matched_terms:
+        if not has_word_signal(candidate, clean_term):
+            continue
+        if clean_term == "policy":
             same_domain = bool(
-                (target_words & _INSURANCE_CONTEXT_TOKENS and candidate_words & _INSURANCE_CONTEXT_TOKENS)
-                or (target_words & _AI_GOVERNANCE_CONTEXT_TOKENS and candidate_words & _AI_GOVERNANCE_CONTEXT_TOKENS)
+                (target_has_ins and candidate_words & _INSURANCE_CONTEXT_TOKENS)
+                or (target_has_ai and candidate_words & _AI_GOVERNANCE_CONTEXT_TOKENS)
             )
             if not same_domain:
                 continue
-        elif term not in target or term not in candidate:
-            continue
         score += 1.0
-    overlap = len((target_words - _STOPWORDS) & (candidate_words - _STOPWORDS))
+    overlap = len(target_content & (candidate_words - _STOPWORDS))
     score += min(overlap, 8) * 0.1
     return round(score, 6)
 

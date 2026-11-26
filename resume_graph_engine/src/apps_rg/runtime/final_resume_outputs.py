@@ -30,6 +30,7 @@ GENERATED_SECTION_IDS: tuple[str, ...] = (
     "slalom_bullets", "slalom_narrative", "headline", "executive_summary", "competencies",
     "unify_bullets", "unify_narrative", "ibm_bullets", "ibm_narrative",
     "insurtech_bullets", "insurtech_narrative", "ey_bullets", "ey_narrative",
+    "early_career_bullets", "early_career_narrative",
 )
 
 
@@ -539,6 +540,159 @@ def build_final_resume_output_contract(
     }
 
 
+def _synthesize_live_graph_section_snapshots(
+    *,
+    alloc_plan: dict[str, Any],
+    comp_plan: dict[str, Any],
+    base: dict[str, Any],
+    target_company: str,
+    target_role: str,
+) -> dict[str, dict[str, Any]]:
+    """Synthesize all resume sections live from sealed graph allocations with zero HOLD-banned figures."""
+    from apps_rg.runtime.contracts.metric_lexical_primitives import HOLD_METRIC_TEXT_RE
+
+    def _clean_text(text: str) -> str:
+        raw = re.sub(r"\s+", " ", str(text or "")).strip()
+        if not raw:
+            return ""
+        if HOLD_METRIC_TEXT_RE.search(raw):
+            raw = HOLD_METRIC_TEXT_RE.sub("", raw)
+            raw = re.sub(r"\s{2,}", " ", raw).strip(" ,;:")
+        return raw.rstrip(".") + "."
+
+    assignments = [
+        dict(row) for row in (alloc_plan.get("assignments") or []) if isinstance(row, dict)
+    ]
+    by_section: dict[str, list[dict[str, Any]]] = {}
+    for row in assignments:
+        by_section.setdefault(str(row.get("section_id") or ""), []).append(row)
+
+    mandate_route = alloc_plan.get("mandate_route") if isinstance(alloc_plan.get("mandate_route"), dict) else {}
+    cred_ids = list(alloc_plan.get("credential_elevation_ids") or mandate_route.get("credential_elevation_ids") or [])
+    cred_labels: dict[str, str] = {
+        "cert_fsa_001": "FSA Actuarial Fellow",
+        "edu_columbia_ms_biostat_001": "Columbia MS Biostatistics",
+        "cert_aws_sap_001": "AWS Solutions Architect Professional",
+        "edu_brown_ba_001": "Brown University",
+    }
+    elevated_creds = [cred_labels[cid] for cid in cred_ids if cid in cred_labels]
+
+    role_label = str(target_role or "Enterprise AI & Technology Executive").strip()
+    headline_rows = by_section.get("headline") or []
+    headline_pillars: list[str] = []
+    for row in headline_rows[:3]:
+        theme = str(row.get("root_bundle_theme") or row.get("skill_label") or "").strip()
+        if theme:
+            short = theme.split(",")[0].split("—")[0].strip()
+            if short and short not in headline_pillars:
+                headline_pillars.append(short[:48])
+    if elevated_creds and not any(c.lower() in " ".join(headline_pillars).lower() for c in elevated_creds):
+        if len(headline_pillars) >= 3:
+            headline_pillars[-1] = elevated_creds[0]
+        else:
+            headline_pillars.append(elevated_creds[0])
+    while len(headline_pillars) < 3:
+        for default_p in ("Governed Agentic AI Platforms", "Cloud Modernization & P&L Scale", "Quantitative Risk & FSA Foundation"):
+            if default_p not in headline_pillars and len(headline_pillars) < 3:
+                headline_pillars.append(default_p)
+    headline_line = " | ".join([role_label, *headline_pillars[:3]])
+
+    # Build 3-era Executive Summary live from sealed executive_summary assignments (zero hardcoded HOLD figures).
+    exec_rows = sorted(
+        by_section.get("executive_summary") or [],
+        key=lambda r: str(r.get("claim_unit_id") or ""),
+    )
+    exec_sentences: list[str] = []
+    for idx, row in enumerate(exec_rows[:4]):
+        claim = str(row.get("root_claim_text") or row.get("root_claim_action") or "").strip()
+        metric = str(row.get("metric_text") or "").strip()
+        if metric and HOLD_METRIC_TEXT_RE.search(metric):
+            metric = ""
+        if idx == 0 and elevated_creds:
+            cred_tag = " & ".join(elevated_creds[:2])
+            sent = f"{role_label} ({cred_tag}) who {claim[0].lower() + claim[1:]}" if claim else f"{role_label} ({cred_tag}) leading regulated enterprise AI and cloud transformations."
+        else:
+            sent = claim
+        if metric and metric.lower() not in sent.lower():
+            sent = f"{sent.rstrip('.')}, delivering {metric}"
+        cleaned = _clean_text(sent)
+        if cleaned:
+            exec_sentences.append(cleaned)
+    exec_summary_text = " ".join(exec_sentences)
+
+    cap_rows = csuite_capability_display_rows(base, target_company=target_company, target_role=target_role)
+    comp_categories = [
+        {"category_label": label, "terms": [{"text": summary}]}
+        for label, summary in cap_rows
+    ]
+
+    def _lane_bullets_and_narrative(bullet_sec: str, narr_sec: str) -> tuple[dict[str, Any], dict[str, Any]]:
+        b_rows = sorted(
+            by_section.get(bullet_sec) or [],
+            key=lambda r: str(r.get("claim_unit_id") or ""),
+        )
+        bullets_out: list[dict[str, Any]] = []
+        for r in b_rows:
+            cid = str(r.get("claim_unit_id") or "").rsplit(":", 1)[-1]
+            claim = str(r.get("root_claim_text") or r.get("root_claim_action") or "").strip()
+            metric = str(r.get("metric_text") or "").strip()
+            if metric and HOLD_METRIC_TEXT_RE.search(metric):
+                metric = ""
+            if metric and metric.lower() not in claim.lower():
+                claim = f"{claim.rstrip('.')}, delivering {metric}"
+            text = _clean_text(claim)
+            if text:
+                bullets_out.append(
+                    {
+                        "bullet_id": cid,
+                        "bullet_text": text,
+                        "source_fact_ids": [cid] if cid else [str(r.get("fact_id") or "")],
+                        "root_id": str(r.get("root_id") or ""),
+                    }
+                )
+        n_rows = sorted(
+            by_section.get(narr_sec) or [],
+            key=lambda r: str(r.get("claim_unit_id") or ""),
+        )
+        narr_text = ""
+        if n_rows:
+            first_n = n_rows[0]
+            n_claim = str(first_n.get("root_claim_text") or first_n.get("root_claim_action") or "").strip()
+            narr_text = _clean_text(n_claim)
+        elif bullets_out:
+            narr_text = bullets_out[0]["bullet_text"]
+        return {"narrative_sentence": narr_text}, {"bullets": bullets_out}
+
+    sl_n, sl_b = _lane_bullets_and_narrative("slalom_bullets", "slalom_narrative")
+    un_n, un_b = _lane_bullets_and_narrative("unify_bullets", "unify_narrative")
+    ib_n, ib_b = _lane_bullets_and_narrative("ibm_bullets", "ibm_narrative")
+    in_n, in_b = _lane_bullets_and_narrative("insurtech_bullets", "insurtech_narrative")
+    ey_n, ey_b = _lane_bullets_and_narrative("ey_bullets", "ey_narrative")
+    ec_n, ec_b = _lane_bullets_and_narrative("early_career_bullets", "early_career_narrative")
+
+    return {
+        "slalom_bullets": sl_b,
+        "slalom_narrative": sl_n,
+        "headline": {"headline_line": headline_line},
+        "executive_summary": {"resume_display_text": exec_summary_text},
+        "competencies": {
+            "competencies": comp_categories,
+            "target_role_profile": comp_plan.get("target_role_profile"),
+            "credential_elevation_ids": cred_ids,
+        },
+        "unify_bullets": un_b,
+        "unify_narrative": un_n,
+        "ibm_bullets": ib_b,
+        "ibm_narrative": ib_n,
+        "insurtech_bullets": in_b,
+        "insurtech_narrative": in_n,
+        "ey_bullets": ey_b,
+        "ey_narrative": ey_n,
+        "early_career_bullets": ec_b,
+        "early_career_narrative": ec_n,
+    }
+
+
 def _ensure_jd_tailored_final_resume_json(
     run_root: Path,
     *,
@@ -569,67 +723,22 @@ def _ensure_jd_tailored_final_resume_json(
     certifications = [row for row in facts.get("certifications") or [] if isinstance(row, dict)]
     header = base.get("header") if isinstance(base.get("header"), dict) else {}
 
-    role_label = str(target_role or "Enterprise AI & Technology Executive").strip()
-    co_label = str(target_company or "").strip()
-    headline_line = (
-        f"{role_label} | Enterprise Agentic AI Platforms, Cloud Modernization & P&L Leadership"
-        + (f" ({co_label})" if co_label else "")
+    snapshots_by_id = _synthesize_live_graph_section_snapshots(
+        alloc_plan=alloc_plan,
+        comp_plan=comp_plan,
+        base=base,
+        target_company=target_company,
+        target_role=target_role,
     )
-    exec_summary_text = (
-        "Enterprise AI and technology executive who aligns multi-year architecture strategy, operating governance, and cloud modernization across regulated financial and insurance institutions. "
-        "Guides reusable agentic platforms and decision-intelligence systems with human-in-the-loop controls that turn fragmented legacy estates into governed production capabilities. "
-        "Through that operating model, led 105 software engineers and data leaders across a leading energy and utility company and over $82M in cumulative commercial growth across $30M transformation portfolios, $22M in platform IP revenue, and $15M in cloud co-sell alliances. "
-        "Across enterprise programs, bi-temporal knowledge graphs and automated release gates enforce end-to-end audit lineage while reducing manual reporting errors and infrastructure overhead by 40%. "
-        "An FSA-chartered actuarial foundation in capital modeling and stochastic risk underpins containerized high-performance compute practices that shorten enterprise stress-testing cycles by 40%. "
-        "Can apply this blend of governed platform engineering, partner ecosystem execution, and quantitative capital discipline to accelerate enterprise-wide AI adoption and durable margin expansion."
-    )
-    cap_rows = csuite_capability_display_rows(base, target_company=target_company, target_role=target_role)
-    comp_categories = [
-        {"category_label": label, "terms": [{"text": summary}]}
-        for label, summary in cap_rows
-    ]
-
-    def _role_snaps(fact_id: str, max_b: int | None = None) -> tuple[dict[str, Any], dict[str, Any]]:
-        emp = by_fact_id.get(fact_id) or {}
-        narr = str(emp.get("role_narrative") or "").strip()
-        raw_bullets = [b for b in (emp.get("bullets") or []) if isinstance(b, dict)]
-        if max_b is not None:
-            raw_bullets = raw_bullets[:max_b]
-        bullets = [{"bullet_text": str(b.get("text") or "").strip()} for b in raw_bullets if str(b.get("text") or "").strip()]
-        return {"narrative_sentence": narr}, {"bullets": bullets}
-
-    sl_n, sl_b = _role_snaps("exp_slalom_001", 4)
-    un_n, un_b = _role_snaps("exp_unify_001", 6)
-    ib_n, ib_b = _role_snaps("exp_ibm_001", 5)
-    in_n, in_b = _role_snaps("exp_insurtech_001", 2)
-
-    snapshots_by_id: dict[str, dict[str, Any]] = {
-        "slalom_bullets": sl_b,
-        "slalom_narrative": sl_n,
-        "headline": {"headline_line": headline_line},
-        "executive_summary": {"resume_display_text": exec_summary_text},
-        "competencies": {
-            "competencies": comp_categories,
-            "target_role_profile": comp_plan.get("target_role_profile"),
-        },
-        "unify_bullets": un_b,
-        "unify_narrative": un_n,
-        "ibm_bullets": ib_b,
-        "ibm_narrative": ib_n,
-        "insurtech_bullets": in_b,
-        "insurtech_narrative": in_n,
-        "ey_bullets": {"bullets": []},
-        "ey_narrative": {},
-    }
     generated_sections = [
         _generated_section(idx, section_id, snapshots_by_id[section_id])
         for idx, section_id in enumerate(GENERATED_SECTION_IDS)
     ]
     early = by_fact_id.get("exp_early_career_001") or (employment[-1] if employment else {})
     locked_sections = [
-        {"assemble_order": 13, "section_id": "early_career", "section_kind": "locked_copy_inline", "copied_text_exact": _json_dumps(early)},
-        {"assemble_order": 14, "section_id": "education", "section_kind": "locked_copy_inline", "copied_text_exact": _json_dumps(education)},
-        {"assemble_order": 15, "section_id": "certifications", "section_kind": "locked_copy_inline", "copied_text_exact": _json_dumps(certifications)},
+        {"assemble_order": len(GENERATED_SECTION_IDS), "section_id": "early_career", "section_kind": "locked_copy_inline", "copied_text_exact": _json_dumps(early)},
+        {"assemble_order": len(GENERATED_SECTION_IDS) + 1, "section_id": "education", "section_kind": "locked_copy_inline", "copied_text_exact": _json_dumps(education)},
+        {"assemble_order": len(GENERATED_SECTION_IDS) + 2, "section_id": "certifications", "section_kind": "locked_copy_inline", "copied_text_exact": _json_dumps(certifications)},
     ]
     dates = [{"start_date": row.get("start_date"), "end_date": row.get("end_date"), "is_current": row.get("is_current")} for row in employment]
     blob = {
@@ -639,6 +748,9 @@ def _ensure_jd_tailored_final_resume_json(
         "target_company": target_company,
         "target_role": target_role,
         "target_role_profile": comp_plan.get("target_role_profile"),
+        "mandate_route": alloc_plan.get("mandate_route"),
+        "credential_elevation_ids": alloc_plan.get("credential_elevation_ids"),
+        "two_page_slot_budget": alloc_plan.get("two_page_slot_budget"),
         "graph_allocation_summary": {
             "target_role_profile": comp_plan.get("target_role_profile"),
             "selected_competency_families": comp_plan.get("selected_competency_families"),
@@ -659,7 +771,7 @@ def _ensure_jd_tailored_final_resume_json(
             "dates": {"copied_text_exact": _json_dumps(dates)},
         },
         "source_base_resume": str(_base_resume_path(repo_root)),
-        "generated_content_source": "whole_resume_graph_allocation_and_locked_base_resume",
+        "generated_content_source": "live_whole_resume_graph_allocation_zero_canned_prose",
     }
     path = run_root / FINAL_RESUME_ASSEMBLY_JSON_RELPATH
     path.parent.mkdir(parents=True, exist_ok=True)

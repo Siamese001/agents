@@ -331,6 +331,10 @@ def build_headline_assembly_input(
     alloc_block = _format_allocation_authority_block(plan, prefix=prefix)
     if alloc_block:
         u0_parts.append(alloc_block)
+    from apps_rg.runtime.reasoning.CareerThesisAlignmentAgent import format_career_thesis_u0_block
+    thesis_block = format_career_thesis_u0_block(runtime_payload, section_id="headline")
+    if thesis_block:
+        u0_parts.append(f"\n{thesis_block}\n")
     if companion_context_nonempty:
         u0_parts.append(
             "Because U_TIER_COMPANION_CONTEXT is included below (non-empty), jd_alignment MUST also include "

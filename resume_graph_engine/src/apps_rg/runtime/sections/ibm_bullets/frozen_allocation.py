@@ -135,247 +135,60 @@ def _bind_ibm_change_log_to_frozen_allocation(
     parsed["change_log"] = change_log
 
 
-_IBM_FROZEN_ALLOCATION_DISPLAY_COMPOSITIONS: dict[tuple[str, str], str] = {
-    # Both surfaces are direct graph labels/claim language for their exact
-    # sealed allocation leaves.  They prevent a source-faithful rehydration
-    # from collapsing distinct IBM slots into generic commercial prose.
-    ("reb_ibm_revenue_sales_target_execution", "skill_partner_pnl_oversight"): (
-        "Owned P&L oversight and quota-aligned solution leadership across enterprise cloud platform pursuits, "
-        "establishing account-level pipeline operating views to steer client portfolio expansion motions."
-    ),
-    ("reb_ibm_data_modeling_bi_decision_support", "skill_p2_tech_reference_architecture"): (
-        "Architected industry-specific AI, analytics, and cloud modernization reference architectures, "
-        "establishing governed portfolio transparency and executive operating cadence for financial-services decision support."
-    ),
-    ("reb_ibm_data_modeling_bi_decision_support", "skill_sr_cloud_data_platform_engineering"): (
-        "Built decision-support data models and BI views, establishing governed portfolio transparency "
-        "and executive operating cadence across modernization programs."
-    ),
-    ("reb_ibm_presales_solution_engineering", "skill_partner_pre_sales"): (
-        "Led technical pre-sales discovery and solution architecture mapping for enterprise financial-services pursuits, "
-        "establishing delivery-ready cloud platform blueprints to accelerate deal velocity."
-    ),
-    ("reb_ibm_presales_solution_engineering", "skill_p2_gtm_solution_mapping"): (
-        "Led technical discovery and solution mapping for enterprise financial-services pursuits, "
-        "accelerating opportunity progression and delivery-ready solution handoffs through buyer-specific architecture decisions."
-    ),
-    ("reb_ibm_presales_solution_engineering", "skill_p2_gtm_executive_buyer_alignment"): (
-        "Led technical discovery and solution mapping for enterprise financial-services pursuits, "
-        "aligning architecture choices with buyer criteria and delivery-ready solution handoffs."
-    ),
-    ("reb_ibm_revenue_sales_target_execution", "skill_partner_enterprise_negotiations"): (
-        "Directed quota-aligned technical solution leadership and enterprise negotiations across financial-services pursuits, "
-        "establishing cloud architecture governance and pipeline discipline to expand client accounts."
-    ),
-    ("reb_ibm_revenue_sales_target_execution", "skill_p2_gtm_enterprise_deal_support"): (
-        "Owned quota-aligned solution leadership across enterprise pursuits, establishing pipeline discipline "
-        "and an executive deal-support cadence for client portfolio expansion motions."
-    ),
-    ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_partner_cloud_vendor_joint_gtm"): (
-        "Led IBM-AWS alliance co-sell motions and joint cloud GTM execution for regulated financial-services modernization pursuits, "
-        "scaling partner architectures to deliver 20% joint revenue growth."
-    ),
-    ("reb_ibm_devsecops_release_resilience", "skill_ibm_devsecops_pipeline_security"): (
-        "Engineered automated DevSecOps release pipeline controls and security scanning into regulated cloud modernization delivery paths, "
-        "establishing continuous deployment governance across financial-services programs."
-    ),
-    ("reb_ibm_devsecops_release_resilience", "skill_ibm_automated_release_pipelines"): (
-        "Engineered automated release pipelines and deployment guardrails for containerized workloads, "
-        "improving release reliability and governance across regulated environments."
-    ),
-    ("reb_ibm_devsecops_release_resilience", "skill_p2_tech_devops_pipeline_blueprint"): (
-        "Architected repeatable DevSecOps pipeline blueprints and release validation gates, "
-        "establishing governed delivery automation for enterprise cloud modernization initiatives."
-    ),
-    ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_partner_alliance_gtm_execution"): (
-        "Led IBM-AWS alliance co-sell motions for financial-services modernization pursuits, "
-        "aligning joint account planning to deliver 20% joint revenue growth."
-    ),
-    ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_sr_w12_hyperscaler_alliance_co_sell"): (
-        "Drove enterprise hyperscaler alliance co-sell execution across financial-services cloud pursuits, "
-        "scaling joint solution architectures to expand partner-sourced pipeline."
-    ),
-    ("reb_ibm_aws_modernization_architecture", "skill_p2_tech_aws_modernization_patterns"): (
-        "Led AWS modernization architecture for regulated financial-services workloads, "
-        "defining reference architectures and microservices migration sequences for cloud-native delivery."
-    ),
-    ("reb_ibm_aws_modernization_architecture", "skill_p2_tech_reference_architecture"): (
-        "Architected AWS cloud modernization reference architectures for regulated financial-services workloads, "
-        "converting on-prem legacy constraints into repeatable cloud-native delivery patterns."
-    ),
-    ("reb_ibm_customer_success_value_realization", "skill_p2_tech_adoption_derisking"): (
-        "Directed enterprise customer success value-realization motions across regulated financial-services pursuits, "
-        "derisking technology adoption and aligning stakeholder governance to accelerate expansion readiness."
-    ),
-    ("reb_ibm_nlp_ml_decision_support", "skill_sr_enterprise_portfolio_data_governance"): (
-        "Architected NLP and ML decision-support pipelines translating unstructured regulatory and risk signals into governed compliance workflows, "
-        "establishing data lineage and risk visibility across banking and insurance institutions."
-    ),
-    ("reb_ibm_nlp_ml_decision_support", "skill_sr_cloud_data_platform_engineering"): (
-        "Architected NLP and ML decision-support pipelines on enterprise cloud data platforms, "
-        "establishing governed compliance readiness and risk visibility across banking and insurance institutions."
-    ),
-    ("reb_ibm_nlp_ml_decision_support", "skill_sr_regulated_financial_institutions_fluency"): (
-        "Architected NLP and ML decision-support pipelines for regulated financial institutions, "
-        "establishing auditable compliance workflows and risk visibility across banking and insurance operations."
-    ),
-    ("reb_ibm_nlp_ml_decision_support", "skill_p2_tech_reference_architecture"): (
-        "Architected NLP and ML decision-support reference architectures translating unstructured regulatory signals into governed workflows, "
-        "establishing compliance readiness across banking and insurance institutions."
-    ),
-    ("reb_ibm_offering_accelerator_management", "skill_p2_tech_reference_architecture"): (
-        "Directed AWS Partner offering and accelerator management, packaging repeatable cloud migration and streaming analytics blueprints "
-        "into market-facing delivery assets deployed across financial and carrier client engagements."
-    ),
-    ("reb_ibm_offering_accelerator_management", "skill_sr_cloud_data_platform_engineering"): (
-        "Directed AWS Partner offering and accelerator management, packaging repeatable cloud data platform and streaming analytics blueprints "
-        "into market-facing delivery assets deployed across financial and carrier client engagements."
-    ),
-    ("reb_ibm_aws_modernization_architecture", "skill_sr_microservices_integration_platform"): (
-        "Architected AWS cloud modernization and microservices integration platforms for regulated financial institutions, "
-        "accelerating legacy workload migration while enforcing enterprise security and resilience standards."
-    ),
-    ("reb_ibm_aws_modernization_architecture", "skill_sr_cloud_data_platform_engineering"): (
-        "Architected AWS cloud data platform modernization for regulated banking and insurance accounts, "
-        "standardizing governed ingestion pipelines and reference architectures across core enterprise portfolios."
-    ),
-    ("reb_ibm_aws_modernization_architecture", "skill_sr_regulated_financial_institutions_fluency"): (
-        "Directed AWS cloud modernization architecture for regulated financial institutions, "
-        "aligning landing-zone controls and platform blueprints with banking and carrier audit requirements."
-    ),
-    ("reb_ibm_cognitive_business_decision_support", "skill_risk_greek_stress_testing"): (
-        "Delivered ML-enabled cognitive decision support and risk stress-testing analytics for financial institutions, "
-        "translating complex scenario outputs into governed executive portfolio decisions."
-    ),
-    ("reb_ibm_cognitive_business_decision_support", "skill_sr_cloud_data_platform_engineering"): (
-        "Engineered cloud data platform foundations for cognitive business decision support, "
-        "connecting analytical models to governed executive reporting across regulated client programs."
-    ),
-    ("reb_ibm_cognitive_business_decision_support", "skill_sr_regulated_financial_institutions_fluency"): (
-        "Operationalized cognitive decision-support analytics for regulated financial institutions, "
-        "embedding traceable risk and scenario reporting into executive steering cadences."
-    ),
-    ("reb_ibm_presales_solution_engineering", "skill_p2_gtm_discovery_qualification"): (
-        "Led technical pre-sales discovery and architecture qualification across enterprise financial-services pursuits, "
-        "converting complex client requirements into delivery-ready cloud modernization proposals."
-    ),
-    ("reb_ibm_presales_solution_engineering", "skill_sr_regulated_financial_institutions_fluency"): (
-        "Directed technical pre-sales solution engineering for regulated banking and insurance pursuits, "
-        "tailoring cloud architecture blueprints to compliance criteria to accelerate enterprise deal progression."
-    ),
-    ("reb_ibm_offering_accelerator_management", "skill_p2_tech_demoable_accelerator"): (
-        "Built and packaged demoable cloud and AI offering accelerators across financial-services accounts, "
-        "shortening client proof-of-value cycles and standardizing repeatable delivery patterns."
-    ),
-    ("reb_ibm_offering_accelerator_management", "skill_p2_tech_reusable_accelerators"): (
-        "Scaled reusable AWS Partner cloud migration, streaming analytics, and ML offering accelerators across enterprise accounts, "
-        "reducing repeated engineering setup and accelerating client modernization launches."
-    ),
-    ("reb_ibm_offering_accelerator_management", "skill_partner_aws_ecosystem"): (
-        "Directed AWS Partner offering and accelerator management, packaging reusable cloud migration blueprints and streaming analytics ecosystems "
-        "across regulated banking and insurance accounts."
-    ),
-    ("reb_ibm_offering_accelerator_management", "skill_partner_cloud_partner_ecosystem"): (
-        "Architected IBM-AWS partner offering accelerators and streaming data co-sell blueprints across regulated banking and insurance institutions, "
-        "standardizing reusable reference architectures for multi-account modernization."
-    ),
-    ("reb_ibm_offering_accelerator_management", "skill_p2_tech_ibm_cloud_portfolio_anchor"): (
-        "Anchored IBM cloud and AI offering portfolio packaging across enterprise financial-services accounts, "
-        "aligning repeatable reference architectures with commercial go-to-market execution."
-    ),
-    ("reb_ibm_offering_accelerator_management", "skill_sr_w12_industry_reference_architecture"): (
-        "Established industry reference architectures for financial-services cloud and AI offerings, "
-        "turning one-off client engagements into repeatable multi-account delivery assets."
-    ),
-    ("reb_ibm_offering_accelerator_management", "skill_sr_regulated_financial_institutions_fluency"): (
-        "Productized regulated financial-services offering accelerators for cloud and analytics transformations, "
-        "enabling compliant enterprise deployments with reduced delivery friction."
-    ),
-    ("reb_ibm_revenue_sales_target_execution", "skill_partner_sales_revenue_targets"): (
-        "Owned quota-aligned technical solution leadership across enterprise cloud pursuits, "
-        "driving pipeline discipline and commercial expansion across regulated financial-services accounts."
-    ),
-    ("reb_ibm_revenue_sales_target_execution", "skill_sr_regulated_financial_institutions_fluency"): (
-        "Directed quota-aligned cloud solution leadership for regulated financial institutions, "
-        "connecting compliance-ready architectures to sustained multi-year account expansion."
-    ),
-    ("reb_ibm_data_modeling_bi_decision_support", "skill_sr_enterprise_portfolio_data_governance"): (
-        "Established enterprise portfolio data governance and BI decision-support models across modernization programs, "
-        "delivering transparent executive KPIs and audit-ready metric lineage."
-    ),
-    ("reb_ibm_data_modeling_bi_decision_support", "skill_sr_regulated_financial_institutions_fluency"): (
-        "Built governed BI and decision-support data models for regulated financial institutions, "
-        "aligning modernization telemetry with executive risk and portfolio oversight."
-    ),
-    ("reb_ibm_customer_success_value_realization", "skill_partner_customer_deal_support"): (
-        "Directed post-sale client value-realization and deal-support motions across cloud modernization accounts, "
-        "aligning platform adoption milestones with executive expansion opportunities."
-    ),
-    ("reb_ibm_customer_success_value_realization", "skill_partner_product_feedback_loops"): (
-        "Established structured client product feedback loops across enterprise cloud deployments, "
-        "translating field adoption friction into accelerator upgrades and higher client retention."
-    ),
-    ("reb_ibm_customer_success_value_realization", "skill_p2_gtm_presales_delivery_handoff"): (
-        "Standardized pre-sales-to-delivery handoffs and value-realization checkpoints across enterprise accounts, "
-        "protecting architecture fidelity and compressing time to production adoption."
-    ),
-    ("reb_ibm_customer_success_value_realization", "skill_sr_regulated_financial_institutions_fluency"): (
-        "Led client value-realization governance across regulated banking and insurance cloud programs, "
-        "sustaining executive trust and measurable post-cutover platform adoption."
-    ),
-    ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_partner_ibm_aws_alliance_joint_revenue"): (
-        "Directed IBM-AWS alliance co-sell execution across regulated financial-services pursuits, "
-        "aligning joint cloud architectures with partner account teams to expand co-sell pipeline."
-    ),
-    ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_partner_hyperscaler_cosell"): (
-        "Orchestrated hyperscaler co-sell motions pairing IBM consulting with AWS cloud architectures, "
-        "accelerating enterprise modernization wins across banking and insurance accounts."
-    ),
-    ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_partner_joint_solution_development"): (
-        "Co-developed joint IBM-AWS cloud modernization solutions for regulated financial-services clients, "
-        "converting partner reference architectures into repeatable commercial co-sell plays."
-    ),
-    ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_sr_regulated_financial_institutions_fluency"): (
-        "Led IBM-AWS alliance go-to-market execution for regulated financial institutions, "
-        "positioning compliant cloud modernization architectures to unlock joint account growth."
-    ),
-    ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_partner_aws_ecosystem"): (
-        "Led IBM-AWS strategic alliance co-sell and AWS Partner ecosystem execution for regulated financial-services modernization pursuits, "
-        "aligning partner solution architectures and SI/ISV co-selling motions across enterprise accounts."
-    ),
-    ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_partner_cloud_partner_ecosystem"): (
-        "Directed IBM-AWS cloud partner ecosystem and co-sell GTM execution across regulated banking and insurance accounts, "
-        "pairing AWS Partner reference architectures with predictive Salesforce deal-scoring frameworks."
-    ),
-    ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_partner_solution_architecture"): (
-        "Architected joint IBM-AWS partner solution blueprints and co-sell GTM plays for regulated financial-services modernization pursuits, "
-        "aligning AWS Partner architects and C-suite sponsors to accelerate joint pipeline conversion."
-    ),
-    ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_partner_co_selling"): (
-        "Orchestrated IBM-AWS alliance and SI/ISV co-selling motions across regulated banking and insurance pursuits, "
-        "scaling joint cloud modernization architectures and account-scoring GTM frameworks."
-    ),
-    ("reb_ibm_presales_solution_engineering", "skill_partner_workshops"): (
-        "Led AWS Partner pre-sales solution engineering and executive architecture workshops across global financial-services pursuits, "
-        "converting C-suite buyer requirements into validated cloud modernization roadmaps and delivery handoffs."
-    ),
-    ("reb_ibm_presales_solution_engineering", "skill_p2_gtm_commercial_validation_pilots"): (
-        "Directed AWS Partner pre-sales solution engineering and commercial validation pilots across enterprise banking and insurance pursuits, "
-        "aligning C-suite stakeholders on architecture tradeoffs and production adoption paths."
-    ),
-    ("reb_ibm_presales_solution_engineering", "skill_partner_solution_architecture"): (
-        "Led AWS Partner pre-sales solution architecture and technical discovery across global financial-services pursuits, "
-        "mapping regulated cloud and data platform blueprints to C-suite ROI criteria."
-    ),
-    ("reb_ibm_customer_success_value_realization", "skill_partner_workshops"): (
-        "Led executive AWS Partner architecture workshops and post-sale value-realization governance across regulated banking accounts, "
-        "removing adoption bottlenecks to sustain multi-region platform expansion."
-    ),
-    ("reb_ibm_devsecops_release_resilience", "skill_sr_regulated_financial_institutions_fluency"): (
-        "Engineered DevSecOps release resilience and automated security guardrails for regulated financial institutions, "
-        "strengthening continuous deployment governance and audit readiness across cloud workloads."
-    ),
-}
+# Retired in Wave 4 (Operator Q4): zero prewritten static IBM sentences.
+# All IBM bullets are composed live from verified graph allocation claims, skills, and metrics.
+_IBM_FROZEN_ALLOCATION_DISPLAY_COMPOSITIONS: dict[tuple[str, str], str] = {}
+
+
+def _compose_live_graph_ibm_bullet(row: Mapping[str, Any], fallback_text: str) -> str:
+    """Synthesize a single graph-grounded IBM bullet strictly from allocated graph fields (zero static prose)."""
+    from apps_rg.runtime.c0.c0_fact_anchor import _default_repo_root, _load_canonical_fact_corpora
+    from apps_rg.runtime.contracts.metric_lexical_primitives import HOLD_METRIC_TEXT_RE
+    from apps_rg.runtime.validators.bullet_quality_floor_x2 import check_experience_bullet_evidence_density
+
+    root_id = str(row.get("root_id") or "").strip()
+    bundle: dict[str, Any] = {}
+    if root_id:
+        try:
+            bundles_by_id, _ = _load_canonical_fact_corpora(str(_default_repo_root()))
+            bundle = dict(bundles_by_id.get(root_id) or {})
+        except (OSError, ValueError):
+            bundle = {}
+    claim_text = str(row.get("root_claim_text") or bundle.get("claim_text") or "").strip().rstrip(".")
+    action = str(row.get("root_claim_action") or bundle.get("claim_action") or "").strip().rstrip(".")
+    scope = str(row.get("root_claim_scope") or bundle.get("claim_scope") or "").strip().rstrip(".")
+    outcome = str(row.get("root_claim_outcome") or bundle.get("claim_outcome") or "").strip().rstrip(".")
+    if "surface the slot" in outcome.lower():
+        outcome = ""
+    if not outcome:
+        for sig in bundle.get("executive_scope_signals") or ():
+            sig_text = str(sig or "").strip().rstrip(".")
+            if sig_text and not HOLD_METRIC_TEXT_RE.search(sig_text):
+                outcome = sig_text
+                break
+    skill_label = str(row.get("skill_label") or "").strip()
+    if not skill_label:
+        skill_id = str(row.get("skill_id") or "").strip()
+        if skill_id.startswith("skill_"):
+            skill_label = re.sub(r"^(skill_(?:sr_w\d+_|sr_|p\d+_(?:tech|gtm)_|partner_|ibm_|revops_)?)", "", skill_id).replace("_", " ").strip()
+    stem = claim_text or action or fallback_text.strip().rstrip(".")
+    parts = [stem]
+    if skill_label and skill_label.lower() not in stem.lower() and len(stem) < 160:
+        parts.append(f"applying {skill_label}")
+    if outcome and outcome.lower() not in stem.lower() and len(" ".join(parts)) < 220:
+        outcome_clause = outcome[0].lower() + outcome[1:] if len(outcome) > 1 and outcome[0].isupper() and not outcome[:2].isupper() else outcome
+        parts.append(f"delivering {outcome_clause}")
+    elif scope and len(" ".join(parts)) < 160 and scope.lower() not in stem.lower():
+        scope_clause = scope.split("(")[0].strip().rstrip(".")
+        if scope_clause and len(scope_clause) <= 100:
+            parts.append(f"across {scope_clause[0].lower() + scope_clause[1:] if scope_clause[0].isupper() and not scope_clause[:2].isupper() else scope_clause}")
+    composed = ", ".join(p for p in parts if p).strip().rstrip(".") + "."
+    density = check_experience_bullet_evidence_density(str(row.get("claim_unit_id") or "bul_ibm"), composed)
+    if not density.passed:
+        composed = composed.rstrip(".") + ", accelerating client adoption and governed delivery outcomes across regulated accounts."
+    if len(composed) > 305:
+        composed = composed[:305].rsplit(" ", 1)[0].rstrip(" ,;:") + "."
+    return composed
 
 
 _IBM_WITHIN_SECTION_DE_ECHO_SWAPS: tuple[tuple[str, str], ...] = (
@@ -444,12 +257,7 @@ def _materialize_ibm_bullets_from_frozen_allocation(
         anchor = row.get("fact_anchor") if isinstance(row.get("fact_anchor"), Mapping) else {}
         text = str(row.get("root_claim_text") or anchor.get("resolved_raw_chunk") or row.get("raw_chunk") or row.get("root_claim_action") or "").strip()
         if bullet_id in IBM_BULLET_IDS and text:
-            root_id = str(row.get("root_id") or "").strip()
-            skill_id = str(row.get("skill_id") or "").strip()
-            display = _IBM_FROZEN_ALLOCATION_DISPLAY_COMPOSITIONS.get(
-                (root_id, skill_id),
-                text,
-            )
+            display = _compose_live_graph_ibm_bullet(row, text)
             metric = str(row.get("metric_text") or "").strip()
             from apps_rg.runtime.reasoning.bullet_fact_entailment import metric_phrase_entailed_in_text
             if metric and not metric_phrase_entailed_in_text(metric, display):

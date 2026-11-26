@@ -382,6 +382,11 @@ def build_competencies_assembly_input(
         "statutory reserves, or insurance balance sheet facts from InsurTech.\n"
     )
 
+    from apps_rg.runtime.reasoning.CareerThesisAlignmentAgent import format_career_thesis_u0_block
+    thesis_block = format_career_thesis_u0_block(runtime_payload, section_id="competencies")
+    if thesis_block:
+        u0 = f"{u0}\n\n{thesis_block}\n"
+
     return PromptAssemblyInput(
         template_id="competency_selector_v2",
         request_id=request_id,

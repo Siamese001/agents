@@ -66,7 +66,9 @@ GENERATED_LANE_IDS: tuple[str, ...] = (
     "ibm_narrative", "ibm_bullets",
     "insurtech_narrative", "insurtech_bullets",
 )
-OPTIONAL_GENERATED_LANES: frozenset[str] = frozenset({"ey_bullets", "ey_narrative"})
+OPTIONAL_GENERATED_LANES: frozenset[str] = frozenset(
+    {"ey_bullets", "ey_narrative", "early_career_bullets", "early_career_narrative"}
+)
 
 
 def canonical_json_sorted(value: Any) -> str:
@@ -199,8 +201,9 @@ def run_final_resume_x2_gates(
     sections = final_resume_blob.get("sections") or []
     ids_in_order = [str(s.get("section_id")) for s in sections if isinstance(s, dict)]
     req = list(CANONICAL_ASSEMBLED_SECTION_ORDER)
+    ids_without_optional = [sid for sid in ids_in_order if sid not in OPTIONAL_GENERATED_LANES]
 
-    set_ok = set(ids_in_order) == set(req)
+    set_ok = set(ids_without_optional) == set(req)
     _add(
         gates,
         "x2_all_required_sections_present",
@@ -210,7 +213,7 @@ def run_final_resume_x2_gates(
         None if set_ok else "missing or unexpected section ids",
     )
 
-    order_ok = ids_in_order == req
+    order_ok = ids_without_optional == req
     _add(
         gates,
         "x2_section_order_valid",

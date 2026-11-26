@@ -28,11 +28,13 @@ _CLAIM_SECTIONS = frozenset(
         "ibm_bullets",
         "insurtech_bullets",
         "ey_bullets",
+        "early_career_bullets",
         "slalom_narrative",
         "unify_narrative",
         "ibm_narrative",
         "insurtech_narrative",
         "ey_narrative",
+        "early_career_narrative",
     }
 )
 
@@ -172,8 +174,13 @@ def build_whole_resume_graph_evidence_contract(
         and str(section.get("section_id") or "") in _CLAIM_SECTIONS
     ]
     observed_ids = {str(section.get("section_id") or "") for section in sections}
-    _optional_claim_sections = frozenset({"ey_bullets", "ey_narrative"})
-    if observed_ids not in (_CLAIM_SECTIONS, _CLAIM_SECTIONS - _optional_claim_sections):
+    _optional_claim_sections = frozenset(
+        {"ey_bullets", "ey_narrative", "early_career_bullets", "early_career_narrative"}
+    )
+    if not (
+        observed_ids.issubset(_CLAIM_SECTIONS)
+        and (_CLAIM_SECTIONS - _optional_claim_sections).issubset(observed_ids)
+    ):
         failures.append("generated_section_parity_mismatch")
 
     for section in sorted(sections, key=lambda value: str(value.get("section_id") or "")):

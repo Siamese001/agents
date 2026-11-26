@@ -255,14 +255,12 @@ def allocate_candidate_sets(
                         and (
                             slot.metric_required
                             or not is_bullet_section
-                            or slot.section_id == "ibm_bullets"
                         )
                     )
                     or (
                         bool(row.get("metric_outcome_id"))
                         and (
                             is_quantified_metric_outcome_text(str(row.get("metric_text") or ""))
-                            or (slot.section_id == "ibm_bullets" and not slot.metric_required)
                             or (slot.section_id == "executive_summary" and not slot.metric_required and bool(lane_sole_fps))
                         )
                     )
@@ -533,6 +531,8 @@ def build_section_final_evidence_contracts(
         raise ValueError("allocation plan invalid: " + ", ".join(failures))
     contracts: dict[str, dict[str, Any]] = {}
     for section_id in ALL_CLAIM_BEARING_SECTIONS:
+        if section_id not in section_plans:
+            continue
         source_plan = section_plans.get(section_id) or {}
         traversal = (
             source_plan.get("graph_traversal_receipt")
@@ -562,7 +562,10 @@ def build_section_final_evidence_contracts(
             "counts_toward_global_uniqueness": not bool(derived_from),
             "traversal_receipt_digest": str(traversal.get("events_digest") or ""),
             "traversal_conservation_pass": traversal.get("pass") is True,
-            "pass": (bool(assignments) or section_id in ("ey_bullets", "ey_narrative"))
+            "pass": (
+                bool(assignments)
+                or section_id in ("ey_bullets", "ey_narrative", "early_career_bullets", "early_career_narrative")
+            )
             and bool(source_plan.get("plan_digest"))
             and traversal.get("pass") is True,
         }

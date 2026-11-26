@@ -54,10 +54,9 @@ def build_l1_cognitive_treatment(
 ) -> dict[str, Any]:
     """Build one validated treatment assignment without retaining raw inputs."""
 
-    # The cognitive path is an experiment.  Missing ingress assignment must
-    # preserve the existing v2 behavior; candidate exposure requires an
-    # explicit U0-bound assignment and can never be inferred from omission.
-    normalized_arm = str(arm or L1_COGNITIVE_V2_CONTROL_ARM).strip()
+    # Wave 4 promotion: L1 cognitive v3 is the default production arm; explicit
+    # l1_v2_control opt-in remains supported for paired A/B shadow studies and rollback.
+    normalized_arm = str(arm or L1_COGNITIVE_V3_CANDIDATE_ARM).strip()
     normalized_origin = str(assignment_origin or "").strip()
     if normalized_arm not in L1_COGNITIVE_TREATMENT_ARMS:
         raise L1CognitiveTreatmentError(
@@ -114,12 +113,12 @@ def validate_l1_cognitive_treatment(treatment: Mapping[str, Any]) -> None:
 
 
 def treatment_from_task_spec(task_spec: Mapping[str, Any]) -> dict[str, Any]:
-    """Read a U0 assignment, with a marked legacy control default for old callers."""
+    """Read a U0 assignment, defaulting to L1 cognitive v3 while honoring explicit v2 control opt-in."""
 
     raw = task_spec.get("l1_cognitive_treatment")
     if raw is None:
         return build_l1_cognitive_treatment(
-            L1_COGNITIVE_V2_CONTROL_ARM,
+            L1_COGNITIVE_V3_CANDIDATE_ARM,
             assignment_origin="LEGACY_L1_DEFAULT",
         )
     if not isinstance(raw, Mapping):

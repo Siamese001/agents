@@ -51,9 +51,18 @@ EMPLOYER_NARRATIVE_SPECS: Mapping[str, EmployerNarrativeSpec] = {
         "insurtech_header", 0.40, (0.30, 0.55), 2400, NARRATIVE_MAX_WORDS, NARRATIVE_MAX_CHARS, True,
     ),
     "ey_narrative": EmployerNarrativeSpec(
-        "ey_narrative", "ey", "Ernst & Young", "ernst", "exp_ey_001", "ey_bullets", "bul_ey_", (),
+        "ey_narrative", "ey", "Ernst & Young", "ernst", "exp_ey_001", "ey_bullets", "bul_ey_",
+        ("bul_ey_001", "bul_ey_002", "bul_ey_003"),
         "ey_narrative_v1", "apps_rg/prompt_assembly/templates/ey_narrative_v1.yaml", "ey_narrative_output.txt",
-        "ey_header", 0.40, (0.30, 0.55), 1600, NARRATIVE_MAX_WORDS, NARRATIVE_MAX_CHARS, True, True,
+        "ey_header", 0.40, (0.30, 0.55), 1600, NARRATIVE_MAX_WORDS, NARRATIVE_MAX_CHARS, True, False,
+    ),
+    "early_career_narrative": EmployerNarrativeSpec(
+        "early_career_narrative", "early_career", "Early Career Actuarial & Quantitative Roles", "early",
+        "exp_early_career_001", "early_career_bullets", "bul_early_career_",
+        ("bul_early_career_001", "bul_early_career_002", "bul_early_career_003"),
+        "early_career_narrative_v1", "apps_rg/prompt_assembly/templates/ey_narrative_v1.yaml",
+        "early_career_narrative_output.txt", "early_career_header", 0.40, (0.30, 0.55), 1600,
+        NARRATIVE_MAX_WORDS, NARRATIVE_MAX_CHARS, True, False,
     ),
 }
 

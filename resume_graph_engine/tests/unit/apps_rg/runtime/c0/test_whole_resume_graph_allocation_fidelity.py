@@ -49,42 +49,50 @@ def test_insurance_it_strategy_whole_resume_allocation_fidelity() -> None:
     assert by_slot["executive_summary:claim:01"]["metric_value"] != ""
     assert by_slot["executive_summary:claim:01"]["metric_unit"] == "PERCENT"
 
-    # Unify bullets preserve exact numeric metrics on bul_unify_005 and bul_unify_006 and remain disjoint from exec_summary
-    unify_roots = {by_slot[f"unify_bullets:bul_unify_{i:03d}"]["root_id"] for i in range(1, 7)}
-    assert len(unify_roots) == 6
+    # Unify bullets adaptively allocate per two-page mandate budget while preserving numeric metrics on bul_unify_005 and bul_unify_006
+    unify_slots = [r for r in plan["assignments"] if r["section_id"] == "unify_bullets"]
+    unify_roots = {r["root_id"] for r in unify_slots}
+    assert len(unify_roots) == plan["two_page_slot_budget"]["unify_bullets"]
     assert unify_roots.isdisjoint(exec_roots)
     assert by_slot["unify_bullets:bul_unify_005"]["metric_value"] != ""
     assert by_slot["unify_bullets:bul_unify_006"]["metric_value"] != ""
 
-    # IBM bullets dynamically allocate 5 distinct role episode roots disjoint from exec_summary with numeric metric on bul_ibm_005
-    ibm_roots = {by_slot[f"ibm_bullets:bul_ibm_{i:03d}"]["root_id"] for i in range(1, 6)}
-    assert len(ibm_roots) == 5
+    # IBM bullets adaptively allocate distinct role episode roots disjoint from exec_summary with numeric metric on final slot
+    ibm_slots = sorted(
+        [r for r in plan["assignments"] if r["section_id"] == "ibm_bullets"],
+        key=lambda r: r["claim_unit_id"],
+    )
+    ibm_roots = {r["root_id"] for r in ibm_slots}
+    assert len(ibm_roots) == plan["two_page_slot_budget"]["ibm_bullets"]
     assert ibm_roots.isdisjoint(exec_roots)
     assert "reb_ibm_aws_modernization_architecture" in (ibm_roots | exec_roots)
-    assert by_slot["ibm_bullets:bul_ibm_005"]["metric_outcome_id"] != ""
-    assert by_slot["ibm_bullets:bul_ibm_005"]["metric_value"] != ""
+    assert ibm_slots[-1]["metric_outcome_id"] != ""
+    assert ibm_slots[-1]["metric_value"] != ""
 
-    # InsurTech bullets dynamically allocate 2 distinct non-metric insurance roots disjoint from exec_summary
-    insurtech_bullet_roots = {
-        by_slot["insurtech_bullets:bul_insurtech_001"]["root_id"],
-        by_slot["insurtech_bullets:bul_insurtech_002"]["root_id"],
-    }
-    assert len(insurtech_bullet_roots) == 2
+    # InsurTech, EY, and Early Career bullets expand adaptively for regulated insurance strategy roles
+    insurtech_slots = [r for r in plan["assignments"] if r["section_id"] == "insurtech_bullets"]
+    insurtech_bullet_roots = {r["root_id"] for r in insurtech_slots}
+    assert len(insurtech_bullet_roots) == plan["two_page_slot_budget"]["insurtech_bullets"]
     assert insurtech_bullet_roots.isdisjoint(exec_roots)
-    assert by_slot["insurtech_bullets:bul_insurtech_001"]["metric_value"] == ""
-    assert by_slot["insurtech_bullets:bul_insurtech_002"]["metric_value"] == ""
+    assert all(r["metric_value"] == "" for r in insurtech_slots)
+
+    ey_slots = [r for r in plan["assignments"] if r["section_id"] == "ey_bullets"]
+    early_slots = [r for r in plan["assignments"] if r["section_id"] == "early_career_bullets"]
+    assert len(ey_slots) >= 2
+    assert len(early_slots) >= 2
 
     # InsurTech narrative derives disjoint roots from the remaining InsurTech pool
     insurtech_narrative_roots = {
-        by_slot["insurtech_narrative:derived:01"]["root_id"],
-        by_slot["insurtech_narrative:derived:02"]["root_id"],
+        r["root_id"]
+        for r in plan["assignments"]
+        if r["section_id"] == "insurtech_narrative"
     }
+    assert insurtech_narrative_roots
     assert insurtech_narrative_roots.isdisjoint(insurtech_bullet_roots)
     assert insurtech_narrative_roots.isdisjoint(exec_roots)
 
-    # All 11 active claim-bearing sections slice cleanly with matching allocation_plan_digest
-    active_sections = [s for s in ALL_CLAIM_BEARING_SECTIONS if not s.startswith("ey_")]
-    for section_id in active_sections:
+    # All 15 active claim-bearing sections slice cleanly with matching allocation_plan_digest
+    for section_id in ALL_CLAIM_BEARING_SECTIONS:
         sliced = slice_section_plan_for_allocation(
             section_plan=bundle["section_plans"][section_id],
             allocation_plan=plan,

@@ -25,6 +25,7 @@ ROLE_EPISODE_MAX_OUTPUT_TOKENS_BY_SECTION: dict[str, int] = {
     "slalom_bullets": 2200,
     "insurtech_bullets": 2200,
     "ey_bullets": 2200,
+    "early_career_bullets": 2200,
 }
 ROLE_EPISODE_GRAPH_BULLET_RENDERER_VERSION = "deterministic_graph_bullet_render.v1"
 ROLE_EPISODE_PROOF_TEXT_RENDERER_VERSION = "proof_authorized_fact_claim_render.v2"
@@ -117,6 +118,25 @@ _ROLE_LANES: dict[str, RoleEpisodeLaneConfig] = {
         header_key="ey_header",
         bullet_prefix="bul_ey",
         output_filename="ey_narrative_output.txt",
+        output_kind="narrative",
+    ),
+    "early_career_bullets": RoleEpisodeLaneConfig(
+        section_id="early_career_bullets",
+        role_key="early_career",
+        employer_label="Early Career",
+        header_key="early_career_header",
+        bullet_prefix="bul_early_career",
+        output_filename="early_career_bullets_output.txt",
+        output_kind="bullets",
+        allow_deterministic_graph_render=True,
+    ),
+    "early_career_narrative": RoleEpisodeLaneConfig(
+        section_id="early_career_narrative",
+        role_key="early_career",
+        employer_label="Early Career",
+        header_key="early_career_header",
+        bullet_prefix="bul_early_career",
+        output_filename="early_career_narrative_output.txt",
         output_kind="narrative",
     ),
 }

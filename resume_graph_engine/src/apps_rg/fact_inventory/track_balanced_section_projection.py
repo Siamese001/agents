@@ -169,6 +169,10 @@ def project_track_balanced_executive_summary(
         }
         sentence_count_by_track[track_id] = 1
 
+    bridge_edges_used = [
+        e for e in (track_expansion.get("graph_hop_edge_types_used") or [])
+        if str(e) in {"pillar_phase_bridge", "skill_reinforces_skill"}
+    ]
     return {
         "schema": "track_balanced_executive_summary_projection_v1",
         "projection_present": True,
@@ -177,6 +181,8 @@ def project_track_balanced_executive_summary(
         "sentence_count_by_track": sentence_count_by_track,
         "max_one_sentence_per_track": all(v <= 1 for v in sentence_count_by_track.values()),
         "same_track_fact_support_only": True,
+        "bridge_verified_cross_era_synthesis_eligible": len(track_expansion.get("tracks_with_facts") or []) >= 2,
+        "bridge_edge_types_available": bridge_edges_used,
         "cross_track_causal_prose_detected": causal_detected,
         "broad_skills_ledger_used_as_authority": False,
         "source_authority": SOURCE_AUTHORITY_AUGMENTED_SKILLS_GRAPH,
