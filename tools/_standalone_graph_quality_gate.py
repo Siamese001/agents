@@ -1,6 +1,15 @@
-"""Auto-synced standalone Graph Explorer behavioral, contrast & firewall gate fallback for CI."""
-
 from __future__ import annotations
+CORE_GOVERNANCE_BUNDLE_SHA256 = "55f21b247eb0c0d94baf3e0706c0eceb746d0bfced4d9efe34186d86c6209afc"
+#!/usr/bin/env python3
+"""Centralized Domain-Blank Graph Explorer Behavioral, Contrast & Cross-Repo Firewall Gate.
+
+Enforces three airgapped quality invariants without sharing HTML templates, servers, or data:
+1. INV-GRAPH-FIREWALL-ZERO-CROSS-REPO-SPILL: Zero foreign repo tokens, prefixes, or ports (8080/8081/8082).
+2. INV-GRAPH-WCAG-THEME-PARITY: Light & dark CSS token completeness, WCAG contrast (>=4.5 text, >=3.0 UI),
+   5-band confidence filter wiring, and viewport zoom controls.
+3. INV-GRAPH-HOP-FORCE-MONOTONICITY: Headless Node VM simulation proving 1-Hop < 2-Hop < 3-Hop <= Off,
+   zero disconnected islands, Force minDist > 12px, and search-pick filter clearing.
+"""
 
 import argparse
 import json
@@ -10,8 +19,6 @@ import shutil
 import subprocess
 import tempfile
 from typing import Any, Sequence
-
-CORE_GOVERNANCE_GRAPH_GATE_SHA256 = "55f21b247eb0c0d94baf3e0706c0eceb746d0bfced4d9efe34186d86c6209afc"
 
 INV_FIREWALL = "INV-GRAPH-FIREWALL-ZERO-CROSS-REPO-SPILL"
 INV_CONTRAST = "INV-GRAPH-WCAG-THEME-PARITY"
@@ -199,11 +206,13 @@ if (G.handleSearchInput && elementsById.has("graphSearchDropdown") && f2.length 
 console.log(JSON.stringify({ counts: [f1.length, f2.length, f3.length, fOff.length], minDists: [md1, md2, md3, mdOff], connected: [c1, c2, c3], searchCleared, searchHopGrowth }));
 """
 
+
 def resolve_profile_name(profile: str) -> str:
     key = str(profile or "").strip().lower().replace("-", "_")
     if key not in PROFILE_ALIASES:
         raise ValueError(f"Unknown graph firewall profile '{profile}'. Expected one of: {sorted(PROFILE_ALIASES)}")
     return PROFILE_ALIASES[key]
+
 
 def _parse_color_rgb(raw: str) -> tuple[int, int, int] | None:
     val = raw.strip().split("!")[0].strip()
@@ -214,6 +223,7 @@ def _parse_color_rgb(raw: str) -> tuple[int, int, int] | None:
     m_rgb = _RGB_RE.match(val)
     return (int(m_rgb.group(1)), int(m_rgb.group(2)), int(m_rgb.group(3))) if m_rgb else None
 
+
 def compute_wcag_contrast(rgb_a: tuple[int, int, int], rgb_b: tuple[int, int, int]) -> float:
     def _lum(rgb: tuple[int, int, int]) -> float:
         ch = [(max(0.0, min(1.0, c / 255.0))) for c in rgb]
@@ -222,6 +232,7 @@ def compute_wcag_contrast(rgb_a: tuple[int, int, int], rgb_b: tuple[int, int, in
 
     l1, l2 = _lum(rgb_a), _lum(rgb_b)
     return round((max(l1, l2) + 0.05) / (min(l1, l2) + 0.05), 2)
+
 
 def verify_cross_repo_firewall(html_text: str, profile: str, *, extra_payload_texts: Sequence[str] = ()) -> list[str]:
     prof = resolve_profile_name(profile)
@@ -233,6 +244,7 @@ def verify_cross_repo_firewall(html_text: str, profile: str, *, extra_payload_te
                 violations.append(f"{INV_FIREWALL} [{prof}]: forbidden cross-repo token '{token}' found in {src_name}")
                 break
     return violations
+
 
 def verify_contrast_and_surface_parity(html_text: str) -> list[str]:
     violations: list[str] = []
@@ -259,6 +271,7 @@ def verify_contrast_and_surface_parity(html_text: str) -> list[str]:
     if 'id="graphCanvas"' not in html_text or ("zoomInBtn" not in html_text and "zoomAroundCenter" not in html_text):
         violations.append(f"{INV_CONTRAST}: missing graphCanvas or viewport zoom controls")
     return violations
+
 
 def verify_behavioral_multihop_and_force_vm(
     html_text: str, *, portal_html_text: str = "", min_pair_dist_px: float = 12.0
@@ -304,6 +317,7 @@ def verify_behavioral_multihop_and_force_vm(
         violations.append(f"{INV_BEHAVIOR}: search-picked node failed 1-Hop < 2-Hop expansion")
     return violations, metrics
 
+
 def run_graph_explorer_quality_gate(
     html_text: str, *, profile: str, portal_html_text: str = "", extra_payload_texts: Sequence[str] = (), run_vm: bool = True
 ) -> dict[str, Any]:
@@ -315,6 +329,7 @@ def run_graph_explorer_quality_gate(
     vm_errs, vm_metrics = verify_behavioral_multihop_and_force_vm(html_text, portal_html_text=portal_html_text) if run_vm else ([], {})
     all_errs = [*fw_errs, *ct_errs, *vm_errs]
     return {"passed": len(all_errs) == 0, "profile": prof, "violation_count": len(all_errs), "violations": all_errs, "vm_metrics": vm_metrics}
+
 
 def main(argv: Sequence[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Centralized Graph Explorer Quality & Cross-Repo Firewall Gate.")
@@ -334,6 +349,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     res = run_graph_explorer_quality_gate(args.html.read_text(encoding="utf-8"), profile=args.profile, portal_html_text=portal_txt)
     print(json.dumps(res, indent=2))
     return 0 if res["passed"] else 1
+
 
 if __name__ == "__main__":
     raise SystemExit(main())
