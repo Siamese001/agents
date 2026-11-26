@@ -374,11 +374,14 @@ function makeEl(id = "", tag = "div", attrs = {}, classes = []) {
 }
 
 const canvasParent = makeEl("canvasWrap", "div");
+let drawnTexts = [];
 const ctx2d = {
   font: "", fillStyle: "", strokeStyle: "", lineWidth: 1, globalAlpha: 1, textAlign: "left", textBaseline: "middle",
-  save() {}, restore() {}, clearRect() {}, translate() {}, scale() {}, setTransform() {},
+  save() {}, restore() {}, clearRect() { drawnTexts = []; }, translate() {}, scale() {}, setTransform() {},
   beginPath() {}, closePath() {}, moveTo() {}, lineTo() {}, quadraticCurveTo() {}, arc() {},
-  fill() {}, stroke() {}, strokeRect() {}, fillText() {}, setLineDash() {},
+  fill() {}, stroke() {}, strokeRect() {},
+  fillText(txt, x, y) { drawnTexts.push({ txt: String(txt || ""), x, y, font: this.font }); },
+  setLineDash() {},
   measureText(txt) { return { width: String(txt || "").length * 6.8 }; }
 };
 const canvasEl = makeEl("graphCanvas", "canvas");
@@ -454,7 +457,7 @@ const sandbox = {
 sandbox.globalThis = sandbox;
 const exportTail = `
 ;globalThis.__TEST__ = {
-  getVisibleNodes, getVisibleEdges, focusNode, setScope, handleSearchInput,
+  getVisibleNodes, getVisibleEdges, focusNode, setScope, handleSearchInput, renderGraph,
   forceSleep: () => { simSleeping = true; rafId = null; },
   getState: () => ({ state, activeLayout, isolateHopDepth, selectedNode, camera, simSleeping, enabledTypes, edges })
 };
@@ -565,6 +568,50 @@ const bf1 = T.getVisibleNodes(); assertConnected(bf1, "bf1");
 hopBtn.click();
 const bf2 = T.getVisibleNodes(); assertConnected(bf2, "bf2");
 if (!(bf1.length < bf2.length)) throw new Error("Bridge-first type-pill check failed");
+
+// 5. 1-Hop Neighbor Label Visibility & Click-to-Pivot Regression Check (DIE Parity)
+const labelTargets = [
+  "identity_amit_ayer_governed_ai_platform_leader",
+  "pillar_agentic_ai_platforms",
+  "employment_exp_slalom_001",
+  "skill_governed_agentic_systems_architecture"
+];
+for (const lay of ["force", "radial", "hierarchy"]) {
+  for (const focusId of labelTargets) {
+    elementsById.get("resetBtn").click();
+    layoutSel.value = lay;
+    layoutSel.dispatchEvent({ type: "change", target: layoutSel });
+    T.focusNode(focusId);
+    let rk = 0; while (queuedRaf.length && rk++ < 15) queuedRaf.shift()(); queuedRaf = [];
+    T.renderGraph();
+    const vis1 = T.getVisibleNodes();
+    const minExpected = Math.max(2, Math.floor(vis1.length * 0.90));
+    if (drawnTexts.length < minExpected) {
+      throw new Error(`1-Hop neighbor label suppression in ${lay} for ${focusId}: drew ${drawnTexts.length} of ${vis1.length} visible nodes`);
+    }
+  }
+}
+
+// Clicking a 1-hop neighbor in Force 1-Hop transitions focus, fits viewport, and renders its 1-hop neighbor labels
+elementsById.get("resetBtn").click();
+layoutSel.value = "force"; layoutSel.dispatchEvent({ type: "change", target: layoutSel });
+let rk2 = 0; while (queuedRaf.length && rk2++ < 15) queuedRaf.shift()(); queuedRaf = [];
+const nbTarget = T.getVisibleNodes().find((n) => n.id === "pillar_agentic_ai_platforms");
+const stClick = T.getState();
+const nbSx = nbTarget.x * stClick.camera.zoom + stClick.camera.x;
+const nbSy = nbTarget.y * stClick.camera.zoom + stClick.camera.y;
+canvasEl.dispatchEvent({ type: "pointerdown", clientX: nbSx, clientY: nbSy, pointerId: 3 });
+canvasEl.dispatchEvent({ type: "pointerup", clientX: nbSx, clientY: nbSy, pointerId: 3 });
+let rk3 = 0; while (queuedRaf.length && rk3++ < 15) queuedRaf.shift()(); queuedRaf = [];
+T.renderGraph();
+const postClickState = T.getState();
+const postVis = T.getVisibleNodes();
+if (!postClickState.selectedNode || postClickState.selectedNode.id !== "pillar_agentic_ai_platforms") {
+  throw new Error("Clicking 1-hop neighbor did not pivot selectedNode");
+}
+if (drawnTexts.length < Math.floor(postVis.length * 0.90)) {
+  throw new Error(`Post-click 1-hop neighborhood missing labels: ${drawnTexts.length}/${postVis.length}`);
+}
 """,
         encoding="utf-8",
     )

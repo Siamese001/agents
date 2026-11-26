@@ -1482,19 +1482,19 @@
       ].filter((row) => row.length > 0);
 
       const isPill = isBackbonePillOverview(vis);
-      const rowGap = isPill ? 128 : (vis.length > 120 ? 150 : 120);
+      const rowGap = isPill ? 128 : (vis.length > 120 ? 150 : 126);
       const startY = -((tiers.length - 1) * rowGap) / 2;
 
       tiers.forEach((row, rIdx) => {
         const y = startY + rIdx * rowGap;
-        const maxPerLine = isPill ? 10 : (vis.length > 120 ? 22 : 12);
-        const stepX = isPill ? 245 : (vis.length > 120 ? 118 : 165);
+        const maxPerLine = isPill ? 10 : (vis.length > 120 ? 22 : (vis.length <= 65 ? 9 : 12));
+        const stepX = isPill ? 245 : (vis.length > 120 ? 118 : (vis.length <= 65 ? 215 : 175));
         row.forEach((n, i) => {
           const subRow = Math.floor(i / maxPerLine);
           const col = i % maxPerLine;
           const colsInThisSub = Math.min(maxPerLine, row.length - subRow * maxPerLine);
           n.x = (col - (colsInThisSub - 1) / 2) * stepX;
-          n.y = y + subRow * 46;
+          n.y = y + subRow * 54;
           n.vx = 0;
           n.vy = 0;
         });
@@ -1528,10 +1528,14 @@
         rings.get(ring).push(n);
       });
       Array.from(rings.keys()).sort((a, b) => a - b).forEach((ringIdx) => {
-        const arr = rings.get(ringIdx);
-        const rad = 145 * ringIdx + Math.max(0, arr.length - 12) * 4.5;
+        const arr = rings.get(ringIdx).slice().sort((a, b) => a.type.localeCompare(b.type) || a.label.localeCompare(b.label) || a.id.localeCompare(b.id));
+        const baseRad = ringIdx === 1
+          ? Math.max(215, 185 + Math.min(310, arr.length * 5.2))
+          : (180 * ringIdx + Math.max(0, arr.length - 12) * 5.0);
         arr.forEach((n, i) => {
           const ang = (i / Math.max(1, arr.length)) * Math.PI * 2 - Math.PI / 2;
+          const stagger = arr.length >= 18 ? (((i % 3) - 1) * 22) : 0;
+          const rad = baseRad + stagger;
           n.x = Math.cos(ang) * rad;
           n.y = Math.sin(ang) * rad;
           n.vx = 0; n.vy = 0;
@@ -1615,9 +1619,9 @@
       const c1 = (ringBuckets.get(1) || []).length;
       const c2 = (ringBuckets.get(2) || []).length;
       const c3 = Array.from(ringBuckets.entries()).reduce((acc, [k, arr]) => acc + (k >= 3 ? arr.length : 0), 0);
-      const r1 = Math.max(190, 165 + Math.min(180, c1 * 2.8));
-      const r2 = Math.max(345, r1 + 155 + Math.min(220, c2 * 1.25));
-      const r3 = Math.max(505, r2 + 160 + Math.min(260, c3 * 0.72));
+      const r1 = Math.max(215, 185 + Math.min(310, c1 * 5.0));
+      const r2 = Math.max(415, r1 + 175 + Math.min(230, c2 * 1.25));
+      const r3 = Math.max(585, r2 + 170 + Math.min(260, c3 * 0.72));
       const ringRadiusFor = (h) => (h <= 0 ? 0 : (h === 1 ? r1 : (h === 2 ? r2 : r3 + (h - 3) * 135)));
 
       center.x = 0; center.y = 0; center.vx = 0; center.vy = 0;
@@ -1627,12 +1631,13 @@
       const ring1 = (ringBuckets.get(1) || []).slice().sort((a, b) => a.type.localeCompare(b.type) || a.label.localeCompare(b.label) || a.id.localeCompare(b.id));
       ring1.forEach((n, idx) => {
         const ang = (idx / Math.max(1, ring1.length)) * Math.PI * 2 - Math.PI / 2;
-        const rad = r1 + (idx % 2) * 14;
+        const stagger = ring1.length >= 18 ? (((idx % 3) - 1) * 24) : ((idx % 2) * 12);
+        const rad = r1 + stagger;
         n.x = Math.cos(ang) * rad;
         n.y = Math.sin(ang) * rad;
         n.vx = 0; n.vy = 0;
         n._hopRing = 1;
-        n._targetRadius = r1;
+        n._targetRadius = rad;
         n._seedAng = ang;
       });
 
@@ -1864,10 +1869,11 @@
       const vis = getVisibleNodes();
       if (!rect.width || !rect.height || !vis.length) return;
       const isPill = isBackbonePillOverview(vis);
+      const isFocusedSubgraph = Boolean(isolateHopDepth > 0 && vis.length <= 75);
       let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
       vis.forEach((n) => {
-        const padX = isPill ? 130 : (n.r + 75);
-        const padY = isPill ? 36 : (n.r + 48);
+        const padX = isPill ? 130 : (isFocusedSubgraph ? (n.r + 145) : (n.r + 85));
+        const padY = isPill ? 36 : (isFocusedSubgraph ? (n.r + 62) : (n.r + 48));
         if (n.x - padX < minX) minX = n.x - padX;
         if (n.x + padX > maxX) maxX = n.x + padX;
         if (n.y - padY < minY) minY = n.y - padY;
@@ -2229,42 +2235,117 @@
         ctx.restore();
 
         if (!isDim) {
-          const rp = n.r + 3 / camera.zoom;
-          occupiedRects.push({ x: n.x - rp, y: n.y - rp, w: rp * 2, h: rp * 2 });
+          const rp = n.r + 2.2 / camera.zoom;
+          occupiedRects.push({ x: n.x - rp, y: n.y - rp, w: rp * 2, h: rp * 2, nodeId: n.id });
         }
 
-        const wantLbl = isFocus || isPath || isNb || (!isDim && (n.coreBackbone || vis.length <= 55 || camera.zoom >= 0.75));
+        const isDirect1Hop = hopDist === 1;
+        const wantLbl = isFocus || isPath || isNb || (!isDim && (n.coreBackbone || vis.length <= 65 || camera.zoom >= 0.72));
         if (wantLbl) {
-          const prio = isFocus ? 1000 : (isPath ? 900 : (isNb ? 700 : (n.coreBackbone ? 500 : 100 + (n.degree || 0))));
-          labelCandidates.push({ node: n, isFocus, prio, mandatory: isFocus || isPath || vis.length <= 35 });
+          const prio = isFocus
+            ? 1000
+            : (isPath
+              ? 920
+              : (isDirect1Hop
+                ? (820 + Math.min(60, n.degree || 0))
+                : (isNb ? 700 : (n.coreBackbone ? 500 : 100 + (n.degree || 0)))));
+          labelCandidates.push({
+            node: n,
+            isFocus,
+            isDirect1Hop,
+            prio,
+            mandatory: isFocus || isPath || (isolateHopDepth === 1 && isDirect1Hop && vis.length <= 32)
+          });
         }
       }
 
-      // Pass 3: Collision-free node labels
+      // Pass 3: Collision-free node labels (zero self-collision + outward spoke & 8-way anchor search)
       labelCandidates.sort((a, b) => b.prio - a.prio);
-      const colPad = 3 / camera.zoom;
-      for (const item of labelCandidates) {
-        const n = item.node;
-        const screenPx = Math.max(11, Math.min(14, (item.isFocus ? 13 : 11.5) * Math.pow(camera.zoom, 0.1)));
-        const fontSize = screenPx / camera.zoom;
-        const fontKey = `${item.isFocus ? "700" : "600"} ${fontSize.toFixed(2)}px Inter, system-ui, sans-serif`;
-        const txt = n.label.length > 34 && !item.isFocus ? (n.label.slice(0, 32) + "...") : n.label;
-        const tw = measureCachedTextWidth(ctx, fontKey, txt);
-        const padX = 5 / camera.zoom, padY = 2.6 / camera.zoom;
-        const bw = tw + padX * 2, bh = fontSize + padY * 2;
-        const gap = 5 / Math.sqrt(camera.zoom);
-        const anchors = [
+      const colPad = 2.2 / camera.zoom;
+      const buildAnchorsFor = (n, bw, bh, gap) => {
+        const list = [];
+        if (activeFocusNode && activeFocusNode.id !== n.id) {
+          const dx = n.x - activeFocusNode.x;
+          const dy = n.y - activeFocusNode.y;
+          const d = Math.hypot(dx, dy);
+          if (d > 2) {
+            const ux = dx / d;
+            const uy = dy / d;
+            if (Math.abs(ux) > 0.30) {
+              const sideSign = ux >= 0 ? 1 : -1;
+              list.push(
+                { cx: n.x + sideSign * (n.r + gap + bw / 2), cy: n.y + uy * (bh * 0.35) },
+                { cx: n.x + sideSign * (n.r + gap + bw / 2), cy: n.y + uy * (bh * 1.15) },
+                { cx: n.x + sideSign * (n.r + gap + bw / 2), cy: n.y - uy * (bh * 0.95) }
+              );
+            } else {
+              const vSign = uy >= 0 ? 1 : -1;
+              list.push(
+                { cx: n.x + ux * (bw * 0.35), cy: n.y + vSign * (n.r + gap + bh / 2) },
+                { cx: n.x + ux * (bw * 0.85), cy: n.y + vSign * (n.r + gap + bh * 1.55) },
+                { cx: n.x - ux * (bw * 0.75), cy: n.y + vSign * (n.r + gap + bh * 1.55) }
+              );
+            }
+          }
+        }
+        const dDiag = (n.r + gap) * 0.72;
+        list.push(
           { cx: n.x, cy: n.y + n.r + gap + bh / 2 },
           { cx: n.x, cy: n.y - n.r - gap - bh / 2 },
           { cx: n.x + n.r + gap + bw / 2, cy: n.y },
-          { cx: n.x - n.r - gap - bw / 2, cy: n.y }
-        ];
-        let chosen = null;
-        for (const a of anchors) {
-          const r = { x: a.cx - bw / 2, y: a.cy - bh / 2, w: bw, h: bh };
-          if (!occupiedRects.some((o) => rectsOverlap(r, o, colPad))) { chosen = r; break; }
+          { cx: n.x - n.r - gap - bw / 2, cy: n.y },
+          { cx: n.x + dDiag + bw / 2, cy: n.y + dDiag + bh / 2 },
+          { cx: n.x + dDiag + bw / 2, cy: n.y - dDiag - bh / 2 },
+          { cx: n.x - dDiag - bw / 2, cy: n.y + dDiag + bh / 2 },
+          { cx: n.x - dDiag - bw / 2, cy: n.y - dDiag - bh / 2 }
+        );
+        return list;
+      };
+
+      for (const item of labelCandidates) {
+        const n = item.node;
+        const basePx = item.isFocus ? 13 : (vis.length > 42 ? 10.8 : 11.5);
+        const screenPx = Math.max(10.5, Math.min(14, basePx * Math.pow(camera.zoom, 0.1)));
+        const fontSize = screenPx / camera.zoom;
+        const fontKey = `${item.isFocus ? "700" : "600"} ${fontSize.toFixed(2)}px Inter, system-ui, sans-serif`;
+        const maxChars = item.isFocus ? 46 : (vis.length > 45 ? 26 : 32);
+        let txt = n.label.length > maxChars ? (n.label.slice(0, maxChars - 2).trimEnd() + "...") : n.label;
+        let tw = measureCachedTextWidth(ctx, fontKey, txt);
+        const padX = 4.5 / camera.zoom, padY = 2.3 / camera.zoom;
+        let bw = tw + padX * 2, bh = fontSize + padY * 2;
+        const gap = 4.5 / camera.zoom;
+
+        const findFreeRect = (candW, candH) => {
+          const anchors = buildAnchorsFor(n, candW, candH, gap);
+          for (const a of anchors) {
+            const r = { x: a.cx - candW / 2, y: a.cy - candH / 2, w: candW, h: candH };
+            if (!occupiedRects.some((o) => o.nodeId !== n.id && rectsOverlap(r, o, colPad))) {
+              return { rect: r, anchors };
+            }
+          }
+          return { rect: null, anchors };
+        };
+
+        let attempt = findFreeRect(bw, bh);
+        let chosen = attempt.rect;
+
+        // Compact 14-char fallback for dense 1-hop neighborhoods before dropping
+        if (!chosen && !item.isFocus && (item.isDirect1Hop || item.mandatory) && n.label.length > 14) {
+          const compactTxt = n.label.slice(0, 14).trimEnd() + "...";
+          const compactTw = measureCachedTextWidth(ctx, fontKey, compactTxt);
+          const compactBw = compactTw + padX * 2;
+          const compactAttempt = findFreeRect(compactBw, bh);
+          if (compactAttempt.rect) {
+            txt = compactTxt;
+            bw = compactBw;
+            chosen = compactAttempt.rect;
+          }
         }
-        if (!chosen && item.mandatory) chosen = { x: anchors[0].cx - bw / 2, y: anchors[0].cy - bh / 2, w: bw, h: bh };
+
+        if (!chosen && item.mandatory) {
+          const a0 = attempt.anchors[0];
+          chosen = { x: a0.cx - bw / 2, y: a0.cy - bh / 2, w: bw, h: bh };
+        }
         if (!chosen) continue;
         occupiedRects.push(chosen);
         const meta = TYPE_META[n.type] || TYPE_META.evidence;
@@ -2683,10 +2764,11 @@
         const w = screenToWorld(sx, sy);
         if (clickedNode) {
           const wasPillOverview = isBackbonePillOverview(getVisibleNodes());
+          const changedSelection = !selectedNode || selectedNode.id !== clickedNode.id;
           selectedEdge = null;
           selectedNode = clickedNode;
           if (isolateHopDepth > 0 || wasPillOverview) {
-            applyCurrentLayout({ fit: wasPillOverview });
+            applyCurrentLayout({ fit: wasPillOverview || changedSelection });
           } else {
             renderGraph();
           }
