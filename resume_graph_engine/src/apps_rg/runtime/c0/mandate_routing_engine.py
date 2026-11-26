@@ -317,24 +317,34 @@ SLOT_BUDGET_BY_PROFILE: dict[str, dict[str, int]] = {
     },
 }
 
-_PATTERN_CACHE: dict[str, re.Pattern[str]] = {}
+_PATTERN_CACHE: dict[str, tuple[tuple[str, ...], re.Pattern[str]]] = {}
 
 
-def _compile_word_pattern(term: str) -> re.Pattern[str]:
+def _compile_word_pattern(term: str) -> tuple[tuple[str, ...], re.Pattern[str]]:
     cached = _PATTERN_CACHE.get(term)
     if cached is not None:
         return cached
-    escaped = re.escape(term.strip().lower()).replace(r"\ ", r"[\s\-/]+")
+    clean = term.strip().lower()
+    parts = tuple(clean.split())
+    escaped = re.escape(clean).replace(r"\ ", r"[\s\-/]+")
     pat = re.compile(rf"(?<![a-z0-9]){escaped}(?![a-z0-9])", re.IGNORECASE)
-    _PATTERN_CACHE[term] = pat
-    return pat
+    entry = (parts, pat)
+    _PATTERN_CACHE[term] = entry
+    return entry
 
 
 def has_word_signal(text: str, term: str) -> bool:
     """Match a term using strict alphanumeric word boundaries (blocks 'ai' inside 'claims')."""
     if not text or not term:
         return False
-    return bool(_compile_word_pattern(term).search(text))
+    parts, pat = _compile_word_pattern(term)
+    if not parts:
+        return False
+    text_lower = text.lower()
+    for part in parts:
+        if part not in text_lower:
+            return False
+    return bool(pat.search(text_lower))
 
 
 def count_word_signals(text: str, terms: tuple[str, ...]) -> int:
