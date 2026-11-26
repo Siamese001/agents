@@ -33,6 +33,7 @@ from apps_eval.qrels.qrels_blind_grader import (  # noqa: E402
     load_human_label_ledger,
     populate_hitl_qrels_queue_from_pool,
     save_human_label_ledger,
+    verify_qrels_mutual_exclusivity,
 )
 from apps_eval.qrels.qrels_calibration_stats import (  # noqa: E402
     compute_bootstrap_kappa_ci95,
@@ -312,6 +313,127 @@ def _percentile(sorted_vals: list[float], pct: float) -> float:
     return round(sorted_vals[idx], 3)
 
 
+def ensure_50_query_cohort_preserving_ledger(
+    pending_queue: list[dict[str, Any]],
+    ledger: Mapping[str, Any],
+    pool_payload: Mapping[str, Any],
+    *,
+    catalog: Mapping[str, Mapping[str, Any]] | None = None,
+    target_queries: int = 50,
+    batch_size: int = 10,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Preserve completed ledger queries inside a 50-query (5x10) cohort queue."""
+    ledger_entries = [
+        e
+        for e in (ledger.get("human_graded_queries") or [])
+        if len(e.get("record_grades") or {}) + len(e.get("quarantined_records") or {}) == 4
+    ]
+    if not ledger_entries:
+        trimmed = [dict(q) for q in pending_queue[:target_queries]]
+        return trimmed, verify_qrels_mutual_exclusivity(trimmed, ledger)
+
+    pool_queries = list(pool_payload.get("queries") or [])
+    pool_by_qid = {str(q.get("query_id") or ""): q for q in pool_queries if q.get("query_id")}
+    pool_by_topic = {str(q.get("topic_id") or ""): q for q in pool_queries if q.get("topic_id")}
+    corpus_digest = str(pool_payload.get("corpus_digest") or "")
+
+    completed_items: list[dict[str, Any]] = []
+    for idx, entry in enumerate(ledger_entries[:target_queries], start=1):
+        qid = str(entry.get("query_id") or "")
+        tid = str(entry.get("topic_id") or "")
+        pq = pool_by_qid.get(qid) or pool_by_topic.get(tid) or {}
+        pq_cands = {str(c.get("record_id") or ""): c for c in (pq.get("candidates") or [])}
+        rec_grades = dict(entry.get("record_grades") or {})
+        quar = dict(entry.get("quarantined_records") or {})
+        passage_texts = dict(entry.get("passage_texts") or {})
+        failure_tags = dict(entry.get("failure_tags") or {})
+        ordered_rids = [*rec_grades.keys(), *quar.keys()][:4]
+
+        cands: list[dict[str, Any]] = []
+        for slot, rid in zip(("A", "B", "C", "D"), ordered_rids):
+            c_pool = pq_cands.get(rid) or (catalog.get(rid) if catalog else None) or {}
+            raw_core = str(
+                passage_texts.get(rid)
+                or c_pool.get("core_statement")
+                or c_pool.get("retrieval_text")
+                or ""
+            )
+            core_stmt, footer_from_core = split_core_and_boilerplate(raw_core)
+            footer = str(c_pool.get("boilerplate_footer") or footer_from_core or "")
+            rel_lbl: int | str = "Q" if rid in quar else int(rec_grades[rid])
+            cand_obj: dict[str, Any] = {
+                "slot": slot,
+                "record_id": rid,
+                "title": str(c_pool.get("title") or ""),
+                "core_statement": core_stmt or raw_core,
+                "boilerplate_footer": footer,
+                "relevance_label": rel_lbl,
+            }
+            if rid in failure_tags and failure_tags[rid]:
+                cand_obj["failure_tags"] = [
+                    t.strip() for t in str(failure_tags[rid]).split("+") if t.strip()
+                ]
+            cands.append(cand_obj)
+
+        target_rids = list(entry.get("target_record_ids") or [])
+        target_rid = str(
+            entry.get("target_record_id")
+            or (target_rids[0] if target_rids else pq.get("target_record_id") or "")
+        )
+        ans_flag = (
+            bool(entry["answerable"])
+            if "answerable" in entry
+            else bool(pq.get("answerable", True))
+        )
+        completed_items.append(
+            {
+                "qrel_id": f"anchor-{idx:02d}",
+                "batch_index": ((idx - 1) // batch_size) + 1,
+                "query_id": qid,
+                "topic_id": tid,
+                "partition": str(entry.get("partition") or pq.get("partition") or "dev"),
+                "surface": str(entry.get("surface") or pq.get("surface") or "resume_graph_engine"),
+                "tier": str(entry.get("tier") or pq.get("tier") or "tier2_cross_domain_orthogonal"),
+                "answerable": ans_flag,
+                "corpus_digest": corpus_digest,
+                "query_text": str(entry.get("query_text") or pq.get("query_text") or ""),
+                "phrasing_type": str(pq.get("phrasing_type") or ("negative_probe" if not ans_flag else "executive")),
+                "target_record_id": target_rid,
+                "ground_truth_summary": str(entry.get("ground_truth_summary") or pq.get("ground_truth_summary") or ""),
+                "grading_scale": "3-2-1-0_core_statement_only",
+                "status": "COMPLETED_HUMAN_GRADED",
+                "candidates": cands,
+            }
+        )
+
+    needed = max(0, target_queries - len(completed_items))
+    completed_qids = {it["query_id"] for it in completed_items}
+    avail_pending = [dict(it) for it in pending_queue if it.get("query_id") not in completed_qids]
+    neg_qids = [it["query_id"] for it in avail_pending if not it.get("answerable", True)]
+    ans_budget = max(0, needed - len(neg_qids))
+    chosen_pending: list[dict[str, Any]] = []
+    ans_taken = 0
+    for it in avail_pending:
+        if len(chosen_pending) >= needed:
+            break
+        if not it.get("answerable", True):
+            chosen_pending.append(it)
+        elif ans_taken < ans_budget:
+            chosen_pending.append(it)
+            ans_taken += 1
+
+    combined = completed_items + chosen_pending
+    for idx, item in enumerate(combined, start=1):
+        item["qrel_id"] = f"anchor-{idx:02d}"
+        item["batch_index"] = ((idx - 1) // batch_size) + 1
+
+    me_report = verify_qrels_mutual_exclusivity(combined, ledger)
+    me_report["blind_negative_probes_interleaved"] = sum(
+        1 for q in combined if not q.get("answerable", True)
+    )
+    return combined, me_report
+
+
 def build_wave1_pool_and_queue(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
     """Wave 1: Run live BGE-M3 4-channel TREC Depth-10 pooling, measure latency, freeze grader, build 50x4 queue."""
     db_path = _resolve_sqlite_path(repo_root)
@@ -489,11 +611,19 @@ def build_wave1_pool_and_queue(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
 
     ledger = load_human_label_ledger(ledger_path)
     ledger["frozen_blind_grader_sha256"] = grader_sha
-    queue, me_report = populate_hitl_qrels_queue_from_pool(
+    pending_queue, _ = populate_hitl_qrels_queue_from_pool(
         pool_payload,
         ledger,
         catalog=catalog,
         max_anchor_queries=50,
+        batch_size=10,
+    )
+    queue, me_report = ensure_50_query_cohort_preserving_ledger(
+        pending_queue,
+        ledger,
+        pool_payload,
+        catalog=catalog,
+        target_queries=50,
         batch_size=10,
     )
 
