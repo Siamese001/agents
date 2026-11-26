@@ -80,10 +80,10 @@ def run_materializer_indexing(ctx: dict[str, Any]) -> None:
             "TRACK_GENAI_AGENTIC": "track_genai_agentic",
             "TRACK_ENTERPRISE_GTM_SALES": "track_data_tech_cloud_ml",
             "TRACK_REVENUE_OPERATIONS": "track_data_tech_cloud_ml",
-            "TRACK_ENGINEERING_PLATFORM": "track_actuarial_risk_derivatives",
+            "TRACK_ENGINEERING_PLATFORM": "track_data_tech_cloud_ml",
             "TRACK_STRATEGIC_FINANCE": "track_data_tech_cloud_ml",
             "TRACK_PARTNERSHIPS_GTM": "track_data_tech_cloud_ml",
-            "TRACK_BANKING_PLATFORM_AI": "track_actuarial_risk_derivatives",
+            "TRACK_BANKING_PLATFORM_AI": "track_data_tech_cloud_ml",
             "TRACK_CUSTOMER_SUCCESS": "track_data_tech_cloud_ml",
         }
         canonical_track_id = track_mapping.get(
@@ -121,6 +121,8 @@ def run_materializer_indexing(ctx: dict[str, Any]) -> None:
         if isinstance(weights, dict):
             for role_family_key, weight in weights.items():
                 rf_key = str(role_family_key or "").strip()
+                if rf_key == "CTO_FIELD_CTO":
+                    rf_key = "FIELD_CTO"
                 if not rf_key:
                     continue
                 try:
@@ -178,6 +180,59 @@ def run_materializer_indexing(ctx: dict[str, Any]) -> None:
                 "proof_policy_note": note,
             }
         )
+
+    # Reconcile c03_role_family_skill_weights onto every canonical projection key so zero
+    # role_family_projection profiles have 0 skill-weight rows at runtime.
+    weight_by_pair: dict[tuple[str, str], dict[str, Any]] = {}
+    for wrow in role_family_skill_weight_rows:
+        pair = (str(wrow["skill_id"]), str(wrow["role_family_key"]))
+        prev = weight_by_pair.get(pair)
+        if prev is None or float(wrow["weight"]) > float(prev["weight"]):
+            weight_by_pair[pair] = wrow
+
+    skill_weights_by_tax: dict[str, list[tuple[str, float]]] = {}
+    for wrow in list(weight_by_pair.values()):
+        skill_weights_by_tax.setdefault(str(wrow["role_family_key"]), []).append(
+            (str(wrow["skill_id"]), float(wrow["weight"]))
+        )
+
+    for rf_key, prof in profiles.items():
+        if not isinstance(prof, dict):
+            continue
+        tax_ids = [str(tid).strip() for tid in (prof.get("taxonomy_ids") or []) if str(tid).strip()]
+        for tid in tax_ids:
+            for sid, wval in skill_weights_by_tax.get(tid, ()):
+                pair = (sid, rf_key)
+                if pair not in weight_by_pair or wval > float(weight_by_pair[pair]["weight"]):
+                    weight_by_pair[pair] = {
+                        "skill_id": sid,
+                        "role_family_key": rf_key,
+                        "weight": round(float(wval), 4),
+                        "source": "projection_taxonomy_bridge",
+                    }
+        pillar_weights = {
+            str(p.get("pillar_id") or "").strip(): float(p.get("weight") or 0.8)
+            for p in (prof.get("top_weighted_pillars") or [])
+            if isinstance(p, dict) and str(p.get("pillar_id") or "").strip()
+        }
+        if pillar_weights:
+            for sfeat in selection_feature_rows:
+                spillar = str(sfeat.get("pillar") or "").strip()
+                if spillar in pillar_weights:
+                    sid = str(sfeat["skill_id"])
+                    pair = (sid, rf_key)
+                    pw = round(min(1.0, max(0.1, pillar_weights[spillar])), 4)
+                    if pair not in weight_by_pair or pw > float(weight_by_pair[pair]["weight"]):
+                        weight_by_pair[pair] = {
+                            "skill_id": sid,
+                            "role_family_key": rf_key,
+                            "weight": pw,
+                            "source": "projection_pillar_bridge",
+                        }
+    role_family_skill_weight_rows = sorted(
+        weight_by_pair.values(),
+        key=lambda r: (str(r["role_family_key"]), str(r["skill_id"])),
+    )
 
     from apps_rg.fact_inventory.graph_sqlite_path_index import (
         GRAPH_INDEX_SCHEMA_VERSION,

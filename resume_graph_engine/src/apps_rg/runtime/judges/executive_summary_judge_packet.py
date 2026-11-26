@@ -119,6 +119,22 @@ def build_executive_summary_judge_packet(
         "pass": parity_ok,
         "detail": parity_detail or "ok",
     }
+    targeting = dict(targeting_context or {})
+    differentiators: dict[str, Any] = {}
+    t_role = str(targeting.get("target_role") or targeting.get("target_title") or "").strip()
+    t_jd = str(targeting.get("jd_text") or targeting.get("jd") or "").strip()
+    if t_role or t_jd:
+        from apps_rg.runtime.c0.mandate_routing_engine import resolve_mandate_route
+
+        _route = resolve_mandate_route(target_role=t_role, jd_text=t_jd)
+        differentiators = {
+            "mandate_profile": _route.selector_profile,
+            "canonical_projection_role": _route.canonical_projection_role,
+            "required_three_era_coverage": True,
+            "credential_elevation_ids": list(_route.credential_elevation_ids),
+            "requires_commercial_pairing": _route.requires_commercial_pairing,
+            "track_weights": dict(_route.track_weights),
+        }
     return {
         "judge_packet_version": JUDGE_PACKET_VERSION,
         "section": "executive_summary",
@@ -128,7 +144,8 @@ def build_executive_summary_judge_packet(
         "candidate_output": cand,
         "claim_ledger": ledger_rows,
         "allowed_fact_packet": enriched_facts,
-        "targeting_context": dict(targeting_context or {}),
+        "targeting_context": targeting,
+        "candidate_mandate_differentiators": differentiators,
         "deterministic_gate_summary": gate_summary,
         "proof_boundary": dict(
             proof_boundary
@@ -167,6 +184,11 @@ def render_judge_prompt_from_packet(packet: Mapping[str, Any]) -> str:
         "claim_ledger": packet.get("claim_ledger"),
         "allowed_fact_packet": packet.get("allowed_fact_packet"),
         "targeting_context": packet.get("targeting_context"),
+        **(
+            {"candidate_mandate_differentiators": packet.get("candidate_mandate_differentiators")}
+            if packet.get("candidate_mandate_differentiators")
+            else {}
+        ),
     }
     return f"{rubric}\n\nBLIND_EVALUATION_PACKET:\n{json.dumps(blind_payload, ensure_ascii=False, sort_keys=True)}"
 

@@ -3,7 +3,10 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
 import json
+from pathlib import Path
 from typing import Any, Mapping
+
+import yaml
 
 from apps_eval.graders.judge.v3_evaluator import (
     JudgeV3SchemaError,
@@ -19,9 +22,24 @@ from apps_eval.graders.judge.v3_registry import (
 
 JUDGE_RUBRIC_VERSION = "judge_v3_atomic_binary"
 DEFAULT_THRESHOLD = 0.80
+_X1D_V2_RUBRIC_PATH = Path(__file__).resolve().parents[4] / "config" / "exit_eval_rubrics" / "x1d_v2.yaml"
+
+
+def _load_blocking_differentiation_check_ids() -> frozenset[str]:
+    """Load Wave 5 blocking differentiation check IDs from declarative X1D@v2 rubric config."""
+    raw = yaml.safe_load(_X1D_V2_RUBRIC_PATH.read_text(encoding="utf-8")) or {}
+    ids = raw.get("blocking_differentiation_check_ids") or ()
+    return frozenset(str(cid).strip() for cid in ids if str(cid).strip())
+
+
+# Operator Q5 / Wave 5: Career-arc and target-mandate differentiation checks are hard blocking vetoes
+# loaded declaratively from config/exit_eval_rubrics/x1d_v2.yaml.
+BLOCKING_DIFFERENTIATION_CHECK_IDS: frozenset[str] = _load_blocking_differentiation_check_ids()
 V3_JUDGE_SYSTEM_PROMPT = (
     "You are an independent blind hiring-committee judge. Answer cold_read_takeaway first, "
-    "then answer YES or NO for each atomic check, quoting a verbatim evidence_span whenever a check is NO."
+    "then answer YES or NO for each atomic check, quoting a verbatim evidence_span whenever a check is NO. "
+    "Omitting mandate-critical candidate differentiators (e.g., actuarial/FSA depth on insurance CTO roles, "
+    "model risk on banking CAIO roles, or biostatistics on healthcare payer CDAO roles) MUST fail the mandate differentiation check."
 )
 
 
@@ -162,18 +180,20 @@ def evaluate_v3_judge_response_to_dict(
                 raise JudgeV3SchemaError(
                     f"Check '{spec.id}' failure evidence_span {span!r} not found verbatim in candidate text."
                 )
+            effective_critical = bool(spec.critical or spec.id in BLOCKING_DIFFERENTIATION_CHECK_IDS)
             dim_verdicts[spec.id] = {
                 "pass": False,
-                "critical": spec.critical,
-                "severity": "major" if spec.critical else "minor",
+                "critical": effective_critical,
+                "severity": "major" if effective_critical else "minor",
                 "codes": [spec.failure_tag],
             }
             findings.append(f"{spec.id} [{spec.failure_tag}]: {span}")
-            if spec.critical:
+            if effective_critical:
                 critical_veto = True
         else:
+            effective_critical = bool(spec.critical or spec.id in BLOCKING_DIFFERENTIATION_CHECK_IDS)
             passed_weight += spec.weight
-            dim_verdicts[spec.id] = {"pass": True, "critical": spec.critical, "severity": "none", "codes": []}
+            dim_verdicts[spec.id] = {"pass": True, "critical": effective_critical, "severity": "none", "codes": []}
 
     unit_score = round(min(1.0, max(0.0, passed_weight)), 4)
     passed = (not critical_veto) and (unit_score >= profile.pass_threshold)

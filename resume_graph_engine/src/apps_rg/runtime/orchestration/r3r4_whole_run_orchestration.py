@@ -1253,7 +1253,7 @@ def run_whole_run_with_route_governance(
     resume_path: str = "",
     source_resume_text: str = "",
     generation_mode: str = "strategic_tailor",
-    l1_cognitive_treatment_arm: str = "l1_v2_control",
+    l1_cognitive_treatment_arm: str = "l1_cognitive_v3",
     artifact_dir: str = "",
     auto_research_internal: bool = True,
     research_via: str | None = None,

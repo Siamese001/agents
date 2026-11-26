@@ -146,6 +146,8 @@ def _normalize_candidate(
         reasons.append("missing_citation_refs")
     if slot.employer_lane and row["employer_lane"] != slot.employer_lane:
         reasons.append("employer_locality_mismatch")
+    if slot.allowed_employer_lanes and row["employer_lane"] not in slot.allowed_employer_lanes:
+        reasons.append("employer_locality_mismatch")
     if slot.required_root_id and row["root_id"] != slot.required_root_id:
         reasons.append("slot_role_episode_bundle_mismatch")
     if slot.metric_outcome_required:

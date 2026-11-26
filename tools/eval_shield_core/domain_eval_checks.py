@@ -248,10 +248,52 @@ def check_resume_graph_engine_domain(repo_root: Path, *, inject_fault: bool = Fa
     if veto_ok:
         failures.append("section_dimension_veto_missed_allocated_metric_overlap")
 
+    # Pinned full-career 3-era mandate routing, retired canned IBM prose, and blocking X1D veto checks (<0.1s)
+    from apps_rg.runtime.c0.mandate_routing_engine import resolve_mandate_route
+    from apps_rg.runtime.judges.v3_section_judge import evaluate_v3_judge_response_to_dict
+    from apps_rg.runtime.sections.ibm_bullets.frozen_allocation import _IBM_FROZEN_ALLOCATION_DISPLAY_COMPOSITIONS
+
+    if _IBM_FROZEN_ALLOCATION_DISPLAY_COMPOSITIONS:
+        failures.append("static_ibm_display_compositions_not_retired")
+    ins_route = resolve_mandate_route(
+        target_role="Lead Engineer CTO",
+        jd_text="Digital life insurer CTO leading underwriting, actuarial reserving, policy systems, and agentic AI.",
+    )
+    if ins_route.selector_profile != "insurance_agentic_ai" or "cert_fsa_001" not in ins_route.credential_elevation_ids:
+        failures.append("ethos_insurer_cto_routing_or_fsa_elevation_failed")
+    bank_route = resolve_mandate_route(
+        target_role="Chief AI Officer",
+        jd_text="Global bank Chief AI Officer owning SR 11-7 model risk management, BCBS 239 risk aggregation, and AI governance.",
+    )
+    if bank_route.fde_context or bank_route.slot_budget_profile.get("ey_bullets", 0) < 2:
+        failures.append("bank_caio_mrm_fde_hijack_or_ey_compression")
+    payer_route = resolve_mandate_route(
+        target_role="Chief Data & AI Officer",
+        jd_text="Healthcare payer CDAO leading biostatistics, claims analytics, medical loss ratio forecasting, and clinical AI.",
+    )
+    if payer_route.selector_profile != "healthcare_payer_data_ai" or "edu_columbia_ms_biostat_001" not in payer_route.credential_elevation_ids:
+        failures.append("healthcare_payer_cdao_routing_or_biostatistics_elevation_failed")
+    blocking_check = evaluate_v3_judge_response_to_dict(
+        {
+            "cold_read_takeaway": "Omits required actuarial differentiation.",
+            "checks": {
+                "end_to_end_factual_consistency": {"verdict": "YES", "evidence_span": ""},
+                "zero_cross_section_metric_echo": {"verdict": "YES", "evidence_span": ""},
+                "unified_mandate_arc": {"verdict": "NO", "evidence_span": "utility clients"},
+                "consistent_executive_voice": {"verdict": "YES", "evidence_span": ""},
+            },
+            "failure_tags": ["OMITTED_CONSTRAINT"],
+        },
+        section_id="full_resume_coherence",
+        candidate_text="Executive leader across utility clients.",
+    )
+    if blocking_check.get("pass") is not False or blocking_check.get("decisive_failure") is not True:
+        failures.append("blocking_x1d_mandate_differentiation_veto_failed")
+
     return {
         "domain": "resume_graph_engine",
         "status": "PASS" if not failures else "FAIL",
-        "checks_run": 17,
+        "checks_run": 20,
         "failures": failures,
     }
 

@@ -1,0 +1,469 @@
+{
+  "schema": "early_career_role_episode_bundles_v1_graph_metric_ssot",
+  "generated_at": "2026-11-26T00:00:00Z",
+  "generated_by": "wave1_full_career_graph_materialization",
+  "employer": "Early Career Roles (Towers Perrin, ING, Aetna)",
+  "employer_node_id": "employment_exp_early_career_001",
+  "time_window": "2002-10 to 2009-09",
+  "invariants": {
+    "archive_prose_excluded": true,
+    "base_resume_hydration_excluded": true,
+    "base_resume_identity_verbatim": true,
+    "base_resume_claim_authority": false,
+    "base_resume_bullet_ids_excluded": true,
+    "identity_spine_only": true,
+    "graph_bundle_id_claim_authority": true,
+    "hold_metrics_not_promoted": true,
+    "do_not_promote_metrics_excluded": true,
+    "metric_candidates_not_claimable": true,
+    "metric_claim_truth_source": "metric_outcome_nodes",
+    "skill_truth_source": "graph_skill_node_ids",
+    "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
+    "metric_approval_model": "presence_in_metric_outcome_nodes_is_approval",
+    "no_separate_approved_fact_distinction": true,
+    "chronology_policy": "employer_scope_only; graph evidence nodes do not carry time_window as claim authority"
+  },
+  "excluded_metrics_by_policy": [],
+  "metric_candidates_for_approval": [],
+  "bundles": [
+    {
+      "role_episode_bundle_id": "reb_early_career_actuarial_pricing_reserving",
+      "employer": "Early Career Roles (Towers Perrin, ING, Aetna)",
+      "title": "Actuarial Consultant & Quantitative Specialist",
+      "employer_node_id": "employment_exp_early_career_001",
+      "root_capability_node_id": "actuarial_pricing_reserving",
+      "bundle_theme": "Actuarial Pricing, Reserving, and Insurance Liability Modeling",
+      "claim_text": "Executed actuarial pricing, statutory and economic reserving, and embedded-option insurance liability modeling across Towers Perrin, ING, and Aetna under life, annuity, and health insurance solvency regimes.",
+      "claim_action": "Executed actuarial pricing, statutory and economic reserving, and embedded-option insurance liability modeling across Towers Perrin, ING, and Aetna.",
+      "claim_scope": "Foundational insurance carrier and actuarial consulting experience spanning life, annuity, and health insurance liabilities, pricing assumptions, reserving frameworks, and actuarial modeling software.",
+      "claim_outcome": "Established Fellow of the Society of Actuaries (FSA) technical mastery over insurance liabilities, reserving, and pricing governance.",
+      "support_level": "verified_base_resume",
+      "executive_scope_signals": [
+        "Actuarial pricing, reserving, and insurance liability modeling at Towers Perrin, ING, and Aetna",
+        "Embedded-option valuation and statutory/economic solvency compliance for life, annuity, and health insurers",
+        "Fellow of the Society of Actuaries (FSA) foundation anchoring insurer technology and risk leadership"
+      ],
+      "architecture_scope_signals": [
+        "Actuarial modeling software and assumption governance frameworks",
+        "Insurance liability cash-flow projection and reserving pipelines",
+        "Embedded option valuation under regulatory solvency regimes"
+      ],
+      "graph_skill_node_ids": [
+        "skill_actuarial_fsa_fellowship",
+        "skill_capital_pricing_actuarial",
+        "skill_capital_reserving",
+        "skill_insurance_liabilities_embedded_options",
+        "skill_insurance_liabilities_insurance_liabilities",
+        "skill_actuarial_actuarial_software",
+        "skill_insurance_solvency_regimes"
+      ],
+      "linked_source_fact_ids": [
+        "exp_early_career_001",
+        "fact_certs_001",
+        "fact_insurance_liabilities_001",
+        "fact_quant_act_001",
+        "fact_quant_act_002",
+        "fact_quant_act_003"
+      ],
+      "linked_archive_signal_ids": [],
+      "linked_metric_outcome_ids": [
+        "metric_early_career_fsa_charter_actuarial_authority",
+        "metric_early_career_insurer_liability_reserving_scope"
+      ],
+      "held_metrics": [],
+      "excluded_metrics": [],
+      "metric_candidates": [],
+      "operating_context": "Foundational actuarial consulting and carrier roles at Towers Perrin, ING, and Aetna covering insurance liabilities, pricing, reserving, and actuarial valuation discipline.",
+      "bullet_intent": "Surface verified actuarial domain mastery and insurer balance-sheet fluency for insurer, healthcare payer, financial services, and regulated AI executive mandates.",
+      "section_eligibility": [
+        "early_career_bullets",
+        "early_career_narrative",
+        "executive_summary",
+        "headline",
+        "competencies"
+      ],
+      "external_claim_policy": "verified_provenance_required",
+      "activation_status": "ACTIVE_CONFIRMED",
+      "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
+      "notes": "Grounded directly in exp_early_career_001, fact_certs_001, fact_insurance_liabilities_001, and fact_quant_act_001..003.",
+      "provenance_source_refs": [
+        "exp_early_career_001",
+        "fact_certs_001",
+        "fact_insurance_liabilities_001",
+        "fact_quant_act_001",
+        "fact_quant_act_002",
+        "fact_quant_act_003"
+      ]
+    },
+    {
+      "role_episode_bundle_id": "reb_early_career_derivatives_greeks_hedging",
+      "employer": "Early Career Roles (Towers Perrin, ING, Aetna)",
+      "title": "Quantitative Derivatives & Hedging Specialist",
+      "employer_node_id": "employment_exp_early_career_001",
+      "root_capability_node_id": "derivatives_greeks_hedging",
+      "bundle_theme": "Exotic Derivatives Pricing and Multi-Greek Dynamic Hedging",
+      "claim_text": "Priced exotic options and structured derivatives while engineering multi-Greek hedging strategies across Delta, Gamma, Vega, Theta, Rho, and Convexity sensitivities to protect insurer and institutional balance sheets.",
+      "claim_action": "Priced exotic options and structured derivatives while engineering multi-Greek hedging strategies across first- and second-order risk sensitivities.",
+      "claim_scope": "Quantitative derivatives valuation, exotic options pricing, dynamic hedging programs, and Greek stress testing across insurance guarantees and structured portfolios.",
+      "claim_outcome": "Delivered quantitative risk control and multi-Greek hedging rigor transferable to high-reliability automated decision systems.",
+      "support_level": "verified_base_resume",
+      "executive_scope_signals": [
+        "Exotic options pricing and structured derivatives valuation",
+        "Multi-Greek hedging strategy across Delta, Gamma, Vega, Theta, Rho, and Convexity",
+        "Quantitative balance-sheet risk control under extreme tail scenarios"
+      ],
+      "architecture_scope_signals": [
+        "Derivatives pricing engines and sensitivity grids",
+        "Multi-Greek stress-testing and hedge rebalancing frameworks",
+        "Structured option and guarantee valuation pipelines"
+      ],
+      "graph_skill_node_ids": [
+        "skill_derivatives_derivatives_pricing",
+        "skill_derivatives_exotic_options",
+        "skill_derivatives_structured_derivatives",
+        "skill_greeks_hedging_multi_greek_hedging",
+        "skill_quant_multi_greek_hedging",
+        "skill_greeks_delta",
+        "skill_greeks_gamma",
+        "skill_greeks_vega",
+        "skill_greeks_theta",
+        "skill_greeks_rho",
+        "skill_greeks_convexity",
+        "skill_risk_greek_stress_testing"
+      ],
+      "linked_source_fact_ids": [
+        "exp_early_career_001",
+        "fact_quant_hpc_003",
+        "fact_quant_hpc_001"
+      ],
+      "linked_archive_signal_ids": [],
+      "linked_metric_outcome_ids": [
+        "metric_early_career_multi_greek_hedge_sensitivities_scope"
+      ],
+      "held_metrics": [],
+      "excluded_metrics": [],
+      "metric_candidates": [],
+      "operating_context": "Quantitative derivatives and dynamic hedging roles across insurance guarantees and structured risk management.",
+      "bullet_intent": "Surface derivatives, exotic options, and multi-Greek risk discipline for quantitative, banking, capital markets, and insurer CTO/CAIO mandates.",
+      "section_eligibility": [
+        "early_career_bullets",
+        "early_career_narrative",
+        "executive_summary",
+        "headline",
+        "competencies"
+      ],
+      "external_claim_policy": "verified_provenance_required",
+      "activation_status": "ACTIVE_CONFIRMED",
+      "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
+      "notes": "Grounded directly in bul_early_career_001 and fact_quant_hpc_003.",
+      "provenance_source_refs": [
+        "exp_early_career_001",
+        "bul_early_career_001",
+        "fact_quant_hpc_003"
+      ]
+    },
+    {
+      "role_episode_bundle_id": "reb_early_career_stochastic_capital_hpc",
+      "employer": "Early Career Roles (Towers Perrin, ING, Aetna)",
+      "title": "Stochastic Capital & HPC Valuation Specialist",
+      "employer_node_id": "employment_exp_early_career_001",
+      "root_capability_node_id": "stochastic_capital_hpc_valuation",
+      "bundle_theme": "Stochastic Capital Modeling and High-Performance Compute Valuation",
+      "claim_text": "Built stochastic capital models and high-performance compute (HPC) valuation frameworks for scenario testing, economic capital adequacy, and model-risk governance discipline applied across enterprise AI platforms.",
+      "claim_action": "Built stochastic capital models and HPC valuation frameworks for scenario testing and capital adequacy.",
+      "claim_scope": "Large-scale Monte Carlo stochastic simulation, HPC valuation compute grids, economic and regulatory capital modeling, and model-risk validation discipline.",
+      "claim_outcome": "Established quantitative model-risk and high-performance distributed valuation engineering practices.",
+      "support_level": "verified_base_resume",
+      "executive_scope_signals": [
+        "Stochastic capital modeling and economic capital adequacy frameworks",
+        "High-performance compute (HPC) valuation architectures for scenario testing",
+        "Quantitative model-risk governance foundation bridging actuarial rigor to enterprise AI"
+      ],
+      "architecture_scope_signals": [
+        "Distributed HPC simulation and valuation grids",
+        "Stochastic scenario generation and capital adequacy pipelines",
+        "Auditable model-governance and assumption lineage controls"
+      ],
+      "graph_skill_node_ids": [
+        "skill_capital_capital_modeling",
+        "skill_capital_regulatory_capital",
+        "skill_quant_stochastic_modeling",
+        "skill_hpc_valuation_capital_adequacy",
+        "skill_risk_model_risk"
+      ],
+      "linked_source_fact_ids": [
+        "exp_early_career_001",
+        "fact_quant_hpc_003",
+        "fact_quant_act_002",
+        "fact_quant_act_003"
+      ],
+      "linked_archive_signal_ids": [],
+      "linked_metric_outcome_ids": [
+        "metric_early_career_hpc_stochastic_capital_framework"
+      ],
+      "held_metrics": [],
+      "excluded_metrics": [],
+      "metric_candidates": [],
+      "operating_context": "High-performance stochastic valuation and regulatory capital modeling roles establishing rigorous model-risk engineering foundations.",
+      "bullet_intent": "Connect foundational stochastic modeling and HPC valuation to modern distributed AI systems and model-risk governance.",
+      "section_eligibility": [
+        "early_career_bullets",
+        "early_career_narrative",
+        "executive_summary",
+        "headline",
+        "competencies"
+      ],
+      "external_claim_policy": "verified_provenance_required",
+      "activation_status": "ACTIVE_CONFIRMED",
+      "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
+      "notes": "Grounded directly in bul_early_career_001, fact_quant_hpc_003, and fact_quant_act_002..003.",
+      "provenance_source_refs": [
+        "exp_early_career_001",
+        "bul_early_career_001",
+        "fact_quant_hpc_003",
+        "fact_quant_act_002",
+        "fact_quant_act_003"
+      ]
+    },
+    {
+      "role_episode_bundle_id": "reb_early_career_credentials_quantitative_pedigree",
+      "employer": "Early Career Roles (Towers Perrin, ING, Aetna)",
+      "title": "Fellow of the Society of Actuaries (FSA) & Columbia M.S. Biostatistics",
+      "employer_node_id": "employment_exp_early_career_001",
+      "root_capability_node_id": "credentials_quantitative_pedigree",
+      "bundle_theme": "FSA Actuarial Charter, Columbia M.S. Biostatistics (Distinction), and Cloud/AI Credentials",
+      "claim_text": "Combines Fellow of the Society of Actuaries (FSA) charter and Columbia University M.S. in Biostatistics (with Distinction) alongside Brown University B.A. (Cum Laude) and AWS Solutions Architect Professional credentials for regulated insurance, healthcare payer, and financial AI leadership.",
+      "claim_action": "Combines Fellow of the Society of Actuaries (FSA) charter and Columbia University M.S. in Biostatistics (with Distinction) with cloud architecture credentials.",
+      "claim_scope": "Executive credential differentiation across actuarial science, biostatistics, medical loss ratio (MLR) analytics, regulated financial modeling, and cloud AI architecture.",
+      "claim_outcome": "Provides rare cross-disciplinary actuarial, biostatistical, and cloud-AI executive pedigree.",
+      "support_level": "verified_base_resume",
+      "executive_scope_signals": [
+        "Fellow of the Society of Actuaries (FSA) executive actuarial charter",
+        "Columbia University M.S. in Biostatistics (Graduated with Distinction) for payer, healthcare, and statistical AI rigor",
+        "Brown University B.A. in Biology (Cum Laude) and AWS Certified Solutions Architect Professional"
+      ],
+      "architecture_scope_signals": [
+        "Biostatistical modeling and healthcare/insurance risk quantification",
+        "Actuarial charter discipline paired with AWS cloud and Databricks Lakehouse certifications"
+      ],
+      "graph_skill_node_ids": [
+        "skill_actuarial_fsa_fellowship",
+        "skill_quant_stochastic_modeling",
+        "skill_capital_pricing_actuarial",
+        "skill_insurance_solvency_regimes"
+      ],
+      "linked_source_fact_ids": [
+        "exp_early_career_001",
+        "fact_certs_001",
+        "fact_quant_act_001"
+      ],
+      "linked_archive_signal_ids": [],
+      "linked_metric_outcome_ids": [
+        "metric_early_career_fsa_biostat_credential_elevation"
+      ],
+      "held_metrics": [],
+      "excluded_metrics": [],
+      "metric_candidates": [],
+      "operating_context": "Graph-routed executive credential elevation binding FSA Fellowship, Columbia M.S. Biostatistics, and Brown B.A. into top-section positioning when targeting insurers, banks, healthcare payers, and quantitative leadership roles.",
+      "bullet_intent": "Enable graph-routed top-section credential elevation in Headline and Executive Summary when differentiating for insurer, banking, quant, or healthcare payer mandates.",
+      "section_eligibility": [
+        "early_career_bullets",
+        "early_career_narrative",
+        "executive_summary",
+        "headline",
+        "competencies"
+      ],
+      "external_claim_policy": "verified_provenance_required",
+      "activation_status": "ACTIVE_CONFIRMED",
+      "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
+      "notes": "Grounded directly in cert_fsa_001, edu_columbia_ms_001, edu_brown_ba_001, and fact_certs_001.",
+      "provenance_source_refs": [
+        "cert_fsa_001",
+        "edu_columbia_ms_001",
+        "edu_brown_ba_001",
+        "fact_certs_001"
+      ]
+    }
+  ],
+  "metric_outcome_nodes": {
+    "metric_early_career_fsa_charter_actuarial_authority": {
+      "metric_outcome_id": "metric_early_career_fsa_charter_actuarial_authority",
+      "metric": "Fellow of the Society of Actuaries (FSA) charter across life, annuity, and health pricing and reserving",
+      "metric_type": "executive_credential_authority",
+      "employer": "Early Career Roles",
+      "employer_node_id": "employment_exp_early_career_001",
+      "approved": true,
+      "approval_status": "APPROVED_GRAPH_SSOT",
+      "support_level": "verified_base_resume",
+      "bundle_bindings": [
+        "reb_early_career_actuarial_pricing_reserving"
+      ],
+      "claim_text": "Verified Fellow of the Society of Actuaries (FSA) charter and foundational actuarial pricing and reserving mastery across Towers Perrin, ING, and Aetna.",
+      "surface_tokens": [
+        "FSA",
+        "Fellow of the Society of Actuaries",
+        "actuarial pricing",
+        "reserving",
+        "Towers Perrin",
+        "ING",
+        "Aetna"
+      ],
+      "section_eligibility": [
+        "early_career_bullets",
+        "early_career_narrative",
+        "executive_summary",
+        "headline",
+        "competencies"
+      ],
+      "proof_shape": "Base resume certification cert_fsa_001 and verified early-career actuarial employment spine.",
+      "provenance_source_refs": [
+        "exp_early_career_001",
+        "fact_certs_001",
+        "fact_quant_act_001"
+      ]
+    },
+    "metric_early_career_insurer_liability_reserving_scope": {
+      "metric_outcome_id": "metric_early_career_insurer_liability_reserving_scope",
+      "metric": "Embedded-option insurance liability valuation and statutory/economic reserving across 3 institutional carriers and consultancies",
+      "metric_type": "actuarial_domain_scope",
+      "employer": "Early Career Roles",
+      "employer_node_id": "employment_exp_early_career_001",
+      "approved": true,
+      "approval_status": "APPROVED_GRAPH_SSOT",
+      "support_level": "verified_base_resume",
+      "bundle_bindings": [
+        "reb_early_career_actuarial_pricing_reserving"
+      ],
+      "claim_text": "Embedded-option insurance liability valuation and statutory/economic reserving across Towers Perrin, ING, and Aetna.",
+      "surface_tokens": [
+        "insurance liabilities",
+        "embedded options",
+        "reserving",
+        "solvency"
+      ],
+      "section_eligibility": [
+        "early_career_bullets",
+        "early_career_narrative",
+        "executive_summary",
+        "competencies"
+      ],
+      "proof_shape": "Verified early-career employment spine exp_early_career_001 and fact_insurance_liabilities_001.",
+      "provenance_source_refs": [
+        "exp_early_career_001",
+        "fact_insurance_liabilities_001",
+        "fact_quant_act_002"
+      ]
+    },
+    "metric_early_career_multi_greek_hedge_sensitivities_scope": {
+      "metric_outcome_id": "metric_early_career_multi_greek_hedge_sensitivities_scope",
+      "metric": "Exotic options pricing and multi-Greek hedging (Delta, Gamma, Vega, Theta, Rho, Convexity) for institutional balance-sheet risk",
+      "metric_type": "quantitative_risk_scope",
+      "employer": "Early Career Roles",
+      "employer_node_id": "employment_exp_early_career_001",
+      "approved": true,
+      "approval_status": "APPROVED_GRAPH_SSOT",
+      "support_level": "verified_base_resume",
+      "bundle_bindings": [
+        "reb_early_career_derivatives_greeks_hedging"
+      ],
+      "claim_text": "Exotic options pricing and structured multi-Greek hedging across Delta, Gamma, Vega, Theta, Rho, and Convexity sensitivities.",
+      "surface_tokens": [
+        "exotic derivatives",
+        "multi-Greek hedging",
+        "Greeks",
+        "stress testing"
+      ],
+      "section_eligibility": [
+        "early_career_bullets",
+        "early_career_narrative",
+        "executive_summary",
+        "headline",
+        "competencies"
+      ],
+      "proof_shape": "Verified early-career bullet bul_early_career_001 and fact_quant_hpc_003.",
+      "provenance_source_refs": [
+        "exp_early_career_001",
+        "bul_early_career_001",
+        "fact_quant_hpc_003"
+      ]
+    },
+    "metric_early_career_hpc_stochastic_capital_framework": {
+      "metric_outcome_id": "metric_early_career_hpc_stochastic_capital_framework",
+      "metric": "Stochastic capital modeling and HPC valuation frameworks for scenario testing and capital adequacy",
+      "metric_type": "hpc_valuation_scope",
+      "employer": "Early Career Roles",
+      "employer_node_id": "employment_exp_early_career_001",
+      "approved": true,
+      "approval_status": "APPROVED_GRAPH_SSOT",
+      "support_level": "verified_base_resume",
+      "bundle_bindings": [
+        "reb_early_career_stochastic_capital_hpc"
+      ],
+      "claim_text": "Stochastic capital modeling and high-performance compute (HPC) valuation frameworks supporting scenario testing and capital adequacy.",
+      "surface_tokens": [
+        "stochastic capital",
+        "HPC valuation",
+        "scenario testing",
+        "capital adequacy"
+      ],
+      "section_eligibility": [
+        "early_career_bullets",
+        "early_career_narrative",
+        "executive_summary",
+        "headline",
+        "competencies"
+      ],
+      "proof_shape": "Verified early-career bullet bul_early_career_001 and fact_quant_hpc_003.",
+      "provenance_source_refs": [
+        "exp_early_career_001",
+        "bul_early_career_001",
+        "fact_quant_hpc_003"
+      ]
+    },
+    "metric_early_career_fsa_biostat_credential_elevation": {
+      "metric_outcome_id": "metric_early_career_fsa_biostat_credential_elevation",
+      "metric": "FSA Charter + Columbia M.S. Biostatistics (with Distinction) + AWS Solutions Architect Professional",
+      "metric_type": "credential_elevation_anchor",
+      "employer": "Early Career Roles",
+      "employer_node_id": "employment_exp_early_career_001",
+      "approved": true,
+      "approval_status": "APPROVED_GRAPH_SSOT",
+      "support_level": "verified_base_resume",
+      "bundle_bindings": [
+        "reb_early_career_credentials_quantitative_pedigree"
+      ],
+      "claim_text": "Fellow of the Society of Actuaries (FSA) charter and Columbia University M.S. in Biostatistics (with Distinction) anchored with AWS Solutions Architect Professional certification.",
+      "surface_tokens": [
+        "FSA",
+        "Columbia M.S. Biostatistics",
+        "Biostatistics",
+        "AWS Solutions Architect Professional"
+      ],
+      "section_eligibility": [
+        "early_career_bullets",
+        "early_career_narrative",
+        "executive_summary",
+        "headline",
+        "competencies"
+      ],
+      "proof_shape": "Base resume certifications cert_fsa_001, cert_aws_sa_pro_001, and education edu_columbia_ms_001.",
+      "provenance_source_refs": [
+        "cert_fsa_001",
+        "edu_columbia_ms_001",
+        "edu_brown_ba_001",
+        "fact_certs_001"
+      ]
+    }
+  },
+  "approved_metric_outcome_ids": [
+    "metric_early_career_fsa_charter_actuarial_authority",
+    "metric_early_career_insurer_liability_reserving_scope",
+    "metric_early_career_multi_greek_hedge_sensitivities_scope",
+    "metric_early_career_hpc_stochastic_capital_framework",
+    "metric_early_career_fsa_biostat_credential_elevation"
+  ],
+  "metric_surface_policy": {
+    "approved_only": true,
+    "allow_shared_section_elevation": true
+  }
+}

@@ -607,6 +607,92 @@ def _resolve_live_bge_m3_packed_vectors(
     return model_tag, resolved
 
 
+def build_career_epoch_summaries(
+    conn: sqlite3.Connection, build_run_id: str, input_manifest_digest: str
+) -> list[SemanticUnit]:
+    """Build semantic units summarizing each chronological career epoch and its verified skills/outcomes."""
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT node_id, label, description, employer, phase_ordinal, start_date, end_date
+        FROM graph_nodes
+        WHERE node_type = 'career_epoch'
+        ORDER BY COALESCE(phase_ordinal, 99), node_id
+        """
+    )
+    epochs = cursor.fetchall()
+    units: list[SemanticUnit] = []
+    for epoch_id, label, desc, employer, phase, s_date, e_date in epochs:
+        cursor.execute(
+            """
+            SELECT e.edge_id, s.node_id, s.label
+            FROM graph_edges e
+            JOIN graph_nodes s ON s.node_id = e.target_node_id
+            WHERE e.source_node_id = ? AND e.edge_type = 'epoch_contains_skill'
+              AND COALESCE(s.external_eligible, 0) = 1
+            ORDER BY s.node_id
+            LIMIT 16
+            """,
+            (epoch_id,),
+        )
+        skills = cursor.fetchall()
+        cursor.execute(
+            """
+            SELECT node_id, label, description
+            FROM graph_nodes
+            WHERE node_type = 'metric_outcome'
+              AND career_epoch = ?
+              AND COALESCE(external_eligible, 0) = 1
+            ORDER BY node_id
+            LIMIT 8
+            """,
+            (epoch_id,),
+        )
+        metrics = cursor.fetchall()
+        if not skills and not metrics:
+            continue
+        member_hash_ids = [epoch_id] + [r[0] for r in skills] + [r[1] for r in skills] + [r[0] for r in metrics]
+        unit_id = _compute_unit_id("career_epoch_summary", epoch_id, member_hash_ids)
+        members: list[SemanticUnitMember] = [SemanticUnitMember(unit_id, "node", epoch_id, "root")]
+        for edge_id, s_id, _ in skills:
+            members.append(SemanticUnitMember(unit_id, "node", s_id, "member"))
+            members.append(SemanticUnitMember(unit_id, "edge", edge_id, "member"))
+        for m_id, _, _ in metrics:
+            members.append(SemanticUnitMember(unit_id, "node", m_id, "outcome"))
+        members.append(SemanticUnitMember(unit_id, "evidence", f"ev_{epoch_id}", "evidence"))
+        text = render_semantic_unit_text_v2(
+            unit_type="career_epoch_summary",
+            employer_label=employer or label,
+            epoch_label=label or epoch_id,
+            phase_ordinal=phase,
+            date_range=f"{s_date} - {e_date}" if s_date or e_date else "",
+            primary_claim=desc or label,
+            outcomes=[m[1] or m[2] for m in metrics],
+            capabilities=[s[2] for s in skills],
+            domain=label or epoch_id,
+            confidence_tier="HIGH",
+        )
+        units.append(
+            SemanticUnit(
+                unit_id=unit_id,
+                unit_type="career_epoch_summary",
+                root_node_id=epoch_id,
+                template_version=TEMPLATE_VERSION,
+                text=text,
+                text_sha256=hashlib.sha256(text.encode()).hexdigest(),
+                unit_source_sha256=_compute_source_sha256(members, TEMPLATE_VERSION),
+                graph_build_run_id=build_run_id,
+                input_manifest_digest=input_manifest_digest,
+                confidence_tier="HIGH",
+                min_confidence=0.90,
+                allowed_sections_json=json.dumps(["executive_summary", "headline", "competencies"]),
+                external_eligible=1,
+                members=tuple(members),
+            )
+        )
+    return units
+
+
 def populate_semantic_units(
     conn: sqlite3.Connection, build_run_id: str, input_manifest_digest: str
 ) -> dict[str, int]:
@@ -614,7 +700,8 @@ def populate_semantic_units(
     skill_units = build_skill_evidence_clusters(conn, build_run_id, input_manifest_digest)
     eng_units = build_engagement_episodes(conn, build_run_id, input_manifest_digest)
     metric_units = build_metric_outcome_stories(conn, build_run_id, input_manifest_digest)
-    all_units = skill_units + eng_units + metric_units
+    epoch_units = build_career_epoch_summaries(conn, build_run_id, input_manifest_digest)
+    all_units = skill_units + eng_units + metric_units + epoch_units
 
     elig_skills = conn.execute(
         "SELECT node_id, label, description FROM graph_nodes WHERE node_type = 'skill' AND external_eligible = 1 ORDER BY node_id"
@@ -716,6 +803,7 @@ def populate_semantic_units(
         "skill_evidence_cluster_count": len(skill_units),
         "engagement_episode_count": len(eng_units),
         "metric_outcome_story_count": len(metric_units),
+        "career_epoch_summary_count": len(epoch_units),
         "learned_sparse_count": sparse_cnt,
         "colbert_vector_count": colbert_cnt,
         "live_bge_m3_vectors": 1 if model_tag is not None else 0,

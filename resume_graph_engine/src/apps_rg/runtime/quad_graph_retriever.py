@@ -472,6 +472,8 @@ def expand_connected_quad_graph(
         "metric_outcome_bound_to_employer",
         "engagement_exercises_skill",
         "engagement_evidenced_by_fact",
+        "pillar_phase_bridge",
+        "skill_reinforces_skill",
     )
     paths: list[TraversalPath] = []
     if seed_node_scores:

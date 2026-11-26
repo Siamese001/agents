@@ -48,8 +48,9 @@ CANONICAL_BULLET_CLAIM_UNITS: Mapping[str, tuple[str, ...]] = {
     "slalom_bullets": tuple(f"bul_slalom_{index:03d}" for index in range(1, 5)),
     "unify_bullets": tuple(f"bul_unify_{index:03d}" for index in range(1, 7)),
     "ibm_bullets": tuple(f"bul_ibm_{index:03d}" for index in range(1, 6)),
-    "insurtech_bullets": ("bul_insurtech_001", "bul_insurtech_002"),
-    "ey_bullets": (),
+    "insurtech_bullets": ("bul_insurtech_001", "bul_insurtech_002", "bul_insurtech_003"),
+    "ey_bullets": ("bul_ey_001", "bul_ey_002", "bul_ey_003"),
+    "early_career_bullets": ("bul_early_career_001", "bul_early_career_002", "bul_early_career_003"),
 }
 EMPLOYER_LANE_BY_SECTION: Mapping[str, str] = {
     "slalom_bullets": "slalom",
@@ -57,6 +58,7 @@ EMPLOYER_LANE_BY_SECTION: Mapping[str, str] = {
     "ibm_bullets": "ibm",
     "insurtech_bullets": "insurtech",
     "ey_bullets": "ey",
+    "early_career_bullets": "early_career",
 }
 NARRATIVE_DERIVATION_POLICY: Mapping[str, str] = {
     "slalom_narrative": "slalom_bullets",
@@ -64,6 +66,7 @@ NARRATIVE_DERIVATION_POLICY: Mapping[str, str] = {
     "ibm_narrative": "ibm_bullets",
     "insurtech_narrative": "insurtech_bullets",
     "ey_narrative": "ey_bullets",
+    "early_career_narrative": "early_career_bullets",
 }
 CANONICAL_VISIBLE_SECTIONS: tuple[str, ...] = (
     "competencies",
@@ -72,10 +75,11 @@ CANONICAL_VISIBLE_SECTIONS: tuple[str, ...] = (
     "ibm_bullets",
     "insurtech_bullets",
     "ey_bullets",
+    "early_career_bullets",
     "executive_summary",
     "headline",
 )
-ALL_CLAIM_BEARING_SECTIONS: tuple[str, ...] = (
+LEGACY_CLAIM_BEARING_SECTIONS: tuple[str, ...] = (
     "competencies",
     "slalom_bullets",
     "unify_bullets",
@@ -87,6 +91,23 @@ ALL_CLAIM_BEARING_SECTIONS: tuple[str, ...] = (
     "ibm_narrative",
     "insurtech_narrative",
     "ey_narrative",
+    "executive_summary",
+    "headline",
+)
+ALL_CLAIM_BEARING_SECTIONS: tuple[str, ...] = (
+    "competencies",
+    "slalom_bullets",
+    "unify_bullets",
+    "ibm_bullets",
+    "insurtech_bullets",
+    "ey_bullets",
+    "early_career_bullets",
+    "slalom_narrative",
+    "unify_narrative",
+    "ibm_narrative",
+    "insurtech_narrative",
+    "ey_narrative",
+    "early_career_narrative",
     "executive_summary",
     "headline",
 )
@@ -109,6 +130,7 @@ class _Slot:
     employer_lane: str
     required_root_id: str
     counts_toward_global_uniqueness: bool
+    allowed_employer_lanes: tuple[str, ...] = ()
 
 
 def stable_edge_id(source: str, edge_type: str, target: str) -> str:
@@ -133,6 +155,7 @@ def _slot_from_row(row: Mapping[str, Any]) -> _Slot:
     section_id = str(row.get("section_id") or "").strip()
     if not slot_id or not section_id:
         raise ValueError("every allocation slot requires slot_id and section_id")
+    allowed_lanes = tuple(_strings(row.get("allowed_employer_lanes")))
     return _Slot(
         slot_id=slot_id,
         section_id=section_id,
@@ -143,6 +166,7 @@ def _slot_from_row(row: Mapping[str, Any]) -> _Slot:
         counts_toward_global_uniqueness=bool(
             row.get("counts_toward_global_uniqueness", True)
         ),
+        allowed_employer_lanes=allowed_lanes,
     )
 
 

@@ -83,8 +83,11 @@
       "operating_context": "Dodd-Frank era regulatory analytics and audit modernization for global banking clients, focused on predictive risk, lineage, controls, and regulator-facing traceability.",
       "bullet_intent": "Use only role_episode_bundle_id-bound graph evidence; metric_outcome_nodes are the approved metric surface.",
       "section_eligibility": [
+        "competencies",
+        "executive_summary",
         "ey_bullets",
-        "ey_narrative"
+        "ey_narrative",
+        "headline"
       ],
       "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
@@ -157,8 +160,11 @@
       "operating_context": "Insurance and capital-markets work requiring derivatives pricing, VA guarantee modeling, hedge design, Greek stress testing, and capital adequacy under insurance regulatory regimes.",
       "bullet_intent": "Use only role_episode_bundle_id-bound graph evidence; metric_outcome_nodes are the approved metric surface.",
       "section_eligibility": [
+        "competencies",
+        "executive_summary",
         "ey_bullets",
-        "ey_narrative"
+        "ey_narrative",
+        "headline"
       ],
       "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
@@ -225,8 +231,11 @@
       "operating_context": "Post-crisis financial services consulting environment where capital planning, liquidity risk, stress testing, model governance, and auditability were board/regulator priorities.",
       "bullet_intent": "Use only role_episode_bundle_id-bound graph evidence; metric_outcome_nodes are the approved metric surface.",
       "section_eligibility": [
+        "competencies",
+        "executive_summary",
         "ey_bullets",
-        "ey_narrative"
+        "ey_narrative",
+        "headline"
       ],
       "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
@@ -290,8 +299,11 @@
       "operating_context": "Insurance core modernization in the 2009-2014 period emphasized replacing hard-coded legacy policy, billing, and claims systems with configurable, rules-based platforms; mapping requirements, integrations, source-target data dictionaries, conversion controls, policy lifecycle workflows, claims workflow requirements, and reporting/BI handoffs.",
       "bullet_intent": "Use only role_episode_bundle_id-bound graph evidence; metric_outcome_nodes are the approved metric surface.",
       "section_eligibility": [
+        "competencies",
+        "executive_summary",
         "ey_bullets",
-        "ey_narrative"
+        "ey_narrative",
+        "headline"
       ],
       "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
@@ -350,8 +362,11 @@
       "operating_context": "Enterprise risk management transformation for regulated banking and insurance clients, emphasizing operating model, risk-data aggregation, lineage, and governance controls.",
       "bullet_intent": "Use only role_episode_bundle_id-bound graph evidence; metric_outcome_nodes are the approved metric surface.",
       "section_eligibility": [
+        "competencies",
+        "executive_summary",
         "ey_bullets",
-        "ey_narrative"
+        "ey_narrative",
+        "headline"
       ],
       "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
@@ -382,8 +397,11 @@
         "lineage-backed reconciliation"
       ],
       "section_eligibility": [
+        "competencies",
+        "executive_summary",
         "ey_bullets",
-        "ey_narrative"
+        "ey_narrative",
+        "headline"
       ],
       "proof_shape": "Source artifact showing pre/post workflow inventory, control automation scope, and remediation ownership.",
       "provenance_source_refs": [
@@ -409,8 +427,11 @@
         "lineage metadata aggregation controls"
       ],
       "section_eligibility": [
+        "competencies",
+        "executive_summary",
         "ey_bullets",
-        "ey_narrative"
+        "ey_narrative",
+        "headline"
       ],
       "proof_shape": "Risk-data domain catalog, lineage artifact, or BCBS 239 program plan naming domains and controls.",
       "provenance_source_refs": [
@@ -436,8 +457,11 @@
         "finance risk model validation"
       ],
       "section_eligibility": [
+        "competencies",
+        "executive_summary",
         "ey_bullets",
-        "ey_narrative"
+        "ey_narrative",
+        "headline"
       ],
       "proof_shape": "Assumption inventory, model governance artifact, or stress testing pack naming reconciled assumption sets.",
       "provenance_source_refs": [
@@ -463,8 +487,11 @@
         "traceable assumptions"
       ],
       "section_eligibility": [
+        "competencies",
+        "executive_summary",
         "ey_bullets",
-        "ey_narrative"
+        "ey_narrative",
+        "headline"
       ],
       "proof_shape": "Stress testing scenario inventory or governance pack showing scenario purpose, assumptions, and traceability controls.",
       "provenance_source_refs": [
@@ -491,8 +518,11 @@
         "BI analytics handoffs"
       ],
       "section_eligibility": [
+        "competencies",
+        "executive_summary",
         "ey_bullets",
-        "ey_narrative"
+        "ey_narrative",
+        "headline"
       ],
       "proof_shape": "Integration analysis, data dictionary, conversion map, or BI handoff artifact naming source/target systems and data ownership.",
       "provenance_source_refs": [
@@ -519,8 +549,11 @@
         "billing rating underwriting handoffs"
       ],
       "section_eligibility": [
+        "competencies",
+        "executive_summary",
         "ey_bullets",
-        "ey_narrative"
+        "ey_narrative",
+        "headline"
       ],
       "proof_shape": "Core modernization workflow inventory, implementation plan, or requirements traceability artifact naming policy, claims, billing, rating, or underwriting workflows.",
       "provenance_source_refs": [
@@ -546,8 +579,11 @@
         "liability guarantees"
       ],
       "section_eligibility": [
+        "competencies",
+        "executive_summary",
         "ey_bullets",
-        "ey_narrative"
+        "ey_narrative",
+        "headline"
       ],
       "proof_shape": "Model inventory or engagement artifact naming derivative product families, pricing assumptions, and review/design role.",
       "provenance_source_refs": [
@@ -574,8 +610,11 @@
         "hedge design"
       ],
       "section_eligibility": [
+        "competencies",
+        "executive_summary",
         "ey_bullets",
-        "ey_narrative"
+        "ey_narrative",
+        "headline"
       ],
       "proof_shape": "Scenario library, hedge design pack, or model output inventory with Greek/cross-Greek stress definitions.",
       "provenance_source_refs": [
@@ -602,8 +641,11 @@
         "control redesign"
       ],
       "section_eligibility": [
+        "competencies",
+        "executive_summary",
         "ey_bullets",
-        "ey_narrative"
+        "ey_narrative",
+        "headline"
       ],
       "proof_shape": "Finding log or remediation evidence tying model-risk issues to validation/control fixes and closure status.",
       "provenance_source_refs": [
@@ -629,8 +671,11 @@
         "capital remediation workflows"
       ],
       "section_eligibility": [
+        "competencies",
+        "executive_summary",
         "ey_bullets",
-        "ey_narrative"
+        "ey_narrative",
+        "headline"
       ],
       "proof_shape": "Model validation inventory, challenger-model register, or remediation tracker with model family and review outcome.",
       "provenance_source_refs": [
@@ -657,8 +702,11 @@
         "product rate regulatory change"
       ],
       "section_eligibility": [
+        "competencies",
+        "executive_summary",
         "ey_bullets",
-        "ey_narrative"
+        "ey_narrative",
+        "headline"
       ],
       "proof_shape": "Policy administration configuration, requirements, or interface artifact showing product/rate/rule setup and handoffs to adjacent systems.",
       "provenance_source_refs": [
@@ -684,8 +732,11 @@
         "audit regulatory workflows"
       ],
       "section_eligibility": [
+        "competencies",
+        "executive_summary",
         "ey_bullets",
-        "ey_narrative"
+        "ey_narrative",
+        "headline"
       ],
       "proof_shape": "Source artifact listing predictive analytics use cases, business process owners, and production or pilot status.",
       "provenance_source_refs": [
@@ -711,8 +762,11 @@
         "stress testing reserve governance"
       ],
       "section_eligibility": [
+        "competencies",
+        "executive_summary",
         "ey_bullets",
-        "ey_narrative"
+        "ey_narrative",
+        "headline"
       ],
       "proof_shape": "Model inventory, validation tracker, or capital governance artifact with model component list and review role.",
       "provenance_source_refs": [
@@ -739,8 +793,11 @@
         "audit traceability"
       ],
       "section_eligibility": [
+        "competencies",
+        "executive_summary",
         "ey_bullets",
-        "ey_narrative"
+        "ey_narrative",
+        "headline"
       ],
       "proof_shape": "Source artifact naming the regulatory analytics domains, lineage/control ownership scope, and EY delivery role.",
       "provenance_source_refs": [
@@ -766,8 +823,11 @@
         "control owners reporting stakeholders"
       ],
       "section_eligibility": [
+        "competencies",
+        "executive_summary",
         "ey_bullets",
-        "ey_narrative"
+        "ey_narrative",
+        "headline"
       ],
       "proof_shape": "Risk metric catalog, reporting governance pack, or metadata standard with metric ownership and definition.",
       "provenance_source_refs": [
@@ -793,8 +853,11 @@
         "control-owner handoffs"
       ],
       "section_eligibility": [
+        "competencies",
+        "executive_summary",
         "ey_bullets",
-        "ey_narrative"
+        "ey_narrative",
+        "headline"
       ],
       "proof_shape": "Operating model artifact, RACI, control inventory, or governance pack naming line-of-defense responsibilities.",
       "provenance_source_refs": [
@@ -821,8 +884,11 @@
         "capital stress testing"
       ],
       "section_eligibility": [
+        "competencies",
+        "executive_summary",
         "ey_bullets",
-        "ey_narrative"
+        "ey_narrative",
+        "headline"
       ],
       "proof_shape": "Hedging practice artifact, client engagement summary, or model pack naming VA/insurance liability hedge scope.",
       "provenance_source_refs": [
@@ -849,8 +915,11 @@
         "regulatory review"
       ],
       "section_eligibility": [
+        "competencies",
+        "executive_summary",
         "ey_bullets",
-        "ey_narrative"
+        "ey_narrative",
+        "headline"
       ],
       "proof_shape": "Validation package inventory, control evidence log, or regulator/audit remediation tracker.",
       "provenance_source_refs": [
@@ -877,8 +946,11 @@
         "conversion reconciliation controls"
       ],
       "section_eligibility": [
+        "competencies",
+        "executive_summary",
         "ey_bullets",
-        "ey_narrative"
+        "ey_narrative",
+        "headline"
       ],
       "proof_shape": "Data dictionary, conversion rule catalog, source-target mapping, or reconciliation-control artifact for policy, claims, billing, or customer data.",
       "provenance_source_refs": [

@@ -21,11 +21,18 @@ DEPRIORITIZED_PILLAR_WEIGHT = 0.10
 
 _ROLE_FAMILY_ALIASES: dict[str, str] = {
     "insurance_it_strategy": "AI_FINANCIAL_SERVICES",
-    "insurance_agentic_ai": "AI_FINANCIAL_SERVICES",
+    "insurance_agentic_ai": "INSURANCE_CARRIER_TRANSFORMATION",
+    "banking_model_risk_ai": "BANKING_PLATFORM_AI",
+    "healthcare_payer_data_ai": "AI_FINANCIAL_SERVICES",
+    "quant_risk_hpc": "QUANT_TRADING",
     "svp_agentic_engineering": "SVP_ENGINEERING_AI_PLATFORM",
     "executive_agentic_transformation": "CHIEF_AI_OFFICER",
     "ai_partnerships_gtm": "PARTNER_APPLIED_AI_ARCHITECTURE",
     "balanced_enterprise_ai": "SVP_ENGINEERING_AI_PLATFORM",
+    "DATA_ANALYTICS_LEADERSHIP": "AI_FINANCIAL_SERVICES",
+    "HEALTHCARE_PAYER_DATA_AI": "AI_FINANCIAL_SERVICES",
+    "PE_OPERATING_PARTNER_TRANSFORMATION": "CHIEF_AI_OFFICER",
+    "STRATEGIC_FINANCE": "AI_FINANCIAL_SERVICES",
 }
 
 

@@ -77,10 +77,10 @@ def test_runtime_contract_remains_historical_and_offline_pinned(
 
     assert contract["python_major_minor"] == "3.12"
     assert contract["packages"] == {
-        "torch": "2.12.0.dev20260228+cu128",
-        "sentence-transformers": "5.2.3",
+        "torch": "2.11.0",
+        "sentence-transformers": "5.7.0",
     }
-    assert contract["promoted_device"] == "cuda:0"
+    assert contract["promoted_device"] == "mps"
     assert raw_contract["network_allowed"] is False
     assert raw_contract["fallback_allowed"] is False
 

@@ -29,8 +29,8 @@ from typing import TYPE_CHECKING, Any, Iterable
 if TYPE_CHECKING:
     from apps_rg.runtime.core_sqlite import sqlite3_adapter as sqlite3
 
-GRAPH_INDEX_CAPABILITY_VERSION = "apps_rg.graph_index_capability.v1.direct_only"
-GRAPH_INDEX_SCHEMA_VERSION = "apps_rg.graph_sqlite_path_index.v6.direct_only_lossless_typed_digest"
+GRAPH_INDEX_CAPABILITY_VERSION = "apps_rg.graph_index_capability.v2.multihop_bounded"
+GRAPH_INDEX_SCHEMA_VERSION = "apps_rg.graph_sqlite_path_index.v7.multihop_lossless_typed_digest"
 
 EDGE_METADATA_COLUMNS: tuple[tuple[str, str], ...] = (
     ("rationale", "TEXT NOT NULL DEFAULT ''"),
@@ -1150,16 +1150,57 @@ def validate_graphdb_capability_integrity(
                 CASE WHEN json_valid(g.edge_types_json)
                      THEN g.edge_types_json ELSE '[]' END
             ) j
-            WHERE NOT EXISTS (
-                SELECT 1 FROM graph_edges e
-                WHERE (
-                    e.source_node_id = g.center_node_id
-                    AND e.target_node_id = g.neighbor_node_id
-                    AND e.edge_type = j.value
-                ) OR (
-                    e.target_node_id = g.center_node_id
-                    AND e.source_node_id = g.neighbor_node_id
-                    AND e.edge_type || '_reverse' = j.value
+            WHERE (
+                g.distance = 1 AND NOT EXISTS (
+                    SELECT 1 FROM graph_edges e
+                    WHERE (
+                        e.source_node_id = g.center_node_id
+                        AND e.target_node_id = g.neighbor_node_id
+                        AND e.edge_type = j.value
+                    ) OR (
+                        e.target_node_id = g.center_node_id
+                        AND e.source_node_id = g.neighbor_node_id
+                        AND e.edge_type || '_reverse' = j.value
+                    )
+                )
+            ) OR (
+                g.distance >= 2 AND (
+                    json_array_length(
+                        CASE WHEN json_valid(g.edge_types_json) THEN g.edge_types_json ELSE '[]' END
+                    ) <> g.distance
+                    OR json_array_length(
+                        CASE WHEN json_valid(g.edge_ids_json) THEN g.edge_ids_json ELSE '[]' END
+                    ) <> g.distance
+                    OR NOT EXISTS (
+                        SELECT 1 FROM graph_edges e
+                        WHERE e.edge_id = json_extract(
+                            CASE WHEN json_valid(g.edge_ids_json) THEN g.edge_ids_json ELSE '[]' END,
+                            '$[' || j.key || ']'
+                        )
+                        AND (
+                            (
+                                e.source_node_id = json_extract(
+                                    CASE WHEN json_valid(g.connecting_path_json) THEN g.connecting_path_json ELSE '[]' END,
+                                    '$[' || j.key || ']'
+                                )
+                                AND e.target_node_id = json_extract(
+                                    CASE WHEN json_valid(g.connecting_path_json) THEN g.connecting_path_json ELSE '[]' END,
+                                    '$[' || (j.key + 1) || ']'
+                                )
+                                AND e.edge_type = j.value
+                            ) OR (
+                                e.target_node_id = json_extract(
+                                    CASE WHEN json_valid(g.connecting_path_json) THEN g.connecting_path_json ELSE '[]' END,
+                                    '$[' || j.key || ']'
+                                )
+                                AND e.source_node_id = json_extract(
+                                    CASE WHEN json_valid(g.connecting_path_json) THEN g.connecting_path_json ELSE '[]' END,
+                                    '$[' || (j.key + 1) || ']'
+                                )
+                                AND e.edge_type || '_reverse' = j.value
+                            )
+                        )
+                    )
                 )
             )
         """,
@@ -1511,7 +1552,7 @@ def _edge_tuples(conn: sqlite3.Connection) -> list[dict[str, Any]]:
         return []
     cols = table_columns(conn, "graph_edges")
     base = ["edge_id", "source_node_id", "target_node_id", "edge_type"]
-    optional = ["weight", "confidence", "section_fit", "rationale", "validation_status"]
+    optional = ["weight", "confidence", "section_fit", "rationale", "validation_status", "traversable"]
     select_cols = base + [c for c in optional if c in cols]
     rows = conn.execute(f"SELECT {','.join(select_cols)} FROM graph_edges").fetchall()
     out: list[dict[str, Any]] = []
@@ -1519,6 +1560,34 @@ def _edge_tuples(conn: sqlite3.Connection) -> list[dict[str, Any]]:
         row = dict(zip(select_cols, raw, strict=False))
         out.append(row)
     return out
+
+
+_MULTIHOP_SEED_NODE_TYPES: frozenset[str] = frozenset(
+    {
+        "career_track",
+        "career_epoch",
+        "pillar",
+        "role_family",
+        "engagement",
+        "employment",
+        "skill",
+        "certification",
+    }
+)
+_MULTIHOP_PRIORITY_EDGE_TYPES: dict[str, int] = {
+    "pillar_phase_bridge": 0,
+    "skill_reinforces_skill": 1,
+    "career_track_contains_pillar": 2,
+    "pillar_contains_skill": 3,
+    "engagement_exercises_skill": 4,
+    "skill_supported_by_certification": 5,
+    "skill_surfaces_metric_outcome": 6,
+    "skill_supported_by_fact": 7,
+    "fact_has_metric_outcome": 8,
+    "metric_outcome_anchors_bundle": 9,
+    "engagement_at_employment": 10,
+    "employment_in_career_track": 11,
+}
 
 
 def build_graph_index_rows(
@@ -1530,13 +1599,20 @@ def build_graph_index_rows(
     created_at: str,
     build_run_id: str = "",
     max_siblings_per_node: int | None = None,
+    max_path_depth: int = 4,
+    max_paths: int = 25000,
+    max_neighborhood_distance: int = 3,
+    max_multihop_neighbors_per_center: int = 32,
 ) -> dict[str, list[dict[str, Any]]]:
-    """Build generated graph-index rows before the SQLite file exists."""
+    """Build generated multi-hop graph-index rows before the SQLite file exists."""
     nodes = {str(row.get("node_id") or ""): dict(row) for row in node_rows if row.get("node_id")}
     edges = [dict(row) for row in edge_rows]
     node_types = {node_id: str(row.get("node_type") or "") for node_id, row in nodes.items()}
 
     graph_paths: list[dict[str, Any]] = []
+    seen_path_ids: set[str] = set()
+    directed_adj: dict[str, list[dict[str, Any]]] = defaultdict(list)
+
     for edge in edges:
         if int(edge.get("traversable", 1)) == 0:
             continue
@@ -1546,6 +1622,14 @@ def build_graph_index_rows(
             continue
         edge_id = str(edge.get("edge_id") or _digest(f"{src}->{tgt}")[:16])
         edge_type = str(edge.get("edge_type") or "")
+        directed_adj[src].append(
+            {
+                "edge_id": edge_id,
+                "source_node_id": src,
+                "target_node_id": tgt,
+                "edge_type": edge_type,
+            }
+        )
         facts = [
             node_id for node_id in (src, tgt) if node_types.get(node_id) in SKILL_FACT_EVIDENCE_NODE_TYPES
         ]
@@ -1560,9 +1644,11 @@ def build_graph_index_rows(
         path_score = round(proof_score + novelty_score + 0.5, 6)
         signature = f"{src}->{tgt}"
         path_identity = f"{signature}|{edge_id}"
+        path_id = f"path:{_digest(path_identity)[:24]}"
+        seen_path_ids.add(path_id)
         graph_paths.append(
             {
-                "path_id": f"path:{_digest(path_identity)[:24]}",
+                "path_id": path_id,
                 "start_node_id": src,
                 "end_node_id": tgt,
                 "path_depth": 1,
@@ -1580,6 +1666,88 @@ def build_graph_index_rows(
                 "created_at": created_at,
             }
         )
+
+    for src_key in directed_adj:
+        directed_adj[src_key].sort(
+            key=lambda e: (
+                _MULTIHOP_PRIORITY_EDGE_TYPES.get(str(e["edge_type"]), 99),
+                str(e["edge_type"]),
+                str(e["target_node_id"]),
+                str(e["edge_id"]),
+            )
+        )
+
+    if max_path_depth >= 2 and len(graph_paths) < max_paths:
+        seed_order = {"career_track": 0, "pillar": 1, "engagement": 2, "skill": 3, "employment": 4, "career_epoch": 5, "role_family": 6, "certification": 7}
+        seed_nodes = sorted(
+            (nid for nid, ntype in node_types.items() if ntype in _MULTIHOP_SEED_NODE_TYPES and nid in directed_adj),
+            key=lambda nid: (seed_order.get(node_types.get(nid, ""), 99), nid),
+        )
+        per_seed_cap = max(24, (max_paths - len(graph_paths)) // max(1, len(seed_nodes)))
+        for start in seed_nodes:
+            if len(graph_paths) >= max_paths:
+                break
+            seed_added = 0
+            queue: deque[tuple[str, list[str], list[str], list[str]]] = deque([(start, [start], [], [])])
+            while queue and len(graph_paths) < max_paths and seed_added < per_seed_cap:
+                current, node_path, edge_ids, edge_types = queue.popleft()
+                if len(edge_ids) >= max_path_depth:
+                    continue
+                for edge in directed_adj.get(current, []):
+                    nxt = str(edge["target_node_id"])
+                    if nxt in node_path:
+                        continue
+                    new_nodes = node_path + [nxt]
+                    new_eids = edge_ids + [str(edge["edge_id"])]
+                    new_etypes = edge_types + [str(edge["edge_type"])]
+                    depth = len(new_eids)
+                    end_type = node_types.get(nxt, "")
+                    has_bridge = any(et in ("pillar_phase_bridge", "skill_reinforces_skill") for et in new_etypes)
+                    facts = [n for n in new_nodes if node_types.get(n) in SKILL_FACT_EVIDENCE_NODE_TYPES]
+                    metrics = [n for n in new_nodes if node_types.get(n) in METRIC_NODE_TYPES]
+                    sections = [
+                        n for n in new_nodes if node_types.get(n) == "section" or n.startswith("section_")
+                    ]
+                    high_value = bool(
+                        has_bridge
+                        or metrics
+                        or facts
+                        or end_type in ("skill", "metric_outcome", "fact", "pillar", "engagement", "certification")
+                    )
+                    if depth >= 2 and high_value:
+                        sig = "->".join(new_nodes)
+                        path_id = f"path:{_digest(f'{sig}|{"|".join(new_eids)}')[:24]}"
+                        if path_id not in seen_path_ids:
+                            seen_path_ids.add(path_id)
+                            bridge_bonus = 0.35 if has_bridge else 0.0
+                            proof_score = min(1.0, 0.25 * len(facts) + 0.20 * len(metrics) + 0.15 * len(sections))
+                            novelty_score = 1.0 / max(1, len(metrics) + len(facts))
+                            path_score = round(proof_score + novelty_score + bridge_bonus + (1.0 / (1 + depth)), 6)
+                            graph_paths.append(
+                                {
+                                    "path_id": path_id,
+                                    "start_node_id": start,
+                                    "end_node_id": nxt,
+                                    "path_depth": depth,
+                                    "path_signature": sig,
+                                    "node_path_json": _json(new_nodes),
+                                    "edge_path_json": _json(new_eids),
+                                    "edge_types_json": _json(new_etypes),
+                                    "proof_fact_ids_json": _json(facts),
+                                    "metric_ids_json": _json(metrics),
+                                    "section_ids_json": _json(sections),
+                                    "path_score": path_score,
+                                    "novelty_score": round(novelty_score, 6),
+                                    "proof_strength_score": round(proof_score, 6),
+                                    "build_run_id": build_run_id,
+                                    "created_at": created_at,
+                                }
+                            )
+                            seed_added += 1
+                            if len(graph_paths) >= max_paths or seed_added >= per_seed_cap:
+                                break
+                    if depth < max_path_depth:
+                        queue.append((nxt, new_nodes, new_eids, new_etypes))
 
     children_by_parent: dict[tuple[str, str], list[str]] = defaultdict(list)
     edge_id_by_parent_child: dict[tuple[str, str, str], str] = {}
@@ -1650,6 +1818,7 @@ def build_graph_index_rows(
         graph_sibling_links = capped_siblings
 
     center_neighbor_edges: dict[tuple[str, str], list[tuple[str, str]]] = defaultdict(list)
+    undirected_adj: dict[str, list[tuple[str, str, str]]] = defaultdict(list)
     for edge in edges:
         if int(edge.get("traversable", 1)) == 0:
             continue
@@ -1657,12 +1826,26 @@ def build_graph_index_rows(
         tgt = str(edge.get("target_node_id") or "")
         edge_id = str(edge.get("edge_id") or "")
         edge_type = str(edge.get("edge_type") or "")
-        if src and tgt:
+        if src and tgt and src != tgt:
             center_neighbor_edges[(src, tgt)].append((edge_id, edge_type))
             center_neighbor_edges[(tgt, src)].append((edge_id, f"{edge_type}_reverse"))
+            undirected_adj[src].append((tgt, edge_type, edge_id))
+            undirected_adj[tgt].append((src, f"{edge_type}_reverse", edge_id))
+
+    for nid in undirected_adj:
+        undirected_adj[nid].sort(
+            key=lambda item: (
+                _MULTIHOP_PRIORITY_EDGE_TYPES.get(item[1].removesuffix("_reverse"), 99),
+                item[1],
+                item[0],
+                item[2],
+            )
+        )
 
     graph_neighborhoods: list[dict[str, Any]] = []
+    seen_center_neighbor: set[tuple[str, str]] = set()
     for (center, neighbor), edge_pairs in sorted(center_neighbor_edges.items()):
+        seen_center_neighbor.add((center, neighbor))
         edge_ids = [p[0] for p in edge_pairs if p[0]]
         edge_types = sorted(set(p[1] for p in edge_pairs if p[1]))
         graph_neighborhoods.append(
@@ -1680,6 +1863,58 @@ def build_graph_index_rows(
                 "build_run_id": build_run_id,
             }
         )
+
+    if max_neighborhood_distance >= 2 and max_multihop_neighbors_per_center > 0:
+        for center in sorted(undirected_adj):
+            seen_local = {center} | {
+                nb for nb, _, _ in undirected_adj.get(center, ())
+            }
+            q: deque[tuple[str, int, list[str], list[str], list[str]]] = deque()
+            for nb, et, eid in undirected_adj.get(center, ()):
+                q.append((nb, 1, [center, nb], [et], [eid]))
+            added_for_center = 0
+            while q and added_for_center < max_multihop_neighbors_per_center:
+                curr, dist, npath, etypes, eids = q.popleft()
+                if dist >= max_neighborhood_distance:
+                    continue
+                for nb, et, eid in undirected_adj.get(curr, ()):
+                    if nb in seen_local or (center, nb) in seen_center_neighbor:
+                        continue
+                    seen_local.add(nb)
+                    seen_center_neighbor.add((center, nb))
+                    ndist = dist + 1
+                    new_path = npath + [nb]
+                    new_etypes = etypes + [et]
+                    new_eids = eids + [eid]
+                    has_bridge = any(
+                        t.removesuffix("_reverse") in ("pillar_phase_bridge", "skill_reinforces_skill")
+                        for t in new_etypes
+                    )
+                    ntype = node_types.get(nb, "")
+                    score = round(
+                        (1.0 / ndist)
+                        + (0.5 if ntype in HIGH_VALUE_NODE_TYPES else 0.0)
+                        + (0.25 if has_bridge else 0.0),
+                        6,
+                    )
+                    graph_neighborhoods.append(
+                        {
+                            "center_node_id": center,
+                            "neighbor_node_id": nb,
+                            "distance": ndist,
+                            "connecting_path_json": _json(new_path),
+                            "edge_types_json": _json(new_etypes),
+                            "edge_ids_json": _json(new_eids),
+                            "relationship_summary": f"{ndist}_hop:{'|'.join(new_etypes)}",
+                            "neighbor_score": score,
+                            "build_run_id": build_run_id,
+                        }
+                    )
+                    added_for_center += 1
+                    if added_for_center >= max_multihop_neighbors_per_center:
+                        break
+                    if ndist < max_neighborhood_distance:
+                        q.append((nb, ndist, new_path, new_etypes, new_eids))
 
     role_family_keys = {"*"}
     for row in role_family_projection_rows:
@@ -1954,14 +2189,7 @@ def build_graph_neighborhoods(
 
 
 def materialize_graphdb_capability_indexes(conn: sqlite3.Connection) -> dict[str, Any]:
-    """Materialize the versioned direct-only capability used by fresh builds.
-
-    The canonical materializer calls :func:`build_graph_index_rows` before its
-    SQLite file exists. Atomic hardening calls this function over the copied
-    logical projection. Both therefore use the same direct-edge path,
-    neighborhood, and sibling derivation instead of retaining historical
-    depth-four/distance-three rows.
-    """
+    """Materialize the versioned bounded multi-hop capability used by fresh builds and atomic hardening."""
     schema = ensure_graphdb_capability_schema(conn)
     node_rows = [
         {"node_id": str(node_id), "node_type": str(node_type)}
@@ -1976,12 +2204,24 @@ def materialize_graphdb_capability_indexes(conn: sqlite3.Connection) -> dict[str
             str(row.get("edge_id") or ""),
         ),
     )
+    max_siblings: int | None = None
+    try:
+        meta_row = conn.execute("SELECT graph_count_summary FROM graph_metadata LIMIT 1").fetchone()
+        if meta_row and meta_row[0]:
+            summary_doc = json.loads(str(meta_row[0]))
+            raw_cap = summary_doc.get("max_siblings_per_node")
+            if isinstance(raw_cap, int) and not isinstance(raw_cap, bool) and raw_cap > 0:
+                max_siblings = raw_cap
+    except (sqlite3.Error, json.JSONDecodeError, TypeError, ValueError):
+        max_siblings = None
+
     rows = build_graph_index_rows(
         node_rows=node_rows,
         edge_rows=edge_rows,
         section_rows=(),
         role_family_projection_rows=(),
         created_at=_utc_now(),
+        max_siblings_per_node=max_siblings,
     )
 
     conn.execute("DELETE FROM graph_paths")
@@ -2032,20 +2272,22 @@ def materialize_graphdb_capability_indexes(conn: sqlite3.Connection) -> dict[str
         rows["graph_sibling_links"],
     )
     conn.commit()
+    max_depth_observed = max((int(r["path_depth"]) for r in rows["graph_paths"]), default=1)
+    max_dist_observed = max((int(r["distance"]) for r in rows["graph_neighborhoods"]), default=1)
     return {
         "schema": schema,
         "graph_index_capability_version": GRAPH_INDEX_CAPABILITY_VERSION,
-        "index_mode": "direct_only",
+        "index_mode": "multihop_bounded",
         "paths": {
             "graph_paths_materialized": len(rows["graph_paths"]),
-            "max_depth": 1,
+            "max_depth": max_depth_observed,
         },
         "siblings": {
             "graph_sibling_links_materialized": len(rows["graph_sibling_links"]),
         },
         "neighborhoods": {
             "graph_neighborhoods_materialized": len(rows["graph_neighborhoods"]),
-            "max_distance": 1,
+            "max_distance": max_dist_observed,
         },
     }
 

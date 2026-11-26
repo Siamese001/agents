@@ -89,7 +89,11 @@ def _compiled_prompt(cfg: RoleEpisodeLaneConfig, runtime_payload: dict[str, Any]
         "claim_ledger remain the only proof authority.\n"
         "- Prefer one clean executive through-line over a comma-packed list of bullet topics."
     )
-    expected_bullet_count = FINAL_BULLET_COUNT.get(cfg.section_id, 3)
+    expected_bullet_count = (
+        len(facts)
+        if cfg.is_bullet_lane and facts and cfg.section_id in {"ey_bullets", "early_career_bullets", "insurtech_bullets", "slalom_bullets"}
+        else FINAL_BULLET_COUNT.get(cfg.section_id, 3)
+    )
     shape = (
         f"Return JSON with exactly {expected_bullet_count} bullets: "
         "{bullets:[{bullet_id, bullet_text, source_fact_ids}], claim_ledger:[{claim_text, source_fact_ids}], "
@@ -117,6 +121,8 @@ def _compiled_prompt(cfg: RoleEpisodeLaneConfig, runtime_payload: dict[str, Any]
     evidence_block = _role_episode_evidence_block(runtime_payload) if ppm.get("role_episode_bundle_consumption") else ""
     focus = str(runtime_payload.get("recovery_diagnostic_focus") or "").strip()
     focus_block = f"<RECOVERY_DIAGNOSTIC_FOCUS>\n{focus}\n</RECOVERY_DIAGNOSTIC_FOCUS>" if focus else ""
+    from apps_rg.runtime.reasoning.CareerThesisAlignmentAgent import format_career_thesis_u0_block
+    thesis_block = format_career_thesis_u0_block(runtime_payload, section_id=cfg.section_id)
     if evidence_block:
         from apps_rg.runtime.sections.executive_summary_pa import format_jd_targeting_block
         jd_block = format_jd_targeting_block(
@@ -145,9 +151,9 @@ def _compiled_prompt(cfg: RoleEpisodeLaneConfig, runtime_payload: dict[str, Any]
             "source_fact_ids while keeping pairwise cosine similarity against each companion bullet <= 0.35. "
             "targeting_only=true; jd_used_as_proof=false."
         )
-        return "\n".join([b for b in [focus_block, f"Section: {cfg.section_id}", role_methodology, instruction, jd_block, evidence_block, companion_block, shape, "Allowed facts (claim proof — source_fact_ids must cite only these):", *fact_lines] if b])
+        return "\n".join([b for b in [focus_block, thesis_block, f"Section: {cfg.section_id}", role_methodology, instruction, jd_block, evidence_block, companion_block, shape, "Allowed facts (claim proof — source_fact_ids must cite only these):", *fact_lines] if b])
 
-    return "\n".join([b for b in [focus_block, f"Section: {cfg.section_id}", role_methodology, "Use only source_fact_ids from the allowed facts below. Do not use JD or briefing as claim proof.", companion_block, shape, "Allowed facts:", *fact_lines] if b])
+    return "\n".join([b for b in [focus_block, thesis_block, f"Section: {cfg.section_id}", role_methodology, "Use only source_fact_ids from the allowed facts below. Do not use JD or briefing as claim proof.", companion_block, shape, "Allowed facts:", *fact_lines] if b])
 
 
 def _prompt_object(prompt_text: str, *, run_id: str, prompt_hash: str) -> SimpleNamespace:

@@ -171,8 +171,24 @@ def _x2_gates(
         l2=l2,
         allowed=allowed,
     )
-    is_ey = cfg.section_id in ("ey_bullets", "ey_narrative")
-    expected_bullet_count = FINAL_BULLET_COUNT.get(cfg.section_id, ROLE_EPISODE_FINAL_BULLET_COUNT)
+    is_optional_lane = cfg.section_id in (
+        "ey_bullets",
+        "ey_narrative",
+        "early_career_bullets",
+        "early_career_narrative",
+    )
+    allocated_assignments = (
+        (l2.get("selected_fact_plan") or {}).get("allocation_assignments")
+        if isinstance(l2.get("selected_fact_plan"), dict)
+        else None
+    )
+    allocated_count = len(allocated_assignments) if isinstance(allocated_assignments, list) and allocated_assignments else None
+    is_ey = is_optional_lane and (allocated_count == 0 or not display_text)
+    expected_bullet_count = (
+        allocated_count
+        if allocated_count is not None
+        else FINAL_BULLET_COUNT.get(cfg.section_id, ROLE_EPISODE_FINAL_BULLET_COUNT)
+    )
     gates = [
         _x2_gate(
             f"x2_{cfg.section_id}_allowed_fact_ids_non_empty",

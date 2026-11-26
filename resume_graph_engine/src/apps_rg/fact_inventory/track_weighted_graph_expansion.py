@@ -126,6 +126,37 @@ ROLE_FAMILY_TRACK_WEIGHTS: dict[str, dict[str, float]] = {
         "track_data_tech_cloud_ml": 0.38,
         "track_genai_agentic": 0.35,
     },
+    # Wave 2 — complete taxonomy & composite mandate coverage (zero fallback collisions).
+    "DATA_ANALYTICS_LEADERSHIP": {
+        "track_actuarial_risk_derivatives": 0.28,
+        "track_data_tech_cloud_ml": 0.37,
+        "track_genai_agentic": 0.35,
+    },
+    "STRATEGIC_FINANCE": {
+        "track_actuarial_risk_derivatives": 0.35,
+        "track_data_tech_cloud_ml": 0.40,
+        "track_genai_agentic": 0.25,
+    },
+    "HEALTHCARE_PAYER_DATA_AI": {
+        "track_actuarial_risk_derivatives": 0.35,
+        "track_data_tech_cloud_ml": 0.30,
+        "track_genai_agentic": 0.35,
+    },
+    "PE_OPERATING_PARTNER_TRANSFORMATION": {
+        "track_actuarial_risk_derivatives": 0.20,
+        "track_data_tech_cloud_ml": 0.45,
+        "track_genai_agentic": 0.35,
+    },
+    "AI_FINANCIAL_SERVICES": {
+        "track_actuarial_risk_derivatives": 0.35,
+        "track_data_tech_cloud_ml": 0.28,
+        "track_genai_agentic": 0.37,
+    },
+    "CHIEF_REVENUE_OFFICER_COMPOSITE": {
+        "track_actuarial_risk_derivatives": 0.10,
+        "track_data_tech_cloud_ml": 0.60,
+        "track_genai_agentic": 0.30,
+    },
 }
 
 # Taxonomy ids with dedicated W0.5b projection profiles (JD targeting only).
@@ -139,6 +170,8 @@ SENIOR_ROLE_TAXONOMY_IDS: frozenset[str] = frozenset(
         "PARTNER_APPLIED_AI_ARCHITECTURE",
         "HYPERSCALER_MARKETPLACE_GTM",
         "CONSULTING_DELIVERY_LEADERSHIP",
+        "DATA_ANALYTICS_LEADERSHIP",
+        "STRATEGIC_FINANCE",
     }
 )
 
@@ -149,6 +182,13 @@ TAXONOMY_TO_PROJECTION_ROLE: dict[str, str] = {
     "PARTNERSHIPS_GTM": "ANTHROPIC_PARTNERSHIPS_APPLIED_AI",
     "EXECUTIVE_LEADERSHIP": "CHIEF_AI_OFFICER",
     "AI_SOLUTIONS_ARCHITECTURE": "FIELD_CTO",
+    "FIELD_SOLUTIONS_ARCHITECTURE": "FIELD_CTO",
+    "SALES_STRATEGIC_ACCOUNTS": "CHIEF_REVENUE_OFFICER_COMPOSITE",
+    "REVENUE_OPERATIONS": "CHIEF_REVENUE_OFFICER_COMPOSITE",
+    "CUSTOMER_SUCCESS": "CHIEF_REVENUE_OFFICER_COMPOSITE",
+    "PRODUCT_TECHNICAL_STRATEGY": "SVP_ENGINEERING_AI_PLATFORM",
+    "DATA_ANALYTICS_LEADERSHIP": "DATA_ANALYTICS_LEADERSHIP",
+    "STRATEGIC_FINANCE": "STRATEGIC_FINANCE",
     "INSURANCE_CARRIER_TRANSFORMATION": "INSURANCE_CARRIER_TRANSFORMATION",
     "INSURER_IT_AI_ENABLEMENT": "INSURER_IT_AI_ENABLEMENT",
     "INSURANCE_BROKERAGE_IT_INNOVATION": "INSURANCE_BROKERAGE_IT_INNOVATION",
@@ -179,6 +219,8 @@ APPROVED_EDGE_TYPES = frozenset(
         "employment_hosts_fact",
         "skill_supported_by_fact",
         "epoch_contains_pillar",
+        "pillar_phase_bridge",
+        "skill_reinforces_skill",
     }
 )
 
@@ -390,190 +432,16 @@ def infer_projection_role_family_key(
     briefing_text: str = "",
     taxonomy: dict[str, Any] | None = None,
 ) -> str:
-    """Map taxonomy inference to ledger role_family_projection_profiles key."""
-    if briefing_text and ("\n" not in briefing_text) and len(briefing_text) < 500:
-        try:
-            from pathlib import Path
+    """Map targeting inputs through the unified MandateRoutingEngine SSOT."""
+    from apps_rg.runtime.c0.mandate_routing_engine import resolve_mandate_route
 
-            _bp = Path(briefing_text)
-            if _bp.is_file():
-                briefing_text = _bp.read_text(encoding="utf-8")
-        except (OSError, ValueError):
-            pass
-    if jd_text and ("\n" not in jd_text) and len(jd_text) < 500:
-        try:
-            from pathlib import Path
-
-            _jp = Path(jd_text)
-            if _jp.is_file():
-                jd_text = _jp.read_text(encoding="utf-8")
-        except (OSError, ValueError):
-            pass
-
-    from apps_rg.fact_inventory.role_family_selection import infer_role_family_priorities
-
-    if taxonomy is None:
-        tax_path = resolve_apps_rg_path(
-            ROOT,
-            "config",
-            "domain_contract",
-            "master_role_family_taxonomy.yaml",
-        )
-        import yaml  # type: ignore[import-untyped]
-
-        taxonomy = yaml.safe_load(tax_path.read_text(encoding="utf-8"))
-    priorities = infer_role_family_priorities(
+    route = resolve_mandate_route(
         target_role=target_role,
         jd_text=jd_text,
         briefing_text=briefing_text,
         taxonomy=taxonomy,
     )
-    corp = f"{target_role}\n{jd_text}\n{briefing_text}".lower()
-    transformation_signals = (
-        "agentic transformation",
-        "transformation",
-        "private equity",
-        "operating model redesign",
-        "management consulting",
-        "c-suite advisory",
-        "steering committee",
-        "commercial expansion",
-        "pe advisory",
-    )
-    trans_hits = sum(1 for sig in transformation_signals if sig in corp)
-    if priorities and (trans_hits >= 3 or ("transformation" in target_role.lower() and "consulting" in corp)):
-        consulting = next(
-            (p for p in priorities if p.role_family == "CONSULTING_DELIVERY_LEADERSHIP"),
-            None,
-        )
-        if consulting and consulting.score > 0:
-            top = priorities[0]
-            if top.role_family != "CONSULTING_DELIVERY_LEADERSHIP" and consulting.score >= top.score - 1:
-                priorities = (consulting,) + tuple(
-                    p for p in priorities if p.role_family != consulting.role_family
-                )
-    fde_signals = ("forward deployed", "forward-deployed", "deployed engineering", "rapid prototyping", "prototype to production")
-    explicit_partner_signals = ("partner ade", "systems integrator", "system integrator", "gsi", "isv", "co-sell", "cosell", "partner ecosystem", "channel partner")
-    has_partner_context = any(sig in corp for sig in explicit_partner_signals) or "partner" in target_role.lower()
-    if priorities and any(sig in corp for sig in fde_signals) and not has_partner_context:
-        eng = next((p for p in priorities if p.role_family == "ENGINEERING_PLATFORM"), None)
-        if eng and eng.score > 0 and priorities[0].role_family != "ENGINEERING_PLATFORM":
-            priorities = (eng,) + tuple(p for p in priorities if p.role_family != eng.role_family)
-    ade_signals = (
-        "deployment engineering", "partner ade", "systems integrator",
-        "genai", "openai api", "ai deployment", "prototype to production",
-    )
-    ade_hits = sum(1 for sig in ade_signals if sig in corp)
-    if priorities and ade_hits >= 3 and has_partner_context:
-        partner = next((p for p in priorities if p.role_family == "PARTNER_APPLIED_AI_ARCHITECTURE"), None)
-        if partner and partner.score > 0:
-            top = priorities[0]
-            if top.role_family != "PARTNER_APPLIED_AI_ARCHITECTURE" and partner.score >= top.score - 1:
-                priorities = (partner,) + tuple(p for p in priorities if p.role_family != partner.role_family)
-    carrier_signals = (
-        "insurance",
-        "underwriting",
-        "claims",
-        "agentic ai",
-        "policy administration",
-        "carrier transformation",
-    )
-    carrier_hits = sum(1 for sig in carrier_signals if sig in corp)
-    if priorities and carrier_hits >= 4:
-        carrier = next(
-            (p for p in priorities if p.role_family == "INSURANCE_CARRIER_TRANSFORMATION"),
-            None,
-        )
-        if carrier and carrier.score > 0:
-            top = priorities[0]
-            if (
-                top.role_family != "INSURANCE_CARRIER_TRANSFORMATION"
-                and carrier.score >= top.score - 1
-            ):
-                priorities = (carrier,) + tuple(
-                    p for p in priorities if p.role_family != carrier.role_family
-                )
-    broker_it_signals = (
-        "brown & brown",
-        "insurance brokerage",
-        "it strategy & innovation",
-        "it strategy",
-        "enterprise architecture",
-        "innovation incubation",
-        "interoperability",
-        "CITO",
-    )
-    broker_hits = sum(1 for sig in broker_it_signals if sig in corp)
-    if priorities and broker_hits >= 4:
-        broker = next(
-            (p for p in priorities if p.role_family == "INSURANCE_BROKERAGE_IT_INNOVATION"),
-            None,
-        )
-        insurer_it = next(
-            (p for p in priorities if p.role_family == "INSURER_IT_AI_ENABLEMENT"),
-            None,
-        )
-        pick = broker
-        if broker and insurer_it and insurer_it.score > broker.score:
-            pick = insurer_it
-        if pick and pick.score > 0:
-            top = priorities[0]
-            if pick.role_family != top.role_family and pick.score >= top.score - 1:
-                priorities = (pick,) + tuple(
-                    p for p in priorities if p.role_family != pick.role_family
-                )
-    if priorities:
-        top = priorities[0]
-        banking = next((p for p in priorities if p.role_family == "BANKING_PLATFORM_AI"), None)
-        regulated = next((p for p in priorities if p.role_family == "REGULATED_AI_GOVERNANCE"), None)
-        if (
-            banking
-            and regulated
-            and banking.score >= 2
-            and banking.score >= regulated.score - 2
-        ):
-            mapped = TAXONOMY_TO_PROJECTION_ROLE.get("BANKING_PLATFORM_AI")
-            if mapped:
-                return mapped
-
-        senior_hits = [
-            p
-            for p in priorities
-            if p.role_family in SENIOR_ROLE_TAXONOMY_IDS and p.score > 0
-        ]
-        if senior_hits:
-            best_score = max(p.score for p in senior_hits)
-            if top.score > best_score:
-                mapped = TAXONOMY_TO_PROJECTION_ROLE.get(top.role_family)
-                if mapped:
-                    return mapped
-            tie_order = (
-                "INSURANCE_CARRIER_TRANSFORMATION",
-                "INSURANCE_BROKERAGE_IT_INNOVATION",
-                "INSURER_IT_AI_ENABLEMENT",
-                "PARTNER_APPLIED_AI_ARCHITECTURE",
-                "BANKING_PLATFORM_AI",
-                "CONSULTING_DELIVERY_LEADERSHIP",
-                "HYPERSCALER_MARKETPLACE_GTM",
-                "REGULATED_AI_GOVERNANCE",
-            )
-            order_rank = {rid: idx for idx, rid in enumerate(tie_order)}
-            tied = [p for p in senior_hits if p.score == best_score]
-            tied.sort(key=lambda p: order_rank.get(p.role_family, 99))
-            mapped = TAXONOMY_TO_PROJECTION_ROLE.get(tied[0].role_family)
-            if mapped:
-                return mapped
-
-        top_tax = top.role_family
-        mapped = TAXONOMY_TO_PROJECTION_ROLE.get(top_tax)
-        if mapped:
-            return mapped
-    # Enhancement #2 — three-phase fallback: when no domain-specific profile matched and the
-    # JD signals all three career tracks, prefer the balanced THREE_PHASE_GENERALIST profile
-    # over the Phase 3-dominant SVP_ENGINEERING_AI_PLATFORM default.
-    if _three_phase_jd_hit(jd_text):
-        return "THREE_PHASE_GENERALIST"
-    return "SVP_ENGINEERING_AI_PLATFORM"
+    return route.canonical_projection_role
 
 
 @dataclass
@@ -583,6 +451,8 @@ class _GraphIndexes:
     pillar_epochs: dict[str, set[str]] = field(default_factory=lambda: defaultdict(set))
     skill_to_facts: dict[str, set[str]] = field(default_factory=lambda: defaultdict(set))
     employment_tracks: dict[str, str] = field(default_factory=dict)
+    pillar_bridges: dict[str, set[str]] = field(default_factory=lambda: defaultdict(set))
+    skill_reinforcements: dict[str, set[str]] = field(default_factory=lambda: defaultdict(set))
 
 
 def _build_graph_indexes(graph: dict[str, Any]) -> _GraphIndexes:
@@ -603,6 +473,12 @@ def _build_graph_indexes(graph: dict[str, Any]) -> _GraphIndexes:
             idx.skill_to_facts[src].add(tgt)
         elif et == "employment_in_career_track" and edge.get("primary") is True:
             idx.employment_tracks[src] = tgt
+        elif et == "pillar_phase_bridge" and src and tgt:
+            idx.pillar_bridges[src].add(tgt)
+            idx.pillar_bridges[tgt].add(src)
+        elif et == "skill_reinforces_skill" and src and tgt:
+            idx.skill_reinforcements[src].add(tgt)
+            idx.skill_reinforcements[tgt].add(src)
     return idx
 
 
@@ -799,7 +675,43 @@ def build_track_weighted_expansion(
     def _functional_pillar_weight(pillar_id: str) -> float:
         if pillar_id in _deprio_pillars:
             return DEPRIORITIZED_PILLAR_WEIGHT
-        return _pillar_w.get(pillar_id, DEFAULT_FUNCTIONAL_PILLAR_WEIGHT)
+        direct = _pillar_w.get(pillar_id)
+        if direct is not None:
+            return direct
+        # Cross-era pillar_phase_bridge boost: if this pillar bridges directly to a top-weighted
+        # pillar of the active role family, carry 80% of that pillar's weight across career eras.
+        bridged = [
+            _pillar_w[peer] * 0.80
+            for peer in idx.pillar_bridges.get(pillar_id, ())
+            if peer in _pillar_w
+        ]
+        if bridged:
+            return max(DEFAULT_FUNCTIONAL_PILLAR_WEIGHT, max(bridged))
+        return DEFAULT_FUNCTIONAL_PILLAR_WEIGHT
+
+    _profile_tax_ids = {
+        str(tid).strip() for tid in (_profile.get("taxonomy_ids") or ()) if str(tid).strip()
+    } | {role_family_key}
+
+    def _skill_role_weight(row: dict[str, Any], sid: str) -> float:
+        rfw = row.get("role_family_weights") or {}
+        best = 0.0
+        if isinstance(rfw, dict):
+            for key in _profile_tax_ids:
+                val = rfw.get(key)
+                if val is not None:
+                    best = max(best, float(val))
+        # Multi-hop skill_reinforces_skill boost when reinforcing a high-weighted skill.
+        if best <= 0.0 and sid in idx.skill_reinforcements:
+            for peer in idx.skill_reinforcements[sid]:
+                prow = rows_by_id.get(peer) or {}
+                prfw = prow.get("role_family_weights") or {}
+                if isinstance(prfw, dict):
+                    for key in _profile_tax_ids:
+                        val = prfw.get(key)
+                        if val is not None:
+                            best = max(best, float(val) * 0.75)
+        return best
 
     selected_skills: list[dict[str, Any]] = []
     selected_facts: list[dict[str, Any]] = []
@@ -835,7 +747,9 @@ def build_track_weighted_expansion(
                 excluded.append({"id": sid, "reason": "empty_fact_id_links"})
                 continue
             functional_w = _functional_pillar_weight(pillar)
-            score = w * functional_w
+            role_w = _skill_role_weight(row, sid)
+            bridge_bonus = 0.12 if (pillar in idx.pillar_bridges or sid in idx.skill_reinforcements) else 0.0
+            score = w * (functional_w + 0.35 * role_w + bridge_bonus)
             candidates.append((score, sid, row))
         candidates.sort(key=lambda t: (-t[0], t[1]))
         for _, sid, row in candidates[:cap]:
@@ -1044,6 +958,7 @@ def write_p1_w4_receipts(
             "graph_hop_edge_types_used": hybrid.get("graph_hop_edge_types_used"),
         },
         "apps_rg_isolation": isolation,
+        "apps_rg_runtime_isolation": isolation,
     }
     receipt_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     closeout_path.write_text(
@@ -1057,6 +972,7 @@ def write_p1_w4_receipts(
                 "certification_eligible": out_dir is None,
                 "c03_binding_proof": payload["c03_binding_proof"],
                 "apps_rg_isolation": isolation,
+                "apps_rg_runtime_isolation": isolation,
                 "hybrid_tracks_with_facts": hybrid.get("tracks_with_facts"),
             },
             indent=2,

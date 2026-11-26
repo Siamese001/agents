@@ -71,11 +71,13 @@ C0_SECTIONS_ENABLED: frozenset[str] = frozenset(
         "ibm_bullets",
         "insurtech_bullets",
         "ey_bullets",
+        "early_career_bullets",
         "slalom_narrative",
         "unify_narrative",
         "ibm_narrative",
         "insurtech_narrative",
         "ey_narrative",
+        "early_career_narrative",
         "executive_summary",
         "headline",
     }

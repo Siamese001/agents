@@ -76,7 +76,7 @@ slot_bodies:
     </source_fact_id_tokens>
 
     <credential_policy_v1>
-    No trailing cert inventory, employer-name lines, backward-looking past-title stacks ("former CTO", "former SVP", "Big-4 Principal", "past principal", "past CTO"), or AWS/Databricks/FSA label stacks in display prose. One woven credibility clause allowed when fact-backed.
+    Elevate mandate-relevant credentials (FSA actuarial fellowship, Columbia MS Biostatistics, AWS Solutions Architect Professional) naturally into prose when authorized by allowed facts or credential elevation directives; avoid raw trailing cert inventories, employer-name lines, or backward-looking past-title stacks ("former CTO", "former SVP", "Big-4 Principal", "past principal", "past CTO").
     </credential_policy_v1>
 
     <display_metric_weave_contract>
@@ -107,7 +107,7 @@ slot_bodies:
     - **S4 (Optional Forward Mandate Fit):** Crisp forward-looking positioning grounded in cited source_fact_ids showing how this rare combination solves the target mandate (omit only if a punchy 3-sentence paragraph lands inside 420-680 chars cleanly; never recap S1-S3, never open with "Looking ahead," or "this leadership profile").
     **Meta-filler ban:** no "governance discipline", "active-voice delivery", "selected facts", "this individual", "this executive", "this leader", "proven track record", "seasoned executive", "operating-model framing", "governed activation", "durable economics".
     **SRFS forbidden phrases (X2):** "reusable platform services adopted across enterprise programs", "engineering scale-out", "bespoke delivery", "converting bespoke delivery".
-    **Attribution discipline (X2 cross_fact_conflation):** Each sentence must focus on one coherent proof theme (1-2 related facts max per sentence). Never merge unrelated root capabilities into one causal sentence.
+    **Attribution discipline (X2 cross_fact_conflation):** Each sentence may weave up to 5 related or graph-bridged source_fact_ids across career eras (including pairing verified commercial and engineering metrics from allocated bundles) when every figure and claim maps explicitly to its cited allowed facts; never fabricate causal links or blend unverified numbers.
     U0 `narrative_arc_weights` = thematic emphasis only. claim_ledger: emit **exactly one row per displayed sentence** (3 to 4 rows matching the 3-to-4 sentence summary), each tracing to allowed facts.
     </judge_alignment_contract>
 

@@ -114,16 +114,19 @@ def score_domain_aware_target_alignment(
     candidate: str,
     target_terms: tuple[str, ...] | list[str],
 ) -> float:
+    from apps_rg.runtime.c0.mandate_routing_engine import has_word_signal
+
     if not target or not candidate:
         return 0.0
-    padded_target = f" {target} "
-    padded_candidate = f" {candidate} "
     target_words = set(target.split())
     candidate_words = set(candidate.split())
     score = 0.0
     for term in target_terms:
-        if term == "policy":
-            if f" {term} " not in padded_target or f" {term} " not in padded_candidate:
+        clean_term = str(term or "").strip()
+        if not clean_term:
+            continue
+        if clean_term == "policy":
+            if not (has_word_signal(target, "policy") and has_word_signal(candidate, "policy")):
                 continue
             same_domain = bool(
                 (target_words & _INSURANCE_CONTEXT_TOKENS and candidate_words & _INSURANCE_CONTEXT_TOKENS)
@@ -131,7 +134,7 @@ def score_domain_aware_target_alignment(
             )
             if not same_domain:
                 continue
-        elif term not in target or term not in candidate:
+        elif not (has_word_signal(target, clean_term) and has_word_signal(candidate, clean_term)):
             continue
         score += 1.0
     overlap = len((target_words - _STOPWORDS) & (candidate_words - _STOPWORDS))

@@ -57,8 +57,8 @@ JD_ALIGNMENT_PROOF_FIELDS: tuple[str, ...] = (
 )
 
 # SECTION_CONSTRAINTS — per-lane numeric SSOT referencing canonical constants imported above.
-_BULLET_LANES: tuple[str, ...] = ("slalom_bullets", "unify_bullets", "ibm_bullets", "insurtech_bullets", "ey_bullets")
-_NARRATIVE_LANES: tuple[str, ...] = ("slalom_narrative", "unify_narrative", "ibm_narrative", "insurtech_narrative", "ey_narrative")
+_BULLET_LANES: tuple[str, ...] = ("slalom_bullets", "unify_bullets", "ibm_bullets", "insurtech_bullets", "ey_bullets", "early_career_bullets")
+_NARRATIVE_LANES: tuple[str, ...] = ("slalom_narrative", "unify_narrative", "ibm_narrative", "insurtech_narrative", "ey_narrative", "early_career_narrative")
 
 SECTION_CONSTRAINTS: dict[str, dict[str, int]] = {
     "executive_summary": {
@@ -711,7 +711,13 @@ _SECTION_BUILDERS: dict[str, Any] = {
         "ey_bullets",
         employer_label="EY",
         bullet_prefix="bul_ey",
-        final_count=0,
+        final_count=2,
+    ),
+    "early_career_bullets": lambda: _role_bullets_shape(
+        "early_career_bullets",
+        employer_label="Early Career",
+        bullet_prefix="bul_early_career",
+        final_count=2,
     ),
     "insurtech_narrative": lambda: _role_narrative_shape(
         "insurtech_narrative",
@@ -722,6 +728,11 @@ _SECTION_BUILDERS: dict[str, Any] = {
         "ey_narrative",
         employer_label="EY",
         bullet_prefix="bul_ey",
+    ),
+    "early_career_narrative": lambda: _role_narrative_shape(
+        "early_career_narrative",
+        employer_label="Early Career",
+        bullet_prefix="bul_early_career",
     ),
 }
 

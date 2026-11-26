@@ -6,6 +6,7 @@ import pytest
 
 from apps_rg.runtime.bindings.l1_cognitive_treatment import (
     L1_COGNITIVE_V2_CONTROL_ARM,
+    L1_COGNITIVE_V3_CANDIDATE_ARM,
     L1CognitiveTreatmentError,
     build_l1_cognitive_treatment,
     treatment_from_task_spec,
@@ -31,12 +32,18 @@ def test_tampered_assignment_digest_is_rejected() -> None:
         treatment_from_task_spec({"l1_cognitive_treatment": treatment})
 
 
-def test_missing_assignment_defaults_to_legacy_control_not_candidate() -> None:
+def test_missing_assignment_defaults_to_v3_candidate_while_preserving_v2_opt_in() -> None:
     treatment = treatment_from_task_spec({})
 
-    assert treatment["arm"] == L1_COGNITIVE_V2_CONTROL_ARM
+    assert treatment["arm"] == L1_COGNITIVE_V3_CANDIDATE_ARM
     assert treatment["assignment_origin"] == "LEGACY_L1_DEFAULT"
-    assert treatment["v3_cognitive_plan_enabled"] is False
+    assert treatment["v3_cognitive_plan_enabled"] is True
+
+    explicit_v2 = build_l1_cognitive_treatment(
+        L1_COGNITIVE_V2_CONTROL_ARM,
+        assignment_origin="U0_VALIDATED_INGRESS",
+    )
+    assert treatment_from_task_spec({"l1_cognitive_treatment": explicit_v2})["arm"] == L1_COGNITIVE_V2_CONTROL_ARM
 
 
 def test_whole_run_ingress_binds_the_selected_arm_without_core_changes() -> None:
@@ -46,7 +53,7 @@ def test_whole_run_ingress_binds_the_selected_arm_without_core_changes() -> None
     )
 
     default_parsed = _build_parser().parse_args([])
-    assert default_parsed.l1_cognitive_treatment_arm == L1_COGNITIVE_V2_CONTROL_ARM
+    assert default_parsed.l1_cognitive_treatment_arm == L1_COGNITIVE_V3_CANDIDATE_ARM
 
     parsed = _build_parser().parse_args(
         ["--l1-cognitive-treatment-arm", L1_COGNITIVE_V2_CONTROL_ARM]

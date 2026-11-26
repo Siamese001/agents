@@ -68,7 +68,7 @@ _IMMUTABLE_AUTHORITY_TABLES = (
     "section_evidence_budget",
 )
 
-_VOLATILE_AUTHORITY_COLUMNS = frozenset({"created_at", "updated_at"})
+_VOLATILE_AUTHORITY_COLUMNS = frozenset({"created_at", "updated_at", "build_run_id", "built_at", "started_at", "completed_at"})
 _LEGACY_AUTHORITY_TABLES = frozenset({"graph_nodes", "graph_edges", "skill_fact_links"})
 
 _MIGRATION_REQUIRED_DEFAULTS: dict[tuple[str, str], Any] = {

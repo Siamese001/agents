@@ -1,0 +1,62 @@
+gate: X1D
+version: X1D@v2
+composition: hybrid
+aggregate_threshold: 0.80
+blocking_differentiation_check_ids:
+  - mandate_fit_without_clutter
+  - target_mandate_alignment
+  - target_role_relevance
+  - unified_mandate_arc
+metadata:
+  description: >
+    Blind hiring-committee executive quality & career differentiation gate (X1D@v2).
+    Promotes groundedness, career_arc_three_era_differentiation, and
+    target_mandate_differentiation to hard veto sub-gates so omitting rare
+    domain credentials or foundational career pillars fails closed even when
+    prose fluency and weighted soft scores exceed 0.80.
+  superseded_versions:
+    - X1D@v1
+  added_dimensions_vs_v1:
+    - career_arc_three_era_differentiation
+    - target_mandate_differentiation
+    - groundedness
+dimensions:
+  - name: groundedness
+    grader_class: model_based
+    scale: [0, 1]
+    weight: 1.0
+    is_hard_gate: true
+    threshold: 1.0
+  - name: career_arc_three_era_differentiation
+    grader_class: model_based
+    scale: [0, 1]
+    weight: 1.0
+    is_hard_gate: true
+    threshold: 1.0
+  - name: target_mandate_differentiation
+    grader_class: model_based
+    scale: [0, 1]
+    weight: 1.0
+    is_hard_gate: true
+    threshold: 1.0
+  - name: executive_voice_and_density
+    grader_class: model_based
+    scale: [0.0, 1.0]
+    weight: 0.40
+    is_hard_gate: false
+    threshold: 0.80
+    abstain_allowed: false
+  - name: metric_and_commercial_impact
+    grader_class: model_based
+    scale: [0.0, 1.0]
+    weight: 0.35
+    is_hard_gate: false
+    threshold: 0.80
+    abstain_allowed: false
+  - name: cross_section_coherence
+    grader_class: model_based
+    scale: [0.0, 1.0]
+    weight: 0.25
+    is_hard_gate: false
+    threshold: 0.80
+    abstain_allowed: false

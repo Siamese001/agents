@@ -34,13 +34,17 @@ def load_w7_shell_slot_bodies() -> dict[str, str]:
 
 
 def jd_non_proof_block(payload: dict[str, Any]) -> str:
-    return (
+    base = (
         f"Target title (context only): {payload['target_title']}\n"
         f"Target company (context only): {payload['target_company']}\n"
         f"JD (context only): {payload['jd_text']}\n"
         f"Briefing (context only): {payload['briefing']}\n\n"
         "These lines are targeting context only — not proof of candidate experience."
     )
+    from apps_rg.runtime.reasoning.CareerThesisAlignmentAgent import format_career_thesis_u0_block
+    section_id = str(payload.get("section_id") or payload.get("_section_id") or "narrative")
+    thesis_block = format_career_thesis_u0_block(payload, section_id=section_id)
+    return f"{base}\n\n{thesis_block}" if thesis_block else base
 
 
 NARRATIVE_JD_ALIGNMENT_SCHEMA = {

@@ -118,15 +118,20 @@ def run_locked_copy_x2_gates(
         observed=rewrite_false,
     )
 
-    def _preserve_gate(gate_id: str, section_id: str) -> None:
+    def _preserve_gate(gate_id: str, section_id: str, *, allow_dynamic_graph_bullets: bool = False) -> None:
         sec = sections.get(section_id)
         exp = expected.get(section_id)
-        ok = bool(sec) and exp is not None and sec.get("copied_text") == exp.copied_text
+        if allow_dynamic_graph_bullets and sec and sec.get("dynamic_graph_allocated") is True:
+            # Identity invariants (company_names, titles, locations, dates) remain strictly locked above;
+            # dynamic graph-backed career lanes may vary bullets/narratives per mandate budget.
+            ok = bool(sec.get("allocation_plan_digest")) and exp is not None
+        else:
+            ok = bool(sec) and exp is not None and sec.get("copied_text") == exp.copied_text
         _add(
             gates,
             gate_id,
             ok,
-            observed=sec.get("copied_text")[:80] if sec else None,
+            observed=sec.get("copied_text")[:80] if sec and sec.get("copied_text") else None,
             failure=None if ok else f"{section_id} copied_text does not match canonical base JSON",
             evidence_ref=section_id,
         )
@@ -137,9 +142,9 @@ def run_locked_copy_x2_gates(
     _preserve_gate("x2_dates_preserved", "dates")
     _preserve_gate("x2_education_preserved", "education")
     _preserve_gate("x2_certifications_preserved", "certifications")
-    _preserve_gate("x2_insurtech_preserved", "insurtech")
-    _preserve_gate("x2_ey_preserved", "ey")
-    _preserve_gate("x2_early_career_preserved", "early_career")
+    _preserve_gate("x2_insurtech_preserved", "insurtech", allow_dynamic_graph_bullets=True)
+    _preserve_gate("x2_ey_preserved", "ey", allow_dynamic_graph_bullets=True)
+    _preserve_gate("x2_early_career_preserved", "early_career", allow_dynamic_graph_bullets=True)
 
     return gates
 

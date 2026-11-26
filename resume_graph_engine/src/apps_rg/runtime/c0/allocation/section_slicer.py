@@ -50,7 +50,12 @@ def slice_section_plan_for_allocation(
         for row in allocation_plan.get("assignments") or []
         if isinstance(row, Mapping) and row.get("section_id") == section_id
     ]
-    if not assignments and section_id not in ("ey_bullets", "ey_narrative"):
+    if not assignments and section_id not in (
+        "ey_bullets",
+        "ey_narrative",
+        "early_career_bullets",
+        "early_career_narrative",
+    ):
         raise ResumeGraphAllocationError(
             f"{section_id}: frozen allocation has no assignments",
             receipt={

@@ -62,6 +62,7 @@ SC_PATH_COUNT_BY_LANE: Final[dict[str, int]] = {
     "ibm_bullets": EMPLOYMENT_BULLET_SC_PATHS,
     "insurtech_bullets": EMPLOYMENT_BULLET_SC_PATHS,
     "ey_bullets": EMPLOYMENT_BULLET_SC_PATHS,
+    "early_career_bullets": EMPLOYMENT_BULLET_SC_PATHS,
 }
 MAX_SC_PATH_COUNT_BY_LANE: Final[dict[str, int]] = {
     "slalom_bullets": EMPLOYMENT_BULLET_SC_PATHS,
@@ -69,18 +70,20 @@ MAX_SC_PATH_COUNT_BY_LANE: Final[dict[str, int]] = {
     "ibm_bullets": EMPLOYMENT_BULLET_WIDE_MAX_SC_PATHS,
     "insurtech_bullets": EMPLOYMENT_BULLET_SC_PATHS,
     "ey_bullets": EMPLOYMENT_BULLET_SC_PATHS,
+    "early_career_bullets": EMPLOYMENT_BULLET_SC_PATHS,
 }
 
 REGEN_EXTRA_PATHS_BY_LANE: Final[dict[str, int]] = {
     lane: 3 for lane in BULLET_LANES
-} | {"unify_bullets": 2, "ibm_bullets": 2, "competencies": 4}
+} | {"unify_bullets": 2, "ibm_bullets": 2, "competencies": 4, "ey_bullets": 3, "early_career_bullets": 3}
 
 FINAL_BULLET_COUNT: Final[dict[str, int]] = {
     "slalom_bullets": len(SLALOM_BULLET_IDS),
     "unify_bullets": len(UNIFY_BULLET_IDS),
     "ibm_bullets": len(IBM_BULLET_IDS),
     "insurtech_bullets": 2,
-    "ey_bullets": 0,
+    "ey_bullets": 2,
+    "early_career_bullets": 2,
 }
 
 CORE_EXPERIENCE_2017_PLUS_EMPLOYERS: Final[tuple[str, ...]] = ("Slalom", "Unify Consulting", "IBM")
@@ -88,7 +91,7 @@ PEDIGREE_CAPSULE_PRE_2017_EMPLOYERS: Final[tuple[str, ...]] = ("InsurTech Cloud 
 CSUITE_EXPERIENCE_SPACE_SPLIT: Final[dict[str, float]] = {"core_2017_plus": 0.85, "pedigree_capsule_pre_2017": 0.15}
 
 PROOF_UNIQUE_SOURCE_FACT_LANES: Final[frozenset[str]] = frozenset(
-    {"insurtech_bullets", "ey_bullets"}
+    {"insurtech_bullets", "ey_bullets", "early_career_bullets"}
 )
 
 REQUIRED_BULLET_IDS: Final[dict[str, tuple[str, ...]]] = {
@@ -96,7 +99,8 @@ REQUIRED_BULLET_IDS: Final[dict[str, tuple[str, ...]]] = {
     "unify_bullets": UNIFY_BULLET_IDS,
     "ibm_bullets": IBM_BULLET_IDS,
     "insurtech_bullets": ("bul_insurtech_001", "bul_insurtech_002"),
-    "ey_bullets": (),
+    "ey_bullets": ("bul_ey_001", "bul_ey_002"),
+    "early_career_bullets": ("bul_early_career_001", "bul_early_career_002"),
 }
 
 DEFAULT_MIN_SELECTION_SCORE: Final[float] = 0.86

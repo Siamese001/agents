@@ -23,6 +23,7 @@ _BUNDLE_FILES: tuple[tuple[str, str], ...] = (
     ("ibm", "ibm_role_episode_bundles.json"),
     ("insurtech", "insurtech_role_episode_bundles.json"),
     ("ey", "ey_role_episode_bundles.json"),
+    ("early_career", "early_career_role_episode_bundles.json"),
 )
 _CANDIDATE_FACT_LEDGER_FILE = "master_candidate_skills_fact_ledger_20260518T1100Z.json"
 
@@ -312,13 +313,21 @@ def select_disjoint_narrative_candidates(
             "reb_slalom_ecosystem_accelerators",
             "reb_ibm_aws_alliance_partner_cosell_gtm",
         }
+        nar_mandate_route = nar_plan.get("mandate_route") if isinstance(nar_plan.get("mandate_route"), Mapping) else {}
+        is_fde_only = bool(nar_mandate_route.get("fde_context")) or ("forward_deployed_execution" in nar_reqs)
+        requires_commercial = bool(nar_mandate_route.get("requires_commercial_pairing"))
         for rid, root_row in sorted(
             roots_by_id.items(),
             key=lambda item: (-float(item[1].get("ranking_score") or item[1].get("target_alignment_score") or 0.0), item[0]),
         ):
             if rid in bullet_roots or rid in exec_roots:
                 continue
-            if target_profile != "ai_partnerships_gtm" and not has_explicit_cosell and rid in cosell_roots:
+            if (
+                rid in cosell_roots
+                and not has_explicit_cosell
+                and target_profile != "ai_partnerships_gtm"
+                and (is_fde_only or not requires_commercial)
+            ):
                 continue
             r_facts = facts_by_root.get(rid) or []
             r_skills = skills_by_root.get(rid) or []
