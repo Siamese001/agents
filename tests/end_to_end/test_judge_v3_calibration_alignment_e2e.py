@@ -233,7 +233,7 @@ def test_studio_6check_all_12_surfaces_roundtrip_and_flywheel_harvest_e2e(tmp_pa
 
     manifest = json.loads((REPO_ROOT / "config" / "governance" / "judge_rubrics_v3.json").read_text(encoding="utf-8"))
     enabled_profiles: list[str] = list(manifest["enabled_profiles"])
-    assert len(enabled_profiles) == 12
+    assert len(enabled_profiles) == 14
 
     rub_v2 = load_and_verify_external_rubric_v2()
     pool_items = []
@@ -286,33 +286,43 @@ def test_studio_6check_all_12_surfaces_roundtrip_and_flywheel_harvest_e2e(tmp_pa
     all_yes = {chk["id"]: True for chk in state["atomic_check_specs"]}
     all_no = {chk["id"]: False for chk in state["atomic_check_specs"]}
 
-    for idx, item in enumerate(pool_items[:-1]):
-        is_pass = idx % 2 == 0
-        state = sc.persist_judge_v3_6check_label(
-            pool_path,
-            store_path,
-            session_sha256=state["session_sha256"],
-            case_id=item["case_id"],
-            atomic_checks=all_yes if is_pass else all_no,
-            verdict="PASS" if is_pass else "FAIL",
-            note="Verified clean executive claim." if is_pass else "Unsupported claim absent from source facts.",
-            annotator_id="amit.ayer",
-        )
-    state = sc.persist_judge_v3_6check_label(
-        pool_path,
-        store_path,
-        session_sha256=state["session_sha256"],
-        case_id="surf_quarantine_strawman",
-        verdict="Q",
-        quarantine_reason="STRAWMAN_BENCHMARK_ITEM",
-        note="Strawman negative control.",
-        annotator_id="amit.ayer",
-    )
+    global_idx = 0
+    total_batches = int(state["total_batches"])
+    for b_idx in range(1, total_batches + 1):
+        state = sc.build_judge_v3_6check_ui_state(pool_path, store_path, batch_index=b_idx, repo_label="agents")
+        for item in list(state["cases"]):
+            cid = item["case_id"]
+            if cid == "surf_quarantine_strawman":
+                state = sc.persist_judge_v3_6check_label(
+                    pool_path,
+                    store_path,
+                    batch_index=b_idx,
+                    session_sha256=state["session_sha256"],
+                    case_id=cid,
+                    verdict="Q",
+                    quarantine_reason="STRAWMAN_BENCHMARK_ITEM",
+                    note="Strawman negative control.",
+                    annotator_id="amit.ayer",
+                )
+            else:
+                is_pass = global_idx % 2 == 0
+                global_idx += 1
+                state = sc.persist_judge_v3_6check_label(
+                    pool_path,
+                    store_path,
+                    batch_index=b_idx,
+                    session_sha256=state["session_sha256"],
+                    case_id=cid,
+                    atomic_checks=all_yes if is_pass else all_no,
+                    verdict="PASS" if is_pass else "FAIL",
+                    note="Verified clean executive claim." if is_pass else "Unsupported claim absent from source facts.",
+                    annotator_id="amit.ayer",
+                )
 
-    # Default ExternalRubricHumanStore (zero explicit rubric_path) must load all 12 surfaces + quarantine cleanly
+    # Default ExternalRubricHumanStore (zero explicit rubric_path) must load all 14 surfaces + quarantine cleanly
     default_store = ExternalRubricHumanStore(store_path=store_path)
     loaded = default_store.load_records(partition="calibration")
-    assert len(loaded) == 12
+    assert len(loaded) == len(enabled_profiles)
     assert {r.judge_surface for r in loaded} == set(enabled_profiles)
     quarantined = default_store.load_quarantined()
     assert len(quarantined) == 1

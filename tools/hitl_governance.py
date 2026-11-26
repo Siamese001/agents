@@ -208,7 +208,15 @@ class HITLDecisionStore:
 
                 _cg_mod = _sys.modules.get("hitl_decision_engine")
                 if _cg_mod is None:
-                    _cg_path = Path.home() / ".gemini" / "config" / "plugins" / "core-governance" / "mcp" / "hitl_decision_engine.py"
+                    _cg_dir = Path.home() / ".gemini" / "config" / "plugins" / "core-governance" / "mcp"
+                    _ac_path = _cg_dir / "atomic_concurrency.py"
+                    if "atomic_concurrency" not in _sys.modules and _ac_path.is_file():
+                        _ac_spec = importlib.util.spec_from_file_location("atomic_concurrency", _ac_path)
+                        if _ac_spec and _ac_spec.loader:
+                            _ac_mod = importlib.util.module_from_spec(_ac_spec)
+                            _sys.modules["atomic_concurrency"] = _ac_mod
+                            _ac_spec.loader.exec_module(_ac_mod)
+                    _cg_path = _cg_dir / "hitl_decision_engine.py"
                     if _cg_path.is_file():
                         _spec = importlib.util.spec_from_file_location("hitl_decision_engine", _cg_path)
                         if _spec and _spec.loader:
