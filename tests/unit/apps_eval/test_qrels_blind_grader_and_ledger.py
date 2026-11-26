@@ -285,3 +285,30 @@ def test_parse_batch_reply_supports_quarantine_and_failure_tags() -> None:
             require_fingerprint=True,
         )
 
+
+def test_ensure_50_query_cohort_preserving_ledger_keeps_5x10_parity() -> None:
+    import json
+    from collections import Counter
+    from ops_scripts.build_qrels_benchmark import ensure_50_query_cohort_preserving_ledger
+
+    repo_root = Path(__file__).resolve().parents[3]
+    qdir = repo_root / "data" / "qrels"
+    queue = json.loads((qdir / "hitl_qrels_queue.v1.json").read_text(encoding="utf-8"))
+    ledger = json.loads((qdir / "qrels_human_label_ledger.v1.json").read_text(encoding="utf-8"))
+    pool = json.loads((qdir / "qrels_authentic_candidate_pool.v1.json").read_text(encoding="utf-8"))
+
+    assert len(queue) == 50
+    assert Counter(item["batch_index"] for item in queue) == {1: 10, 2: 10, 3: 10, 4: 10, 5: 10}
+    assert all(len(item.get("candidates") or []) == 4 for item in queue)
+
+    # Re-running cohort preservation on a truncated pending slice restores exact 50-query (5x10) cohort
+    pending_only = [item for item in queue if item.get("status") != "COMPLETED_HUMAN_GRADED"]
+    restored, me_report = ensure_50_query_cohort_preserving_ledger(pending_only, ledger, pool)
+    assert len(restored) == 50
+    assert Counter(item["batch_index"] for item in restored) == {1: 10, 2: 10, 3: 10, 4: 10, 5: 10}
+    assert me_report["is_mutually_exclusive"] is True
+    assert me_report["blind_negative_probes_interleaved"] == 5
+    all_rids = [c["record_id"] for item in restored for c in item["candidates"]]
+    assert len(set(all_rids)) == 200
+
+
