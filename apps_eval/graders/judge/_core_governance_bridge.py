@@ -59,6 +59,7 @@ def get_judge_disjoint_jury_v3() -> ModuleType:
 
 
 def get_studio_session_contract() -> ModuleType:
+    _load_core_gov_module("atomic_concurrency", "atomic_concurrency.py")
     get_judge_v3_rigor_engine()
     return _load_core_gov_module("session_contract", "session_contract.py")
 

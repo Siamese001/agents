@@ -27,6 +27,7 @@ def _load_core_gov_module(name: str) -> ModuleType:
 
 
 for _dep in (
+    "atomic_concurrency",
     "workspace_parity_engine",
     "session_contract",
     "eval_flywheel_lifecycle",

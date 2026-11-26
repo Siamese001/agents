@@ -143,7 +143,9 @@ def test_centralized_studio_session_binding_save_and_quarantine(tmp_path: Path) 
     assert bound["status"] == "PASS"
     assert bound["mode"] == "judge_v3_6check"
     state = bound["state"]
-    assert len(state["cases"]) == 24
+    assert state["global_passages_target"] == 24
+    assert state["total_batches"] == 3
+    assert len(state["cases"]) == 10
     first_item = state["cases"][0]
     second_item = state["cases"][1]
 
