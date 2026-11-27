@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str, get_runtime_environ
 import os
 from pathlib import Path
 from typing import Any
@@ -62,7 +63,7 @@ def _resolve_product_input_defaults(
 def _baseline_ref(repo_root: Path) -> Path:
     from apps_rg.runtime.worktree_path_resolution import resolve_e2e_baseline_paths
 
-    configured = str(os.environ.get("APPS_RG_E2E_BASELINE_REF") or "").strip()
+    configured = str(get_runtime_env_str("APPS_RG_E2E_BASELINE_REF") or "").strip()
     resolved, _ = resolve_e2e_baseline_paths(
         configured,
         Path("src/apps_rg/config/e2e_baselines/anthropic_partnership.v1.json"),
@@ -259,8 +260,8 @@ def run_product_whole_run_from_primitives(
     )
 
     envelope_env = "APPS_RG_WHOLE_RUN_ENVELOPE"
-    prior_envelope = os.environ.get(envelope_env)
-    os.environ[envelope_env] = "1"
+    prior_envelope = get_runtime_env_str(envelope_env)
+    get_runtime_environ()[envelope_env] = "1"
     try:
         result = run_whole_run_with_route_governance(
             target_company=target_company,
@@ -283,9 +284,9 @@ def run_product_whole_run_from_primitives(
         )
     finally:
         if prior_envelope is None:
-            os.environ.pop(envelope_env, None)
+            get_runtime_environ().pop(envelope_env, None)
         else:
-            os.environ[envelope_env] = prior_envelope
+            get_runtime_environ()[envelope_env] = prior_envelope
     result["authority_contract_id"] = "apps_research_rg_e2e_authority"
     result["validated_input_bundle_ref"] = str(inputs.manifest_path)
     result["validated_input_bundle_digest"] = inputs.digest

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import json
 import os
 from pathlib import Path
@@ -9,14 +10,14 @@ from pathlib import Path
 
 def docx_output_required() -> bool:
     """Product runs require DOCX artifacts unless explicitly disabled for tests."""
-    raw = os.environ.get("APPS_RG_DOCX_OUTPUT_REQUIRED", "").strip().lower()
+    raw = get_runtime_env_str("APPS_RG_DOCX_OUTPUT_REQUIRED", "").strip().lower()
     if raw in ("0", "false", "no", "off"):
         return False
     return True
 
 
 def _env_on(name: str) -> bool:
-    return os.environ.get(name, "").strip().lower() in ("1", "true", "yes", "on")
+    return get_runtime_env_str(name, "").strip().lower() in ("1", "true", "yes", "on")
 
 
 def is_apps_rg_test_harness() -> bool:

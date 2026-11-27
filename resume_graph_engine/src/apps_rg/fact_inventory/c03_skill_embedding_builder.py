@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_environ
 import hashlib
 import json
 import os
@@ -105,8 +106,8 @@ def encode_bge_m3(
 ) -> tuple[dict[str, Any], list[list[float]]]:
     if not texts:
         raise SkillEmbeddingBuildError("cannot embed an empty assertion corpus")
-    os.environ["HF_HUB_OFFLINE"] = "1"
-    os.environ["TRANSFORMERS_OFFLINE"] = "1"
+    get_runtime_environ()["HF_HUB_OFFLINE"] = "1"
+    get_runtime_environ()["TRANSFORMERS_OFFLINE"] = "1"
     try:
         import torch
     except ImportError as exc:

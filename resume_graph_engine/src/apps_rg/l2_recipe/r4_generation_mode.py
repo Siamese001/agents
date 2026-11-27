@@ -15,6 +15,7 @@ Invalid values fail closed with ``RuntimeError``.
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import os
 from typing import Final, Literal
 
@@ -35,7 +36,7 @@ def resolve_apps_rg_r4_generation_mode() -> AppsRgR4GenerationMode:
 
     Default when unset is ``modular_section_lanes``. ``legacy_full_resume`` raises.
     """
-    raw = os.environ.get(ENV_APPS_RG_R4_GENERATION_MODE, "").strip().lower()
+    raw = get_runtime_env_str(ENV_APPS_RG_R4_GENERATION_MODE, "").strip().lower()
     if not raw:
         return MODE_MODULAR_SECTION_LANES
     if raw == RETIRED_MODE_LEGACY_FULL_RESUME:
@@ -55,7 +56,7 @@ def resolve_apps_rg_r4_generation_mode() -> AppsRgR4GenerationMode:
 
 def resolve_apps_rg_modular_lane_provider() -> str:
     """Section-lane provider for R4 modular Phase 1 dispatch argv (``--provider``)."""
-    raw = os.environ.get(ENV_APPS_RG_MODULAR_LANE_PROVIDER, "").strip().lower()
+    raw = get_runtime_env_str(ENV_APPS_RG_MODULAR_LANE_PROVIDER, "").strip().lower()
     if not raw:
         return "external_claude"
     if raw not in _MODULAR_LANE_PROVIDER_ALLOWED:
@@ -74,7 +75,7 @@ def resolve_apps_rg_modular_lane_provider_override() -> str:
     ``apps_rg.runtime.section_cli_defaults`` instead of forcing one provider
     across all lanes.
     """
-    raw = os.environ.get(ENV_APPS_RG_MODULAR_LANE_PROVIDER, "").strip().lower()
+    raw = get_runtime_env_str(ENV_APPS_RG_MODULAR_LANE_PROVIDER, "").strip().lower()
     if not raw:
         return ""
     if raw not in _MODULAR_LANE_PROVIDER_ALLOWED:

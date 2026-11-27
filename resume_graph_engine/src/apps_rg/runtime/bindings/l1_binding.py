@@ -6,6 +6,7 @@ Deterministic only. No C0, PA, L2, tool, provider, or write calls.
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import logging
 import os
 from typing import Any, Mapping
@@ -97,7 +98,7 @@ def l1_plan_apps_rg(validated_request: ValidatedRequest) -> L1PlanContract:
     if not planning_digest:
         if (
             "l1_planning_profile_digest" in pm
-            and not os.environ.get("APPS_RG_L1_ALLOW_EMPTY_PROFILE_DIGEST", "").strip()
+            and not get_runtime_env_str("APPS_RG_L1_ALLOW_EMPTY_PROFILE_DIGEST", "").strip()
         ):
             raise ValueError(
                 "l1_plan_apps_rg: U0-declared l1_planning_profile_digest is empty"
@@ -340,7 +341,7 @@ def _verify_l1_planning_profile_digest(app_payload: Mapping[str, Any]) -> None:
     digest = str(pm.get("l1_planning_profile_digest") or "")
     if (
         not digest
-        and os.environ.get("APPS_RG_L1_ALLOW_EMPTY_PROFILE_DIGEST", "").strip()
+        and get_runtime_env_str("APPS_RG_L1_ALLOW_EMPTY_PROFILE_DIGEST", "").strip()
     ):
         digest = l1_planning_profile_digest(allow_missing=False)
     verify_planning_profile_ref_digest(ref, digest)

@@ -5,6 +5,7 @@ inspected fields. Clean X3_ALLOW is separate from chain completeness.
 """
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import json
 import os
 from datetime import datetime, timezone
@@ -38,7 +39,7 @@ class SectionOneSpineCertificationPreconditionError(RuntimeError):
 
 
 def certification_kill_switch_enabled() -> bool:
-    return os.environ.get("APPS_RG_SECTION_ONE_SPINE_CERT_KILL_SWITCH", "1").strip() not in (
+    return get_runtime_env_str("APPS_RG_SECTION_ONE_SPINE_CERT_KILL_SWITCH", "1").strip() not in (
         "0",
         "false",
         "no",

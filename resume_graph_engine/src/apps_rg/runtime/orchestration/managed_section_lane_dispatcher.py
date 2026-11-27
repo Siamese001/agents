@@ -187,7 +187,7 @@ def _prewarm_parallel_graph_sqlite(*, bypass_pytest_guard: bool = False) -> None
     Fails fast with structured logging on projection, schema, or authority errors instead
     of deferring opaque failures to downstream worker threads.
     """
-    if not bypass_pytest_guard and os.environ.get("PYTEST_CURRENT_TEST"):
+    if not bypass_pytest_guard and get_runtime_env_str("PYTEST_CURRENT_TEST"):
         return
     from apps_rg.repository_layout import repository_root
     from apps_rg.runtime.c0.c03_errors import (

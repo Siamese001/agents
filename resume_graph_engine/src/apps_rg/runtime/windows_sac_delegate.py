@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import os
 import shutil
 import subprocess
@@ -10,7 +11,7 @@ from pathlib import Path
 
 
 def _in_wsl_already() -> bool:
-    return bool(os.environ.get("WSL_DISTRO_NAME") or os.environ.get("WSL_INTEROP"))
+    return bool(get_runtime_env_str("WSL_DISTRO_NAME") or get_runtime_env_str("WSL_INTEROP"))
 
 
 def _embedding_import_blocked() -> bool:
@@ -37,9 +38,9 @@ def _wsl_repo_path(repo: Path) -> str:
 
 
 def should_delegate_apps_rg_to_wsl(argv: list[str] | None = None) -> bool:
-    if os.environ.get("APPS_RG_WINDOWS_SAC_DELEGATED") == "1":
+    if get_runtime_env_str("APPS_RG_WINDOWS_SAC_DELEGATED") == "1":
         return False
-    if os.environ.get("APPS_RG_DISABLE_WSL_DELEGATE", "").strip().lower() in (
+    if get_runtime_env_str("APPS_RG_DISABLE_WSL_DELEGATE", "").strip().lower() in (
         "1",
         "true",
         "yes",

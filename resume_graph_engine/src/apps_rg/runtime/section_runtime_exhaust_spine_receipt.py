@@ -5,6 +5,7 @@ post-run exhaust only; no current-run rescue. Not product certification or durab
 """
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import hashlib
 import json
 import os
@@ -47,7 +48,7 @@ class SectionRuntimeExhaustPreconditionError(RuntimeError):
 
 
 def runtime_exhaust_kill_switch_enabled() -> bool:
-    return os.environ.get("APPS_RG_SECTION_RUNTIME_EXHAUST_KILL_SWITCH", "1").strip() not in (
+    return get_runtime_env_str("APPS_RG_SECTION_RUNTIME_EXHAUST_KILL_SWITCH", "1").strip() not in (
         "0",
         "false",
         "no",
@@ -356,7 +357,7 @@ def build_runtime_exhaust_receipt(
         "sealed_l2_artifact_ref": str(runtime_payload.get("sealed_l2_artifact_ref") or SEALED_L2_ARTIFACT),
         "l6_v40_shadow_eval_package_ref": L6_V40_SHADOW_EVAL_PACKAGE_ARTIFACT,
         "l6_v40_shadow_eval_spans_ref": L6_V40_SHADOW_EVAL_SPANS_ARTIFACT,
-        "l6_v40_shadow_eval_enabled": os.environ.get("APPS_RG_L6_V40_SHADOW_EVAL", "").strip()
+        "l6_v40_shadow_eval_enabled": get_runtime_env_str("APPS_RG_L6_V40_SHADOW_EVAL", "").strip()
         in {"1", "true", "TRUE", "yes", "YES", "on", "ON"},
         "durable_commit_occurred": False,
         "product_certification": "NOT_CLAIMED",

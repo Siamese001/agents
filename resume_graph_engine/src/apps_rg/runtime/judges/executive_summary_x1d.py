@@ -1,6 +1,7 @@
 """Clean-Slate Judge v3 Public Facade for `apps_rg` X1D Judges (`<= 260L`)."""
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str, get_runtime_environ
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -165,7 +166,7 @@ def _extract_json_from_text(text: str) -> dict[str, Any] | None:
 
 
 def _judge_live_https_allowed_under_pytest() -> bool:
-    return (not os.environ.get("PYTEST_CURRENT_TEST")) or str(os.environ.get("APPS_RG_ENABLE_NETWORK_TESTS") or "").strip().lower() in {"1", "true", "yes", "on"}
+    return (not get_runtime_env_str("PYTEST_CURRENT_TEST")) or str(get_runtime_env_str("APPS_RG_ENABLE_NETWORK_TESTS") or "").strip().lower() in {"1", "true", "yes", "on"}
 
 def _make_blocked_output(provider_key: str, input_hash: str, evaluator_mode: str, provider_status: str, error: str, raw_response_ref: str | None = None, model_name: str = "", original_model: str | None = None, fallback_model: str | None = None) -> JudgeOutput:
     p_name = PROVIDERS.get(provider_key, {"provider_name": provider_key})["provider_name"]
@@ -254,7 +255,7 @@ def _build_judge_user_prompt(resume_display_text: str, claim_ledger: list[dict[s
 
 
 def _mocked_output(provider_key: str, input_hash: str) -> JudgeOutput:
-    if os.environ.get("APPS_RG_PRODUCTION_RUN", "").strip() == "1" or not (os.environ.get("PYTEST_CURRENT_TEST") or "pytest" in sys.modules):
+    if get_runtime_env_str("APPS_RG_PRODUCTION_RUN", "").strip() == "1" or not (get_runtime_env_str("PYTEST_CURRENT_TEST") or "pytest" in sys.modules):
         raise RuntimeError("MOCK_JUDGE_FORBIDDEN")
     p_name = PROVIDERS.get(provider_key, {"provider_name": provider_key})["provider_name"]
     return JudgeOutput(f"x1d_{provider_key}_exec_summary", p_name, provider_key, "MOCKED", "MOCKED", _policy_model_name(provider_key, "executive_summary"), False, False, None, input_hash=input_hash, output_hash="mocked-output", score=0.80, score_scale="0_to_1", normalized_score=0.80, threshold=DEFAULT_THRESHOLD, normalized_threshold=0.80, pass_=True, findings=["MOCKED plumbing judge."])
@@ -281,10 +282,10 @@ def run_llm_judges(*, resume_display_text: str, claim_ledger: list[dict[str, Any
         if key not in PROVIDERS:
             return _make_blocked_output(key, input_hash, "BLOCKED_PROVIDER_UNAVAILABLE", "BLOCKED_PROVIDER_UNAVAILABLE", f"Unknown judge provider key: {key}")
         if mode == "mocked":
-            if os.environ.get("APPS_RG_PRODUCTION_RUN", "").strip() == "1" or not (os.environ.get("PYTEST_CURRENT_TEST") or "pytest" in sys.modules):
+            if get_runtime_env_str("APPS_RG_PRODUCTION_RUN", "").strip() == "1" or not (get_runtime_env_str("PYTEST_CURRENT_TEST") or "pytest" in sys.modules):
                 raise RuntimeError("MOCK_JUDGE_FORBIDDEN")
             return _mocked_output(key, input_hash)
-        api_key, env_checked = resolve_x1d_provider_credentials(key, os.environ)
+        api_key, env_checked = resolve_x1d_provider_credentials(key, get_runtime_environ())
         if not api_key:
             return _make_blocked_output(key, input_hash, "BLOCKED_PROVIDER_UNAVAILABLE", "BLOCKED_PROVIDER_UNAVAILABLE", f"Credentials unavailable: {env_checked}")
         res = resolve_section_proof_judge_model(sid, key)

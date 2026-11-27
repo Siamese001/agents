@@ -7,6 +7,7 @@ deleted from this module — see ``apps_rg.runtime.legacy_proof_sources`` for of
 """
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import hashlib
 import json
 import os
@@ -298,7 +299,7 @@ def _maybe_apply_hybrid_informed_fact_plan_reorder(
 
 
 def _ledger_path_explicit(path: str | None, *, repo_root: Path) -> Path:
-    env_override = str(os.environ.get("APPS_RG_BROAD_SKILLS_LEDGER_PATH") or "").strip()
+    env_override = str(get_runtime_env_str("APPS_RG_BROAD_SKILLS_LEDGER_PATH") or "").strip()
     if path and str(path).strip():
         p = Path(path)
         return p if p.is_absolute() else (repo_root / p).resolve()

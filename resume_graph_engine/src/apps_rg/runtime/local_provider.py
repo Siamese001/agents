@@ -7,6 +7,7 @@ package to decide how an Apps RG request is represented or blocked.
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 from dataclasses import dataclass, field
 from enum import Enum
 import os
@@ -122,7 +123,7 @@ class ProviderGateway:
         if profile.provider_kind == ProviderKind.STUB:
             if (
                 self.provider_mode == ProviderMode.LIVE_ALLOWED
-                or os.environ.get("APPS_RG_PRODUCTION_RUN", "").strip() == "1"
+                or get_runtime_env_str("APPS_RG_PRODUCTION_RUN", "").strip() == "1"
             ):
                 raise ProviderModeBlockedError(
                     f"Stub provider profile {profile.profile_id!r} is strictly prohibited when ProviderMode is LIVE_ALLOWED or during production runtime: mode={self.provider_mode.value!r}"

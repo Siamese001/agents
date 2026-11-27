@@ -15,6 +15,7 @@ judge, and embedding entry points as an additional explicit tripwire.
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str, get_runtime_environ
 import hashlib
 import importlib.abc
 import json
@@ -390,21 +391,21 @@ class ZeroProviderReplayGuard:
 
     def _install_environment(self) -> None:
         touched = set(_CREDENTIAL_KEYS) | set(_FORCED_OFFLINE_ENV)
-        self._saved_environment = {key: os.environ.get(key) for key in touched}
+        self._saved_environment = {key: get_runtime_env_str(key) for key in touched}
         self.credentials_scrubbed = sorted(
-            key for key in _CREDENTIAL_KEYS if str(os.environ.get(key) or "").strip()
+            key for key in _CREDENTIAL_KEYS if str(get_runtime_env_str(key) or "").strip()
         )
         for key in _CREDENTIAL_KEYS:
-            os.environ.pop(key, None)
+            get_runtime_environ().pop(key, None)
         for key, value in _FORCED_OFFLINE_ENV.items():
-            os.environ[key] = value
+            get_runtime_environ()[key] = value
 
     def _restore_environment(self) -> None:
         for key, value in self._saved_environment.items():
             if value is None:
-                os.environ.pop(key, None)
+                get_runtime_environ().pop(key, None)
             else:
-                os.environ[key] = value
+                get_runtime_environ()[key] = value
 
     def _install_execution_blocks(self) -> None:
         self._saved_functions = {

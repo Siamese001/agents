@@ -1,6 +1,7 @@
 """Manifest builder for mandatory run output payloads."""
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import json
 import os
 from pathlib import Path
@@ -114,7 +115,7 @@ def build_mandatory_run_output(
         )
 
         baseline_ref = Path(
-            str(operational_failure.get("baseline_ref") or os.environ.get("APPS_RG_E2E_BASELINE_REF") or "")
+            str(operational_failure.get("baseline_ref") or get_runtime_env_str("APPS_RG_E2E_BASELINE_REF") or "")
         )
         operational_forensics = build_operational_failure_forensics(
             run_root=root,

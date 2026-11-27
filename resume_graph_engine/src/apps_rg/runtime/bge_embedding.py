@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str, get_runtime_environ
 import atexit
 from collections import deque
 import hashlib
@@ -95,14 +96,14 @@ def resolve_bge_runtime_key(
     if not root.is_dir():
         raise BgeEmbeddingContractError(f"local BGE-M3 directory missing: {root}")
     selected_device = device or (
-        os.environ.get("APPS_RG_HYDRATION_DEVICE", "").strip()
-        or os.environ.get("EMBEDDING_DEVICE", "").strip()
-        or os.environ.get("VECTOR_DB_DEVICE", "").strip()
+        get_runtime_env_str("APPS_RG_HYDRATION_DEVICE", "").strip()
+        or get_runtime_env_str("EMBEDDING_DEVICE", "").strip()
+        or get_runtime_env_str("VECTOR_DB_DEVICE", "").strip()
         or resolve_optimal_device()
     )
     if dtype is None:
         selected_dtype = resolve_bge_precision_dtype()
-        legacy_dtype = os.environ.get("APPS_RG_BGE_DTYPE", "").strip().lower()
+        legacy_dtype = get_runtime_env_str("APPS_RG_BGE_DTYPE", "").strip().lower()
         if legacy_dtype and legacy_dtype != selected_dtype:
             raise BgeEmbeddingContractError(
                 "APPS_RG_BGE_DTYPE conflicts with the governed precision profile; "
@@ -111,7 +112,7 @@ def resolve_bge_runtime_key(
     else:
         selected_dtype = dtype.lower()
     selected_backend = (
-        backend or os.environ.get("APPS_RG_BGE_BACKEND") or DEFAULT_BACKEND
+        backend or get_runtime_env_str("APPS_RG_BGE_BACKEND") or DEFAULT_BACKEND
     ).lower()
     if selected_dtype not in {"float32", "float16", "bfloat16"}:
         raise BgeEmbeddingContractError(f"unsupported BGE dtype: {selected_dtype}")
@@ -164,7 +165,7 @@ def resolve_bge_precision_profile_id(
     *, profile_path: Path | str | None = None
 ) -> str:
     profile = load_bge_precision_profile(profile_path)
-    requested = os.environ.get("APPS_RG_BGE_PRECISION_PROFILE", "").strip()
+    requested = get_runtime_env_str("APPS_RG_BGE_PRECISION_PROFILE", "").strip()
     selected = requested or str(profile["selected_profile_id"])
     if selected not in profile["profiles"]:
         raise BgeEmbeddingContractError(
@@ -228,9 +229,9 @@ def resolve_bge_batch_size(
 def load_local_bge_model(key: BgeRuntimeKey) -> Any:
     """Construct one explicitly local SentenceTransformer for ``key``."""
 
-    os.environ.setdefault("HF_HUB_OFFLINE", "1")
-    os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
-    os.environ.setdefault("HF_DATASETS_OFFLINE", "1")
+    get_runtime_environ().setdefault("HF_HUB_OFFLINE", "1")
+    get_runtime_environ().setdefault("TRANSFORMERS_OFFLINE", "1")
+    get_runtime_environ().setdefault("HF_DATASETS_OFFLINE", "1")
     try:
         import torch
         from sentence_transformers import SentenceTransformer

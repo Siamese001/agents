@@ -7,6 +7,7 @@ or an unsafe/malformed receipt block CI.
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import hashlib
 import json
 import math
@@ -129,7 +130,7 @@ _PASS_REQUIRED_FINITE_METRICS = set(_METRIC_NAMES) - {
 
 def _finish(gate_id: str, errors: list[str], *, fail_closed_env: str) -> int:
     """Report this C0.3 gate without importing unrelated calibration gates."""
-    fail_closed = os.environ.get(fail_closed_env, "").strip() == "1"
+    fail_closed = get_runtime_env_str(fail_closed_env, "").strip() == "1"
     if not errors:
         print(f"[{gate_id}] PASS")
         return 0
@@ -293,7 +294,7 @@ def validate_artifact(
         trusted_report_digest = (
             trusted_report_sha256
             if trusted_report_sha256 is not None
-            else os.environ.get(TRUSTED_REPORT_SHA256_ENV, "")
+            else get_runtime_env_str(TRUSTED_REPORT_SHA256_ENV, "")
         ).removeprefix("sha256:")
         if len(trusted_report_digest) != 64 or any(
             char not in "0123456789abcdef" for char in trusted_report_digest
@@ -308,7 +309,7 @@ def validate_artifact(
         trusted_full_digest = (
             trusted_full_report_sha256
             if trusted_full_report_sha256 is not None
-            else os.environ.get(TRUSTED_FULL_REPORT_SHA256_ENV, "")
+            else get_runtime_env_str(TRUSTED_FULL_REPORT_SHA256_ENV, "")
         ).removeprefix("sha256:")
         if len(trusted_full_digest) != 64 or any(
             char not in "0123456789abcdef" for char in trusted_full_digest
@@ -529,7 +530,7 @@ def validate_artifact(
 
 
 def main() -> int:
-    configured = os.environ.get("APPS_RG_RESUME_GRAPH_W6_ARTIFACT", "").strip()
+    configured = get_runtime_env_str("APPS_RG_RESUME_GRAPH_W6_ARTIFACT", "").strip()
     artifact = Path(configured) if configured else DEFAULT_ARTIFACT
     if not artifact.is_absolute():
         artifact = REPO_ROOT / artifact

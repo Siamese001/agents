@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import importlib.metadata as metadata
 import csv
 import json
@@ -313,7 +314,7 @@ def collect_observations(
         "cuda": _cuda_observation(),
         "model": _model_observation(Path(model_path).resolve()),
         "offline_environment": {
-            name: os.environ.get(name)
+            name: get_runtime_env_str(name)
             for name in contract.get("offline_environment") or {}
         },
     }

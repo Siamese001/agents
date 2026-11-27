@@ -8,6 +8,7 @@ tree and are explicitly non-authoritative for retrieval quality or promotion.
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_environ
 import hashlib
 import json
 import math
@@ -460,11 +461,11 @@ def run_baseline(
     resolved_model = Path(model_path).resolve()
     if not resolved_model.is_dir():
         raise GpuEmbeddingBaselineError(f"local BGE-M3 directory missing: {resolved_model}")
-    os.environ["HF_HUB_OFFLINE"] = "1"
-    os.environ["TRANSFORMERS_OFFLINE"] = "1"
-    os.environ["HF_DATASETS_OFFLINE"] = "1"
-    os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
-    os.environ["TOKENIZERS_PARALLELISM"] = "false"
+    get_runtime_environ()["HF_HUB_OFFLINE"] = "1"
+    get_runtime_environ()["TRANSFORMERS_OFFLINE"] = "1"
+    get_runtime_environ()["HF_DATASETS_OFFLINE"] = "1"
+    get_runtime_environ()["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+    get_runtime_environ()["TOKENIZERS_PARALLELISM"] = "false"
 
     try:
         import torch
@@ -603,9 +604,9 @@ def run_baseline(
         },
         "runtime": {
             "offline_environment": {
-                "HF_HUB_OFFLINE": os.environ["HF_HUB_OFFLINE"],
-                "TRANSFORMERS_OFFLINE": os.environ["TRANSFORMERS_OFFLINE"],
-                "HF_DATASETS_OFFLINE": os.environ["HF_DATASETS_OFFLINE"],
+                "HF_HUB_OFFLINE": get_runtime_environ()["HF_HUB_OFFLINE"],
+                "TRANSFORMERS_OFFLINE": get_runtime_environ()["TRANSFORMERS_OFFLINE"],
+                "HF_DATASETS_OFFLINE": get_runtime_environ()["HF_DATASETS_OFFLINE"],
             },
             "local_files_only": True,
             "network_allowed": False,

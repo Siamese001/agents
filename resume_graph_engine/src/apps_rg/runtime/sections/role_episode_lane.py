@@ -5,6 +5,7 @@ They do not hydrate claims from the base resume or targeting text.
 """
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import json
 import os
 from pathlib import Path
@@ -145,7 +146,7 @@ def _provider_gateway(section_id: str, provider: str) -> ProviderGateway:
                 ProviderProfile.EXTERNAL_OPENAI: ExternalProvider(
                     provider_profile=ProviderProfile.EXTERNAL_OPENAI,
                     model=openai_model,
-                    base_url=os.environ.get("APPS_RG_EXTERNAL_OPENAI_BASE_URL", ""),
+                    base_url=get_runtime_env_str("APPS_RG_EXTERNAL_OPENAI_BASE_URL", ""),
                 ),
             }
         )
@@ -155,7 +156,7 @@ def _provider_gateway(section_id: str, provider: str) -> ProviderGateway:
             ProviderProfile.EXTERNAL_CLAUDE: ExternalProvider(
                 provider_profile=ProviderProfile.EXTERNAL_CLAUDE,
                 model=claude_model,
-                base_url=os.environ.get("APPS_RG_EXTERNAL_CLAUDE_BASE_URL", ""),
+                base_url=get_runtime_env_str("APPS_RG_EXTERNAL_CLAUDE_BASE_URL", ""),
             ),
         }
     )

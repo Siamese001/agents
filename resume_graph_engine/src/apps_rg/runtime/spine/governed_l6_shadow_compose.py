@@ -9,6 +9,7 @@ section-only shadow packets until human eval labels exist.
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import os
 from pathlib import Path
 from typing import Any
@@ -19,7 +20,7 @@ PROMOTION_STATUS_BLOCKED = "BLOCKED_EVAL_BEFORE_LEARN"
 
 
 def governed_l6_shadow_enabled() -> bool:
-    if os.environ.get("APPS_RG_GOVERNED_L6_SHADOW_SKIP", "").strip().lower() in (
+    if get_runtime_env_str("APPS_RG_GOVERNED_L6_SHADOW_SKIP", "").strip().lower() in (
         "1",
         "true",
         "yes",

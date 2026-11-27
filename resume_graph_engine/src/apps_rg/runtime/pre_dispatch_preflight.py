@@ -6,6 +6,7 @@ receipt that records whether dispatch actually started.
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import json
 import os
 import time
@@ -38,7 +39,7 @@ _SCHEMA = "apps_rg.pre_dispatch_preflight.v1"
 
 
 def _truthy_env(name: str) -> bool:
-    raw = os.environ.get(name)
+    raw = get_runtime_env_str(name)
     if raw is None:
         return False
     return str(raw).strip().lower() in {"1", "true", "yes", "y", "on"}

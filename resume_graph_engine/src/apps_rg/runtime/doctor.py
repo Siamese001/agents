@@ -14,6 +14,7 @@ Invoked via ``python -m apps_rg doctor [--strict] [--json]`` (intercepted in ``a
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import argparse
 import os
 from dataclasses import asdict, dataclass
@@ -52,7 +53,7 @@ def _repo_root() -> Path:
 
 
 def _resolve_chroma_path() -> str:
-    return (os.environ.get("CHROMA_PERSIST_DIR", "") or "").strip()
+    return (get_runtime_env_str("CHROMA_PERSIST_DIR", "") or "").strip()
 
 
 def _check_generation_provider_key() -> DoctorCheck:
@@ -61,7 +62,7 @@ def _check_generation_provider_key() -> DoctorCheck:
         "ANTHROPIC_API_KEY": "Anthropic-backed bullets, headline, and executive_summary lanes",
         "OPENAI_API_KEY": "OpenAI-backed narrative lanes and proof judges",
     }
-    missing = [var for var in required_keys if not os.environ.get(var, "").strip()]
+    missing = [var for var in required_keys if not get_runtime_env_str(var, "").strip()]
     if not missing:
         return DoctorCheck(
             "generation_provider_key",
@@ -87,7 +88,7 @@ def _check_judge_keys() -> list[DoctorCheck]:
         ("GOOGLE_API_KEY", "Gemini X1D proof judges"),
         ("OPENAI_API_KEY", "OpenAI X1D proof judges"),
     ):
-        present = bool(os.environ.get(var, "").strip())
+        present = bool(get_runtime_env_str(var, "").strip())
         out.append(
             DoctorCheck(
                 f"judge_key:{var}",

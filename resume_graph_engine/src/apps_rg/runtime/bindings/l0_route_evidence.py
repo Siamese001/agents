@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import hashlib
 import hmac
 import json
@@ -38,10 +39,10 @@ class L1PlanNotReadyError(RuntimeError):
 
 
 def resolve_route_hmac_secret() -> bytes:
-    raw = os.environ.get("APPS_RG_ROUTE_HMAC_SECRET", "").strip()
+    raw = get_runtime_env_str("APPS_RG_ROUTE_HMAC_SECRET", "").strip()
     if raw:
         return raw.encode("utf-8")
-    if os.environ.get("PYTEST_CURRENT_TEST"):
+    if get_runtime_env_str("PYTEST_CURRENT_TEST"):
         return b"apps_rg_route_hmac_test_secret_v1"
     return b""
 
@@ -224,7 +225,7 @@ def _l1_capsule_consumption_refs(plan: L1PlanContract) -> tuple[str, ...]:
 
 
 def _explicit_unsigned_test_posture() -> bool:
-    posture = os.environ.get("APPS_RG_ROUTE_SIGNING_POSTURE", "").strip().lower()
+    posture = get_runtime_env_str("APPS_RG_ROUTE_SIGNING_POSTURE", "").strip().lower()
     return posture in {"unsigned_test", "explicit_unsigned_test", "test_unsigned"}
 
 

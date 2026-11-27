@@ -1,6 +1,7 @@
 """external model-aware Phase-1 lane wave scheduling (plan apps-rg-parallel-section-orchestration-f2a8c4)."""
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 from collections.abc import Mapping, Sequence
 import heapq
 import os
@@ -44,7 +45,7 @@ def load_section_dag_manifest() -> dict[str, Any]:
 
 
 def phase1_parallel_enabled(*, profile_flag: bool = False) -> bool:
-    env = str(os.environ.get(_ENV_PARALLEL, "")).strip().lower()
+    env = str(get_runtime_env_str(_ENV_PARALLEL, "")).strip().lower()
     if env in ("1", "true", "yes", "on"):
         return True
     if env in ("0", "false", "no", "off"):
@@ -53,7 +54,7 @@ def phase1_parallel_enabled(*, profile_flag: bool = False) -> bool:
 
 
 def resolve_max_parallel(*, default: int = 7) -> int:
-    raw = str(os.environ.get(_ENV_MAX_PARALLEL, "")).strip()
+    raw = str(get_runtime_env_str(_ENV_MAX_PARALLEL, "")).strip()
     if raw.isdigit():
         return max(1, min(12, int(raw)))
     return max(1, min(12, default))

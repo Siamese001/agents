@@ -1,6 +1,7 @@
 """Whole-run CLI: U0→L1→L0 route governance + optional R3R4 apps_research → R4 draft leg."""
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import dataclasses
 import json
 import os
@@ -200,7 +201,7 @@ def _research_bridge(*, artifact_runs_root: Path) -> Any:
     import importlib
 
     output_root = Path(artifact_runs_root).resolve()
-    if os.environ.get("APPS_RG_MOCK_RESEARCH", "").strip().lower() in (
+    if get_runtime_env_str("APPS_RG_MOCK_RESEARCH", "").strip().lower() in (
         "1",
         "true",
         "yes",
@@ -208,7 +209,7 @@ def _research_bridge(*, artifact_runs_root: Path) -> Any:
         from apps_rg.runtime.product_output_policy import is_apps_rg_test_harness
 
         if not is_apps_rg_test_harness() and not (
-            "pytest" in sys.modules or os.environ.get("PYTEST_CURRENT_TEST")
+            "pytest" in sys.modules or get_runtime_env_str("PYTEST_CURRENT_TEST")
         ):
             raise RuntimeError(
                 "MOCK_RESEARCH_VIOLATION: APPS_RG_MOCK_RESEARCH is strictly forbidden in production runtime."
@@ -334,9 +335,9 @@ def _write_mock_elimination_proof(artifact_dir: Path, bridge: Any) -> None:
     sr.write_stage_receipt(
         artifact_dir / sr.FILENAME_MOCK_ELIMINATION_PROOF,
         {
-            "APPS_RG_MOCK_RESEARCH": os.environ.get("APPS_RG_MOCK_RESEARCH", ""),
+            "APPS_RG_MOCK_RESEARCH": get_runtime_env_str("APPS_RG_MOCK_RESEARCH", ""),
             "bridge_class": type(bridge).__name__,
-            "mock_env_active": os.environ.get("APPS_RG_MOCK_RESEARCH", "").strip().lower()
+            "mock_env_active": get_runtime_env_str("APPS_RG_MOCK_RESEARCH", "").strip().lower()
             in ("1", "true", "yes"),
         },
     )
@@ -760,7 +761,7 @@ def _activate_product_stage_ledger(
     product_entry_path = bind_preflight_to_product_identity(
         validation=preflight_validation,
         receipt_path=continuation_path,
-        secret=str(os.environ.get("APPS_RG_ROUTE_HMAC_SECRET") or ""),
+        secret=str(get_runtime_env_str("APPS_RG_ROUTE_HMAC_SECRET") or ""),
         identity=identity,
         consumer_id="apps_rg.whole_run.primary",
     )
@@ -1281,7 +1282,7 @@ def run_whole_run_with_route_governance(
     write_apps_rg_runtime_boundary_receipt(art, boundary)
     bootstrap_apps_rg_embedding_env(repo_root=repo)
     assert_apps_rg_runtime_boundary(repo_root=repo)
-    emb = apply_apps_rg_embedding_env_guards(chroma_persist_dir=os.environ.get("CHROMA_PERSIST_DIR"))
+    emb = apply_apps_rg_embedding_env_guards(chroma_persist_dir=get_runtime_env_str("CHROMA_PERSIST_DIR"))
     write_embedding_settings_receipt(art, emb)
 
     envelope = _build_cli_ingress_envelope(
@@ -1317,9 +1318,9 @@ def run_whole_run_with_route_governance(
     if require_fresh_preflight:
         preflight_validation = validate_preflight_continuation(
             receipt_path=continuation_path,
-            secret=str(os.environ.get("APPS_RG_ROUTE_HMAC_SECRET") or ""),
+            secret=str(get_runtime_env_str("APPS_RG_ROUTE_HMAC_SECRET") or ""),
             expected_e2e_run_id=art.name,
-            expected_key_id=str(os.environ.get("APPS_RG_ROUTE_HMAC_KEY_ID") or ""),
+            expected_key_id=str(get_runtime_env_str("APPS_RG_ROUTE_HMAC_KEY_ID") or ""),
             consumer_id="apps_rg.whole_run.primary",
             consume=True,
             # The canonical producer identity is emitted only after delegated
@@ -1977,8 +1978,8 @@ def run_whole_run_with_route_governance(
         target_role=target_role,
         artifact_dir=art,
         runs_dir=art.parent,
-        policy_hash=os.environ.get("APPS_RG_POLICY_HASH"),
-        blueprint_hash=os.environ.get("APPS_RG_BLUEPRINT_HASH"),
+        policy_hash=get_runtime_env_str("APPS_RG_POLICY_HASH"),
+        blueprint_hash=get_runtime_env_str("APPS_RG_BLUEPRINT_HASH"),
         section="",
     )
     evidence = build_cache_preflight_evidence(preflight, artifact_dir=art)

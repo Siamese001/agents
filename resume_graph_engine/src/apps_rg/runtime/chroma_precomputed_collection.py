@@ -7,6 +7,7 @@ All apps_rg writes and queries must pass ``embeddings=`` / ``query_embeddings=``
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import os
 from typing import Any
 
@@ -63,13 +64,13 @@ class ForbidChromaDefaultEmbeddingFunction(EmbeddingFunction[Documents]):
 
 
 def chroma_default_ef_forbidden() -> bool:
-    if os.environ.get(FORBID_CHROMA_DEFAULT_EF_ENV, "").strip().lower() in (
+    if get_runtime_env_str(FORBID_CHROMA_DEFAULT_EF_ENV, "").strip().lower() in (
         "0",
         "false",
         "no",
     ):
         return False
-    if os.environ.get(CHROMA_DISABLE_DEFAULT_EMBEDDING_ENV, "").strip().lower() in (
+    if get_runtime_env_str(CHROMA_DISABLE_DEFAULT_EMBEDDING_ENV, "").strip().lower() in (
         "0",
         "false",
         "no",

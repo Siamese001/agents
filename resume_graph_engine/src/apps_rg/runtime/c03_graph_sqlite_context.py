@@ -6,6 +6,7 @@ Graph context is routing support only; claim proof remains fact/SRFS-bound.
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import hashlib
 import json
 import os
@@ -874,7 +875,7 @@ def write_c03_graph_sqlite_context_receipt(
     """Persist C0.3 SQLite context receipt under artifacts/apps_rg/runtime_proofs/."""
     root = repo_root or _repo_root()
     rid = run_id or datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")
-    configured_out_dir = os.environ.get(
+    configured_out_dir = get_runtime_env_str(
         "APPS_RG_C03_GRAPH_SQLITE_CONTEXT_RECEIPT_DIR", ""
     ).strip()
     out_dir = (

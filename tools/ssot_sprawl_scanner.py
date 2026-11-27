@@ -79,6 +79,18 @@ def _load_structured(path: Path) -> dict[str, Any] | None:
     return None
 
 
+def _shadow_diverges(canonical_path: Path, shadow_path: Path) -> bool:
+    """Return True if shadow_path is broken, points to a non-canonical target, or differs in content."""
+    if shadow_path.is_symlink():
+        try:
+            return not shadow_path.exists() or not canonical_path.is_file() or shadow_path.resolve() != canonical_path.resolve()
+        except OSError:
+            return True
+    if not shadow_path.is_file() or not canonical_path.is_file():
+        return True
+    return not filecmp.cmp(canonical_path, shadow_path, shallow=False)
+
+
 def scan_shadow_config_drift(repo_root: Path) -> list[dict[str, Any]]:
     """Detect diverging duplicate or shadow configuration files across all repo roots."""
     findings: list[dict[str, Any]] = []
@@ -87,18 +99,34 @@ def scan_shadow_config_drift(repo_root: Path) -> list[dict[str, Any]]:
 
     if root_cfg.is_dir() and engine_cfg.is_dir():
         root_files = {p.relative_to(root_cfg) for p in root_cfg.rglob("*") if p.is_file()}
-        engine_files = {p.relative_to(engine_cfg) for p in engine_cfg.rglob("*") if p.is_file()}
-        for rel in sorted(root_files & engine_files):
-            rel_str = str(rel).replace("\\", "/")
-            if rel_str in KNOWN_DRIFT_ALLOWLIST:
-                continue
-            if not filecmp.cmp(root_cfg / rel, engine_cfg / rel, shallow=False):
+        engine_files = {
+            p.relative_to(engine_cfg)
+            for p in engine_cfg.rglob("*")
+            if (p.is_file() or p.is_symlink()) and not p.is_dir()
+        }
+        for rel in sorted(engine_files - root_files):
+            ef_only = engine_cfg / rel
+            if ef_only.is_symlink() and not ef_only.exists():
+                rel_str = str(rel).replace("\\", "/")
                 findings.append(
                     {
                         "category": "SHADOW_CONFIG_DRIFT",
                         "canonical": f"config/{rel_str}",
                         "shadow": f"resume_graph_engine/config/{rel_str}",
-                        "detail": "Shadow config file diverges from canonical root config/",
+                        "detail": "Broken shadow config symlink missing canonical target",
+                    }
+                )
+        for rel in sorted(root_files & engine_files):
+            rel_str = str(rel).replace("\\", "/")
+            if rel_str in KNOWN_DRIFT_ALLOWLIST:
+                continue
+            if _shadow_diverges(root_cfg / rel, engine_cfg / rel):
+                findings.append(
+                    {
+                        "category": "SHADOW_CONFIG_DRIFT",
+                        "canonical": f"config/{rel_str}",
+                        "shadow": f"resume_graph_engine/config/{rel_str}",
+                        "detail": "Shadow config file or symlink diverges from canonical root config/",
                     }
                 )
 
@@ -112,8 +140,8 @@ def scan_shadow_config_drift(repo_root: Path) -> list[dict[str, Any]]:
     for canon_rel, shadow_rel in explicit_pairs:
         c_path = repo_root / canon_rel
         s_path = repo_root / shadow_rel
-        if c_path.is_file() and s_path.is_file():
-            if not filecmp.cmp(c_path, s_path, shallow=False):
+        if c_path.is_file() and (s_path.is_file() or s_path.is_symlink()):
+            if _shadow_diverges(c_path, s_path):
                 findings.append(
                     {
                         "category": "SHADOW_CONFIG_DRIFT",
@@ -129,16 +157,28 @@ def scan_shadow_config_drift(repo_root: Path) -> list[dict[str, Any]]:
         lic_files = {
             p.relative_to(lic_targeting)
             for p in lic_targeting.rglob("*")
-            if p.is_file() and p.suffix.lower() in FULL_SEARCH_EXTENSIONS and p.name != "README.md"
+            if (p.is_file() or p.is_symlink()) and not p.is_dir() and p.suffix.lower() in FULL_SEARCH_EXTENSIONS and p.name != "README.md"
         }
         rg_files = {
             p.relative_to(rg_targeting)
             for p in rg_targeting.rglob("*")
             if p.is_file() and p.suffix.lower() in FULL_SEARCH_EXTENSIONS and p.name != "README.md"
         }
+        for rel in sorted(lic_files - rg_files):
+            lf_only = lic_targeting / rel
+            if lf_only.is_symlink() and not lf_only.exists():
+                rel_str = str(rel).replace("\\", "/")
+                findings.append(
+                    {
+                        "category": "SHADOW_TARGETING_DRIFT",
+                        "canonical": f"resume_graph_engine/src/apps_rg/config/targeting/{rel_str}",
+                        "shadow": f"outreach_engine/config/targeting/{rel_str}",
+                        "detail": f"Broken targeting symlink '{rel_str}' in outreach_engine",
+                    }
+                )
         for rel in sorted(lic_files & rg_files):
             rel_str = str(rel).replace("\\", "/")
-            if not filecmp.cmp(lic_targeting / rel, rg_targeting / rel, shallow=False):
+            if _shadow_diverges(rg_targeting / rel, lic_targeting / rel):
                 findings.append(
                     {
                         "category": "SHADOW_TARGETING_DRIFT",
@@ -159,13 +199,25 @@ def scan_shadow_config_drift(repo_root: Path) -> list[dict[str, Any]]:
         e_data = {
             p.relative_to(engine_data)
             for p in engine_data.rglob("*")
-            if p.is_file() and "cache" not in p.parts and p.suffix.lower() in FULL_SEARCH_EXTENSIONS
+            if (p.is_file() or p.is_symlink()) and not p.is_dir() and "cache" not in p.parts and p.suffix.lower() in FULL_SEARCH_EXTENSIONS
         }
+        for rel in sorted(e_data - r_data):
+            ef_only = engine_data / rel
+            if ef_only.is_symlink() and not ef_only.exists():
+                rel_str = str(rel).replace("\\", "/")
+                findings.append(
+                    {
+                        "category": "SHADOW_DATA_DRIFT",
+                        "canonical": f"data/{rel_str}",
+                        "shadow": f"resume_graph_engine/data/{rel_str}",
+                        "detail": f"Broken shadow data symlink 'resume_graph_engine/data/{rel_str}'",
+                    }
+                )
         for rel in sorted(r_data & e_data):
             rel_str = str(rel).replace("\\", "/")
             if rel_str in KNOWN_DRIFT_ALLOWLIST:
                 continue
-            if not filecmp.cmp(root_data / rel, engine_data / rel, shallow=False):
+            if _shadow_diverges(root_data / rel, engine_data / rel):
                 findings.append(
                     {
                         "category": "SHADOW_DATA_DRIFT",

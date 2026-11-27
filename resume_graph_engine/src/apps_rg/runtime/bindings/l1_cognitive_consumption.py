@@ -7,6 +7,7 @@ evidence, model, or execution authority.
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import hashlib
 import json
 import os
@@ -974,7 +975,7 @@ def cognitive_revision_advisory_prompt_lines(
             f"criticality={slot['criticality']}; qualifiers={_format_qualifiers(slot)}; "
             f"required_gap_tag={required['gap_tag']}."
         )
-    debloat = os.environ.get("APPS_RG_L1_PROMPT_DEBLOAT", "true").strip().lower() in (
+    debloat = get_runtime_env_str("APPS_RG_L1_PROMPT_DEBLOAT", "true").strip().lower() in (
         "true",
         "1",
         "yes",
@@ -1157,7 +1158,7 @@ def cognitive_advisory_prompt_lines(
     )
     if not lines and not slots:
         return ()
-    debloat = os.environ.get("APPS_RG_L1_PROMPT_DEBLOAT", "true").strip().lower() in (
+    debloat = get_runtime_env_str("APPS_RG_L1_PROMPT_DEBLOAT", "true").strip().lower() in (
         "true",
         "1",
         "yes",

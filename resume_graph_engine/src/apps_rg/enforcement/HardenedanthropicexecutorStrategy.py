@@ -9,6 +9,7 @@ Regression suite: ``tests/unit/apps_rg/enforcement/test_hardened_anthropic_execu
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import logging
 import os
 import warnings
@@ -40,7 +41,7 @@ class HardenedAnthropicExecutor(HardeningMixin):
         self._setup_client()
 
     def _setup_client(self) -> None:
-        api_key = os.environ.get("ANTHROPIC_API_KEY")
+        api_key = get_runtime_env_str("ANTHROPIC_API_KEY")
         if not api_key:
             logger.warning(
                 "ANTHROPIC_API_KEY not set; anthropic executor has no authenticated client.",

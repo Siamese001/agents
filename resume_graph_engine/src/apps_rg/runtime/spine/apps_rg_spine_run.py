@@ -4,6 +4,7 @@
 """
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import os
 from pathlib import Path
 from typing import Any, Literal
@@ -164,7 +165,7 @@ def run_apps_rg_spine(
         )
 
         bootstrap_apps_rg_embedding_env(repo_root=repo)
-        apply_apps_rg_embedding_env_guards(chroma_persist_dir=os.environ.get("CHROMA_PERSIST_DIR"))
+        apply_apps_rg_embedding_env_guards(chroma_persist_dir=get_runtime_env_str("CHROMA_PERSIST_DIR"))
         raw_request = build_raw_request_for_r4(
             target_company=tc,
             target_role=tr,

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str, get_runtime_environ
 import hashlib
 import json
 import os
@@ -140,7 +141,7 @@ def pool_selector_timeout_s(*, default_seconds: float | None = None) -> float:
     """
     from apps_rg.runtime.providers.external_provider import external_provider_timeout_max_s
 
-    raw = os.environ.get("APPS_RG_POOL_SELECTOR_TIMEOUT_SECONDS", "").strip()
+    raw = get_runtime_env_str("APPS_RG_POOL_SELECTOR_TIMEOUT_SECONDS", "").strip()
     ceiling = external_provider_timeout_max_s()
     default = DEFAULT_POOL_SELECTOR_TIMEOUT_SECONDS if default_seconds is None else float(default_seconds)
     if not raw:
@@ -484,7 +485,7 @@ def _selector_numeric_entailed_paths(
         numeric_entailment_check,
     )
 
-    bypass = os.environ.get(ENTAILMENT_BYPASS_ENV, "").strip() == "1"
+    bypass = get_runtime_env_str(ENTAILMENT_BYPASS_ENV, "").strip() == "1"
     corpus = (targeting_context or {}).get("slot_entailment_corpus")
     corpus = corpus if isinstance(corpus, dict) else {}
     receipt: dict[str, Any] = {
@@ -1012,7 +1013,7 @@ def _call_anthropic_pool_selector(
     apply_anthropic_temperature_capability(payload)
     apply_anthropic_adaptive_thinking_config(
         payload,
-        os.environ,
+        get_runtime_environ(),
         effort=reasoning_effort,
     )
     try:
@@ -2167,10 +2168,10 @@ def run_claude_bullet_pool_selection(
                 source_path_by_slot={},
             )
         allow_selector_bypass = (
-            os.environ.get("APPS_RG_ALLOW_SINGLE_PATH_SELECTOR_BYPASS", "0").strip().lower()
+            get_runtime_env_str("APPS_RG_ALLOW_SINGLE_PATH_SELECTOR_BYPASS", "0").strip().lower()
             in ("1", "true", "yes")
         )
-        if os.environ.get("APPS_RG_PRODUCTION_RUN", "").strip() == "1":
+        if get_runtime_env_str("APPS_RG_PRODUCTION_RUN", "").strip() == "1":
             if allow_selector_bypass:
                 raise RuntimeError(
                     "LIVE_SELECTOR_ENFORCEMENT: APPS_RG_ALLOW_SINGLE_PATH_SELECTOR_BYPASS is strictly forbidden in production runtime."
@@ -2433,7 +2434,7 @@ def run_claude_bullet_pool_selection(
     )
 
     if mode == "mocked" and not competencies_selector:
-        if os.environ.get("APPS_RG_PRODUCTION_RUN", "").strip() == "1":
+        if get_runtime_env_str("APPS_RG_PRODUCTION_RUN", "").strip() == "1":
             raise RuntimeError(
                 "LIVE_SELECTOR_ENFORCEMENT: fallback mock selection is strictly forbidden in production runtime."
             )

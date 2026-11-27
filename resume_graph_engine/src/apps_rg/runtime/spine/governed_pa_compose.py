@@ -7,6 +7,7 @@ manifest.
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import hashlib
 import json
 import os
@@ -33,7 +34,7 @@ SPINE_PA_CORE_RECEIPT = "spine_pa_core_signing_receipt.json"
 
 
 def governed_pa_compose_enabled() -> bool:
-    if os.environ.get("APPS_RG_GOVERNED_PA_SKIP", "").strip().lower() in (
+    if get_runtime_env_str("APPS_RG_GOVERNED_PA_SKIP", "").strip().lower() in (
         "1",
         "true",
         "yes",
@@ -395,7 +396,7 @@ def governed_pa_compose_integrated(
     orch_plan = runtime_plan_to_orchestrator_plan(plan, validated_request)
 
     if secret_key is None:
-        env_key = os.environ.get("PROMPT_ASSEMBLY_HMAC_KEY", "").strip()
+        env_key = get_runtime_env_str("PROMPT_ASSEMBLY_HMAC_KEY", "").strip()
         secret_key = env_key.encode("utf-8") if env_key else b"apps-rg-w5-proof-harness"
 
     envelope = assemble_prompt(

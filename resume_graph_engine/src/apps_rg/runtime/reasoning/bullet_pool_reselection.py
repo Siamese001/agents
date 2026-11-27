@@ -34,6 +34,7 @@ Kill-switch: ``APPS_RG_BULLET_RESELECTION_DISABLE`` in ("1", "true", "yes").
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import hashlib
 import json
 import os
@@ -664,7 +665,7 @@ def run_bullet_judge_reselection(
             receipt_written=written,
         )
 
-    disabled = os.environ.get(RESELECTION_DISABLE_ENV, "").strip().lower() in ("1", "true", "yes")
+    disabled = get_runtime_env_str(RESELECTION_DISABLE_ENV, "").strip().lower() in ("1", "true", "yes")
 
     def _base_receipt() -> dict[str, Any]:
         return {

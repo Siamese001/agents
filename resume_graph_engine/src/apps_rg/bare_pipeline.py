@@ -7,6 +7,7 @@ Path: SETUP -> APPS_RESEARCH -> U0 -> L1 -> L0 -> C0 -> PA -> L2 -> X1 -> X3 -> 
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str, get_runtime_environ
 import concurrent.futures
 import hashlib
 import json
@@ -582,11 +583,11 @@ def _allocate_run_dir(artifact_root: str, *, repo_root: Path) -> Path:
 def _require_live_provider_credentials() -> None:
     bootstrap_apps_rg_env()
     missing: list[str] = []
-    if not os.environ.get("OPENAI_API_KEY", "").strip():  # ssot: exempt(DIRECT_ENV_ACCESS)
+    if not get_runtime_env_str("OPENAI_API_KEY", "").strip():  # ssot: exempt(DIRECT_ENV_ACCESS)
         missing.append("OPENAI_API_KEY")
     if not (
-        os.environ.get("GOOGLE_API_KEY", "").strip()  # ssot: exempt(DIRECT_ENV_ACCESS)
-        or os.environ.get("GEMINI_API_KEY", "").strip()  # ssot: exempt(DIRECT_ENV_ACCESS)
+        get_runtime_env_str("GOOGLE_API_KEY", "").strip()  # ssot: exempt(DIRECT_ENV_ACCESS)
+        or get_runtime_env_str("GEMINI_API_KEY", "").strip()  # ssot: exempt(DIRECT_ENV_ACCESS)
     ):
         missing.append("GOOGLE_API_KEY")
     if missing:
@@ -603,8 +604,8 @@ def _research_queries(company: str, role: str) -> tuple[tuple[str, str], ...]:
 
 
 def _retrieve_sources(company: str, role: str) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
-    if not os.environ.get("SEARXNG_BASE_URL", "").strip():  # ssot: exempt(DIRECT_ENV_ACCESS)
-        os.environ["SEARXNG_BASE_URL"] = runtime_base_url()
+    if not get_runtime_env_str("SEARXNG_BASE_URL", "").strip():  # ssot: exempt(DIRECT_ENV_ACCESS)
+        get_runtime_environ()["SEARXNG_BASE_URL"] = runtime_base_url()
     queries = list(_research_queries(company, role))
     failures: list[dict[str, str]] = []
     docs_by_family: dict[str, list[Any]] = {}
@@ -847,8 +848,8 @@ def _run_gemini_evaluation(
     pin = apps_rg_handoff_judge_pin()
     bootstrap_apps_rg_env()
     key = (
-        os.environ.get("GOOGLE_API_KEY", "").strip()  # ssot: exempt(DIRECT_ENV_ACCESS)
-        or os.environ.get("GEMINI_API_KEY", "").strip()  # ssot: exempt(DIRECT_ENV_ACCESS)
+        get_runtime_env_str("GOOGLE_API_KEY", "").strip()  # ssot: exempt(DIRECT_ENV_ACCESS)
+        or get_runtime_env_str("GEMINI_API_KEY", "").strip()  # ssot: exempt(DIRECT_ENV_ACCESS)
     )
     if not key:
         raise BarePipelineError("GOOGLE_API_KEY is required for X3 evaluation")
@@ -1054,8 +1055,8 @@ def _read_x3_resume_manifest(run_dir: Path) -> dict[str, Any]:
 def _require_x3_provider_credential() -> None:
     bootstrap_apps_rg_env()
     if not (
-        os.environ.get("GOOGLE_API_KEY", "").strip()  # ssot: exempt(DIRECT_ENV_ACCESS)
-        or os.environ.get("GEMINI_API_KEY", "").strip()  # ssot: exempt(DIRECT_ENV_ACCESS)
+        get_runtime_env_str("GOOGLE_API_KEY", "").strip()  # ssot: exempt(DIRECT_ENV_ACCESS)
+        or get_runtime_env_str("GEMINI_API_KEY", "").strip()  # ssot: exempt(DIRECT_ENV_ACCESS)
     ):
         raise BarePipelineError("GOOGLE_API_KEY is required for X3 evaluation resume")
 
@@ -1119,7 +1120,7 @@ def _write_live_delivery(
 
 
 def _assert_governed_bare_context() -> None:
-    if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("APPS_RG_INTERNAL_GOVERNED_CALLER") == "apps_rg.canonical_dispatch"):
+    if not (get_runtime_env_str("PYTEST_CURRENT_TEST") or get_runtime_env_str("APPS_RG_INTERNAL_GOVERNED_CALLER") == "apps_rg.canonical_dispatch"):
         raise RuntimeError("Direct bare pipeline execution forbidden; must route through governed canonical entrypoint")
 
 

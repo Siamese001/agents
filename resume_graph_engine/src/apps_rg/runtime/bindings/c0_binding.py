@@ -6,6 +6,7 @@ and other C0 gates with full reason field support.
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import hashlib
 import json
 import logging
@@ -179,7 +180,7 @@ def _get_embedding_model() -> Any:
 
 
 def _chroma_persist_dir_active() -> str | None:
-    p = os.environ.get("CHROMA_PERSIST_DIR", "").strip()
+    p = get_runtime_env_str("CHROMA_PERSIST_DIR", "").strip()
     return p or None
 
 
@@ -432,7 +433,7 @@ def c0_retrieve_apps_rg(
         return s or None
 
     effective_chroma = _norm_path(chroma_path) or _norm_path(
-        os.environ.get("CHROMA_PERSIST_DIR")
+        get_runtime_env_str("CHROMA_PERSIST_DIR")
     )
 
     from apps_rg.runtime.c0_mandatory_policy import apps_rg_c0_dense_sparse_mandatory
@@ -453,7 +454,7 @@ def c0_retrieve_apps_rg(
         )
         if emb_settings.route_result == "FAIL_CLOSED":
             raise C0EvidenceGapError(emb_settings.decisive_reason)
-        _art_hint = os.environ.get("APPS_RG_ARTIFACT_DIR", "").strip()
+        _art_hint = get_runtime_env_str("APPS_RG_ARTIFACT_DIR", "").strip()
         if _art_hint:
             try:
                 write_embedding_settings_receipt(_art_hint, emb_settings)
@@ -818,7 +819,7 @@ def c0_retrieve_apps_rg(
         final_evidence_digest=digest,
         obligation_receipt_artifact_dir=(
             obligation_receipt_artifact_dir
-            or os.environ.get("APPS_RG_ARTIFACT_DIR", "").strip()
+            or get_runtime_env_str("APPS_RG_ARTIFACT_DIR", "").strip()
             or None
         ),
     )

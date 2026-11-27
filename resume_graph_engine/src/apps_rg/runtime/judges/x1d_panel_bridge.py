@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str, get_runtime_environ
 import json
 import os
 import sys
@@ -11,9 +12,9 @@ from typing import Any
 
 
 def _is_test_environment() -> bool:
-    if os.environ.get("APPS_RG_PRODUCTION_RUN", "").strip() == "1":
+    if get_runtime_env_str("APPS_RG_PRODUCTION_RUN", "").strip() == "1":
         return False
-    return bool(os.environ.get("PYTEST_CURRENT_TEST") or ("pytest" in sys.modules))
+    return bool(get_runtime_env_str("PYTEST_CURRENT_TEST") or ("pytest" in sys.modules))
 
 from apps_rg.runtime.judges.executive_summary_judge_packet import (
     judge_contract_hash as exec_judge_contract_hash,
@@ -176,7 +177,7 @@ def run_grade_only_judges_via_core_panel(
 
         import os
 
-        api_key, env_checked = resolve_x1d_provider_credentials(key, os.environ)
+        api_key, env_checked = resolve_x1d_provider_credentials(key, get_runtime_environ())
         if not api_key:
             from apps_rg.runtime.judges.x1d_ide_cli import uses_ide_cli_judges
 

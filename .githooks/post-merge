@@ -3,6 +3,7 @@
 # Automatically prunes merged secondary worktrees and local feature branches
 # when a merge completes on local main / master.
 set -e
+export PYTHONDONTWRITEBYTECODE=1
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")"

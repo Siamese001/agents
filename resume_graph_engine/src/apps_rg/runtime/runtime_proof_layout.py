@@ -9,6 +9,7 @@ plus explicit ``l2_output_repo_relative`` / ``l6_shadow_eval_package_repo_relati
 """
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import json
 import os
 import sys
@@ -63,7 +64,7 @@ def _canonical_runtime_repo_root(repo: Path) -> Path:
 
 def modular_sections_root_from_env(repo: Path) -> Path | None:
     repo = _canonical_runtime_repo_root(repo)
-    raw = os.environ.get(MODULAR_R4_SECTIONS_ROOT_ENV, "").strip()
+    raw = get_runtime_env_str(MODULAR_R4_SECTIONS_ROOT_ENV, "").strip()
     if not raw:
         return None
     norm = raw.replace("\\", "/")
@@ -164,7 +165,7 @@ def is_integrated_whole_run_artifact_dir(path: Path) -> bool:
 
 
 def _whole_run_envelope_active() -> bool:
-    return os.environ.get("APPS_RG_WHOLE_RUN_ENVELOPE", "").strip().lower() in (
+    return get_runtime_env_str("APPS_RG_WHOLE_RUN_ENVELOPE", "").strip().lower() in (
         "1",
         "true",
         "yes",
@@ -526,12 +527,12 @@ def finalize_runtime_proof_run(
         document_metadata=run_bundle_index_document_metadata,
     )
 
-    if os.environ.get("APPS_RG_WHOLE_RUN_ENVELOPE", "").strip() in ("1", "true", "yes"):
+    if get_runtime_env_str("APPS_RG_WHOLE_RUN_ENVELOPE", "").strip() in ("1", "true", "yes"):
         from apps_rg.runtime.integrated_lane_evidence_packaging import (
             maybe_finalize_lane_evidence_package,
         )
 
-        cid = os.environ.get("APPS_RG_CORRELATED_CLI_RUN", "").strip() or None
+        cid = get_runtime_env_str("APPS_RG_CORRELATED_CLI_RUN", "").strip() or None
         maybe_finalize_lane_evidence_package(
             repo,
             artifact_dir,

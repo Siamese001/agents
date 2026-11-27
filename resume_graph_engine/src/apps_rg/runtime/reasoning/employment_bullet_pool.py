@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import json
 import os
 from dataclasses import dataclass
@@ -146,7 +147,7 @@ def is_employment_bullet_lane(section_lane: str) -> bool:
 def self_consistency_path_cap() -> int | None:
     """Optional operator ceiling across every provider self-consistency lane."""
 
-    raw = os.environ.get("APPS_RG_SELF_CONSISTENCY_PATH_CAP", "").strip()
+    raw = get_runtime_env_str("APPS_RG_SELF_CONSISTENCY_PATH_CAP", "").strip()
     if not raw:
         return None
     try:
@@ -210,7 +211,7 @@ def regen_extra_path_count_for_lane(section_lane: str) -> int:
 
 
 def max_employment_regen_rounds() -> int:
-    raw = os.environ.get(
+    raw = get_runtime_env_str(
         "APPS_RG_EMPLOYMENT_BULLET_MAX_REGEN_ROUNDS",
         str(max(0, MAX_SECTION_ATTEMPTS - 1)),
     ).strip()
@@ -223,9 +224,9 @@ def max_employment_regen_rounds() -> int:
 def min_selection_score_for_lane(section_lane: str) -> float:
     lane = str(section_lane or "").strip().lower().replace("-", "_")
     env_key = f"APPS_RG_{lane.upper()}_MIN_SELECTION_SCORE"
-    override = os.environ.get(env_key, "").strip()
+    override = get_runtime_env_str(env_key, "").strip()
     if not override:
-        override = os.environ.get("APPS_RG_EMPLOYMENT_BULLET_MIN_SELECTION_SCORE", "").strip()
+        override = get_runtime_env_str("APPS_RG_EMPLOYMENT_BULLET_MIN_SELECTION_SCORE", "").strip()
     if override:
         try:
             return max(0.0, min(1.0, float(override)))

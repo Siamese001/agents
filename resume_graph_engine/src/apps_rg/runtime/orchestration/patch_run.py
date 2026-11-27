@@ -26,6 +26,7 @@ clear error (exit 2) when inputs cannot be derived.
 """
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str, get_runtime_environ
 import concurrent.futures, contextlib, hashlib, json, os, sys, time, uuid
 from collections import Counter
 from dataclasses import dataclass, field
@@ -51,7 +52,7 @@ DEFAULT_PATCH_RUN_TIMEOUT_SECONDS = 240.0
 
 
 def _patch_log_stream() -> Any:
-    return sys.stderr if os.environ.get(_WHOLE_RUN_ENVELOPE_ENV) == "1" else sys.stdout
+    return sys.stderr if get_runtime_env_str(_WHOLE_RUN_ENVELOPE_ENV) == "1" else sys.stdout
 
 
 def resolve_patch_lane_timeout_s(override: float | None = None) -> float:
@@ -59,7 +60,7 @@ def resolve_patch_lane_timeout_s(override: float | None = None) -> float:
         return float(override)
     base = DEFAULT_PATCH_LANE_TIMEOUT_SECONDS
     for env_key in ("APPS_RG_PATCH_LANE_TIMEOUT_SECONDS", "APPS_RG_SECTION_LANE_TIMEOUT_SECONDS"):
-        raw = os.environ.get(env_key, "").strip()
+        raw = get_runtime_env_str(env_key, "").strip()
         if raw:
             try:
                 val = float(raw)
@@ -81,7 +82,7 @@ def resolve_patch_run_timeout_s(override: float | None = None) -> float:
         return float(override)
     base = DEFAULT_PATCH_RUN_TIMEOUT_SECONDS
     for env_key in ("APPS_RG_PATCH_RUN_TIMEOUT_SECONDS", "APPS_RG_SECTION_RUN_TIMEOUT_SECONDS"):
-        raw = os.environ.get(env_key, "").strip()
+        raw = get_runtime_env_str(env_key, "").strip()
         if raw:
             try:
                 val = float(raw)
@@ -288,7 +289,7 @@ def _run_patch_runtime_preflight(
 ) -> dict[str, Any]:
     """Fail before lane dispatch when route-signing configuration is absent."""
 
-    env = environ if environ is not None else os.environ
+    env = environ if environ is not None else get_runtime_environ()
     test_mode = str(env.get("APPS_RG_TEST_HARNESS") or "").strip().lower() in {
         "1",
         "true",
@@ -1142,7 +1143,7 @@ def _default_dispatch_lane(
     diagnostic_focus = ""
     force_new_seed = bool(lane in set(plan.force_lanes))
     reasoning_effort = ""
-    raw_directives = os.environ.get("APPS_RG_RECOVERY_DIRECTIVES_JSON")
+    raw_directives = get_runtime_env_str("APPS_RG_RECOVERY_DIRECTIVES_JSON")
     if raw_directives:
         try:
             directives_blob = json.loads(raw_directives)
@@ -1641,12 +1642,12 @@ def execute_patch_run(
     if (
         (plan.repo / ".antigravity" / "runtime-boundary.json").is_file()
         or (plan.repo / ".codex" / "runtime-boundary.json").is_file()
-        or os.environ.get("APPS_RG_TEST_HARNESS") != "1"
+        or get_runtime_env_str("APPS_RG_TEST_HARNESS") != "1"
     ):
         configure_apps_rg_runtime_boundary(repo_root=plan.repo)
     bootstrap_apps_rg_embedding_env(repo_root=plan.repo)
     emb = apply_apps_rg_embedding_env_guards(
-        chroma_persist_dir=os.environ.get("CHROMA_PERSIST_DIR")
+        chroma_persist_dir=get_runtime_env_str("CHROMA_PERSIST_DIR")
     )
     write_embedding_settings_receipt(plan.run_dir, emb)
 

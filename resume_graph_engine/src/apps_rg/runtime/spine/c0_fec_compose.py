@@ -3,6 +3,7 @@ Product-visible section PA consumes ``final_evidence_contract.json`` (spine C0 c
 or canonical ``FinalEvidenceContract``. Raw ``proof_pool_metadata`` is not PA authority.
 """
 from __future__ import annotations
+from apps_rg.config.runtime_env import get_runtime_env_str
 import json
 import os
 from dataclasses import dataclass
@@ -143,7 +144,7 @@ def fec_bridge_kill_switch_enabled() -> bool:
     """Product runs always require FEC bridge; test harness may bypass."""
     from apps_rg.runtime.c0.product_runtime_guards import product_fec_bridge_mandatory
 
-    return product_fec_bridge_mandatory() or os.environ.get(
+    return product_fec_bridge_mandatory() or get_runtime_env_str(
         "APPS_RG_SECTION_FEC_BRIDGE_KILL_SWITCH", "1"
     ).strip() not in ("0", "false", "no")
 

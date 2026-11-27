@@ -8,6 +8,7 @@ binding; contract-only section evidence is not misreported as eval proof.
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str, get_runtime_environ
 import hashlib
 import json
 import os
@@ -72,7 +73,7 @@ def _truthy(value: str | None) -> bool:
 
 
 def l6_v40_shadow_eval_enabled(env: Mapping[str, str] | None = None) -> bool:
-    source = env if env is not None else os.environ
+    source = env if env is not None else get_runtime_environ()
     if _truthy(source.get(APPS_RG_L6_V40_SHADOW_EVAL_SKIP_ENV)):
         profile = str(source.get(APPS_RG_EXECUTION_PROFILE_ENV) or "product").strip().lower()
         if profile in {"test", "migration", "replay", "non_product"}:
@@ -565,7 +566,7 @@ def run_l6_v40_shadow_eval_for_section(
 
     artifact_dir = Path(artifact_dir)
     repo_root = Path(repo_root)
-    l5_ref = l5_certification_ref or os.environ.get(APPS_RG_L6_V40_L5_CERTIFICATION_REF_ENV, "")
+    l5_ref = l5_certification_ref or get_runtime_env_str(APPS_RG_L6_V40_L5_CERTIFICATION_REF_ENV, "")
     preliminary_exhaust = _section_source_exhaust(
         artifact_dir,
         repo_root,

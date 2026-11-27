@@ -1,6 +1,7 @@
 """Bind a section proof pool to the active frozen resume-graph allocation."""
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import json
 import os
 from dataclasses import replace
@@ -59,8 +60,8 @@ def _load_source_section_plans(path: Path) -> dict[str, dict[str, Any]]:
 def _active_whole_resume_inputs(
     section_id: str,
 ) -> tuple[dict[str, Any], dict[str, Any]] | None:
-    plan_ref = str(os.environ.get(ALLOCATION_PLAN_ENV) or "").strip()
-    contracts_ref = str(os.environ.get(SECTION_EVIDENCE_CONTRACTS_ENV) or "").strip()
+    plan_ref = str(get_runtime_env_str(ALLOCATION_PLAN_ENV) or "").strip()
+    contracts_ref = str(get_runtime_env_str(SECTION_EVIDENCE_CONTRACTS_ENV) or "").strip()
     if not plan_ref and not contracts_ref:
         return None
     if not plan_ref or not contracts_ref:
@@ -89,7 +90,7 @@ def load_frozen_whole_resume_source_plan(
     if active is None:
         return None
     allocation_plan, contract = active
-    source_plans_ref = str(os.environ.get(SECTION_SOURCE_PLANS_ENV) or "").strip()
+    source_plans_ref = str(get_runtime_env_str(SECTION_SOURCE_PLANS_ENV) or "").strip()
     if not source_plans_ref:
         raise ValueError(
             f"{section_id}: frozen whole-resume source plan binding is unavailable"
@@ -148,7 +149,7 @@ def _active_embedding_binding(
 ) -> tuple[dict[str, Any], dict[str, Any]] | None:
     required = graph_skill_embeddings_required()
     allowlists_ref = str(
-        os.environ.get(GRAPH_SKILL_EMBEDDING_ALLOWLISTS_ENV) or ""
+        get_runtime_env_str(GRAPH_SKILL_EMBEDDING_ALLOWLISTS_ENV) or ""
     ).strip()
     if not required and not allowlists_ref:
         return None

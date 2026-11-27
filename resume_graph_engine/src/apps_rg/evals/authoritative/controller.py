@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_environ
 import hashlib
 import json
 import os
@@ -199,7 +200,7 @@ def execute_controller_plan(
             run_dir.mkdir(exist_ok=False)
             result_path = run_dir / "semantic-result.json"
             tokens = _command_tokens(command, input_path=input_path, output_path=result_path)
-            environment = dict(os.environ)
+            environment = dict(get_runtime_environ())
             environment.update(
                 {
                     "APPS_RG_EVAL_CONTROLLER_ID": controller_id,

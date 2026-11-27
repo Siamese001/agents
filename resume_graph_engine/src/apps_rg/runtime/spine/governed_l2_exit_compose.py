@@ -1,6 +1,7 @@
 """Governed L2 + Exit compose for the integrated apps_rg spine."""
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import os
 from dataclasses import dataclass
 from typing import Any, Optional
@@ -17,7 +18,7 @@ CANONICAL_L2_AUTHORITY_MARKER = "canonical_l2_authority:v2"
 
 
 def governed_l2_exit_enabled() -> bool:
-    return os.environ.get("APPS_RG_GOVERNED_L2_EXIT_SKIP", "").strip().lower() not in (
+    return get_runtime_env_str("APPS_RG_GOVERNED_L2_EXIT_SKIP", "").strip().lower() not in (
         "1",
         "true",
         "yes",

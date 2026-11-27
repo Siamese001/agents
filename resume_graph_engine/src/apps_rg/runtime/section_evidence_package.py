@@ -4,6 +4,7 @@ Does not emit apps_rg L7 artifacts, 99 RuntimeProofBundle, or UWG/Chroma writes.
 """
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import hashlib
 import json
 import os
@@ -217,7 +218,7 @@ def _section_id_from_artifact_dir(artifact_dir: Path) -> str | None:
 
 
 def _discover_by_env(repo_root: Path) -> tuple[Path | None, str | None]:
-    raw = os.environ.get(CORRELATED_CLI_RUN_ENV, "").strip()
+    raw = get_runtime_env_str(CORRELATED_CLI_RUN_ENV, "").strip()
     if not raw:
         return None, None
     hit = _resolve_cli_run_dir(repo_root, raw)
@@ -417,7 +418,7 @@ def discover_integrated_correlation(
     hit, method = _discover_by_env(repo_root)
     if hit is not None:
         return IntegratedCorrelationResult(hit, method, None)
-    raw_env = os.environ.get(CORRELATED_CLI_RUN_ENV, "").strip()
+    raw_env = get_runtime_env_str(CORRELATED_CLI_RUN_ENV, "").strip()
     if raw_env:
         env_invalid = f"{CORRELATED_CLI_RUN_ENV}={raw_env!r} did not resolve to cli_* directory"
 

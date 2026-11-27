@@ -5,6 +5,7 @@ compiled prompt. Not canonical spine Exit, RuntimeExhaustBundle, or durable L4 w
 """
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import json
 import os
 from datetime import datetime, timezone
@@ -47,7 +48,7 @@ class SectionL2SpinePreconditionError(RuntimeError):
 
 
 def l2_spine_kill_switch_enabled() -> bool:
-    return os.environ.get("APPS_RG_SECTION_L2_SPINE_KILL_SWITCH", "1").strip() not in (
+    return get_runtime_env_str("APPS_RG_SECTION_L2_SPINE_KILL_SWITCH", "1").strip() not in (
         "0",
         "false",
         "no",

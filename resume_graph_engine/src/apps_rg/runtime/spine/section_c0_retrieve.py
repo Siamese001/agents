@@ -8,6 +8,7 @@ fails.
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import json
 import os
 from dataclasses import dataclass
@@ -85,7 +86,7 @@ def section_spine_c0_retrieve_required(front_spine: SectionFrontSpineBridge) -> 
         return False
     if not front_spine.product_visible:
         return False
-    if os.environ.get("APPS_RG_SECTION_SPINE_C0_SKIP", "").strip().lower() in (
+    if get_runtime_env_str("APPS_RG_SECTION_SPINE_C0_SKIP", "").strip().lower() in (
         "1",
         "true",
         "yes",
@@ -230,7 +231,7 @@ def invoke_section_spine_c0_retrieve(
 
     chroma = chromadb_path
     if chroma is None:
-        chroma = os.environ.get("CHROMA_PERSIST_DIR", "").strip() or None
+        chroma = get_runtime_env_str("CHROMA_PERSIST_DIR", "").strip() or None
 
     try:
         fec = c0_retrieve_apps_rg(

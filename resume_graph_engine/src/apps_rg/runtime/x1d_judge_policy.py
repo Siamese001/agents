@@ -11,6 +11,7 @@ added by override.
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_environ
 import os
 from typing import Any, Mapping
 
@@ -51,7 +52,7 @@ def _primary_env_for_runtime(provider_key: str) -> str | None:
 
 def provider_has_credentials(provider_key: str, environ: Mapping[str, str] | None = None) -> bool:
     """True iff ``resolve_x1d_provider_credentials`` finds a non-empty credential (parity with judges)."""
-    env = dict(os.environ if environ is None else environ)
+    env = dict(get_runtime_environ() if environ is None else environ)
     key_val, _ = resolve_x1d_provider_credentials(provider_key, env)
     return bool(key_val)
 
@@ -70,7 +71,7 @@ def preflight_x1d_judge_policy(
     (``PROVIDERS[provider_key].env``). This does not guarantee runtime MODEL_BACKED_PASS (rate
     limits, soft fails, etc.).
     """
-    env = dict(os.environ if environ is None else environ)
+    env = dict(get_runtime_environ() if environ is None else environ)
     raw = (configured_judge_csv if configured_judge_csv is not None else env.get("APPS_RG_E2E_X1D_JUDGES", "")).strip()
     if not raw:
         raw = APPS_RG_E2E_DEFAULT_X1D_JUDGES

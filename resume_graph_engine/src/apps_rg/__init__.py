@@ -6,14 +6,14 @@ __version__ = "0.1.0"
 
 def ensure_dotenv_loaded() -> None:
     """Load the repo-root ``.env`` lazily on explicit runtime entry rather than package import."""
-    import os
     import sys
+    from apps_rg.config.runtime_env import get_runtime_env_str
 
     if "pytest" in sys.modules:
         return
-    if os.environ.get("APPS_RG_TEST_HARNESS"):
+    if get_runtime_env_str("APPS_RG_TEST_HARNESS"):
         return
-    if os.environ.get("APPS_RG_SKIP_DOTENV_AUTOLOAD"):
+    if get_runtime_env_str("APPS_RG_SKIP_DOTENV_AUTOLOAD"):
         return
     try:
         from apps_rg.runtime.env_bootstrap import bootstrap_apps_rg_env

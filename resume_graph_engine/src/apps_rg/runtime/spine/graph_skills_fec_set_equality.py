@@ -1,6 +1,7 @@
 """D7 FEC ≡ resolver pool set equality (graph-skills quality W5)."""
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str, get_runtime_environ
 from types import SimpleNamespace
 from typing import Any
 
@@ -104,10 +105,10 @@ def build_lane_fec_bridge_for_audit(
         "APPS_RG_SECTION_SPINE_C0_SKIP": "1",
         "APPS_RG_C0_EVIDENCE_ROOM": "0",
     }
-    prior = {name: os.environ.get(name) for name in scoped_env}
+    prior = {name: get_runtime_env_str(name) for name in scoped_env}
     try:
         for name, value in scoped_env.items():
-            os.environ.setdefault(name, value)
+            get_runtime_environ().setdefault(name, value)
         spine = build_section_front_spine_from_args(
             section_id=section_id,
             args=_default_args(),
@@ -121,9 +122,9 @@ def build_lane_fec_bridge_for_audit(
     finally:
         for name, value in prior.items():
             if value is None:
-                os.environ.pop(name, None)
+                get_runtime_environ().pop(name, None)
             else:
-                os.environ[name] = value
+                get_runtime_environ()[name] = value
 
 
 def audit_all_d7_lanes(

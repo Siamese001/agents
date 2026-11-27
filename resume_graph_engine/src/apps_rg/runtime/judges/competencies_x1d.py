@@ -1,6 +1,7 @@
 """Clean-Slate Judge v3 Binding for `competencies` (`<= 90L`, zero prose wall)."""
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import os
 from pathlib import Path
 import sys
@@ -25,7 +26,7 @@ COMPETENCIES_RUBRIC = render_section_v3_rubric("competencies")
 
 
 def _is_test_environment() -> bool:
-    return bool(os.environ.get("PYTEST_CURRENT_TEST") or ("pytest" in sys.modules))
+    return bool(get_runtime_env_str("PYTEST_CURRENT_TEST") or ("pytest" in sys.modules))
 
 
 def _competencies_display_text(categories: list[dict[str, Any]]) -> str:

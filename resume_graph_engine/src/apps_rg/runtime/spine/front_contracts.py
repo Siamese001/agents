@@ -6,6 +6,7 @@ via apps_rg bindings before proof-pool/C0 retrieval. Single spine entry:
 """
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import json
 import os
 import uuid
@@ -43,7 +44,7 @@ class SectionFrontSpinePreconditionError(RuntimeError):
 
 def activate_fixture_dev_bypass(*, non_product_certified: bool = True) -> None:
     """Mark current context as fixture/dev-only (not product-certified). Test-only."""
-    if os.environ.get("PYTEST_CURRENT_TEST") is None:
+    if get_runtime_env_str("PYTEST_CURRENT_TEST") is None:
         raise RuntimeError(
             "fixture_dev_bypass is test-only; activate only under pytest "
             "(PYTEST_CURRENT_TEST) or from tests.helpers."
@@ -65,7 +66,7 @@ def fixture_dev_bypass_active() -> bool:
 
 def product_visible_kill_switch_enabled() -> bool:
     """Kill switch is on unless explicitly disabled (narrow harness only)."""
-    return os.environ.get("APPS_RG_SECTION_FRONT_SPINE_KILL_SWITCH", "1").strip() not in (
+    return get_runtime_env_str("APPS_RG_SECTION_FRONT_SPINE_KILL_SWITCH", "1").strip() not in (
         "0",
         "false",
         "no",
@@ -176,7 +177,7 @@ def build_section_front_spine_from_args(
             "source_channel": "apps_rg_section_cli",
         },
     }
-    whole_run = os.environ.get("APPS_RG_WHOLE_RUN_ENVELOPE", "").strip().lower() in (
+    whole_run = get_runtime_env_str("APPS_RG_WHOLE_RUN_ENVELOPE", "").strip().lower() in (
         "1",
         "true",
         "yes",
@@ -184,7 +185,7 @@ def build_section_front_spine_from_args(
     if whole_run:
         from apps_rg.runtime.runtime_proof_layout import MODULAR_R4_SECTIONS_ROOT_ENV
 
-        sections_root_raw = os.environ.get(MODULAR_R4_SECTIONS_ROOT_ENV, "").strip()
+        sections_root_raw = get_runtime_env_str(MODULAR_R4_SECTIONS_ROOT_ENV, "").strip()
         if not sections_root_raw:
             raise SectionFrontSpinePreconditionError(
                 "whole-run section dispatch requires MODULAR_R4_SECTIONS_ROOT"

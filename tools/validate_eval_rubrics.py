@@ -304,16 +304,27 @@ _RUNTIME_BINARY_SIDE_SUFFIXES: tuple[str, ...] = ("-wal", "-shm", "-journal", ".
 def _validate_data_holdout_surface(repo_root: Path) -> tuple[int, dict[str, int], list[str]]:
     """Validate structural integrity across all 3 data roots (`data`, `outreach_engine/data`, `resume_graph_engine/data`)."""
     violations, file_count, counts_by_root = [], 0, {}
+    resolved_repo = repo_root.resolve()
     for d_rel in DATA_ROOTS:
         data_dir = repo_root / d_rel
         if not data_dir.is_dir():
             continue
         root_count = 0
         for fp in sorted(data_dir.rglob("*")):
-            if not fp.is_file() or fp.is_symlink():
+            if fp.is_dir() and not fp.is_symlink():
                 continue
             rel_parts = fp.relative_to(data_dir).parts
             if any(p in _RUNTIME_CACHE_DIR_PARTS for p in rel_parts[:-1]) or fp.name.endswith(_RUNTIME_BINARY_SIDE_SUFFIXES):
+                continue
+            if fp.is_symlink():
+                rel_sym = str(fp.relative_to(repo_root))
+                if not fp.exists() or not fp.is_file():
+                    violations.append(f"{rel_sym}: broken dataset symlink")
+                    continue
+                if not fp.resolve().is_relative_to(resolved_repo):
+                    violations.append(f"{rel_sym}: dataset symlink escapes repository root")
+                    continue
+            elif not fp.is_file():
                 continue
             file_count += 1
             root_count += 1

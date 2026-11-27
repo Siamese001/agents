@@ -7,6 +7,7 @@ Claude-backed generation lanes directly to the OpenAI backup provider.
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_environ
 import hashlib
 import json
 import os
@@ -163,7 +164,7 @@ def resolve_anthropic_limit_preflight_route(
     environ: Mapping[str, str] | None = None,
 ) -> AnthropicLimitPreflightRoute:
     """Resolve an explicit known-limit signal without attempting Anthropic."""
-    env = os.environ if environ is None else environ
+    env = get_runtime_environ() if environ is None else environ
     raw = str(env.get(ANTHROPIC_LIMIT_PREFLIGHT_ENV) or "").strip()
     if raw:
         active = _value_indicates_known_limit(raw)

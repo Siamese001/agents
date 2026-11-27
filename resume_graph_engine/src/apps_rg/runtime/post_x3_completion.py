@@ -8,6 +8,7 @@ or authorize the current run.
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str, get_runtime_environ
 import dataclasses
 import hashlib
 import json
@@ -1055,7 +1056,7 @@ def _complete_fact_vector_writeback_after_x3(
             candidate_run_ids.append(run_id)
 
     mode = str(
-        os.environ.get("APPS_RG_FACT_VECTOR_PROMOTION_MODE", PROMOTION_MODE_DEFERRED)
+        get_runtime_env_str("APPS_RG_FACT_VECTOR_PROMOTION_MODE", PROMOTION_MODE_DEFERRED)
     ).strip()
     payload: dict[str, Any] = {
         "schema_version": "apps_rg.fact_vector_writeback_post_x3_completion.v1",
@@ -1071,13 +1072,13 @@ def _complete_fact_vector_writeback_after_x3(
     if mode != PROMOTION_MODE_DEFERRED:
         payload.update(status="SKIPPED", reason="promotion_mode_not_deferred")
         return payload
-    chroma_path = str(os.environ.get("CHROMA_PERSIST_DIR", "")).strip()
+    chroma_path = str(get_runtime_env_str("CHROMA_PERSIST_DIR", "")).strip()
     if not chroma_path:
         fallback_chroma = (REPO_ROOT / "data" / "cache" / "chromadb").resolve()
         try:
             fallback_chroma.mkdir(parents=True, exist_ok=True)
             chroma_path = str(fallback_chroma)
-            os.environ["CHROMA_PERSIST_DIR"] = chroma_path
+            get_runtime_environ()["CHROMA_PERSIST_DIR"] = chroma_path
         except OSError:
             chroma_path = ""
     payload["chroma_path"] = chroma_path or None

@@ -1,6 +1,7 @@
 """W8B — integrated modular lane evidence finalization and parent RUN_LINKS binding."""
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str, get_runtime_environ
 import hashlib
 import json
 import os
@@ -539,8 +540,8 @@ def finalize_integrated_run_lane_evidence(
     integrated_dir = Path(integrated_artifact_dir)
     cid = str(correlation_id or integrated_dir.name).strip() or integrated_dir.name
 
-    prev_corr = os.environ.get(CORRELATED_CLI_RUN_ENV)
-    os.environ[CORRELATED_CLI_RUN_ENV] = repo_relative_posix(repo_root, integrated_dir)
+    prev_corr = get_runtime_env_str(CORRELATED_CLI_RUN_ENV)
+    get_runtime_environ()[CORRELATED_CLI_RUN_ENV] = repo_relative_posix(repo_root, integrated_dir)
     finalized_lanes: list[str] = []
     try:
         for lane in GENERATED_LANES:
@@ -557,9 +558,9 @@ def finalize_integrated_run_lane_evidence(
             finalized_lanes.append(lane)
     finally:
         if prev_corr is None:
-            os.environ.pop(CORRELATED_CLI_RUN_ENV, None)
+            get_runtime_environ().pop(CORRELATED_CLI_RUN_ENV, None)
         else:
-            os.environ[CORRELATED_CLI_RUN_ENV] = prev_corr
+            get_runtime_environ()[CORRELATED_CLI_RUN_ENV] = prev_corr
 
     lane_refs = discover_integrated_modular_lane_bundle_refs(
         repo_root,

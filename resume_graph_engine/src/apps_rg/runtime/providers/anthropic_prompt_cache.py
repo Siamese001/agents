@@ -6,6 +6,7 @@ optionally convert to USD when a base input-token price is supplied by environme
 """
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str, get_runtime_environ
 import os
 from dataclasses import asdict, dataclass
 from typing import Any, Mapping
@@ -48,7 +49,7 @@ class ProviderCacheReceipt:
 
 
 def env_flag_enabled(name: str, environ: Mapping[str, str] | None = None) -> bool:
-    env = environ if environ is not None else os.environ
+    env = environ if environ is not None else get_runtime_environ()
     return str(env.get(name) or "").strip() == "1"
 
 
@@ -170,7 +171,7 @@ def _input_price_usd_per_million(seed: Mapping[str, Any] | None, model: str | No
                 return float(pricing["input_cost_per_mtok"])
         except (ImportError, OSError, KeyError, ValueError, TypeError):
             pass
-    return _coerce_float(os.environ.get(ENV_APPS_RG_ANTHROPIC_INPUT_USD_PER_MILLION))
+    return _coerce_float(get_runtime_env_str(ENV_APPS_RG_ANTHROPIC_INPUT_USD_PER_MILLION))
 
 
 def build_cache_receipt_from_usage(

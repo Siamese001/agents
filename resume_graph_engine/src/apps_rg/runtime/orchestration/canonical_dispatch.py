@@ -8,6 +8,7 @@ On success, the R4 entrypoint emits L7 artifacts under ``artifact_dir`` (e.g.
 """
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import hashlib
 import json
 import os
@@ -389,8 +390,8 @@ def run_canonical_full_resume_from_cli_primitives(
         target_role=target_role,
         artifact_dir=art,
         runs_dir=art.parent,
-        policy_hash=os.environ.get("APPS_RG_POLICY_HASH"),
-        blueprint_hash=os.environ.get("APPS_RG_BLUEPRINT_HASH"),
+        policy_hash=get_runtime_env_str("APPS_RG_POLICY_HASH"),
+        blueprint_hash=get_runtime_env_str("APPS_RG_BLUEPRINT_HASH"),
         section=section,
     )
     from apps_rg.cache.cache_preflight_evidence import (

@@ -31,6 +31,16 @@ def _bump_ext_count(counts: dict[str, int], path: Path) -> None:
     counts[ext] = counts.get(ext, 0) + 1
 
 
+def _is_valid_canonical_symlink(shadow_path: Path, canonical_path: Path) -> bool:
+    """Return True iff shadow_path is a symlink resolving directly to canonical_path."""
+    if not shadow_path.is_symlink():
+        return False
+    try:
+        return shadow_path.exists() and canonical_path.is_file() and shadow_path.resolve() == canonical_path.resolve()
+    except OSError:
+        return False
+
+
 def analyze_drift(repo_root: Path, *, include_sprawl: bool = False) -> dict[str, Any]:
     root_cfg = repo_root / "config"
     engine_cfg = repo_root / "resume_graph_engine" / "config"
@@ -54,6 +64,7 @@ def analyze_drift(repo_root: Path, *, include_sprawl: bool = False) -> dict[str,
         "scanned_files_by_extension": ext_counts,
         "identical_by_extension": identical_by_ext,
         "identical": [],
+        "canonical_symlinks": [],
         "differing": [],
         "only_in_root": [],
         "only_in_engine": [],
@@ -62,8 +73,10 @@ def analyze_drift(repo_root: Path, *, include_sprawl: bool = False) -> dict[str,
         "outreach_data_files_verified": 0,
         "research_config_files_verified": 0,
         "targeting_identical_md_pairs": [],
+        "targeting_canonical_symlinks": [],
         "targeting_differing": [],
         "data_identical_count": 0,
+        "data_canonical_symlink_count": 0,
         "data_differing": [],
     }
 
@@ -71,7 +84,7 @@ def analyze_drift(repo_root: Path, *, include_sprawl: bool = False) -> dict[str,
         if not scan_dir.is_dir():
             continue
         for fp in scan_dir.rglob("*"):
-            if fp.is_file() and "__pycache__" not in fp.parts and "cache" not in fp.parts:
+            if (fp.is_file() or fp.is_symlink()) and not fp.is_dir() and "__pycache__" not in fp.parts and "cache" not in fp.parts:
                 _bump_ext_count(ext_counts, fp)
 
     if outreach_cfg.is_dir():
@@ -89,17 +102,37 @@ def analyze_drift(repo_root: Path, *, include_sprawl: bool = False) -> dict[str,
 
     if root_cfg.is_dir() and engine_cfg.is_dir():
         root_files = {p.relative_to(root_cfg) for p in root_cfg.rglob("*") if p.is_file()}
-        engine_files = {p.relative_to(engine_cfg) for p in engine_cfg.rglob("*") if p.is_file()}
+        engine_files = {
+            p.relative_to(engine_cfg)
+            for p in engine_cfg.rglob("*")
+            if (p.is_file() or p.is_symlink()) and not p.is_dir()
+        }
 
         common_files = root_files & engine_files
+        only_engine_set = engine_files - root_files
         result["only_in_root"] = sorted(str(p) for p in (root_files - engine_files))
-        result["only_in_engine"] = sorted(str(p) for p in (engine_files - root_files))
+        result["only_in_engine"] = sorted(str(p) for p in only_engine_set)
+
+        for rel in sorted(only_engine_set):
+            ef_only = engine_cfg / rel
+            if ef_only.is_symlink() and not ef_only.exists():
+                rel_str = str(rel).replace("\\", "/")
+                result["differing"].append(rel_str)
+                if rel_str not in KNOWN_DRIFT_ALLOWLIST:
+                    result["unallowlisted_differing"].append(rel_str)
 
         for rel in sorted(common_files):
             rf = root_cfg / rel
             ef = engine_cfg / rel
             rel_str = str(rel).replace("\\", "/")
-            if filecmp.cmp(rf, ef, shallow=False):
+            if ef.is_symlink():
+                if _is_valid_canonical_symlink(ef, rf):
+                    result["canonical_symlinks"].append(rel_str)
+                else:
+                    result["differing"].append(rel_str)
+                    if rel_str not in KNOWN_DRIFT_ALLOWLIST:
+                        result["unallowlisted_differing"].append(rel_str)
+            elif filecmp.cmp(rf, ef, shallow=False):
                 result["identical"].append(rel_str)
                 _bump_ext_count(identical_by_ext, rf)
             else:
@@ -110,13 +143,31 @@ def analyze_drift(repo_root: Path, *, include_sprawl: bool = False) -> dict[str,
     lic_targeting = outreach_cfg / "targeting"
     rg_targeting = rg_src_cfg / "targeting"
     if lic_targeting.is_dir() and rg_targeting.is_dir():
-        lic_t_files = {p.relative_to(lic_targeting) for p in lic_targeting.rglob("*") if p.is_file() and p.name != "README.md"}
+        lic_t_files = {
+            p.relative_to(lic_targeting)
+            for p in lic_targeting.rglob("*")
+            if (p.is_file() or p.is_symlink()) and not p.is_dir() and p.name != "README.md"
+        }
         rg_t_files = {p.relative_to(rg_targeting) for p in rg_targeting.rglob("*") if p.is_file() and p.name != "README.md"}
+        for rel in sorted(lic_t_files - rg_t_files):
+            lf_only = lic_targeting / rel
+            if lf_only.is_symlink() and not lf_only.exists():
+                rel_str = str(rel).replace("\\", "/")
+                result["targeting_differing"].append(rel_str)
+                if f"targeting/{rel_str}" not in KNOWN_DRIFT_ALLOWLIST:
+                    result["unallowlisted_differing"].append(f"targeting/{rel_str}")
         for rel in sorted(lic_t_files & rg_t_files):
             lf = lic_targeting / rel
             rf = rg_targeting / rel
             rel_str = str(rel).replace("\\", "/")
-            if filecmp.cmp(lf, rf, shallow=False):
+            if lf.is_symlink():
+                if _is_valid_canonical_symlink(lf, rf):
+                    result["targeting_canonical_symlinks"].append(rel_str)
+                else:
+                    result["targeting_differing"].append(rel_str)
+                    if f"targeting/{rel_str}" not in KNOWN_DRIFT_ALLOWLIST:
+                        result["unallowlisted_differing"].append(f"targeting/{rel_str}")
+            elif filecmp.cmp(lf, rf, shallow=False):
                 result["targeting_identical_md_pairs"].append(rel_str)
                 _bump_ext_count(identical_by_ext, lf)
             else:
@@ -126,12 +177,25 @@ def analyze_drift(repo_root: Path, *, include_sprawl: bool = False) -> dict[str,
 
     if root_data.is_dir() and engine_data.is_dir():
         r_data_files = {p.relative_to(root_data) for p in root_data.rglob("*") if p.is_file() and "cache" not in p.parts}
-        e_data_files = {p.relative_to(engine_data) for p in engine_data.rglob("*") if p.is_file() and "cache" not in p.parts}
+        e_data_files = {
+            p.relative_to(engine_data)
+            for p in engine_data.rglob("*")
+            if (p.is_file() or p.is_symlink()) and not p.is_dir() and "cache" not in p.parts
+        }
+        for rel in sorted(e_data_files - r_data_files):
+            ef_only = engine_data / rel
+            if ef_only.is_symlink() and not ef_only.exists():
+                result["data_differing"].append(str(rel).replace("\\", "/"))
         for rel in sorted(r_data_files & e_data_files):
             rf = root_data / rel
             ef = engine_data / rel
             rel_str = str(rel).replace("\\", "/")
-            if filecmp.cmp(rf, ef, shallow=False):
+            if ef.is_symlink():
+                if _is_valid_canonical_symlink(ef, rf):
+                    result["data_canonical_symlink_count"] += 1
+                else:
+                    result["data_differing"].append(rel_str)
+            elif filecmp.cmp(rf, ef, shallow=False):
                 result["data_identical_count"] += 1
                 _bump_ext_count(identical_by_ext, rf)
             else:

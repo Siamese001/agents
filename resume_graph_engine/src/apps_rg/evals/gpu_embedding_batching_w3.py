@@ -7,6 +7,7 @@ W2 resident runtime, and writes only a non-authoritative receipt beneath
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_environ
 import hashlib
 import json
 import os
@@ -292,10 +293,10 @@ def run_batching_benchmark(
         raise GpuEmbeddingBatchingError("W3 requires at least three repetitions")
     root = Path(repository_root).resolve()
     for name in ("HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE", "HF_DATASETS_OFFLINE"):
-        os.environ[name] = "1"
-    os.environ.setdefault("EMBEDDING_ENABLED", "true")
-    os.environ.setdefault("APPS_RG_EMBEDDING_ENABLED", "true")
-    os.environ.setdefault("EMBEDDING_DEVICE", "cuda:0")
+        get_runtime_environ()[name] = "1"
+    get_runtime_environ().setdefault("EMBEDDING_ENABLED", "true")
+    get_runtime_environ().setdefault("APPS_RG_EMBEDDING_ENABLED", "true")
+    get_runtime_environ().setdefault("EMBEDDING_DEVICE", "cuda:0")
 
     try:
         import torch

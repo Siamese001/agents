@@ -8,6 +8,7 @@ Usage:
 """
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import argparse
 import json
 import os
@@ -263,7 +264,7 @@ def validate_run_dir(run_dir: Path, *, repo: Path) -> ValidationReport:
         f"runtime_generation_status={runtime_status!r}",
     )
 
-    if os.environ.get("APPS_RG_PROVIDER_MODEL_OFFLINE_CONTRACT_STUB", "").strip():
+    if get_runtime_env_str("APPS_RG_PROVIDER_MODEL_OFFLINE_CONTRACT_STUB", "").strip():
         report.mock_provider_flags.append("APPS_RG_PROVIDER_MODEL_OFFLINE_CONTRACT_STUB=set")
     if report.provider_resolution_source == "DEV_DEFAULT_MOCK":
         report.mock_provider_flags.append("provider_resolution_source=DEV_DEFAULT_MOCK")

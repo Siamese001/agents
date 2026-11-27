@@ -1,6 +1,7 @@
 """Full-resume LLM coherence review + X2 aggregation gate (apps_rg assembly)."""
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str, get_runtime_environ
 import hashlib
 import json
 import os
@@ -46,7 +47,7 @@ from apps_rg.runtime.assembly.full_resume_llm_coherence_rubric import (
 # dual panel gemini_pro + openai_chatgpt; anthropic_claude dropped as a self-judge since Claude is the
 # generator). Sourced from the SSOT — NOT a separate hardcoded roster that can silently diverge.
 DEFAULT_JUDGE_ROSTER: tuple[str, ...] = REQUIRED_JUDGE_PROVIDER_KEYS
-DEFAULT_QUORUM = int(os.environ.get("APPS_RG_FULL_RESUME_COHERENCE_QUORUM", "2"))
+DEFAULT_QUORUM = int(get_runtime_env_str("APPS_RG_FULL_RESUME_COHERENCE_QUORUM", "2"))
 DEFAULT_PASS_THRESHOLD = float(get_apps_rg_v3_profile("full_resume_coherence").pass_threshold)
 DEFAULT_PASS_THRESHOLD_0_TO_5 = round(DEFAULT_PASS_THRESHOLD * 5.0, 2)
 
@@ -54,7 +55,7 @@ DEFAULT_PASS_THRESHOLD_0_TO_5 = round(DEFAULT_PASS_THRESHOLD * 5.0, 2)
 def full_resume_coherence_review_enabled() -> bool:
     if assembly_structural_only_mode():
         return False
-    raw = os.environ.get("APPS_RG_FULL_RESUME_LLM_COHERENCE_REVIEW", "1").strip().lower()
+    raw = get_runtime_env_str("APPS_RG_FULL_RESUME_LLM_COHERENCE_REVIEW", "1").strip().lower()
     return raw not in ("0", "false", "no", "off", "disabled")
 
 
@@ -64,7 +65,7 @@ def assembly_structural_only_mode() -> bool:
 
     if product_fail_closed_runtime():
         return False
-    raw = os.environ.get("APPS_RG_ASSEMBLY_STRUCTURAL_ONLY", "0").strip().lower()
+    raw = get_runtime_env_str("APPS_RG_ASSEMBLY_STRUCTURAL_ONLY", "0").strip().lower()
     return raw in ("1", "true", "yes", "on")
 
 
@@ -412,9 +413,9 @@ def _build_prompt(
 
 
 def _is_test_environment() -> bool:
-    if os.environ.get("APPS_RG_PRODUCTION_RUN", "").strip() == "1":
+    if get_runtime_env_str("APPS_RG_PRODUCTION_RUN", "").strip() == "1":
         return False
-    return bool(os.environ.get("PYTEST_CURRENT_TEST") or ("pytest" in sys.modules))
+    return bool(get_runtime_env_str("PYTEST_CURRENT_TEST") or ("pytest" in sys.modules))
 
 
 def _mocked(provider_key: str, input_hash: str) -> JudgeOutput:
@@ -496,7 +497,7 @@ def run_full_resume_coherence_judges(
             return _mocked(key, input_hash)
 
         meta = PROVIDERS[key]
-        api_key, env_checked = resolve_x1d_provider_credentials(key, os.environ)
+        api_key, env_checked = resolve_x1d_provider_credentials(key, get_runtime_environ())
         if not api_key:
             detail = (
                 f"No non-empty API credential in {env_checked}; "
@@ -678,7 +679,7 @@ def aggregate_full_resume_coherence(
 
     quorum_met = len(passing) >= quorum_required if len(model_backed) >= quorum_required else False
     allow_mean_quorum = (
-        os.environ.get("APPS_RG_FULL_RESUME_COHERENCE_ALLOW_MEAN_QUORUM", "1")
+        get_runtime_env_str("APPS_RG_FULL_RESUME_COHERENCE_ALLOW_MEAN_QUORUM", "1")
         .strip()
         .lower()
         in ("1", "true", "yes", "on")

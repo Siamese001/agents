@@ -274,9 +274,60 @@ def test_live_provider_profiles_registry_sync_and_r1b_env_centralization() -> No
 
     ratchet = json.loads((REPO_ROOT / "config" / "governance" / "env_lookup_ratchet.json").read_text(encoding="utf-8"))
     file_counts = ratchet.get("file_counts", {})
+    assert file_counts == {}
     assert not any(k.startswith("resume_graph_engine/src/apps_rg/cache/") for k in file_counts)
 
     hygiene = scan_ast_hygiene_and_env_sprawl(REPO_ROOT)
     flagged_files = {f["file"] for f in hygiene}
     assert "resume_graph_engine/src/apps_rg/__main__.py" not in flagged_files
     assert not any(p.startswith("resume_graph_engine/src/apps_rg/cache/") for p in flagged_files)
+
+
+def test_canonical_symlinks_zero_ratchet_backlog_and_reject_broken_or_misdirected_links(tmp_path: Path) -> None:
+    import os
+    from tools.check_config_ssot_drift import analyze_drift
+    from tools.ssot_sprawl_scanner import scan_shadow_config_drift
+
+    sandbox = tmp_path / "symlink_repo"
+    _create_clean_sandbox(sandbox)
+
+    canon_cfg = sandbox / "config" / "token_budget.yaml"
+    canon_cfg.write_text("max_tokens: 4096\n", encoding="utf-8")
+    shadow_cfg = sandbox / "resume_graph_engine" / "config" / "token_budget.yaml"
+    shadow_cfg.parent.mkdir(parents=True, exist_ok=True)
+    shadow_cfg.symlink_to(os.path.relpath(canon_cfg, shadow_cfg.parent))
+
+    rep_ok = run_ssot_boundary_audit(
+        repo_root=sandbox,
+        sidecars_root=DEFAULT_SIDECARS_ROOT,
+        include_ratchet_backlog=True,
+    )
+    assert rep_ok["is_clean"] is True, rep_ok
+    assert rep_ok["ratchet_backlog"]["total_backlog_items"] == 0
+    drift_ok = analyze_drift(sandbox)
+    assert "token_budget.yaml" in drift_ok["canonical_symlinks"]
+    assert drift_ok["identical"] == []
+
+    # Misdirected symlink must fail closed in both analyze_drift and scan_shadow_config_drift
+    rogue_target = sandbox / "config" / "other.yaml"
+    rogue_target.write_text("max_tokens: 999\n", encoding="utf-8")
+    shadow_cfg.unlink()
+    shadow_cfg.symlink_to(os.path.relpath(rogue_target, shadow_cfg.parent))
+    assert "token_budget.yaml" in analyze_drift(sandbox)["unallowlisted_differing"]
+    assert any(f["category"] == "SHADOW_CONFIG_DRIFT" for f in scan_shadow_config_drift(sandbox))
+
+    # Broken symlink must also fail closed
+    rogue_target.unlink()
+    assert "token_budget.yaml" in analyze_drift(sandbox)["unallowlisted_differing"]
+    assert any(f["category"] == "SHADOW_CONFIG_DRIFT" for f in scan_shadow_config_drift(sandbox))
+
+
+def test_live_repository_passes_include_ratchet_backlog_zero_defect_gate() -> None:
+    rep = run_ssot_boundary_audit(
+        repo_root=REPO_ROOT,
+        sidecars_root=DEFAULT_SIDECARS_ROOT,
+        include_ratchet_backlog=True,
+    )
+    assert rep["is_clean"] is True, rep["ratchet_backlog"]
+    assert rep["status"] == "PASS"
+    assert rep["ratchet_backlog"]["total_backlog_items"] == 0

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import hashlib
 import json
 import math
@@ -162,7 +163,7 @@ def _assert_self_digest(
 
 
 def graph_skill_embeddings_required() -> bool:
-    raw = str(os.environ.get(GRAPH_SKILL_EMBEDDINGS_REQUIRED_ENV) or "").strip().lower()
+    raw = str(get_runtime_env_str(GRAPH_SKILL_EMBEDDINGS_REQUIRED_ENV) or "").strip().lower()
     if raw in _TRUE_VALUES:
         return True
     if raw in _FALSE_VALUES:
@@ -692,7 +693,7 @@ def build_whole_resume_graph_embedding_candidates(
 
     authority = load_graph_skill_embedding_authority(repo_root)
     resolved_model_path = Path(
-        model_path or str(os.environ.get(EMBEDDING_MODEL_PATH_ENV) or "")
+        model_path or str(get_runtime_env_str(EMBEDDING_MODEL_PATH_ENV) or "")
     )
     if not str(resolved_model_path).strip() or not resolved_model_path.is_dir():
         raise GraphSkillEmbeddingAllocationError(
@@ -704,7 +705,7 @@ def build_whole_resume_graph_embedding_candidates(
             "local BGE-M3 artifact digest mismatch"
         )
     resolved_device = str(
-        device or os.environ.get(GRAPH_SKILL_EMBEDDING_DEVICE_ENV) or ""
+        device or get_runtime_env_str(GRAPH_SKILL_EMBEDDING_DEVICE_ENV) or ""
     ).strip()
     if not resolved_device:
         raise GraphSkillEmbeddingAllocationError(

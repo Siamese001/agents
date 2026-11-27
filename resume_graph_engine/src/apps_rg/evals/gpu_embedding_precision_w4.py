@@ -7,6 +7,7 @@ evaluation and cannot qualify retrieval or authorize promotion.
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_environ
 import hashlib
 import json
 import os
@@ -407,7 +408,7 @@ def run_precision_benchmark(
         raise GpuEmbeddingPrecisionError("W4 requires at least three repetitions")
     root = Path(repository_root).resolve()
     for name in ("HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE", "HF_DATASETS_OFFLINE"):
-        os.environ[name] = "1"
+        get_runtime_environ()[name] = "1"
     try:
         import torch
     except ImportError as exc:
