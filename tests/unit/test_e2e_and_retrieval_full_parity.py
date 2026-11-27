@@ -92,6 +92,38 @@ def test_e2e_auditor_scans_all_11_roots_for_silent_swallows(tmp_path: Path) -> N
     assert len(findings_multi) == 2
 
 
+def test_e2e_auditor_skips_only_digest_signed_standalone_bundles(tmp_path: Path) -> None:
+    tools_dir = tmp_path / "tools"
+    tools_dir.mkdir(parents=True)
+    (tools_dir / "bad_tool.py").write_text(
+        "def run_check() -> dict:\n"
+        "    try:\n"
+        "        return {'ok': True}\n"
+        "    except Exception:\n"
+        "        return {}\n",
+        encoding="utf-8",
+    )
+    (tools_dir / "_standalone_fake.py").write_text(
+        "def spoofed_bundle() -> None:\n"
+        "    try:\n"
+        "        return None\n"
+        "    except Exception:\n"
+        "        pass\n",
+        encoding="utf-8",
+    )
+    (tools_dir / "_standalone_synced.py").write_text(
+        'CORE_GOVERNANCE_TEST_SHA256 = "' + ("a" * 64) + '"\n'
+        "def synced_fallback() -> dict:\n"
+        "    try:\n"
+        "        return {'ok': True}\n"
+        "    except Exception:\n"
+        "        return {}\n",
+        encoding="utf-8",
+    )
+    findings = scan_unguarded_silent_swallows(tmp_path)
+    assert {f["file"] for f in findings} == {"tools/bad_tool.py", "tools/_standalone_fake.py"}
+
+
 def test_retrieval_auditor_enforces_return_types_without_filename_regex_bypass(tmp_path: Path) -> None:
     assert set(RETRIEVAL_PACKAGES) == set(AUDITED_PACKAGES)
     assert len(RETRIEVAL_PACKAGES) == 11
