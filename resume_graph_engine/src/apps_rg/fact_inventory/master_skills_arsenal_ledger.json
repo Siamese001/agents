@@ -110,7 +110,7 @@
     "primary_taxonomy": "capability_domain",
     "source_coded_taxonomy_forbidden_as_primary": true,
     "node_count": 366,
-    "edge_count": 2588,
+    "edge_count": 2556,
     "deep_agentic_row_count": 78,
     "career_track_count": 3,
     "career_track_materialized_at": "2026-05-20T12:20:17Z",
@@ -462,11 +462,11 @@
       "node_count": 366,
       "hardened_node_count": 364,
       "held_internal_only_node_count": 2,
-      "description_change_count": 33,
+      "description_change_count": 30,
       "fact_missing_removed_count": 0,
-      "edge_count": 2151,
-      "graph_edges_sha256_before": "592236f91cf884a480cf55510ff824602ca7351f3a36c38c7ef9a323a6d48834",
-      "graph_edges_sha256_after": "592236f91cf884a480cf55510ff824602ca7351f3a36c38c7ef9a323a6d48834",
+      "edge_count": 2117,
+      "graph_edges_sha256_before": "0e145167476bd4d5a9a9151b90830661b451089d89db10624cdf525ad3c6700e",
+      "graph_edges_sha256_after": "0e145167476bd4d5a9a9151b90830661b451089d89db10624cdf525ad3c6700e",
       "skill_row_count": 246,
       "production_promotion_authorized": false
     },
@@ -474,73 +474,67 @@
     "edge_semantic_hardening": {
       "contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
       "wave_id": "C03_CLUSTER_EMBEDDING_W2",
-      "edge_count": 2151,
-      "semantically_specified_edge_count": 2151,
-      "hardened_edge_count": 2146,
-      "held_integrity_gap_edge_count": 5,
+      "edge_count": 2117,
+      "semantically_specified_edge_count": 2117,
+      "hardened_edge_count": 2117,
+      "held_integrity_gap_edge_count": 0,
       "semantic_status_counts": {
-        "HARDENED": 2146,
-        "HELD_INTEGRITY_GAP": 5
+        "HARDENED": 2117
       },
-      "integrity_gap_count": 5,
-      "integrity_gap_reason_counts": {
-        "SOURCE_FIELD_CONFLICT:domain_id": 5
-      },
+      "integrity_gap_count": 0,
+      "integrity_gap_reason_counts": {},
       "basis_kind_counts": {
-        "evidence_reference": 546,
+        "evidence_reference": 517,
         "non_causal_bridge": 58,
         "operator_confirmation": 6,
         "policy_predicate": 155,
-        "source_field_derivation": 1269,
+        "source_field_derivation": 1264,
         "taxonomy_rule": 117
       },
       "lifecycle_disposition_counts": {
-        "ACTIVE_POLICY_GATED": 1435,
-        "HELD_INTEGRITY_GAP": 5,
+        "ACTIVE_POLICY_GATED": 1406,
         "HELD_NON_ACTIVE_ENDPOINT": 288,
         "INTERNAL_TRAVERSAL_ONLY": 423
       },
-      "source_graph_edges_sha256": "592236f91cf884a480cf55510ff824602ca7351f3a36c38c7ef9a323a6d48834",
-      "hardened_graph_edges_sha256": "e369557db907e1de7df864b16ae034901061713c96cad50446bd8692e2f82a49",
-      "legacy_edge_payload_sha256_before": "592236f91cf884a480cf55510ff824602ca7351f3a36c38c7ef9a323a6d48834",
-      "legacy_edge_payload_sha256_after": "592236f91cf884a480cf55510ff824602ca7351f3a36c38c7ef9a323a6d48834",
-      "edge_identity_sha256_before": "1d0201f800eab1d0224ec56fab30c72212d633618217f18d60b78624e6951114",
-      "edge_identity_sha256_after": "1d0201f800eab1d0224ec56fab30c72212d633618217f18d60b78624e6951114",
-      "edge_topology_sha256_before": "27d9bcb37dbe3af120d1cd98bb845e34b1698632a93c9e164b06b51d5fe01aff",
-      "edge_topology_sha256_after": "27d9bcb37dbe3af120d1cd98bb845e34b1698632a93c9e164b06b51d5fe01aff",
-      "graph_nodes_sha256_before": "bb5d35b73395eb45781f4617354e12f91a7dfc5cb080b11b3154a8fec9373762",
-      "graph_nodes_sha256_after": "bb5d35b73395eb45781f4617354e12f91a7dfc5cb080b11b3154a8fec9373762",
-      "skill_rows_sha256_before": "5a6ed2dd973422ea75f870d6be03fe5c8f5b96affe38401df3a03de7a8f34549",
-      "skill_rows_sha256_after": "5a6ed2dd973422ea75f870d6be03fe5c8f5b96affe38401df3a03de7a8f34549",
+      "source_graph_edges_sha256": "0e145167476bd4d5a9a9151b90830661b451089d89db10624cdf525ad3c6700e",
+      "hardened_graph_edges_sha256": "5a0d6a0d895ac22c854feafe705ea5b9684a9cf27398608fb63780f8f65e19dc",
+      "legacy_edge_payload_sha256_before": "0e145167476bd4d5a9a9151b90830661b451089d89db10624cdf525ad3c6700e",
+      "legacy_edge_payload_sha256_after": "0e145167476bd4d5a9a9151b90830661b451089d89db10624cdf525ad3c6700e",
+      "edge_identity_sha256_before": "d23d77a9389c4bba0d1d27bd9713ab0bc72dc8357e785d411c54c0930acdefb2",
+      "edge_identity_sha256_after": "d23d77a9389c4bba0d1d27bd9713ab0bc72dc8357e785d411c54c0930acdefb2",
+      "edge_topology_sha256_before": "61be0fe8d89ba5ac59e9071579d24bf0ff7521e9696561529752ea80567e843d",
+      "edge_topology_sha256_after": "61be0fe8d89ba5ac59e9071579d24bf0ff7521e9696561529752ea80567e843d",
+      "graph_nodes_sha256_before": "6988e14bd1b94f9fb04f019fa44a466b3ad88894dc036489444ed5a217d41fc1",
+      "graph_nodes_sha256_after": "6988e14bd1b94f9fb04f019fa44a466b3ad88894dc036489444ed5a217d41fc1",
+      "skill_rows_sha256_before": "32b94391955d63e066af30a4b528e00cfc2cb81f58d9d28a814e6f748e098252",
+      "skill_rows_sha256_after": "32b94391955d63e066af30a4b528e00cfc2cb81f58d9d28a814e6f748e098252",
       "production_promotion_authorized": false
     },
     "authority_reconciliation": {
       "contract_version": "apps_rg.c03_graph_authority_reconciliation_contract.v1",
       "wave_id": "C03_CLUSTER_EMBEDDING_W3",
-      "source_edge_count": 2151,
-      "source_graph_edges_sha256": "e369557db907e1de7df864b16ae034901061713c96cad50446bd8692e2f82a49",
-      "source_graph_nodes_sha256": "bb5d35b73395eb45781f4617354e12f91a7dfc5cb080b11b3154a8fec9373762",
-      "source_skill_rows_sha256": "5a6ed2dd973422ea75f870d6be03fe5c8f5b96affe38401df3a03de7a8f34549",
-      "source_w1_marker_sha256": "194df453d293ebcbda85b030825244591b76a2ec4b38a9a2e9031420971c537e",
-      "source_w2_marker_sha256": "dd544e0299b70ce19f525b015f8b0f36f56cae1bd11a80450f1a8ab6154a986f",
-      "current_edge_count": 2588,
-      "current_graph_edges_sha256": "9e5e87c4940c6740ca2423a2ad62c2c320caab0c27da21c9b786278c79d5d96b",
-      "current_graph_nodes_sha256": "bb5d35b73395eb45781f4617354e12f91a7dfc5cb080b11b3154a8fec9373762",
-      "current_skill_rows_sha256": "5a6ed2dd973422ea75f870d6be03fe5c8f5b96affe38401df3a03de7a8f34549",
-      "retired_edge_count": 5,
+      "source_edge_count": 2117,
+      "source_graph_edges_sha256": "5a0d6a0d895ac22c854feafe705ea5b9684a9cf27398608fb63780f8f65e19dc",
+      "source_graph_nodes_sha256": "6988e14bd1b94f9fb04f019fa44a466b3ad88894dc036489444ed5a217d41fc1",
+      "source_skill_rows_sha256": "32b94391955d63e066af30a4b528e00cfc2cb81f58d9d28a814e6f748e098252",
+      "source_w1_marker_sha256": "6f9a9ba54186a3c6e87ba6ef175f865191746f8a27afc64abbec0d21a5a8471f",
+      "source_w2_marker_sha256": "f9022c3a159926aff274ba87eb78c40f42f677f3e6a6eb23969513adc8582d56",
+      "current_edge_count": 2556,
+      "current_graph_edges_sha256": "c7b3a218cf9229de5a6b85730a3a116c96703782c38d56d40dd7a10d1bd84992",
+      "current_graph_nodes_sha256": "6988e14bd1b94f9fb04f019fa44a466b3ad88894dc036489444ed5a217d41fc1",
+      "current_skill_rows_sha256": "32b94391955d63e066af30a4b528e00cfc2cb81f58d9d28a814e6f748e098252",
+      "retired_edge_count": 1,
       "retired_edge_reason_counts": {
-        "W2_INTEGRITY_GAP:SOURCE_FIELD_CONFLICT:domain_id": 5
+        "DRAFT_BLOCK_EDGE_CONFLICTS_WITH_ROW": 1
       },
-      "retired_edge_inventory_sha256": "d642c9313b5e9e34ce4af8adc037cfcd15a16a017c5f5478db3025400d7b831e",
-      "added_edge_count": 442,
+      "retired_edge_inventory_sha256": "fa64bce2ce3388970e219deb96e773fb0022bd98917f7ccd6ac41e4a9f518b1c",
+      "added_edge_count": 440,
       "added_edge_type_counts": {
-        "projection_excludes_blocked_skill": 1,
         "skill_allowed_in_section": 327,
         "skill_external_claim_eligible": 95,
-        "skill_projection_only_internal": 18,
-        "skill_requires_human_confirmation": 1
+        "skill_projection_only_internal": 18
       },
-      "added_edge_inventory_sha256": "29ac8d1ff1299e2e44ab9646e7a6612e258a9b6c408c3313281929ec68dc6a18",
+      "added_edge_inventory_sha256": "aef7ef543d268912531697ad860782e77d1aab9dcb6611f9554354254032481e",
       "changed_hop_row_count": 0,
       "changed_hop_row_ids_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "retired_orphan_node_count": 0,
@@ -550,11 +544,11 @@
       "safety_row_change_count": 0,
       "safety_row_ids_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "semantic_status_counts": {
-        "HARDENED": 2588
+        "HARDENED": 2556
       },
       "lifecycle_disposition_counts": {
-        "ACTIVE_POLICY_GATED": 1824,
-        "HELD_NON_ACTIVE_ENDPOINT": 293,
+        "ACTIVE_POLICY_GATED": 1795,
+        "HELD_NON_ACTIVE_ENDPOINT": 290,
         "INTERNAL_TRAVERSAL_ONLY": 471
       },
       "production_promotion_authorized": false
@@ -619,7 +613,7 @@
       "node_id": "identity_amit_ayer_governed_ai_platform_leader",
       "node_type": "identity_north_star",
       "label": "Amit Ayer — Governed AI Platform Leader",
-      "description": "Governed AI platform and agentic runtime engineering leader with actuarial, derivatives, risk, governance, AWS/cloud, partner GTM, revenue, and commercialization depth. This identity anchor organizes graph selection and is not independent claim proof. This identity anchor organizes graph selection and is not independent claim proof.",
+      "description": "Governed AI platform and agentic runtime engineering leader with actuarial, derivatives, risk, governance, AWS/cloud, partner GTM, revenue, and commercialization depth. This identity anchor organizes graph selection and is not independent claim proof. This identity anchor organizes graph selection and is not independent claim proof. This identity anchor organizes graph selection and is not independent claim proof.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE",
@@ -629,7 +623,7 @@
       "external_claim_policy": "skill_projection_not_proof",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "structural_definition",
-      "canonical_assertion_text": "Governed AI platform and agentic runtime engineering leader with actuarial, derivatives, risk, governance, AWS/cloud, partner GTM, revenue, and commercialization depth. This identity anchor organizes graph selection and is not independent claim proof. This identity anchor organizes graph selection and is not independent claim proof.",
+      "canonical_assertion_text": "Governed AI platform and agentic runtime engineering leader with actuarial, derivatives, risk, governance, AWS/cloud, partner GTM, revenue, and commercialization depth. This identity anchor organizes graph selection and is not independent claim proof. This identity anchor organizes graph selection and is not independent claim proof. This identity anchor organizes graph selection and is not independent claim proof.",
       "authority_refs": [
         "ledger:graph_nodes/identity_amit_ayer_governed_ai_platform_leader"
       ],
@@ -766,7 +760,7 @@
       "node_id": "pillar_agentic_ai_platforms",
       "node_type": "domain_pillar",
       "label": "Agentic AI Platforms",
-      "description": "Governed agentic runtime, routing, orchestration, GraphRAG, policy gates, validation, replayable traces. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "description": "Governed agentic runtime, routing, orchestration, GraphRAG, policy gates, validation, replayable traces. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE",
@@ -780,7 +774,7 @@
       "external_claim_policy": "skill_projection_not_proof",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "structural_definition",
-      "canonical_assertion_text": "Governed agentic runtime, routing, orchestration, GraphRAG, policy gates, validation, replayable traces. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "canonical_assertion_text": "Governed agentic runtime, routing, orchestration, GraphRAG, policy gates, validation, replayable traces. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "authority_refs": [
         "fact_engineering_platform_001",
         "fact_engineering_platform_003",
@@ -794,7 +788,7 @@
       "node_id": "pillar_cloud_data_aws",
       "node_type": "domain_pillar",
       "label": "Cloud / Data / AWS",
-      "description": "AWS/Databricks lakehouse, microservices, vector services, API gateways, identity, HPC on cloud. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "description": "AWS/Databricks lakehouse, microservices, vector services, API gateways, identity, HPC on cloud. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE",
@@ -807,7 +801,7 @@
       "external_claim_policy": "skill_projection_not_proof",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "structural_definition",
-      "canonical_assertion_text": "AWS/Databricks lakehouse, microservices, vector services, API gateways, identity, HPC on cloud. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "canonical_assertion_text": "AWS/Databricks lakehouse, microservices, vector services, API gateways, identity, HPC on cloud. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "authority_refs": [
         "fact_certs_001",
         "fact_engineering_platform_005",
@@ -820,7 +814,7 @@
       "node_id": "pillar_partner_gtm_alliances",
       "node_type": "domain_pillar",
       "label": "Partner GTM / Alliances",
-      "description": "Channel programs, strategic alliances, ecosystem GTM, IBM–AWS alliance motions. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "description": "Channel programs, strategic alliances, ecosystem GTM, IBM–AWS alliance motions. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE",
@@ -835,7 +829,7 @@
       "external_claim_policy": "skill_projection_not_proof",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "structural_definition",
-      "canonical_assertion_text": "Channel programs, strategic alliances, ecosystem GTM, IBM–AWS alliance motions. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "canonical_assertion_text": "Channel programs, strategic alliances, ecosystem GTM, IBM–AWS alliance motions. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "authority_refs": [
         "fact_partnerships_gtm_001",
         "fact_partnerships_gtm_002",
@@ -850,7 +844,7 @@
       "node_id": "pillar_cosell_partner_engineering",
       "node_type": "domain_pillar",
       "label": "Co-selling / Partner Engineering",
-      "description": "Co-sell frameworks, partner engineering delivery, bundled partner offers, technical enablement for partners. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "description": "Co-sell frameworks, partner engineering delivery, bundled partner offers, technical enablement for partners. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE",
@@ -863,7 +857,7 @@
       "external_claim_policy": "skill_projection_not_proof",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "structural_definition",
-      "canonical_assertion_text": "Co-sell frameworks, partner engineering delivery, bundled partner offers, technical enablement for partners. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "canonical_assertion_text": "Co-sell frameworks, partner engineering delivery, bundled partner offers, technical enablement for partners. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "authority_refs": [
         "fact_partnerships_gtm_001",
         "fact_partnerships_gtm_003",
@@ -876,7 +870,7 @@
       "node_id": "pillar_presales_solutioning",
       "node_type": "domain_pillar",
       "label": "Pre-sales / Solutioning",
-      "description": "Executive workshops, pilots, ROI validation, solution architecture in pursuit cycles. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "description": "Executive workshops, pilots, ROI validation, solution architecture in pursuit cycles. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE",
@@ -889,7 +883,7 @@
       "external_claim_policy": "skill_projection_not_proof",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "structural_definition",
-      "canonical_assertion_text": "Executive workshops, pilots, ROI validation, solution architecture in pursuit cycles. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "canonical_assertion_text": "Executive workshops, pilots, ROI validation, solution architecture in pursuit cycles. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "authority_refs": [
         "fact_solutions_001",
         "fact_solutions_002",
@@ -902,7 +896,7 @@
       "node_id": "pillar_revenue_commercialization",
       "node_type": "domain_pillar",
       "label": "Revenue Ownership / Commercialization",
-      "description": "IP-led revenue, margins, ARR growth, sales targets, P&L/partner revenue accountability. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "description": "IP-led revenue, margins, ARR growth, sales targets, P&L/partner revenue accountability. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE",
@@ -917,7 +911,7 @@
       "external_claim_policy": "skill_projection_not_proof",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "structural_definition",
-      "canonical_assertion_text": "IP-led revenue, margins, ARR growth, sales targets, P&L/partner revenue accountability. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "canonical_assertion_text": "IP-led revenue, margins, ARR growth, sales targets, P&L/partner revenue accountability. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "authority_refs": [
         "fact_engineering_platform_006",
         "fact_revenue_ops_003",
@@ -932,7 +926,7 @@
       "node_id": "pillar_revenue_operations",
       "node_type": "domain_pillar",
       "label": "Revenue Operations / Pipeline Governance",
-      "description": "Pipeline instrumentation, Salesforce analytics, forecasting rigor, and revenue process design across sales and finance. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "description": "Pipeline instrumentation, Salesforce analytics, forecasting rigor, and revenue process design across sales and finance. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE",
@@ -946,7 +940,7 @@
       "external_claim_policy": "skill_projection_not_proof",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "structural_definition",
-      "canonical_assertion_text": "Pipeline instrumentation, Salesforce analytics, forecasting rigor, and revenue process design across sales and finance. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "canonical_assertion_text": "Pipeline instrumentation, Salesforce analytics, forecasting rigor, and revenue process design across sales and finance. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "authority_refs": [
         "fact_revenue_ops_001",
         "fact_revenue_ops_002",
@@ -960,7 +954,7 @@
       "node_id": "pillar_executive_leadership",
       "node_type": "domain_pillar",
       "label": "Executive Leadership / Operating Model",
-      "description": "C-suite alignment, cross-functional scale-out, operating model, org design. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "description": "C-suite alignment, cross-functional scale-out, operating model, org design. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE",
@@ -973,7 +967,7 @@
       "external_claim_policy": "skill_projection_not_proof",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "structural_definition",
-      "canonical_assertion_text": "C-suite alignment, cross-functional scale-out, operating model, org design. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "canonical_assertion_text": "C-suite alignment, cross-functional scale-out, operating model, org design. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "authority_refs": [
         "fact_exec_001",
         "fact_exec_002",
@@ -986,7 +980,7 @@
       "node_id": "pillar_actuarial_foundation",
       "node_type": "domain_pillar",
       "label": "Actuarial Foundation",
-      "description": "FSA, early-career actuarial depth, stochastic modeling, actuarial software—not credential label only. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "description": "FSA, early-career actuarial depth, stochastic modeling, actuarial software—not credential label only. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE",
@@ -999,7 +993,7 @@
       "external_claim_policy": "skill_projection_not_proof",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "structural_definition",
-      "canonical_assertion_text": "FSA, early-career actuarial depth, stochastic modeling, actuarial software—not credential label only. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "canonical_assertion_text": "FSA, early-career actuarial depth, stochastic modeling, actuarial software—not credential label only. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "authority_refs": [
         "fact_certs_001",
         "fact_quant_hpc_003",
@@ -1012,7 +1006,7 @@
       "node_id": "pillar_embedded_options_insurance",
       "node_type": "domain_pillar",
       "label": "Embedded Options / Insurance Liabilities",
-      "description": "Insurance liability and embedded-options valuation context from actuarial career. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "description": "Insurance liability and embedded-options valuation context from actuarial career. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE",
@@ -1022,7 +1016,7 @@
       "external_claim_policy": "skill_projection_not_proof",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "structural_definition",
-      "canonical_assertion_text": "Insurance liability and embedded-options valuation context from actuarial career. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "canonical_assertion_text": "Insurance liability and embedded-options valuation context from actuarial career. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "authority_refs": [
         "ledger:graph_nodes/pillar_embedded_options_insurance"
       ],
@@ -1033,7 +1027,7 @@
       "node_id": "pillar_derivatives_structured",
       "node_type": "domain_pillar",
       "label": "Derivatives / Structured Derivatives",
-      "description": "Derivatives pricing, complex/structured derivatives, exotic options. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "description": "Derivatives pricing, complex/structured derivatives, exotic options. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE",
@@ -1045,7 +1039,7 @@
       "external_claim_policy": "skill_projection_not_proof",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "structural_definition",
-      "canonical_assertion_text": "Derivatives pricing, complex/structured derivatives, exotic options. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "canonical_assertion_text": "Derivatives pricing, complex/structured derivatives, exotic options. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "authority_refs": [
         "fact_quant_hpc_003",
         "ledger:graph_nodes/pillar_derivatives_structured"
@@ -1057,7 +1051,7 @@
       "node_id": "pillar_greeks_hedging",
       "node_type": "domain_pillar",
       "label": "Greeks / Hedging",
-      "description": "Multi-Greek hedging, Greek stress tests, hedging frameworks. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "description": "Multi-Greek hedging, Greek stress tests, hedging frameworks. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE",
@@ -1069,7 +1063,7 @@
       "external_claim_policy": "skill_projection_not_proof",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "structural_definition",
-      "canonical_assertion_text": "Multi-Greek hedging, Greek stress tests, hedging frameworks. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "canonical_assertion_text": "Multi-Greek hedging, Greek stress tests, hedging frameworks. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "authority_refs": [
         "fact_quant_hpc_003",
         "ledger:graph_nodes/pillar_greeks_hedging"
@@ -1081,7 +1075,7 @@
       "node_id": "pillar_risk_management",
       "node_type": "domain_pillar",
       "label": "Risk Management",
-      "description": "Enterprise risk analytics, portfolio risk, market risk, model risk themes. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "description": "Enterprise risk analytics, portfolio risk, market risk, model risk themes. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE",
@@ -1094,7 +1088,7 @@
       "external_claim_policy": "skill_projection_not_proof",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "structural_definition",
-      "canonical_assertion_text": "Enterprise risk analytics, portfolio risk, market risk, model risk themes. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "canonical_assertion_text": "Enterprise risk analytics, portfolio risk, market risk, model risk themes. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "authority_refs": [
         "fact_governance_001",
         "fact_quant_hpc_001",
@@ -1107,7 +1101,7 @@
       "node_id": "pillar_enterprise_risk_controls",
       "node_type": "domain_pillar",
       "label": "Enterprise Risk / Controls",
-      "description": "Usage controls, compliance checkpoints, encryption, access controls, audit readiness. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "description": "Usage controls, compliance checkpoints, encryption, access controls, audit readiness. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE",
@@ -1120,7 +1114,7 @@
       "external_claim_policy": "skill_projection_not_proof",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "structural_definition",
-      "canonical_assertion_text": "Usage controls, compliance checkpoints, encryption, access controls, audit readiness. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "canonical_assertion_text": "Usage controls, compliance checkpoints, encryption, access controls, audit readiness. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "authority_refs": [
         "fact_governance_001",
         "fact_governance_003",
@@ -1133,7 +1127,7 @@
       "node_id": "pillar_regulatory_governance",
       "node_type": "domain_pillar",
       "label": "Regulatory Governance",
-      "description": "Basel, CCAR, FINRA/SEC alignment, regulatory reporting, lineage/cataloging. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "description": "Basel, CCAR, FINRA/SEC alignment, regulatory reporting, lineage/cataloging. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE",
@@ -1146,7 +1140,7 @@
       "external_claim_policy": "skill_projection_not_proof",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "structural_definition",
-      "canonical_assertion_text": "Basel, CCAR, FINRA/SEC alignment, regulatory reporting, lineage/cataloging. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "canonical_assertion_text": "Basel, CCAR, FINRA/SEC alignment, regulatory reporting, lineage/cataloging. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "authority_refs": [
         "fact_governance_002",
         "fact_governance_003",
@@ -1159,7 +1153,7 @@
       "node_id": "pillar_capital_modeling",
       "node_type": "domain_pillar",
       "label": "Capital Modeling / Reserving / Pricing",
-      "description": "Capital models, reserving, pricing, capital adequacy, regulatory capital. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "description": "Capital models, reserving, pricing, capital adequacy, regulatory capital. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE",
@@ -1172,7 +1166,7 @@
       "external_claim_policy": "skill_projection_not_proof",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "structural_definition",
-      "canonical_assertion_text": "Capital models, reserving, pricing, capital adequacy, regulatory capital. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "canonical_assertion_text": "Capital models, reserving, pricing, capital adequacy, regulatory capital. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "authority_refs": [
         "fact_governance_003",
         "fact_quant_hpc_003",
@@ -1185,7 +1179,7 @@
       "node_id": "pillar_trading_hpc",
       "node_type": "domain_pillar",
       "label": "Trading / HPC / Market Forecasting",
-      "description": "Algorithmic trading, HPC, sub-ms latency, GPU forecasting, market-making. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "description": "Algorithmic trading, HPC, sub-ms latency, GPU forecasting, market-making. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE",
@@ -1197,7 +1191,7 @@
       "external_claim_policy": "skill_projection_not_proof",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "structural_definition",
-      "canonical_assertion_text": "Algorithmic trading, HPC, sub-ms latency, GPU forecasting, market-making. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "canonical_assertion_text": "Algorithmic trading, HPC, sub-ms latency, GPU forecasting, market-making. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "authority_refs": [
         "fact_quant_hpc_001",
         "ledger:graph_nodes/pillar_trading_hpc"
@@ -1209,7 +1203,7 @@
       "node_id": "pillar_strategic_finance_saas",
       "node_type": "domain_pillar",
       "label": "Strategic Finance / SaaS Metrics",
-      "description": "FP&A, ARR, churn, LTV/CAC, M&A synergy, investor relations. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "description": "FP&A, ARR, churn, LTV/CAC, M&A synergy, investor relations. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE",
@@ -1225,7 +1219,7 @@
       "external_claim_policy": "skill_projection_not_proof",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "structural_definition",
-      "canonical_assertion_text": "FP&A, ARR, churn, LTV/CAC, M&A synergy, investor relations. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "canonical_assertion_text": "FP&A, ARR, churn, LTV/CAC, M&A synergy, investor relations. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "authority_refs": [
         "fact_consulting_002",
         "fact_revenue_ops_001",
@@ -1241,7 +1235,7 @@
       "node_id": "pillar_customer_stakeholder",
       "node_type": "domain_pillar",
       "label": "Customer / Enterprise Stakeholder Leadership",
-      "description": "CFO/CRO alignment, enterprise negotiations, customer success motions, renewal/expansion. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "description": "CFO/CRO alignment, enterprise negotiations, customer success motions, renewal/expansion. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE",
@@ -1254,7 +1248,7 @@
       "external_claim_policy": "skill_projection_not_proof",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "structural_definition",
-      "canonical_assertion_text": "CFO/CRO alignment, enterprise negotiations, customer success motions, renewal/expansion. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "canonical_assertion_text": "CFO/CRO alignment, enterprise negotiations, customer success motions, renewal/expansion. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "authority_refs": [
         "fact_exec_001",
         "fact_sales_accounts_003",
@@ -1267,7 +1261,7 @@
       "node_id": "pillar_gtm_presales_motion",
       "node_type": "domain_pillar",
       "label": "Go-to-Market / Pre-Sales Motion",
-      "description": "Discovery through pursuit: qualification, solution mapping, stakeholder and executive-buyer alignment, commercial validation, deal support, and delivery handoff. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "description": "Discovery through pursuit: qualification, solution mapping, stakeholder and executive-buyer alignment, commercial validation, deal support, and delivery handoff. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE",
@@ -1282,7 +1276,7 @@
       "external_claim_policy": "skill_projection_not_proof",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "structural_definition",
-      "canonical_assertion_text": "Discovery through pursuit: qualification, solution mapping, stakeholder and executive-buyer alignment, commercial validation, deal support, and delivery handoff. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "canonical_assertion_text": "Discovery through pursuit: qualification, solution mapping, stakeholder and executive-buyer alignment, commercial validation, deal support, and delivery handoff. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "authority_refs": [
         "fact_partnerships_gtm_004",
         "fact_revenue_ops_001",
@@ -1297,7 +1291,7 @@
       "node_id": "pillar_technical_presales_accelerators",
       "node_type": "domain_pillar",
       "label": "Technical Pre-Sales Accelerators",
-      "description": "Reference architectures, repeatable DevOps/CI-CD blueprints, AWS modernization patterns, demoable accelerators, adoption de-risking, and reusable implementation assets for pursuits. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "description": "Reference architectures, repeatable DevOps/CI-CD blueprints, AWS modernization patterns, demoable accelerators, adoption de-risking, and reusable implementation assets for pursuits. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE",
@@ -1313,7 +1307,7 @@
       "external_claim_policy": "skill_projection_not_proof",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "structural_definition",
-      "canonical_assertion_text": "Reference architectures, repeatable DevOps/CI-CD blueprints, AWS modernization patterns, demoable accelerators, adoption de-risking, and reusable implementation assets for pursuits. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "canonical_assertion_text": "Reference architectures, repeatable DevOps/CI-CD blueprints, AWS modernization patterns, demoable accelerators, adoption de-risking, and reusable implementation assets for pursuits. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "authority_refs": [
         "fact_engineering_platform_003",
         "fact_engineering_platform_005",
@@ -1329,7 +1323,7 @@
       "node_id": "pillar_insurance_carrier_transformation",
       "node_type": "domain_pillar",
       "label": "Insurance Carrier Technology Transformation",
-      "description": "Legacy insurance technology modernization and regulated insurer cloud adoption — middle-market carrier fluency from InsurTech employment; not carrier underwriting/claims ownership. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "description": "Legacy insurance technology modernization and regulated insurer cloud adoption — middle-market carrier fluency from InsurTech employment; not carrier underwriting/claims ownership. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE",
@@ -1343,7 +1337,7 @@
       "external_claim_policy": "skill_projection_not_proof",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "structural_definition",
-      "canonical_assertion_text": "Legacy insurance technology modernization and regulated insurer cloud adoption — middle-market carrier fluency from InsurTech employment; not carrier underwriting/claims ownership. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "canonical_assertion_text": "Legacy insurance technology modernization and regulated insurer cloud adoption — middle-market carrier fluency from InsurTech employment; not carrier underwriting/claims ownership. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "authority_refs": [
         "bul_insurtech_001",
         "bul_insurtech_002",
@@ -1357,7 +1351,7 @@
       "node_id": "pillar_underwriting_claims_ops_ai",
       "node_type": "domain_pillar",
       "label": "Insurance Systems Resilience (Internal Traversal)",
-      "description": "Internal-only traversal pillar for legacy insurance platform resilience signals — does not assert underwriting/claims/policy-admin AI product ownership. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "description": "Internal-only traversal pillar for legacy insurance platform resilience signals — does not assert underwriting/claims/policy-admin AI product ownership. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE",
@@ -1369,7 +1363,7 @@
       "external_claim_policy": "skill_projection_not_proof",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "structural_definition",
-      "canonical_assertion_text": "Internal-only traversal pillar for legacy insurance platform resilience signals — does not assert underwriting/claims/policy-admin AI product ownership. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "canonical_assertion_text": "Internal-only traversal pillar for legacy insurance platform resilience signals — does not assert underwriting/claims/policy-admin AI product ownership. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "authority_refs": [
         "bul_insurtech_003",
         "ledger:graph_nodes/pillar_underwriting_claims_ops_ai"
@@ -1381,7 +1375,7 @@
       "node_id": "pillar_insurer_it_strategy_ai_enablement",
       "node_type": "domain_pillar",
       "label": "Insurer IT Strategy & AI Enablement",
-      "description": "Insurer IT strategy, cloud data platforms, and AI enablement from InsurTech CTO and engineering platform facts — not brokerage distribution. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "description": "Insurer IT strategy, cloud data platforms, and AI enablement from InsurTech CTO and engineering platform facts — not brokerage distribution. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE",
@@ -1395,7 +1389,7 @@
       "external_claim_policy": "skill_projection_not_proof",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "structural_definition",
-      "canonical_assertion_text": "Insurer IT strategy, cloud data platforms, and AI enablement from InsurTech CTO and engineering platform facts — not brokerage distribution. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "canonical_assertion_text": "Insurer IT strategy, cloud data platforms, and AI enablement from InsurTech CTO and engineering platform facts — not brokerage distribution. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "authority_refs": [
         "exp_insurtech_001",
         "fact_engineering_platform_001",
@@ -1409,7 +1403,7 @@
       "node_id": "pillar_enterprise_portfolio_governance",
       "node_type": "domain_pillar",
       "label": "Enterprise Portfolio & Data Governance",
-      "description": "Enterprise portfolio governance, data catalogs, and executive alignment — EY/regulatory program and governance facts. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "description": "Enterprise portfolio governance, data catalogs, and executive alignment — EY/regulatory program and governance facts. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE",
@@ -1422,7 +1416,7 @@
       "external_claim_policy": "skill_projection_not_proof",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "structural_definition",
-      "canonical_assertion_text": "Enterprise portfolio governance, data catalogs, and executive alignment — EY/regulatory program and governance facts. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "canonical_assertion_text": "Enterprise portfolio governance, data catalogs, and executive alignment — EY/regulatory program and governance facts. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "authority_refs": [
         "fact_engineering_platform_004",
         "fact_governance_004",
@@ -1435,7 +1429,7 @@
       "node_id": "pillar_banking_platform_responsible_ai",
       "node_type": "domain_pillar",
       "label": "Banking Platform & Responsible AI (Regulated)",
-      "description": "Regulated financial-institutions platform fluency, Basel/CCAR lineage, and responsible AI governance — not transaction banking product lines. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "description": "Regulated financial-institutions platform fluency, Basel/CCAR lineage, and responsible AI governance — not transaction banking product lines. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE",
@@ -1448,7 +1442,7 @@
       "external_claim_policy": "skill_projection_not_proof",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "structural_definition",
-      "canonical_assertion_text": "Regulated financial-institutions platform fluency, Basel/CCAR lineage, and responsible AI governance — not transaction banking product lines. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "canonical_assertion_text": "Regulated financial-institutions platform fluency, Basel/CCAR lineage, and responsible AI governance — not transaction banking product lines. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "authority_refs": [
         "fact_governance_001",
         "fact_governance_003",
@@ -1461,7 +1455,7 @@
       "node_id": "pillar_interoperability_integration_ecosystem",
       "node_type": "domain_pillar",
       "label": "Interoperability & Integration Platform",
-      "description": "Microservices and integration-platform patterns for regulated enterprises — not insurance brokerage distribution. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "description": "Microservices and integration-platform patterns for regulated enterprises — not insurance brokerage distribution. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE",
@@ -1473,7 +1467,7 @@
       "external_claim_policy": "skill_projection_not_proof",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "structural_definition",
-      "canonical_assertion_text": "Microservices and integration-platform patterns for regulated enterprises — not insurance brokerage distribution. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "canonical_assertion_text": "Microservices and integration-platform patterns for regulated enterprises — not insurance brokerage distribution. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "authority_refs": [
         "fact_engineering_platform_002",
         "ledger:graph_nodes/pillar_interoperability_integration_ecosystem"
@@ -1485,7 +1479,7 @@
       "node_id": "pillar_hyperscaler_marketplace_partner_gtm",
       "node_type": "domain_pillar",
       "label": "Hyperscaler Alliance & Co-Sell GTM",
-      "description": "Hyperscaler alliances (IBM/AWS), AWS partner accreditations, alliance co-sell motions, and partner-derived revenue — not cloud marketplace listing GTM (no marketplace evidence). This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "description": "Hyperscaler alliances (IBM/AWS), AWS partner accreditations, alliance co-sell motions, and partner-derived revenue — not cloud marketplace listing GTM (no marketplace evidence). This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE",
@@ -1500,7 +1494,7 @@
       "external_claim_policy": "skill_projection_not_proof",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "structural_definition",
-      "canonical_assertion_text": "Hyperscaler alliances (IBM/AWS), AWS partner accreditations, alliance co-sell motions, and partner-derived revenue — not cloud marketplace listing GTM (no marketplace evidence). This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "canonical_assertion_text": "Hyperscaler alliances (IBM/AWS), AWS partner accreditations, alliance co-sell motions, and partner-derived revenue — not cloud marketplace listing GTM (no marketplace evidence). This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "authority_refs": [
         "bul_ibm_005",
         "cert_databricks_lakehouse_001",
@@ -1515,7 +1509,7 @@
       "node_id": "pillar_applied_ai_partner_architecture",
       "node_type": "domain_pillar",
       "label": "Applied AI Partner Architecture",
-      "description": "Partner-applied reference architectures, joint AI solution development, solution accelerators, and presales solution architecture — distinct from generic quota-carrying partner sales. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "description": "Partner-applied reference architectures, joint AI solution development, solution accelerators, and presales solution architecture — distinct from generic quota-carrying partner sales. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE",
@@ -1529,7 +1523,7 @@
       "external_claim_policy": "skill_projection_not_proof",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "structural_definition",
-      "canonical_assertion_text": "Partner-applied reference architectures, joint AI solution development, solution accelerators, and presales solution architecture — distinct from generic quota-carrying partner sales. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
+      "canonical_assertion_text": "Partner-applied reference architectures, joint AI solution development, solution accelerators, and presales solution architecture — distinct from generic quota-carrying partner sales. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority. This pillar is a taxonomy boundary; external claims still require linked evidence authority.",
       "authority_refs": [
         "fact_partnerships_gtm_001",
         "fact_solutions_001",
@@ -1970,7 +1964,7 @@
       "node_id": "skill_derivatives_structured_derivatives",
       "node_type": "skill_row",
       "label": "structured_derivatives",
-      "description": "Archive-verified capability backed by fact_quant_hpc_003.",
+      "description": "Structured derivatives work, including structured product design, grounded in a quantitative base in derivatives pricing, capital modeling, and portfolio stress analytics from early actuarial roles.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE_CONFIRMED",
@@ -1987,7 +1981,7 @@
       "retrieval_ineligibility_reason": "LIFECYCLE_NOT_ACTIVE",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "claim_assertion",
-      "canonical_assertion_text": "Archive-verified capability backed by fact_quant_hpc_003.",
+      "canonical_assertion_text": "Structured derivatives work, including structured product design, grounded in a quantitative base in derivatives pricing, capital modeling, and portfolio stress analytics from early actuarial roles.",
       "authority_refs": [
         "amit_ayer_base_resume_v1.json",
         "fact_quant_hpc_003"
@@ -2000,7 +1994,7 @@
       "node_id": "skill_insurance_liabilities_embedded_options",
       "node_type": "skill_row",
       "label": "embedded_options",
-      "description": "Archive-verified capability backed by fact_insurance_liabilities_001.",
+      "description": "Values embedded options in insurance products using derivative-pricing methods, drawing on actuarial techniques from work at major insurers.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE_CONFIRMED",
@@ -2018,7 +2012,7 @@
       "retrieval_ineligibility_reason": "LIFECYCLE_NOT_ACTIVE",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "claim_assertion",
-      "canonical_assertion_text": "Archive-verified capability backed by fact_insurance_liabilities_001.",
+      "canonical_assertion_text": "Values embedded options in insurance products using derivative-pricing methods, drawing on actuarial techniques from work at major insurers.",
       "authority_refs": [
         "Amit Ayer Resume - AI Financial Services.docx",
         "Quantitative Research & Trading - Amit Ayer.docx",
@@ -2032,7 +2026,7 @@
       "node_id": "skill_insurance_liabilities_insurance_liabilities",
       "node_type": "skill_row",
       "label": "insurance_liabilities",
-      "description": "Archive-verified capability backed by fact_insurance_liabilities_001.",
+      "description": "Models insurance liabilities and policy reserves with actuarial methods, based on work at major insurers.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE_CONFIRMED",
@@ -2049,7 +2043,7 @@
       "retrieval_ineligibility_reason": "LIFECYCLE_NOT_ACTIVE",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "claim_assertion",
-      "canonical_assertion_text": "Archive-verified capability backed by fact_insurance_liabilities_001.",
+      "canonical_assertion_text": "Models insurance liabilities and policy reserves with actuarial methods, based on work at major insurers.",
       "authority_refs": [
         "Quantitative Research & Trading - Amit Ayer.docx",
         "fact_insurance_liabilities_001"
@@ -2091,7 +2085,7 @@
       "node_id": "skill_greeks_vega",
       "node_type": "skill_row",
       "label": "vega",
-      "description": "Built advanced quantitative foundation through derivatives pricing, multi-Greek hedging, capital modeling, and FSA credential across Towers Perrin, ING, and Aetna.",
+      "description": "Hedges volatility sensitivity by managing vega exposure, drawing on an FSA-grade foundation in derivatives pricing, capital modeling, and portfolio stress analytics.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE_CONFIRMED",
@@ -2107,7 +2101,7 @@
       "retrieval_eligible": true,
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "claim_assertion",
-      "canonical_assertion_text": "Built advanced quantitative foundation through derivatives pricing, multi-Greek hedging, capital modeling, and FSA credential across Towers Perrin, ING, and Aetna.",
+      "canonical_assertion_text": "Hedges volatility sensitivity by managing vega exposure, drawing on an FSA-grade foundation in derivatives pricing, capital modeling, and portfolio stress analytics.",
       "authority_refs": [
         "Amit Ayer Resume - AI Financial Services.docx",
         "fact_quant_hpc_003"
@@ -2120,7 +2114,7 @@
       "node_id": "skill_greeks_theta",
       "node_type": "skill_row",
       "label": "theta",
-      "description": "Built advanced quantitative foundation through derivatives pricing, multi-Greek hedging, capital modeling, and FSA credential across Towers Perrin, ING, and Aetna.",
+      "description": "Manages theta and time-decay hedging in derivatives portfolios, resting on an FSA-grade base in derivatives pricing, capital modeling, and stress analytics.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE_CONFIRMED",
@@ -2136,7 +2130,7 @@
       "retrieval_eligible": true,
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "claim_assertion",
-      "canonical_assertion_text": "Built advanced quantitative foundation through derivatives pricing, multi-Greek hedging, capital modeling, and FSA credential across Towers Perrin, ING, and Aetna.",
+      "canonical_assertion_text": "Manages theta and time-decay hedging in derivatives portfolios, resting on an FSA-grade base in derivatives pricing, capital modeling, and stress analytics.",
       "authority_refs": [
         "Amit Ayer Resume - AI Financial Services.docx",
         "fact_quant_hpc_003"
@@ -2149,7 +2143,7 @@
       "node_id": "skill_greeks_delta",
       "node_type": "skill_row",
       "label": "delta",
-      "description": "Archive-verified capability backed by fact_quant_hpc_003.",
+      "description": "Delta hedging for directional risk management, built on an actuarial foundation in derivatives pricing and portfolio stress analytics.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE_CONFIRMED",
@@ -2166,7 +2160,7 @@
       "retrieval_ineligibility_reason": "LIFECYCLE_NOT_ACTIVE",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "claim_assertion",
-      "canonical_assertion_text": "Archive-verified capability backed by fact_quant_hpc_003.",
+      "canonical_assertion_text": "Delta hedging for directional risk management, built on an actuarial foundation in derivatives pricing and portfolio stress analytics.",
       "authority_refs": [
         "Quantitative Research & Trading - Amit Ayer.docx",
         "fact_quant_hpc_003"
@@ -2179,7 +2173,7 @@
       "node_id": "skill_greeks_rho",
       "node_type": "skill_row",
       "label": "rho",
-      "description": "Archive-verified capability backed by fact_quant_hpc_003.",
+      "description": "Rho hedging and interest-rate sensitivity analysis, drawing on actuarial training in derivatives pricing, capital modeling, and portfolio stress analytics.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE_CONFIRMED",
@@ -2196,7 +2190,7 @@
       "retrieval_ineligibility_reason": "LIFECYCLE_NOT_ACTIVE",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "claim_assertion",
-      "canonical_assertion_text": "Archive-verified capability backed by fact_quant_hpc_003.",
+      "canonical_assertion_text": "Rho hedging and interest-rate sensitivity analysis, drawing on actuarial training in derivatives pricing, capital modeling, and portfolio stress analytics.",
       "authority_refs": [
         "Quantitative Research & Trading - Amit Ayer.docx",
         "fact_quant_hpc_003"
@@ -2209,7 +2203,7 @@
       "node_id": "skill_greeks_convexity",
       "node_type": "skill_row",
       "label": "convexity",
-      "description": "Archive-verified capability backed by fact_quant_hpc_003.",
+      "description": "Convexity management and gamma exposure monitoring, rooted in early actuarial work on derivatives pricing, capital modeling, and stress testing portfolios.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE_CONFIRMED",
@@ -2226,7 +2220,7 @@
       "retrieval_ineligibility_reason": "LIFECYCLE_NOT_ACTIVE",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "claim_assertion",
-      "canonical_assertion_text": "Archive-verified capability backed by fact_quant_hpc_003.",
+      "canonical_assertion_text": "Convexity management and gamma exposure monitoring, rooted in early actuarial work on derivatives pricing, capital modeling, and stress testing portfolios.",
       "authority_refs": [
         "Quantitative Research & Trading - Amit Ayer.docx",
         "fact_quant_hpc_003"
@@ -2942,7 +2936,7 @@
       "node_id": "skill_partner_workshops",
       "node_type": "skill_row",
       "label": "workshops",
-      "description": "Translated complex AI, data, and cloud architecture into executive value propositions and measurable ROI for senior stakeholders.",
+      "description": "Led executive workshops that explained complex AI, data, and cloud architecture in business terms, so senior stakeholders could see the value and expected ROI.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE_CONFIRMED",
@@ -3009,7 +3003,7 @@
       "retrieval_eligible": true,
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "claim_assertion",
-      "canonical_assertion_text": "Translated complex AI, data, and cloud architecture into executive value propositions and measurable ROI for senior stakeholders.",
+      "canonical_assertion_text": "Led executive workshops that explained complex AI, data, and cloud architecture in business terms, so senior stakeholders could see the value and expected ROI.",
       "authority_refs": [
         "Partnerships & Alliances - Amit Ayer.docx",
         "fact_solutions_001"
@@ -3168,7 +3162,7 @@
       "node_id": "skill_partner_gtm_enablement",
       "node_type": "skill_row",
       "label": "gtm_enablement",
-      "description": "Built a global AI channel program from inception, co-developing analytics frameworks with strategic partners, bundling consulting packages with LLM-driven compliance analysis, and using co-marketing campaigns to generate $3M in partner-derived revenue.",
+      "description": "Used co-marketing campaigns as the go-to-market engine of a global AI channel program built from scratch, helping produce $3M in partner-derived revenue.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE_CONFIRMED",
@@ -3237,7 +3231,7 @@
       "retrieval_eligible": true,
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "claim_assertion",
-      "canonical_assertion_text": "Built a global AI channel program from inception, co-developing analytics frameworks with strategic partners, bundling consulting packages with LLM-driven compliance analysis, and using co-marketing campaigns to generate $3M in partner-derived revenue.",
+      "canonical_assertion_text": "Used co-marketing campaigns as the go-to-market engine of a global AI channel program built from scratch, helping produce $3M in partner-derived revenue.",
       "authority_refs": [
         "Partnerships & Alliances - Amit Ayer.docx",
         "fact_partnerships_gtm_001"
@@ -3310,7 +3304,7 @@
       "node_id": "skill_partner_pnl_oversight",
       "node_type": "skill_row",
       "label": "pnl_oversight",
-      "description": "Built a global AI channel program from inception, co-developing analytics frameworks with strategic partners, bundling consulting packages with LLM-driven compliance analysis, and using co-marketing campaigns to generate $3M in partner-derived revenue.",
+      "description": "Held partial P&L accountability for a channel program built from inception, which reached $3M in partner-derived revenue.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE_CONFIRMED",
@@ -3378,7 +3372,7 @@
       "retrieval_eligible": true,
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "claim_assertion",
-      "canonical_assertion_text": "Built a global AI channel program from inception, co-developing analytics frameworks with strategic partners, bundling consulting packages with LLM-driven compliance analysis, and using co-marketing campaigns to generate $3M in partner-derived revenue.",
+      "canonical_assertion_text": "Held partial P&L accountability for a channel program built from inception, which reached $3M in partner-derived revenue.",
       "authority_refs": [
         "Partnerships & Alliances - Amit Ayer.docx",
         "fact_partnerships_gtm_001"
@@ -3789,7 +3783,7 @@
       "node_type": "skill",
       "pillar": "pillar_partner_gtm_alliances",
       "label": "GSI Partner Enablement",
-      "description": "Built a global AI channel program from inception, co-developing analytics frameworks with strategic partners, bundling consulting packages with LLM-driven compliance analysis, and using co-marketing campaigns to generate $3M in partner-derived revenue.",
+      "description": "Focused partner enablement on GSI relationships within a global AI channel program, supported by co-marketing campaigns with strategic partners.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE_CONFIRMED",
@@ -3804,7 +3798,7 @@
       "retrieval_eligible": true,
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "claim_assertion",
-      "canonical_assertion_text": "Built a global AI channel program from inception, co-developing analytics frameworks with strategic partners, bundling consulting packages with LLM-driven compliance analysis, and using co-marketing campaigns to generate $3M in partner-derived revenue.",
+      "canonical_assertion_text": "Focused partner enablement on GSI relationships within a global AI channel program, supported by co-marketing campaigns with strategic partners.",
       "authority_refs": [
         "Amit Ayer Resume - Partner Development Manager.txt",
         "Sales - Amit Ayer.txt",
@@ -3851,7 +3845,7 @@
       "node_type": "skill",
       "pillar": "pillar_applied_ai_partner_architecture",
       "label": "Joint Solution Development",
-      "description": "Built a global AI channel program from inception, co-developing analytics frameworks with strategic partners, bundling consulting packages with LLM-driven compliance analysis, and using co-marketing campaigns to generate $3M in partner-derived revenue.",
+      "description": "Co-developed analytics frameworks with strategic partners to shape partner-led AI solutions inside a global AI channel program built from inception.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE_CONFIRMED",
@@ -3866,7 +3860,7 @@
       "retrieval_eligible": true,
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "claim_assertion",
-      "canonical_assertion_text": "Built a global AI channel program from inception, co-developing analytics frameworks with strategic partners, bundling consulting packages with LLM-driven compliance analysis, and using co-marketing campaigns to generate $3M in partner-derived revenue.",
+      "canonical_assertion_text": "Co-developed analytics frameworks with strategic partners to shape partner-led AI solutions inside a global AI channel program built from inception.",
       "authority_refs": [
         "Amit Ayer Resume - Partner Development Manager.txt",
         "Sales - Amit Ayer.txt",
@@ -3881,7 +3875,7 @@
       "node_type": "skill",
       "pillar": "pillar_presales_solutioning",
       "label": "Partner Pre-Sales SA Support",
-      "description": "Translated complex AI, data, and cloud architecture into executive value propositions and measurable ROI for senior stakeholders.",
+      "description": "Gave partner sales teams pre-sales technical support, turning solution architecture for AI, data, and cloud into executive value propositions with measurable ROI.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE_CONFIRMED",
@@ -3896,7 +3890,7 @@
       "retrieval_eligible": true,
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "claim_assertion",
-      "canonical_assertion_text": "Translated complex AI, data, and cloud architecture into executive value propositions and measurable ROI for senior stakeholders.",
+      "canonical_assertion_text": "Gave partner sales teams pre-sales technical support, turning solution architecture for AI, data, and cloud into executive value propositions with measurable ROI.",
       "authority_refs": [
         "Amit Ayer Resume - Partner Development Manager.txt",
         "Sales - Amit Ayer.txt",
@@ -3914,7 +3908,7 @@
       "node_type": "skill",
       "pillar": "pillar_revenue_commercialization",
       "label": "Indirect Revenue Models",
-      "description": "Built a global AI channel program from inception, co-developing analytics frameworks with strategic partners, bundling consulting packages with LLM-driven compliance analysis, and using co-marketing campaigns to generate $3M in partner-derived revenue.",
+      "description": "Grew $3M in partner-derived revenue through a channel program, pairing bundled consulting packages with LLM-driven compliance analysis.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE_CONFIRMED",
@@ -3929,7 +3923,7 @@
       "retrieval_eligible": true,
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "claim_assertion",
-      "canonical_assertion_text": "Built a global AI channel program from inception, co-developing analytics frameworks with strategic partners, bundling consulting packages with LLM-driven compliance analysis, and using co-marketing campaigns to generate $3M in partner-derived revenue.",
+      "canonical_assertion_text": "Grew $3M in partner-derived revenue through a channel program, pairing bundled consulting packages with LLM-driven compliance analysis.",
       "authority_refs": [
         "Amit Ayer Resume - Partner Development Manager.txt",
         "Sales - Amit Ayer.txt",
@@ -3944,7 +3938,7 @@
       "node_type": "skill",
       "pillar": "pillar_partner_gtm_alliances",
       "label": "Alliance GTM Execution",
-      "description": "Forged relationships with cloud and AI vendors, combining market influence with solution roadmaps and joint go-to-market strategies to accelerate enterprise adoption of advanced analytics and platform services.",
+      "description": "Built relationships with cloud and AI vendors and turned them into joint go-to-market strategies, pairing market influence with solution roadmaps to speed enterprise uptake of analytics and platform services.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE_CONFIRMED",
@@ -3959,7 +3953,7 @@
       "retrieval_eligible": true,
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "claim_assertion",
-      "canonical_assertion_text": "Forged relationships with cloud and AI vendors, combining market influence with solution roadmaps and joint go-to-market strategies to accelerate enterprise adoption of advanced analytics and platform services.",
+      "canonical_assertion_text": "Built relationships with cloud and AI vendors and turned them into joint go-to-market strategies, pairing market influence with solution roadmaps to speed enterprise uptake of analytics and platform services.",
       "authority_refs": [
         "Amit Ayer Resume - Partner Development Manager.txt",
         "Sales - Amit Ayer.txt",
@@ -3974,7 +3968,7 @@
       "node_type": "skill",
       "pillar": "pillar_partner_gtm_alliances",
       "label": "Partner Enablement Training",
-      "description": "Built a global AI channel program from inception, co-developing analytics frameworks with strategic partners, bundling consulting packages with LLM-driven compliance analysis, and using co-marketing campaigns to generate $3M in partner-derived revenue.",
+      "description": "Set up the partner enablement side of a global AI channel program from inception, equipping strategic partners around shared analytics frameworks.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE_CONFIRMED",
@@ -3989,7 +3983,7 @@
       "retrieval_eligible": true,
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "claim_assertion",
-      "canonical_assertion_text": "Built a global AI channel program from inception, co-developing analytics frameworks with strategic partners, bundling consulting packages with LLM-driven compliance analysis, and using co-marketing campaigns to generate $3M in partner-derived revenue.",
+      "canonical_assertion_text": "Set up the partner enablement side of a global AI channel program from inception, equipping strategic partners around shared analytics frameworks.",
       "authority_refs": [
         "Amit Ayer Resume - Partner Development Manager.txt",
         "Sales - Amit Ayer.txt",
@@ -4004,7 +3998,7 @@
       "node_type": "skill",
       "pillar": "pillar_applied_ai_partner_architecture",
       "label": "AI Architecture Advisory to Partners",
-      "description": "Forged relationships with cloud and AI vendors, combining market influence with solution roadmaps and joint go-to-market strategies to accelerate enterprise adoption of advanced analytics and platform services.",
+      "description": "Advised partners on AI architecture by shaping solution roadmaps with cloud and AI vendors, helping enterprises adopt advanced analytics and platform services with a clearer technical path.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE_CONFIRMED",
@@ -4019,7 +4013,7 @@
       "retrieval_eligible": true,
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "claim_assertion",
-      "canonical_assertion_text": "Forged relationships with cloud and AI vendors, combining market influence with solution roadmaps and joint go-to-market strategies to accelerate enterprise adoption of advanced analytics and platform services.",
+      "canonical_assertion_text": "Advised partners on AI architecture by shaping solution roadmaps with cloud and AI vendors, helping enterprises adopt advanced analytics and platform services with a clearer technical path.",
       "authority_refs": [
         "Amit Ayer Resume - Partner Development Manager.txt",
         "Sales - Amit Ayer.txt",
@@ -4419,7 +4413,7 @@
       ],
       "human_confirmation_required": false,
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
-      "domain_id": "domain_phase2_gtm_presales",
+      "domain_id": "domain_gtm_presales_motion",
       "domain": "Phase 2 GTM / Pre-Sales",
       "capability": "commercial_validation_pilots",
       "source_concepts": [],
@@ -4501,7 +4495,7 @@
       ],
       "human_confirmation_required": false,
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
-      "domain_id": "domain_phase2_gtm_presales",
+      "domain_id": "domain_gtm_presales_motion",
       "domain": "Phase 2 GTM / Pre-Sales",
       "capability": "presales_to_delivery_handoff",
       "source_concepts": [],
@@ -4933,19 +4927,19 @@
       "description": "Held internal capability candidate for insurance_systems_resilience_internal in epoch_cloud_data_platform_engineering; it cannot support an external claim until its pending-source policy is cleared.",
       "support_level": "INTERNAL_ONLY",
       "visibility_rule": "never_external",
-      "activation_status": "DRAFT",
+      "activation_status": "RETIRED",
       "evidence_risk": "low",
       "source_refs": [
         "apps_rg/resume/base/amit_ayer_base_resume_v1.json",
         "bul_insurtech_003",
         "fact_consulting_001"
       ],
-      "projection_behavior": "rank_and_project_facts",
+      "projection_behavior": "non_retrieval_identity",
       "external_claim_policy": "pending_source_internal_only",
       "confidence_grade": "BLOCKED",
       "confidence_grade_derived": "BLOCKED",
       "retrieval_eligible": false,
-      "retrieval_ineligibility_reason": "LIFECYCLE_NOT_ACTIVE",
+      "retrieval_ineligibility_reason": "RETIRED_BY_OPERATOR",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "claim_assertion",
       "canonical_assertion_text": "Held internal capability candidate for insurance_systems_resilience_internal in epoch_cloud_data_platform_engineering; it cannot support an external claim until its pending-source policy is cleared.",
@@ -4956,7 +4950,9 @@
       ],
       "semantic_hardening_status": "HELD_INTERNAL_ONLY",
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W1",
-      "human_confirmation_required": false
+      "human_confirmation_required": false,
+      "operator_hygiene_decision": "RETIRE",
+      "operator_hold_mode": "RETIRED"
     },
     {
       "node_id": "skill_sr_insurtech_cto_it_enablement",
@@ -8767,7 +8763,7 @@
       "node_id": "skill_quant_stochastic_modeling",
       "node_type": "skill_row",
       "label": "stochastic_modeling",
-      "description": "stochastic modeling, multi-Greek hedging, and pricing of complex derivatives while completing Fellowship requirements",
+      "description": "Built stochastic models and used rigorous actuarial methods to refine capital models, giving enterprise risk assessments more precise results.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE_CONFIRMED",
@@ -8783,7 +8779,7 @@
       "retrieval_eligible": true,
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "claim_assertion",
-      "canonical_assertion_text": "stochastic modeling, multi-Greek hedging, and pricing of complex derivatives while completing Fellowship requirements",
+      "canonical_assertion_text": "Built stochastic models and used rigorous actuarial methods to refine capital models, giving enterprise risk assessments more precise results.",
       "authority_refs": [
         "Chief AI Officer - Amit Ayer.docx",
         "fact_quant_act_002"
@@ -8796,7 +8792,7 @@
       "node_id": "skill_hpc_valuation_capital_adequacy",
       "node_type": "skill_row",
       "label": "hpc_valuation_capital_adequacy",
-      "description": "stochastic modeling, multi-Greek hedging, and pricing of complex derivatives while completing Fellowship requirements",
+      "description": "Supported valuation frameworks run on high-performance computing for scenario testing and capital adequacy, linking HPC infrastructure with core actuarial risk fundamentals.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
       "activation_status": "ACTIVE_CONFIRMED",
@@ -8812,7 +8808,7 @@
       "retrieval_eligible": true,
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "claim_assertion",
-      "canonical_assertion_text": "stochastic modeling, multi-Greek hedging, and pricing of complex derivatives while completing Fellowship requirements",
+      "canonical_assertion_text": "Supported valuation frameworks run on high-performance computing for scenario testing and capital adequacy, linking HPC infrastructure with core actuarial risk fundamentals.",
       "authority_refs": [
         "Chief AI Officer - Amit Ayer.docx",
         "fact_quant_act_003"
@@ -10423,20 +10419,20 @@
       "node_type": "skill_row",
       "label": "Reserved Instance Rightsizing Strategy",
       "description": "Held internal capability candidate for Reserved Instance Rightsizing Strategy in epoch_cloud_data_platform_engineering; it cannot support an external claim until its pending-source policy is cleared.",
-      "support_level": "USER_CONFIRMED_PENDING_SOURCE",
-      "visibility_rule": "human_confirm",
-      "activation_status": "DRAFT",
+      "support_level": "INTERNAL_ONLY",
+      "visibility_rule": "never_external",
+      "activation_status": "RETIRED",
       "evidence_risk": "medium",
       "source_refs": [
         "apps_rg/resume/base/amit_ayer_base_resume_v1.json",
         "bul_insurtech_001"
       ],
-      "projection_behavior": "internal_rank_only",
+      "projection_behavior": "non_retrieval_identity",
       "external_claim_policy": "pending_source_internal_only",
       "confidence_grade": "BLOCKED",
       "confidence_grade_derived": "BLOCKED",
       "retrieval_eligible": false,
-      "retrieval_ineligibility_reason": "LIFECYCLE_NOT_ACTIVE",
+      "retrieval_ineligibility_reason": "RETIRED_BY_OPERATOR",
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
       "semantic_kind": "claim_assertion",
       "canonical_assertion_text": "Held internal capability candidate for Reserved Instance Rightsizing Strategy in epoch_cloud_data_platform_engineering; it cannot support an external claim until its pending-source policy is cleared.",
@@ -10446,7 +10442,9 @@
       ],
       "semantic_hardening_status": "HELD_INTERNAL_ONLY",
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W1",
-      "human_confirmation_required": true
+      "human_confirmation_required": false,
+      "operator_hygiene_decision": "RETIRE",
+      "operator_hold_mode": "RETIRED"
     },
     {
       "node_id": "skill_rto_rpo_dr_planning",
@@ -19827,19 +19825,19 @@
     {
       "edge_id": "edge_domain_skill_skill_p2_gtm_discovery_qualification",
       "edge_type": "capability_domain_contains_skill",
-      "source_node_id": "domain_phase2_gtm_presales",
+      "source_node_id": "domain_gtm_presales_motion",
       "target_node_id": "skill_p2_gtm_discovery_qualification",
       "rationale": "Domain contains skill",
       "projection_behavior": "graph_traversal",
       "external_claim_policy": "skill_projection_not_proof",
       "validation_status": "validated",
       "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "phase2 gtm presales classifies discovery_qualification as a member capability for taxonomy traversal; membership is structural and does not independently prove a claim.",
+      "canonical_assertion_text": "gtm presales motion classifies discovery_qualification as a member capability for taxonomy traversal; membership is structural and does not independently prove a claim.",
       "assertion_basis": "source_field_derivation",
       "assertion_basis_refs": [
         "baseline:graph_edges/edge_domain_skill_skill_p2_gtm_discovery_qualification",
         "contract:edge_types/capability_domain_contains_skill",
-        "endpoint:domain_phase2_gtm_presales",
+        "endpoint:domain_gtm_presales_motion",
         "ledger:graph_nodes/skill_p2_gtm_discovery_qualification",
         "ledger:skill_rows/skill_p2_gtm_discovery_qualification/domain_id"
       ],
@@ -20105,19 +20103,19 @@
     {
       "edge_id": "edge_domain_skill_skill_p2_gtm_executive_buyer_alignment",
       "edge_type": "capability_domain_contains_skill",
-      "source_node_id": "domain_phase2_gtm_presales",
+      "source_node_id": "domain_gtm_presales_motion",
       "target_node_id": "skill_p2_gtm_executive_buyer_alignment",
       "rationale": "Domain contains skill",
       "projection_behavior": "graph_traversal",
       "external_claim_policy": "skill_projection_not_proof",
       "validation_status": "validated",
       "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "phase2 gtm presales classifies executive_buyer_alignment as a member capability for taxonomy traversal; membership is structural and does not independently prove a claim.",
+      "canonical_assertion_text": "gtm presales motion classifies executive_buyer_alignment as a member capability for taxonomy traversal; membership is structural and does not independently prove a claim.",
       "assertion_basis": "source_field_derivation",
       "assertion_basis_refs": [
         "baseline:graph_edges/edge_domain_skill_skill_p2_gtm_executive_buyer_alignment",
         "contract:edge_types/capability_domain_contains_skill",
-        "endpoint:domain_phase2_gtm_presales",
+        "endpoint:domain_gtm_presales_motion",
         "ledger:graph_nodes/skill_p2_gtm_executive_buyer_alignment",
         "ledger:skill_rows/skill_p2_gtm_executive_buyer_alignment/domain_id"
       ],
@@ -20244,19 +20242,19 @@
     {
       "edge_id": "edge_domain_skill_skill_p2_gtm_commercial_validation_pilots",
       "edge_type": "capability_domain_contains_skill",
-      "source_node_id": "domain_phase2_gtm_presales",
+      "source_node_id": "domain_gtm_presales_motion",
       "target_node_id": "skill_p2_gtm_commercial_validation_pilots",
       "rationale": "Domain contains skill",
       "projection_behavior": "graph_traversal",
       "external_claim_policy": "skill_projection_not_proof",
       "validation_status": "validated",
       "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "phase2 gtm presales classifies commercial_validation_pilots as a member capability for taxonomy traversal; membership is structural and does not independently prove a claim.",
+      "canonical_assertion_text": "gtm presales motion classifies commercial_validation_pilots as a member capability for taxonomy traversal; membership is structural and does not independently prove a claim.",
       "assertion_basis": "source_field_derivation",
       "assertion_basis_refs": [
         "baseline:graph_edges/edge_domain_skill_skill_p2_gtm_commercial_validation_pilots",
         "contract:edge_types/capability_domain_contains_skill",
-        "endpoint:domain_phase2_gtm_presales",
+        "endpoint:domain_gtm_presales_motion",
         "ledger:graph_nodes/skill_p2_gtm_commercial_validation_pilots",
         "ledger:skill_rows/skill_p2_gtm_commercial_validation_pilots/domain_id"
       ],
@@ -20359,19 +20357,19 @@
     {
       "edge_id": "edge_domain_skill_skill_p2_gtm_presales_delivery_handoff",
       "edge_type": "capability_domain_contains_skill",
-      "source_node_id": "domain_phase2_gtm_presales",
+      "source_node_id": "domain_gtm_presales_motion",
       "target_node_id": "skill_p2_gtm_presales_delivery_handoff",
       "rationale": "Domain contains skill",
       "projection_behavior": "graph_traversal",
       "external_claim_policy": "skill_projection_not_proof",
       "validation_status": "validated",
       "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "phase2 gtm presales classifies presales_to_delivery_handoff as a member capability for taxonomy traversal; membership is structural and does not independently prove a claim.",
+      "canonical_assertion_text": "gtm presales motion classifies presales_to_delivery_handoff as a member capability for taxonomy traversal; membership is structural and does not independently prove a claim.",
       "assertion_basis": "source_field_derivation",
       "assertion_basis_refs": [
         "baseline:graph_edges/edge_domain_skill_skill_p2_gtm_presales_delivery_handoff",
         "contract:edge_types/capability_domain_contains_skill",
-        "endpoint:domain_phase2_gtm_presales",
+        "endpoint:domain_gtm_presales_motion",
         "ledger:graph_nodes/skill_p2_gtm_presales_delivery_handoff",
         "ledger:skill_rows/skill_p2_gtm_presales_delivery_handoff/domain_id"
       ],
@@ -21577,28 +21575,6 @@
         "evidence:bul_insurtech_003",
         "ledger:graph_nodes/skill_sr_insurance_systems_resilience_internal",
         "ledger:skill_rows/skill_sr_insurance_systems_resilience_internal/fact_id_links"
-      ],
-      "edge_semantic_status": "HARDENED",
-      "lifecycle_disposition": "HELD_NON_ACTIVE_ENDPOINT",
-      "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
-    },
-    {
-      "edge_id": "edge_block_external_skill_sr_insurance_systems_resilience_internal",
-      "edge_type": "projection_excludes_blocked_skill",
-      "source_node_id": "skill_sr_insurance_systems_resilience_internal",
-      "target_node_id": "policy_external_claim_policy",
-      "rationale": "Block external: pending_source_internal_only",
-      "projection_behavior": "graph_traversal",
-      "external_claim_policy": "pending_source_internal_only",
-      "validation_status": "validated",
-      "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "insurance_systems_resilience_internal is excluded from external projection under policy_external_claim_policy while its evidence or lifecycle status remains blocked or pending.",
-      "assertion_basis": "policy_predicate",
-      "assertion_basis_refs": [
-        "baseline:graph_edges/edge_block_external_skill_sr_insurance_systems_resilience_internal",
-        "contract:edge_types/projection_excludes_blocked_skill",
-        "ledger:graph_nodes/policy_external_claim_policy",
-        "ledger:graph_nodes/skill_sr_insurance_systems_resilience_internal"
       ],
       "edge_semantic_status": "HARDENED",
       "lifecycle_disposition": "HELD_NON_ACTIVE_ENDPOINT",
@@ -23502,29 +23478,6 @@
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
     },
     {
-      "edge_id": "edge_skill_repo_skill_layered_runtime_spine_design_repo_bd5d6d",
-      "edge_type": "skill_supported_by_repo_evidence",
-      "source_node_id": "skill_layered_runtime_spine_design",
-      "target_node_id": "repo_bd5d6d",
-      "rationale": "Repo evidence: .codex/rules/000-apps-rg-operating-contract.mdc",
-      "projection_behavior": "graph_traversal",
-      "external_claim_policy": "skill_projection_not_proof",
-      "validation_status": "validated",
-      "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "Layered runtime spine design is traceable to repository evidence bd5d6d for portfolio context; repository evidence is not default resume-claim proof.",
-      "assertion_basis": "evidence_reference",
-      "assertion_basis_refs": [
-        "baseline:graph_edges/edge_skill_repo_skill_layered_runtime_spine_design_repo_bd5d6d",
-        "contract:edge_types/skill_supported_by_repo_evidence",
-        "endpoint:repo_bd5d6d",
-        "ledger:graph_nodes/skill_layered_runtime_spine_design",
-        "ledger:skill_rows/skill_layered_runtime_spine_design/repo_evidence_files"
-      ],
-      "edge_semantic_status": "HARDENED",
-      "lifecycle_disposition": "ACTIVE_POLICY_GATED",
-      "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
-    },
-    {
       "edge_id": "edge_skill_fact_skill_layered_runtime_spine_design_fact_engineering_platform_001",
       "edge_type": "skill_supported_by_fact",
       "source_node_id": "skill_layered_runtime_spine_design",
@@ -24218,29 +24171,6 @@
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
     },
     {
-      "edge_id": "edge_skill_repo_skill_reusable_agentic_platform_architecture_repo_0ba4ea",
-      "edge_type": "skill_supported_by_repo_evidence",
-      "source_node_id": "skill_reusable_agentic_platform_architecture",
-      "target_node_id": "repo_0ba4ea",
-      "rationale": "Repo evidence: apps_rg/runtime/",
-      "projection_behavior": "graph_traversal",
-      "external_claim_policy": "skill_projection_not_proof",
-      "validation_status": "validated",
-      "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "Reusable agentic platform architecture is traceable to repository evidence 0ba4ea for portfolio context; repository evidence is not default resume-claim proof.",
-      "assertion_basis": "evidence_reference",
-      "assertion_basis_refs": [
-        "baseline:graph_edges/edge_skill_repo_skill_reusable_agentic_platform_architecture_repo_0ba4ea",
-        "contract:edge_types/skill_supported_by_repo_evidence",
-        "endpoint:repo_0ba4ea",
-        "ledger:graph_nodes/skill_reusable_agentic_platform_architecture",
-        "ledger:skill_rows/skill_reusable_agentic_platform_architecture/repo_evidence_files"
-      ],
-      "edge_semantic_status": "HARDENED",
-      "lifecycle_disposition": "ACTIVE_POLICY_GATED",
-      "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
-    },
-    {
       "edge_id": "edge_skill_fact_skill_reusable_agentic_platform_architecture_fact_engineering_platform_006",
       "edge_type": "skill_supported_by_fact",
       "source_node_id": "skill_reusable_agentic_platform_architecture",
@@ -24911,29 +24841,6 @@
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
     },
     {
-      "edge_id": "edge_skill_repo_skill_cache_fallback_grounded_action_routing_repo_0ba4ea",
-      "edge_type": "skill_supported_by_repo_evidence",
-      "source_node_id": "skill_cache_fallback_grounded_action_routing",
-      "target_node_id": "repo_0ba4ea",
-      "rationale": "Repo evidence: apps_rg/runtime/",
-      "projection_behavior": "graph_traversal",
-      "external_claim_policy": "skill_projection_not_proof",
-      "validation_status": "validated",
-      "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "Cache fallback grounded action routing is traceable to repository evidence 0ba4ea for portfolio context; repository evidence is not default resume-claim proof.",
-      "assertion_basis": "evidence_reference",
-      "assertion_basis_refs": [
-        "baseline:graph_edges/edge_skill_repo_skill_cache_fallback_grounded_action_routing_repo_0ba4ea",
-        "contract:edge_types/skill_supported_by_repo_evidence",
-        "endpoint:repo_0ba4ea",
-        "ledger:graph_nodes/skill_cache_fallback_grounded_action_routing",
-        "ledger:skill_rows/skill_cache_fallback_grounded_action_routing/repo_evidence_files"
-      ],
-      "edge_semantic_status": "HARDENED",
-      "lifecycle_disposition": "ACTIVE_POLICY_GATED",
-      "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
-    },
-    {
       "edge_id": "edge_skill_fact_skill_cache_fallback_grounded_action_routing_fact_engineering_platform_003",
       "edge_type": "skill_supported_by_fact",
       "source_node_id": "skill_cache_fallback_grounded_action_routing",
@@ -25142,29 +25049,6 @@
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
     },
     {
-      "edge_id": "edge_skill_repo_skill_risk_and_hitl_route_posture_repo_0ba4ea",
-      "edge_type": "skill_supported_by_repo_evidence",
-      "source_node_id": "skill_risk_and_hitl_route_posture",
-      "target_node_id": "repo_0ba4ea",
-      "rationale": "Repo evidence: apps_rg/runtime/",
-      "projection_behavior": "graph_traversal",
-      "external_claim_policy": "skill_projection_not_proof",
-      "validation_status": "validated",
-      "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "Risk and HITL route posture is traceable to repository evidence 0ba4ea for portfolio context; repository evidence is not default resume-claim proof.",
-      "assertion_basis": "evidence_reference",
-      "assertion_basis_refs": [
-        "baseline:graph_edges/edge_skill_repo_skill_risk_and_hitl_route_posture_repo_0ba4ea",
-        "contract:edge_types/skill_supported_by_repo_evidence",
-        "endpoint:repo_0ba4ea",
-        "ledger:graph_nodes/skill_risk_and_hitl_route_posture",
-        "ledger:skill_rows/skill_risk_and_hitl_route_posture/repo_evidence_files"
-      ],
-      "edge_semantic_status": "HARDENED",
-      "lifecycle_disposition": "ACTIVE_POLICY_GATED",
-      "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
-    },
-    {
       "edge_id": "edge_skill_fact_skill_risk_and_hitl_route_posture_fact_governance_003",
       "edge_type": "skill_supported_by_fact",
       "source_node_id": "skill_risk_and_hitl_route_posture",
@@ -25367,29 +25251,6 @@
         "endpoint:concept_IdempotentRoute",
         "ledger:graph_nodes/skill_route_replay_and_idempotency_design",
         "ledger:skill_rows/skill_route_replay_and_idempotency_design/source_concepts"
-      ],
-      "edge_semantic_status": "HARDENED",
-      "lifecycle_disposition": "ACTIVE_POLICY_GATED",
-      "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
-    },
-    {
-      "edge_id": "edge_skill_repo_skill_route_replay_and_idempotency_design_repo_2c6997",
-      "edge_type": "skill_supported_by_repo_evidence",
-      "source_node_id": "skill_route_replay_and_idempotency_design",
-      "target_node_id": "repo_2c6997",
-      "rationale": "Repo evidence: apps_rg/runtime/proof_pool_resolver.py",
-      "projection_behavior": "graph_traversal",
-      "external_claim_policy": "skill_projection_not_proof",
-      "validation_status": "validated",
-      "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "Route replay and idempotency design is traceable to repository evidence 2c6997 for portfolio context; repository evidence is not default resume-claim proof.",
-      "assertion_basis": "evidence_reference",
-      "assertion_basis_refs": [
-        "baseline:graph_edges/edge_skill_repo_skill_route_replay_and_idempotency_design_repo_2c6997",
-        "contract:edge_types/skill_supported_by_repo_evidence",
-        "endpoint:repo_2c6997",
-        "ledger:graph_nodes/skill_route_replay_and_idempotency_design",
-        "ledger:skill_rows/skill_route_replay_and_idempotency_design/repo_evidence_files"
       ],
       "edge_semantic_status": "HARDENED",
       "lifecycle_disposition": "ACTIVE_POLICY_GATED",
@@ -25835,29 +25696,6 @@
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
     },
     {
-      "edge_id": "edge_skill_repo_skill_dependency_and_join_control_repo_5aa1dc",
-      "edge_type": "skill_supported_by_repo_evidence",
-      "source_node_id": "skill_dependency_and_join_control",
-      "target_node_id": "repo_5aa1dc",
-      "rationale": "Repo evidence: artifacts/adg/",
-      "projection_behavior": "graph_traversal",
-      "external_claim_policy": "skill_projection_not_proof",
-      "validation_status": "validated",
-      "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "Dependency and join control is traceable to repository evidence 5aa1dc for portfolio context; repository evidence is not default resume-claim proof.",
-      "assertion_basis": "evidence_reference",
-      "assertion_basis_refs": [
-        "baseline:graph_edges/edge_skill_repo_skill_dependency_and_join_control_repo_5aa1dc",
-        "contract:edge_types/skill_supported_by_repo_evidence",
-        "endpoint:repo_5aa1dc",
-        "ledger:graph_nodes/skill_dependency_and_join_control",
-        "ledger:skill_rows/skill_dependency_and_join_control/repo_evidence_files"
-      ],
-      "edge_semantic_status": "HARDENED",
-      "lifecycle_disposition": "ACTIVE_POLICY_GATED",
-      "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
-    },
-    {
       "edge_id": "edge_skill_fact_skill_dependency_and_join_control_fact_engineering_platform_002",
       "edge_type": "skill_supported_by_fact",
       "source_node_id": "skill_dependency_and_join_control",
@@ -26060,29 +25898,6 @@
         "endpoint:concept_RetryPolicy",
         "ledger:graph_nodes/skill_bounded_fanout_and_retry_design",
         "ledger:skill_rows/skill_bounded_fanout_and_retry_design/source_concepts"
-      ],
-      "edge_semantic_status": "HARDENED",
-      "lifecycle_disposition": "ACTIVE_POLICY_GATED",
-      "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
-    },
-    {
-      "edge_id": "edge_skill_repo_skill_bounded_fanout_and_retry_design_repo_0ba4ea",
-      "edge_type": "skill_supported_by_repo_evidence",
-      "source_node_id": "skill_bounded_fanout_and_retry_design",
-      "target_node_id": "repo_0ba4ea",
-      "rationale": "Repo evidence: apps_rg/runtime/",
-      "projection_behavior": "graph_traversal",
-      "external_claim_policy": "skill_projection_not_proof",
-      "validation_status": "validated",
-      "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "Bounded fanout and retry design is traceable to repository evidence 0ba4ea for portfolio context; repository evidence is not default resume-claim proof.",
-      "assertion_basis": "evidence_reference",
-      "assertion_basis_refs": [
-        "baseline:graph_edges/edge_skill_repo_skill_bounded_fanout_and_retry_design_repo_0ba4ea",
-        "contract:edge_types/skill_supported_by_repo_evidence",
-        "endpoint:repo_0ba4ea",
-        "ledger:graph_nodes/skill_bounded_fanout_and_retry_design",
-        "ledger:skill_rows/skill_bounded_fanout_and_retry_design/repo_evidence_files"
       ],
       "edge_semantic_status": "HARDENED",
       "lifecycle_disposition": "ACTIVE_POLICY_GATED",
@@ -27013,29 +26828,6 @@
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
     },
     {
-      "edge_id": "edge_skill_repo_skill_metadata_acl_freshness_filtering_repo_0ba4ea",
-      "edge_type": "skill_supported_by_repo_evidence",
-      "source_node_id": "skill_metadata_acl_freshness_filtering",
-      "target_node_id": "repo_0ba4ea",
-      "rationale": "Repo evidence: apps_rg/runtime/",
-      "projection_behavior": "graph_traversal",
-      "external_claim_policy": "skill_projection_not_proof",
-      "validation_status": "validated",
-      "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "Metadata ACL freshness filtering is traceable to repository evidence 0ba4ea for portfolio context; repository evidence is not default resume-claim proof.",
-      "assertion_basis": "evidence_reference",
-      "assertion_basis_refs": [
-        "baseline:graph_edges/edge_skill_repo_skill_metadata_acl_freshness_filtering_repo_0ba4ea",
-        "contract:edge_types/skill_supported_by_repo_evidence",
-        "endpoint:repo_0ba4ea",
-        "ledger:graph_nodes/skill_metadata_acl_freshness_filtering",
-        "ledger:skill_rows/skill_metadata_acl_freshness_filtering/repo_evidence_files"
-      ],
-      "edge_semantic_status": "HARDENED",
-      "lifecycle_disposition": "ACTIVE_POLICY_GATED",
-      "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
-    },
-    {
       "edge_id": "edge_skill_fact_skill_metadata_acl_freshness_filtering_fact_governance_003",
       "edge_type": "skill_supported_by_fact",
       "source_node_id": "skill_metadata_acl_freshness_filtering",
@@ -27244,29 +27036,6 @@
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
     },
     {
-      "edge_id": "edge_skill_repo_skill_evidence_contract_design_repo_2c6997",
-      "edge_type": "skill_supported_by_repo_evidence",
-      "source_node_id": "skill_evidence_contract_design",
-      "target_node_id": "repo_2c6997",
-      "rationale": "Repo evidence: apps_rg/runtime/proof_pool_resolver.py",
-      "projection_behavior": "graph_traversal",
-      "external_claim_policy": "skill_projection_not_proof",
-      "validation_status": "validated",
-      "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "Evidence contract design is traceable to repository evidence 2c6997 for portfolio context; repository evidence is not default resume-claim proof.",
-      "assertion_basis": "evidence_reference",
-      "assertion_basis_refs": [
-        "baseline:graph_edges/edge_skill_repo_skill_evidence_contract_design_repo_2c6997",
-        "contract:edge_types/skill_supported_by_repo_evidence",
-        "endpoint:repo_2c6997",
-        "ledger:graph_nodes/skill_evidence_contract_design",
-        "ledger:skill_rows/skill_evidence_contract_design/repo_evidence_files"
-      ],
-      "edge_semantic_status": "HARDENED",
-      "lifecycle_disposition": "ACTIVE_POLICY_GATED",
-      "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
-    },
-    {
       "edge_id": "edge_skill_fact_skill_evidence_contract_design_fact_governance_001",
       "edge_type": "skill_supported_by_fact",
       "source_node_id": "skill_evidence_contract_design",
@@ -27469,29 +27238,6 @@
         "endpoint:concept_DependencyGrounding",
         "ledger:graph_nodes/skill_graph_aware_relationship_grounding",
         "ledger:skill_rows/skill_graph_aware_relationship_grounding/source_concepts"
-      ],
-      "edge_semantic_status": "HARDENED",
-      "lifecycle_disposition": "ACTIVE_POLICY_GATED",
-      "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
-    },
-    {
-      "edge_id": "edge_skill_repo_skill_graph_aware_relationship_grounding_repo_5aa1dc",
-      "edge_type": "skill_supported_by_repo_evidence",
-      "source_node_id": "skill_graph_aware_relationship_grounding",
-      "target_node_id": "repo_5aa1dc",
-      "rationale": "Repo evidence: artifacts/adg/",
-      "projection_behavior": "graph_traversal",
-      "external_claim_policy": "skill_projection_not_proof",
-      "validation_status": "validated",
-      "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "Graph aware relationship grounding is traceable to repository evidence 5aa1dc for portfolio context; repository evidence is not default resume-claim proof.",
-      "assertion_basis": "evidence_reference",
-      "assertion_basis_refs": [
-        "baseline:graph_edges/edge_skill_repo_skill_graph_aware_relationship_grounding_repo_5aa1dc",
-        "contract:edge_types/skill_supported_by_repo_evidence",
-        "endpoint:repo_5aa1dc",
-        "ledger:graph_nodes/skill_graph_aware_relationship_grounding",
-        "ledger:skill_rows/skill_graph_aware_relationship_grounding/repo_evidence_files"
       ],
       "edge_semantic_status": "HARDENED",
       "lifecycle_disposition": "ACTIVE_POLICY_GATED",
@@ -27937,29 +27683,6 @@
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
     },
     {
-      "edge_id": "edge_skill_repo_skill_prompt_assembly_architecture_repo_89c401",
-      "edge_type": "skill_supported_by_repo_evidence",
-      "source_node_id": "skill_prompt_assembly_architecture",
-      "target_node_id": "repo_89c401",
-      "rationale": "Repo evidence: apps_rg/runtime/dispatch/executive_summary_pa.py",
-      "projection_behavior": "graph_traversal",
-      "external_claim_policy": "skill_projection_not_proof",
-      "validation_status": "validated",
-      "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "Prompt assembly architecture is traceable to repository evidence 89c401 for portfolio context; repository evidence is not default resume-claim proof.",
-      "assertion_basis": "evidence_reference",
-      "assertion_basis_refs": [
-        "baseline:graph_edges/edge_skill_repo_skill_prompt_assembly_architecture_repo_89c401",
-        "contract:edge_types/skill_supported_by_repo_evidence",
-        "endpoint:repo_89c401",
-        "ledger:graph_nodes/skill_prompt_assembly_architecture",
-        "ledger:skill_rows/skill_prompt_assembly_architecture/repo_evidence_files"
-      ],
-      "edge_semantic_status": "HARDENED",
-      "lifecycle_disposition": "ACTIVE_POLICY_GATED",
-      "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
-    },
-    {
       "edge_id": "edge_skill_fact_skill_prompt_assembly_architecture_fact_engineering_platform_003",
       "edge_type": "skill_supported_by_fact",
       "source_node_id": "skill_prompt_assembly_architecture",
@@ -28399,29 +28122,6 @@
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
     },
     {
-      "edge_id": "edge_skill_repo_skill_authority_ordered_prompt_packaging_repo_89c401",
-      "edge_type": "skill_supported_by_repo_evidence",
-      "source_node_id": "skill_authority_ordered_prompt_packaging",
-      "target_node_id": "repo_89c401",
-      "rationale": "Repo evidence: apps_rg/runtime/dispatch/executive_summary_pa.py",
-      "projection_behavior": "graph_traversal",
-      "external_claim_policy": "skill_projection_not_proof",
-      "validation_status": "validated",
-      "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "Authority ordered prompt packaging is traceable to repository evidence 89c401 for portfolio context; repository evidence is not default resume-claim proof.",
-      "assertion_basis": "evidence_reference",
-      "assertion_basis_refs": [
-        "baseline:graph_edges/edge_skill_repo_skill_authority_ordered_prompt_packaging_repo_89c401",
-        "contract:edge_types/skill_supported_by_repo_evidence",
-        "endpoint:repo_89c401",
-        "ledger:graph_nodes/skill_authority_ordered_prompt_packaging",
-        "ledger:skill_rows/skill_authority_ordered_prompt_packaging/repo_evidence_files"
-      ],
-      "edge_semantic_status": "HARDENED",
-      "lifecycle_disposition": "ACTIVE_POLICY_GATED",
-      "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
-    },
-    {
       "edge_id": "edge_skill_fact_skill_authority_ordered_prompt_packaging_fact_engineering_platform_001",
       "edge_type": "skill_supported_by_fact",
       "source_node_id": "skill_authority_ordered_prompt_packaging",
@@ -28624,29 +28324,6 @@
         "endpoint:concept_JSONSchema",
         "ledger:graph_nodes/skill_schema_bound_generation",
         "ledger:skill_rows/skill_schema_bound_generation/source_concepts"
-      ],
-      "edge_semantic_status": "HARDENED",
-      "lifecycle_disposition": "ACTIVE_POLICY_GATED",
-      "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
-    },
-    {
-      "edge_id": "edge_skill_repo_skill_schema_bound_generation_repo_0ba4ea",
-      "edge_type": "skill_supported_by_repo_evidence",
-      "source_node_id": "skill_schema_bound_generation",
-      "target_node_id": "repo_0ba4ea",
-      "rationale": "Repo evidence: apps_rg/runtime/",
-      "projection_behavior": "graph_traversal",
-      "external_claim_policy": "skill_projection_not_proof",
-      "validation_status": "validated",
-      "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "Schema bound generation is traceable to repository evidence 0ba4ea for portfolio context; repository evidence is not default resume-claim proof.",
-      "assertion_basis": "evidence_reference",
-      "assertion_basis_refs": [
-        "baseline:graph_edges/edge_skill_repo_skill_schema_bound_generation_repo_0ba4ea",
-        "contract:edge_types/skill_supported_by_repo_evidence",
-        "endpoint:repo_0ba4ea",
-        "ledger:graph_nodes/skill_schema_bound_generation",
-        "ledger:skill_rows/skill_schema_bound_generation/repo_evidence_files"
       ],
       "edge_semantic_status": "HARDENED",
       "lifecycle_disposition": "ACTIVE_POLICY_GATED",
@@ -29323,29 +29000,6 @@
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
     },
     {
-      "edge_id": "edge_skill_repo_skill_sandboxed_execution_design_repo_0ba4ea",
-      "edge_type": "skill_supported_by_repo_evidence",
-      "source_node_id": "skill_sandboxed_execution_design",
-      "target_node_id": "repo_0ba4ea",
-      "rationale": "Repo evidence: apps_rg/runtime/",
-      "projection_behavior": "graph_traversal",
-      "external_claim_policy": "skill_projection_not_proof",
-      "validation_status": "validated",
-      "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "Sandboxed execution design is traceable to repository evidence 0ba4ea for portfolio context; repository evidence is not default resume-claim proof.",
-      "assertion_basis": "evidence_reference",
-      "assertion_basis_refs": [
-        "baseline:graph_edges/edge_skill_repo_skill_sandboxed_execution_design_repo_0ba4ea",
-        "contract:edge_types/skill_supported_by_repo_evidence",
-        "endpoint:repo_0ba4ea",
-        "ledger:graph_nodes/skill_sandboxed_execution_design",
-        "ledger:skill_rows/skill_sandboxed_execution_design/repo_evidence_files"
-      ],
-      "edge_semantic_status": "HARDENED",
-      "lifecycle_disposition": "ACTIVE_POLICY_GATED",
-      "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
-    },
-    {
       "edge_id": "edge_skill_fact_skill_sandboxed_execution_design_fact_engineering_platform_001",
       "edge_type": "skill_supported_by_fact",
       "source_node_id": "skill_sandboxed_execution_design",
@@ -29554,29 +29208,6 @@
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
     },
     {
-      "edge_id": "edge_skill_repo_skill_external_egress_control_repo_0ba4ea",
-      "edge_type": "skill_supported_by_repo_evidence",
-      "source_node_id": "skill_external_egress_control",
-      "target_node_id": "repo_0ba4ea",
-      "rationale": "Repo evidence: apps_rg/runtime/",
-      "projection_behavior": "graph_traversal",
-      "external_claim_policy": "skill_projection_not_proof",
-      "validation_status": "validated",
-      "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "External egress control is traceable to repository evidence 0ba4ea for portfolio context; repository evidence is not default resume-claim proof.",
-      "assertion_basis": "evidence_reference",
-      "assertion_basis_refs": [
-        "baseline:graph_edges/edge_skill_repo_skill_external_egress_control_repo_0ba4ea",
-        "contract:edge_types/skill_supported_by_repo_evidence",
-        "endpoint:repo_0ba4ea",
-        "ledger:graph_nodes/skill_external_egress_control",
-        "ledger:skill_rows/skill_external_egress_control/repo_evidence_files"
-      ],
-      "edge_semantic_status": "HARDENED",
-      "lifecycle_disposition": "ACTIVE_POLICY_GATED",
-      "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
-    },
-    {
       "edge_id": "edge_skill_fact_skill_external_egress_control_fact_governance_004",
       "edge_type": "skill_supported_by_fact",
       "source_node_id": "skill_external_egress_control",
@@ -29779,29 +29410,6 @@
         "endpoint:concept_NoDirectWrite",
         "ledger:graph_nodes/skill_side_effect_bounded_action_design",
         "ledger:skill_rows/skill_side_effect_bounded_action_design/source_concepts"
-      ],
-      "edge_semantic_status": "HARDENED",
-      "lifecycle_disposition": "ACTIVE_POLICY_GATED",
-      "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
-    },
-    {
-      "edge_id": "edge_skill_repo_skill_side_effect_bounded_action_design_repo_bd5d6d",
-      "edge_type": "skill_supported_by_repo_evidence",
-      "source_node_id": "skill_side_effect_bounded_action_design",
-      "target_node_id": "repo_bd5d6d",
-      "rationale": "Repo evidence: .codex/rules/000-apps-rg-operating-contract.mdc",
-      "projection_behavior": "graph_traversal",
-      "external_claim_policy": "skill_projection_not_proof",
-      "validation_status": "validated",
-      "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "Side effect bounded action design is traceable to repository evidence bd5d6d for portfolio context; repository evidence is not default resume-claim proof.",
-      "assertion_basis": "evidence_reference",
-      "assertion_basis_refs": [
-        "baseline:graph_edges/edge_skill_repo_skill_side_effect_bounded_action_design_repo_bd5d6d",
-        "contract:edge_types/skill_supported_by_repo_evidence",
-        "endpoint:repo_bd5d6d",
-        "ledger:graph_nodes/skill_side_effect_bounded_action_design",
-        "ledger:skill_rows/skill_side_effect_bounded_action_design/repo_evidence_files"
       ],
       "edge_semantic_status": "HARDENED",
       "lifecycle_disposition": "ACTIVE_POLICY_GATED",
@@ -30247,29 +29855,6 @@
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
     },
     {
-      "edge_id": "edge_skill_repo_skill_retry_and_thrash_guard_design_repo_0ba4ea",
-      "edge_type": "skill_supported_by_repo_evidence",
-      "source_node_id": "skill_retry_and_thrash_guard_design",
-      "target_node_id": "repo_0ba4ea",
-      "rationale": "Repo evidence: apps_rg/runtime/",
-      "projection_behavior": "graph_traversal",
-      "external_claim_policy": "skill_projection_not_proof",
-      "validation_status": "validated",
-      "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "Retry and thrash guard design is traceable to repository evidence 0ba4ea for portfolio context; repository evidence is not default resume-claim proof.",
-      "assertion_basis": "evidence_reference",
-      "assertion_basis_refs": [
-        "baseline:graph_edges/edge_skill_repo_skill_retry_and_thrash_guard_design_repo_0ba4ea",
-        "contract:edge_types/skill_supported_by_repo_evidence",
-        "endpoint:repo_0ba4ea",
-        "ledger:graph_nodes/skill_retry_and_thrash_guard_design",
-        "ledger:skill_rows/skill_retry_and_thrash_guard_design/repo_evidence_files"
-      ],
-      "edge_semantic_status": "HARDENED",
-      "lifecycle_disposition": "ACTIVE_POLICY_GATED",
-      "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
-    },
-    {
       "edge_id": "edge_skill_fact_skill_retry_and_thrash_guard_design_fact_engineering_platform_003",
       "edge_type": "skill_supported_by_fact",
       "source_node_id": "skill_retry_and_thrash_guard_design",
@@ -30472,29 +30057,6 @@
         "endpoint:concept_FailClosed",
         "ledger:graph_nodes/skill_runtime_resilience_controls",
         "ledger:skill_rows/skill_runtime_resilience_controls/source_concepts"
-      ],
-      "edge_semantic_status": "HARDENED",
-      "lifecycle_disposition": "ACTIVE_POLICY_GATED",
-      "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
-    },
-    {
-      "edge_id": "edge_skill_repo_skill_runtime_resilience_controls_repo_0ba4ea",
-      "edge_type": "skill_supported_by_repo_evidence",
-      "source_node_id": "skill_runtime_resilience_controls",
-      "target_node_id": "repo_0ba4ea",
-      "rationale": "Repo evidence: apps_rg/runtime/",
-      "projection_behavior": "graph_traversal",
-      "external_claim_policy": "skill_projection_not_proof",
-      "validation_status": "validated",
-      "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "Runtime resilience controls is traceable to repository evidence 0ba4ea for portfolio context; repository evidence is not default resume-claim proof.",
-      "assertion_basis": "evidence_reference",
-      "assertion_basis_refs": [
-        "baseline:graph_edges/edge_skill_repo_skill_runtime_resilience_controls_repo_0ba4ea",
-        "contract:edge_types/skill_supported_by_repo_evidence",
-        "endpoint:repo_0ba4ea",
-        "ledger:graph_nodes/skill_runtime_resilience_controls",
-        "ledger:skill_rows/skill_runtime_resilience_controls/repo_evidence_files"
       ],
       "edge_semantic_status": "HARDENED",
       "lifecycle_disposition": "ACTIVE_POLICY_GATED",
@@ -32580,29 +32142,6 @@
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
     },
     {
-      "edge_id": "edge_skill_repo_skill_policy_bound_runtime_design_repo_f2456e",
-      "edge_type": "skill_supported_by_repo_evidence",
-      "source_node_id": "skill_policy_bound_runtime_design",
-      "target_node_id": "repo_f2456e",
-      "rationale": "Repo evidence: .codex/rules/constitutional.mdc",
-      "projection_behavior": "graph_traversal",
-      "external_claim_policy": "skill_projection_not_proof",
-      "validation_status": "validated",
-      "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "Policy bound runtime design is traceable to repository evidence f2456e for portfolio context; repository evidence is not default resume-claim proof.",
-      "assertion_basis": "evidence_reference",
-      "assertion_basis_refs": [
-        "baseline:graph_edges/edge_skill_repo_skill_policy_bound_runtime_design_repo_f2456e",
-        "contract:edge_types/skill_supported_by_repo_evidence",
-        "endpoint:repo_f2456e",
-        "ledger:graph_nodes/skill_policy_bound_runtime_design",
-        "ledger:skill_rows/skill_policy_bound_runtime_design/repo_evidence_files"
-      ],
-      "edge_semantic_status": "HARDENED",
-      "lifecycle_disposition": "ACTIVE_POLICY_GATED",
-      "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
-    },
-    {
       "edge_id": "edge_skill_fact_skill_policy_bound_runtime_design_fact_governance_003",
       "edge_type": "skill_supported_by_fact",
       "source_node_id": "skill_policy_bound_runtime_design",
@@ -33042,29 +32581,6 @@
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
     },
     {
-      "edge_id": "edge_skill_repo_skill_provider_and_egress_governance_repo_0ba4ea",
-      "edge_type": "skill_supported_by_repo_evidence",
-      "source_node_id": "skill_provider_and_egress_governance",
-      "target_node_id": "repo_0ba4ea",
-      "rationale": "Repo evidence: apps_rg/runtime/",
-      "projection_behavior": "graph_traversal",
-      "external_claim_policy": "skill_projection_not_proof",
-      "validation_status": "validated",
-      "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "Provider and egress governance is traceable to repository evidence 0ba4ea for portfolio context; repository evidence is not default resume-claim proof.",
-      "assertion_basis": "evidence_reference",
-      "assertion_basis_refs": [
-        "baseline:graph_edges/edge_skill_repo_skill_provider_and_egress_governance_repo_0ba4ea",
-        "contract:edge_types/skill_supported_by_repo_evidence",
-        "endpoint:repo_0ba4ea",
-        "ledger:graph_nodes/skill_provider_and_egress_governance",
-        "ledger:skill_rows/skill_provider_and_egress_governance/repo_evidence_files"
-      ],
-      "edge_semantic_status": "HARDENED",
-      "lifecycle_disposition": "ACTIVE_POLICY_GATED",
-      "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
-    },
-    {
       "edge_id": "edge_skill_fact_skill_provider_and_egress_governance_fact_governance_004",
       "edge_type": "skill_supported_by_fact",
       "source_node_id": "skill_provider_and_egress_governance",
@@ -33273,29 +32789,6 @@
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
     },
     {
-      "edge_id": "edge_skill_repo_skill_human_review_reclearance_controls_repo_0f4cc3",
-      "edge_type": "skill_supported_by_repo_evidence",
-      "source_node_id": "skill_human_review_reclearance_controls",
-      "target_node_id": "repo_0f4cc3",
-      "rationale": "Repo evidence: apps_rg/fact_inventory/selected_role_fact_set.py",
-      "projection_behavior": "graph_traversal",
-      "external_claim_policy": "skill_projection_not_proof",
-      "validation_status": "validated",
-      "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "Human review reclearance controls is traceable to repository evidence 0f4cc3 for portfolio context; repository evidence is not default resume-claim proof.",
-      "assertion_basis": "evidence_reference",
-      "assertion_basis_refs": [
-        "baseline:graph_edges/edge_skill_repo_skill_human_review_reclearance_controls_repo_0f4cc3",
-        "contract:edge_types/skill_supported_by_repo_evidence",
-        "endpoint:repo_0f4cc3",
-        "ledger:graph_nodes/skill_human_review_reclearance_controls",
-        "ledger:skill_rows/skill_human_review_reclearance_controls/repo_evidence_files"
-      ],
-      "edge_semantic_status": "HARDENED",
-      "lifecycle_disposition": "ACTIVE_POLICY_GATED",
-      "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
-    },
-    {
       "edge_id": "edge_skill_fact_skill_human_review_reclearance_controls_fact_governance_002",
       "edge_type": "skill_supported_by_fact",
       "source_node_id": "skill_human_review_reclearance_controls",
@@ -33498,29 +32991,6 @@
         "endpoint:concept_ADGAudit",
         "ledger:graph_nodes/skill_static_governance_drift_detection",
         "ledger:skill_rows/skill_static_governance_drift_detection/source_concepts"
-      ],
-      "edge_semantic_status": "HARDENED",
-      "lifecycle_disposition": "ACTIVE_POLICY_GATED",
-      "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
-    },
-    {
-      "edge_id": "edge_skill_repo_skill_static_governance_drift_detection_repo_5aa1dc",
-      "edge_type": "skill_supported_by_repo_evidence",
-      "source_node_id": "skill_static_governance_drift_detection",
-      "target_node_id": "repo_5aa1dc",
-      "rationale": "Repo evidence: artifacts/adg/",
-      "projection_behavior": "graph_traversal",
-      "external_claim_policy": "skill_projection_not_proof",
-      "validation_status": "validated",
-      "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "Static governance drift detection is traceable to repository evidence 5aa1dc for portfolio context; repository evidence is not default resume-claim proof.",
-      "assertion_basis": "evidence_reference",
-      "assertion_basis_refs": [
-        "baseline:graph_edges/edge_skill_repo_skill_static_governance_drift_detection_repo_5aa1dc",
-        "contract:edge_types/skill_supported_by_repo_evidence",
-        "endpoint:repo_5aa1dc",
-        "ledger:graph_nodes/skill_static_governance_drift_detection",
-        "ledger:skill_rows/skill_static_governance_drift_detection/repo_evidence_files"
       ],
       "edge_semantic_status": "HARDENED",
       "lifecycle_disposition": "ACTIVE_POLICY_GATED",
@@ -34220,29 +33690,6 @@
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
     },
     {
-      "edge_id": "edge_skill_repo_skill_receipt_and_artifact_chain_design_repo_08a182",
-      "edge_type": "skill_supported_by_repo_evidence",
-      "source_node_id": "skill_receipt_and_artifact_chain_design",
-      "target_node_id": "repo_08a182",
-      "rationale": "Repo evidence: .codex/rules/artifact-provenance-discipline.mdc",
-      "projection_behavior": "graph_traversal",
-      "external_claim_policy": "skill_projection_not_proof",
-      "validation_status": "validated",
-      "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "Receipt and artifact chain design is traceable to repository evidence 08a182 for portfolio context; repository evidence is not default resume-claim proof.",
-      "assertion_basis": "evidence_reference",
-      "assertion_basis_refs": [
-        "baseline:graph_edges/edge_skill_repo_skill_receipt_and_artifact_chain_design_repo_08a182",
-        "contract:edge_types/skill_supported_by_repo_evidence",
-        "endpoint:repo_08a182",
-        "ledger:graph_nodes/skill_receipt_and_artifact_chain_design",
-        "ledger:skill_rows/skill_receipt_and_artifact_chain_design/repo_evidence_files"
-      ],
-      "edge_semantic_status": "HARDENED",
-      "lifecycle_disposition": "ACTIVE_POLICY_GATED",
-      "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
-    },
-    {
       "edge_id": "edge_skill_fact_skill_receipt_and_artifact_chain_design_fact_governance_001",
       "edge_type": "skill_supported_by_fact",
       "source_node_id": "skill_receipt_and_artifact_chain_design",
@@ -34445,29 +33892,6 @@
         "endpoint:concept_ProofContract",
         "ledger:graph_nodes/skill_no_bypass_proof_controls",
         "ledger:skill_rows/skill_no_bypass_proof_controls/source_concepts"
-      ],
-      "edge_semantic_status": "HARDENED",
-      "lifecycle_disposition": "ACTIVE_POLICY_GATED",
-      "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
-    },
-    {
-      "edge_id": "edge_skill_repo_skill_no_bypass_proof_controls_repo_c303f9",
-      "edge_type": "skill_supported_by_repo_evidence",
-      "source_node_id": "skill_no_bypass_proof_controls",
-      "target_node_id": "repo_c303f9",
-      "rationale": "Repo evidence: .codex/rules/002-pass-blocked-proof-contract.mdc",
-      "projection_behavior": "graph_traversal",
-      "external_claim_policy": "skill_projection_not_proof",
-      "validation_status": "validated",
-      "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "No bypass proof controls is traceable to repository evidence c303f9 for portfolio context; repository evidence is not default resume-claim proof.",
-      "assertion_basis": "evidence_reference",
-      "assertion_basis_refs": [
-        "baseline:graph_edges/edge_skill_repo_skill_no_bypass_proof_controls_repo_c303f9",
-        "contract:edge_types/skill_supported_by_repo_evidence",
-        "endpoint:repo_c303f9",
-        "ledger:graph_nodes/skill_no_bypass_proof_controls",
-        "ledger:skill_rows/skill_no_bypass_proof_controls/repo_evidence_files"
       ],
       "edge_semantic_status": "HARDENED",
       "lifecycle_disposition": "ACTIVE_POLICY_GATED",
@@ -34913,29 +34337,6 @@
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
     },
     {
-      "edge_id": "edge_skill_repo_skill_learning_firewall_controls_repo_0eaaf9",
-      "edge_type": "skill_supported_by_repo_evidence",
-      "source_node_id": "skill_learning_firewall_controls",
-      "target_node_id": "repo_0eaaf9",
-      "rationale": "Repo evidence: .codex/rules/evaluation-promotion-gate.mdc",
-      "projection_behavior": "graph_traversal",
-      "external_claim_policy": "skill_projection_not_proof",
-      "validation_status": "validated",
-      "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "Learning firewall controls is traceable to repository evidence 0eaaf9 for portfolio context; repository evidence is not default resume-claim proof.",
-      "assertion_basis": "evidence_reference",
-      "assertion_basis_refs": [
-        "baseline:graph_edges/edge_skill_repo_skill_learning_firewall_controls_repo_0eaaf9",
-        "contract:edge_types/skill_supported_by_repo_evidence",
-        "endpoint:repo_0eaaf9",
-        "ledger:graph_nodes/skill_learning_firewall_controls",
-        "ledger:skill_rows/skill_learning_firewall_controls/repo_evidence_files"
-      ],
-      "edge_semantic_status": "HARDENED",
-      "lifecycle_disposition": "ACTIVE_POLICY_GATED",
-      "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
-    },
-    {
       "edge_id": "edge_skill_fact_skill_learning_firewall_controls_fact_governance_003",
       "edge_type": "skill_supported_by_fact",
       "source_node_id": "skill_learning_firewall_controls",
@@ -35144,29 +34545,6 @@
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
     },
     {
-      "edge_id": "edge_skill_repo_skill_hitl_escalation_architecture_repo_b7a57b",
-      "edge_type": "skill_supported_by_repo_evidence",
-      "source_node_id": "skill_hitl_escalation_architecture",
-      "target_node_id": "repo_b7a57b",
-      "rationale": "Repo evidence: .codex/rules/003-cursor-author-gate-hitl.mdc",
-      "projection_behavior": "graph_traversal",
-      "external_claim_policy": "skill_projection_not_proof",
-      "validation_status": "validated",
-      "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "HITL escalation architecture is traceable to repository evidence b7a57b for portfolio context; repository evidence is not default resume-claim proof.",
-      "assertion_basis": "evidence_reference",
-      "assertion_basis_refs": [
-        "baseline:graph_edges/edge_skill_repo_skill_hitl_escalation_architecture_repo_b7a57b",
-        "contract:edge_types/skill_supported_by_repo_evidence",
-        "endpoint:repo_b7a57b",
-        "ledger:graph_nodes/skill_hitl_escalation_architecture",
-        "ledger:skill_rows/skill_hitl_escalation_architecture/repo_evidence_files"
-      ],
-      "edge_semantic_status": "HARDENED",
-      "lifecycle_disposition": "ACTIVE_POLICY_GATED",
-      "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
-    },
-    {
       "edge_id": "edge_skill_fact_skill_hitl_escalation_architecture_fact_governance_002",
       "edge_type": "skill_supported_by_fact",
       "source_node_id": "skill_hitl_escalation_architecture",
@@ -35369,29 +34747,6 @@
         "endpoint:concept_WaveLifecycle",
         "ledger:graph_nodes/skill_approval_gated_workflow_design",
         "ledger:skill_rows/skill_approval_gated_workflow_design/source_concepts"
-      ],
-      "edge_semantic_status": "HARDENED",
-      "lifecycle_disposition": "ACTIVE_POLICY_GATED",
-      "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
-    },
-    {
-      "edge_id": "edge_skill_repo_skill_approval_gated_workflow_design_repo_3ffea5",
-      "edge_type": "skill_supported_by_repo_evidence",
-      "source_node_id": "skill_approval_gated_workflow_design",
-      "target_node_id": "repo_3ffea5",
-      "rationale": "Repo evidence: .codex/rules/wave-completion-discipline.mdc",
-      "projection_behavior": "graph_traversal",
-      "external_claim_policy": "skill_projection_not_proof",
-      "validation_status": "validated",
-      "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "Approval gated workflow design is traceable to repository evidence 3ffea5 for portfolio context; repository evidence is not default resume-claim proof.",
-      "assertion_basis": "evidence_reference",
-      "assertion_basis_refs": [
-        "baseline:graph_edges/edge_skill_repo_skill_approval_gated_workflow_design_repo_3ffea5",
-        "contract:edge_types/skill_supported_by_repo_evidence",
-        "endpoint:repo_3ffea5",
-        "ledger:graph_nodes/skill_approval_gated_workflow_design",
-        "ledger:skill_rows/skill_approval_gated_workflow_design/repo_evidence_files"
       ],
       "edge_semantic_status": "HARDENED",
       "lifecycle_disposition": "ACTIVE_POLICY_GATED",
@@ -35831,29 +35186,6 @@
         "endpoint:concept_EscalationDesign",
         "ledger:graph_nodes/skill_agent_to_human_handoff_design",
         "ledger:skill_rows/skill_agent_to_human_handoff_design/source_concepts"
-      ],
-      "edge_semantic_status": "HARDENED",
-      "lifecycle_disposition": "ACTIVE_POLICY_GATED",
-      "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
-    },
-    {
-      "edge_id": "edge_skill_repo_skill_agent_to_human_handoff_design_repo_0ba4ea",
-      "edge_type": "skill_supported_by_repo_evidence",
-      "source_node_id": "skill_agent_to_human_handoff_design",
-      "target_node_id": "repo_0ba4ea",
-      "rationale": "Repo evidence: apps_rg/runtime/",
-      "projection_behavior": "graph_traversal",
-      "external_claim_policy": "skill_projection_not_proof",
-      "validation_status": "validated",
-      "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "Agent to human handoff design is traceable to repository evidence 0ba4ea for portfolio context; repository evidence is not default resume-claim proof.",
-      "assertion_basis": "evidence_reference",
-      "assertion_basis_refs": [
-        "baseline:graph_edges/edge_skill_repo_skill_agent_to_human_handoff_design_repo_0ba4ea",
-        "contract:edge_types/skill_supported_by_repo_evidence",
-        "endpoint:repo_0ba4ea",
-        "ledger:graph_nodes/skill_agent_to_human_handoff_design",
-        "ledger:skill_rows/skill_agent_to_human_handoff_design/repo_evidence_files"
       ],
       "edge_semantic_status": "HARDENED",
       "lifecycle_disposition": "ACTIVE_POLICY_GATED",
@@ -36986,29 +36318,6 @@
         "endpoint:concept_OperatingModel",
         "ledger:graph_nodes/skill_enterprise_workflow_adoption",
         "ledger:skill_rows/skill_enterprise_workflow_adoption/source_concepts"
-      ],
-      "edge_semantic_status": "HARDENED",
-      "lifecycle_disposition": "ACTIVE_POLICY_GATED",
-      "hardening_wave": "C03_CLUSTER_EMBEDDING_W2"
-    },
-    {
-      "edge_id": "edge_skill_repo_skill_enterprise_workflow_adoption_repo_0ba4ea",
-      "edge_type": "skill_supported_by_repo_evidence",
-      "source_node_id": "skill_enterprise_workflow_adoption",
-      "target_node_id": "repo_0ba4ea",
-      "rationale": "Repo evidence: apps_rg/runtime/",
-      "projection_behavior": "graph_traversal",
-      "external_claim_policy": "skill_projection_not_proof",
-      "validation_status": "validated",
-      "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "Enterprise workflow adoption is traceable to repository evidence 0ba4ea for portfolio context; repository evidence is not default resume-claim proof.",
-      "assertion_basis": "evidence_reference",
-      "assertion_basis_refs": [
-        "baseline:graph_edges/edge_skill_repo_skill_enterprise_workflow_adoption_repo_0ba4ea",
-        "contract:edge_types/skill_supported_by_repo_evidence",
-        "endpoint:repo_0ba4ea",
-        "ledger:graph_nodes/skill_enterprise_workflow_adoption",
-        "ledger:skill_rows/skill_enterprise_workflow_adoption/repo_evidence_files"
       ],
       "edge_semantic_status": "HARDENED",
       "lifecycle_disposition": "ACTIVE_POLICY_GATED",
@@ -72028,51 +71337,6 @@
       "lifecycle_disposition": "HELD_NON_ACTIVE_ENDPOINT"
     },
     {
-      "edge_id": "edge:w3:skill_requires_human_confirmation:skill_reserved_instance_rightsizing_strategy->policy_external_claim_policy",
-      "edge_type": "skill_requires_human_confirmation",
-      "source_node_id": "skill_reserved_instance_rightsizing_strategy",
-      "target_node_id": "policy_external_claim_policy",
-      "rationale": "Requires human confirmation",
-      "projection_behavior": "graph_traversal",
-      "external_claim_policy": "skill_projection_not_proof",
-      "validation_status": "validated",
-      "hardening_wave": "C03_CLUSTER_EMBEDDING_W3",
-      "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "Reserved Instance Rightsizing Strategy remains gated by policy_external_claim_policy until the required human confirmation and evidence activation are both recorded.",
-      "assertion_basis": "policy_predicate",
-      "assertion_basis_refs": [
-        "authority_reconciliation:graph_edges/edge:w3:skill_requires_human_confirmation:skill_reserved_instance_rightsizing_strategy->policy_external_claim_policy",
-        "contract:edge_types/skill_requires_human_confirmation",
-        "ledger:graph_nodes/policy_external_claim_policy",
-        "ledger:graph_nodes/skill_reserved_instance_rightsizing_strategy",
-        "ledger:skill_rows/skill_reserved_instance_rightsizing_strategy/human_confirmation_required"
-      ],
-      "edge_semantic_status": "HARDENED",
-      "lifecycle_disposition": "HELD_NON_ACTIVE_ENDPOINT"
-    },
-    {
-      "edge_id": "edge:w3:projection_excludes_blocked_skill:skill_reserved_instance_rightsizing_strategy->policy_external_claim_policy",
-      "edge_type": "projection_excludes_blocked_skill",
-      "source_node_id": "skill_reserved_instance_rightsizing_strategy",
-      "target_node_id": "policy_external_claim_policy",
-      "rationale": "Block external: pending_source_internal_only",
-      "projection_behavior": "graph_traversal",
-      "external_claim_policy": "pending_source_internal_only",
-      "validation_status": "validated",
-      "hardening_wave": "C03_CLUSTER_EMBEDDING_W3",
-      "edge_semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
-      "canonical_assertion_text": "Reserved Instance Rightsizing Strategy is excluded from external projection under policy_external_claim_policy while its evidence or lifecycle status remains blocked or pending.",
-      "assertion_basis": "policy_predicate",
-      "assertion_basis_refs": [
-        "authority_reconciliation:graph_edges/edge:w3:projection_excludes_blocked_skill:skill_reserved_instance_rightsizing_strategy->policy_external_claim_policy",
-        "contract:edge_types/projection_excludes_blocked_skill",
-        "ledger:graph_nodes/policy_external_claim_policy",
-        "ledger:graph_nodes/skill_reserved_instance_rightsizing_strategy"
-      ],
-      "edge_semantic_status": "HARDENED",
-      "lifecycle_disposition": "HELD_NON_ACTIVE_ENDPOINT"
-    },
-    {
       "edge_id": "edge:w3:skill_allowed_in_section:skill_revops_multi_channel_gtm_alignment->section_ibm_bullets",
       "edge_type": "skill_allowed_in_section",
       "source_node_id": "skill_revops_multi_channel_gtm_alignment",
@@ -79529,7 +78793,8 @@
       "source_ledger_ref": "fact_quant_hpc_003",
       "career_track_id": "TRACK_ACTUARIAL_RISK_DERIVATIVES",
       "retrieval_eligible": true,
-      "retrieval_ineligibility_reason": "LIFECYCLE_NOT_ACTIVE"
+      "retrieval_ineligibility_reason": "LIFECYCLE_NOT_ACTIVE",
+      "description": "Structured derivatives work, including structured product design, grounded in a quantitative base in derivatives pricing, capital modeling, and portfolio stress analytics from early actuarial roles."
     },
     {
       "skill_id": "skill_insurance_liabilities_embedded_options",
@@ -79609,7 +78874,8 @@
       "source_ledger_ref": "fact_insurance_liabilities_001",
       "career_track_id": "TRACK_ACTUARIAL_RISK_DERIVATIVES",
       "retrieval_eligible": true,
-      "retrieval_ineligibility_reason": "LIFECYCLE_NOT_ACTIVE"
+      "retrieval_ineligibility_reason": "LIFECYCLE_NOT_ACTIVE",
+      "description": "Values embedded options in insurance products using derivative-pricing methods, drawing on actuarial techniques from work at major insurers."
     },
     {
       "skill_id": "skill_insurance_liabilities_insurance_liabilities",
@@ -79687,7 +78953,8 @@
       "source_ledger_ref": "fact_insurance_liabilities_001",
       "career_track_id": "TRACK_ACTUARIAL_RISK_DERIVATIVES",
       "retrieval_eligible": true,
-      "retrieval_ineligibility_reason": "LIFECYCLE_NOT_ACTIVE"
+      "retrieval_ineligibility_reason": "LIFECYCLE_NOT_ACTIVE",
+      "description": "Models insurance liabilities and policy reserves with actuarial methods, based on work at major insurers."
     },
     {
       "skill_id": "skill_greeks_gamma",
@@ -79842,7 +79109,8 @@
       },
       "source_ledger_ref": "fact_quant_hpc_003",
       "career_track_id": "TRACK_ACTUARIAL_RISK_DERIVATIVES",
-      "retrieval_eligible": true
+      "retrieval_eligible": true,
+      "description": "Hedges volatility sensitivity by managing vega exposure, drawing on an FSA-grade foundation in derivatives pricing, capital modeling, and portfolio stress analytics."
     },
     {
       "skill_id": "skill_greeks_theta",
@@ -79918,7 +79186,8 @@
       },
       "source_ledger_ref": "fact_quant_hpc_003",
       "career_track_id": "TRACK_ACTUARIAL_RISK_DERIVATIVES",
-      "retrieval_eligible": true
+      "retrieval_eligible": true,
+      "description": "Manages theta and time-decay hedging in derivatives portfolios, resting on an FSA-grade base in derivatives pricing, capital modeling, and stress analytics."
     },
     {
       "skill_id": "skill_greeks_delta",
@@ -79997,7 +79266,8 @@
       "source_ledger_ref": "fact_quant_hpc_003",
       "career_track_id": "TRACK_ACTUARIAL_RISK_DERIVATIVES",
       "retrieval_eligible": true,
-      "retrieval_ineligibility_reason": "LIFECYCLE_NOT_ACTIVE"
+      "retrieval_ineligibility_reason": "LIFECYCLE_NOT_ACTIVE",
+      "description": "Delta hedging for directional risk management, built on an actuarial foundation in derivatives pricing and portfolio stress analytics."
     },
     {
       "skill_id": "skill_greeks_rho",
@@ -80076,7 +79346,8 @@
       "source_ledger_ref": "fact_quant_hpc_003",
       "career_track_id": "TRACK_ACTUARIAL_RISK_DERIVATIVES",
       "retrieval_eligible": true,
-      "retrieval_ineligibility_reason": "LIFECYCLE_NOT_ACTIVE"
+      "retrieval_ineligibility_reason": "LIFECYCLE_NOT_ACTIVE",
+      "description": "Rho hedging and interest-rate sensitivity analysis, drawing on actuarial training in derivatives pricing, capital modeling, and portfolio stress analytics."
     },
     {
       "skill_id": "skill_greeks_convexity",
@@ -80154,7 +79425,8 @@
       "source_ledger_ref": "fact_quant_hpc_003",
       "career_track_id": "TRACK_ACTUARIAL_RISK_DERIVATIVES",
       "retrieval_eligible": true,
-      "retrieval_ineligibility_reason": "LIFECYCLE_NOT_ACTIVE"
+      "retrieval_ineligibility_reason": "LIFECYCLE_NOT_ACTIVE",
+      "description": "Convexity management and gamma exposure monitoring, rooted in early actuarial work on derivatives pricing, capital modeling, and stress testing portfolios."
     },
     {
       "skill_id": "skill_risk_greek_stress_testing",
@@ -81457,7 +80729,8 @@
       },
       "source_ledger_ref": "fact_solutions_001",
       "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
-      "retrieval_eligible": true
+      "retrieval_eligible": true,
+      "description": "Led executive workshops that explained complex AI, data, and cloud architecture in business terms, so senior stakeholders could see the value and expected ROI."
     },
     {
       "skill_id": "skill_partner_customer_deal_support",
@@ -81752,7 +81025,8 @@
       },
       "source_ledger_ref": "fact_partnerships_gtm_001",
       "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
-      "retrieval_eligible": true
+      "retrieval_eligible": true,
+      "description": "Used co-marketing campaigns as the go-to-market engine of a global AI channel program built from scratch, helping produce $3M in partner-derived revenue."
     },
     {
       "skill_id": "skill_partner_partner_led_ai_solutions",
@@ -81955,7 +81229,8 @@
       },
       "source_ledger_ref": "fact_partnerships_gtm_001",
       "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
-      "retrieval_eligible": true
+      "retrieval_eligible": true,
+      "description": "Held partial P&L accountability for a channel program built from inception, which reached $3M in partner-derived revenue."
     },
     {
       "skill_id": "skill_partner_partner_revenue_3m",
@@ -82769,7 +82044,8 @@
         "skill_partner_gsi_enablement",
         "fact_partnerships_gtm_001"
       ],
-      "retrieval_eligible": true
+      "retrieval_eligible": true,
+      "description": "Focused partner enablement on GSI relationships within a global AI channel program, supported by co-marketing campaigns with strategic partners."
     },
     {
       "career_stage": "cross_career",
@@ -82926,7 +82202,8 @@
         "skill_partner_joint_solution_development",
         "fact_partnerships_gtm_001"
       ],
-      "retrieval_eligible": true
+      "retrieval_eligible": true,
+      "description": "Co-developed analytics frameworks with strategic partners to shape partner-led AI solutions inside a global AI channel program built from inception."
     },
     {
       "career_stage": "cross_career",
@@ -83007,7 +82284,8 @@
       "retrieval_eligible": true,
       "retired_aliases": [
         "skill_p2_gtm_solution_mapping"
-      ]
+      ],
+      "description": "Gave partner sales teams pre-sales technical support, turning solution architecture for AI, data, and cloud into executive value propositions with measurable ROI."
     },
     {
       "career_stage": "cross_career",
@@ -83084,7 +82362,8 @@
         "skill_partner_indirect_revenue_models",
         "fact_partnerships_gtm_001"
       ],
-      "retrieval_eligible": true
+      "retrieval_eligible": true,
+      "description": "Grew $3M in partner-derived revenue through a channel program, pairing bundled consulting packages with LLM-driven compliance analysis."
     },
     {
       "career_stage": "cross_career",
@@ -83160,7 +82439,8 @@
         "skill_partner_alliance_gtm_execution",
         "fact_partnerships_gtm_004"
       ],
-      "retrieval_eligible": true
+      "retrieval_eligible": true,
+      "description": "Built relationships with cloud and AI vendors and turned them into joint go-to-market strategies, pairing market influence with solution roadmaps to speed enterprise uptake of analytics and platform services."
     },
     {
       "career_stage": "cross_career",
@@ -83234,7 +82514,8 @@
         "skill_partner_partner_enablement_training",
         "fact_partnerships_gtm_001"
       ],
-      "retrieval_eligible": true
+      "retrieval_eligible": true,
+      "description": "Set up the partner enablement side of a global AI channel program from inception, equipping strategic partners around shared analytics frameworks."
     },
     {
       "career_stage": "cross_career",
@@ -83310,7 +82591,8 @@
         "skill_partner_ai_architecture_advisory",
         "fact_partnerships_gtm_004"
       ],
-      "retrieval_eligible": true
+      "retrieval_eligible": true,
+      "description": "Advised partners on AI architecture by shaping solution roadmaps with cloud and AI vendors, helping enterprises adopt advanced analytics and platform services with a clearer technical path."
     },
     {
       "skill_id": "skill_finance_cost_optimization_dashboards",
@@ -83781,7 +83063,7 @@
       "external_claim_policy": "external_resume_claim_requires_active_fact_or_confirmed_snippet",
       "projection_behavior": "rank_and_project_facts",
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
-      "domain_id": "domain_phase2_gtm_presales",
+      "domain_id": "domain_gtm_presales_motion",
       "domain": "Phase 2 GTM / Pre-Sales",
       "capability": "discovery_qualification",
       "source_concepts": [],
@@ -83847,7 +83129,7 @@
       "external_claim_policy": "external_resume_claim_requires_active_fact_or_confirmed_snippet",
       "projection_behavior": "rank_and_project_facts",
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
-      "domain_id": "domain_phase2_gtm_presales",
+      "domain_id": "domain_gtm_presales_motion",
       "domain": "Phase 2 GTM / Pre-Sales",
       "capability": "executive_buyer_alignment",
       "source_concepts": [],
@@ -83913,7 +83195,7 @@
       "external_claim_policy": "external_resume_claim_requires_active_fact_or_confirmed_snippet",
       "projection_behavior": "rank_and_project_facts",
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
-      "domain_id": "domain_phase2_gtm_presales",
+      "domain_id": "domain_gtm_presales_motion",
       "domain": "Phase 2 GTM / Pre-Sales",
       "capability": "commercial_validation_pilots",
       "source_concepts": [],
@@ -83990,7 +83272,7 @@
       "external_claim_policy": "external_resume_claim_requires_active_fact_or_confirmed_snippet",
       "projection_behavior": "rank_and_project_facts",
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
-      "domain_id": "domain_phase2_gtm_presales",
+      "domain_id": "domain_gtm_presales_motion",
       "domain": "Phase 2 GTM / Pre-Sales",
       "capability": "presales_to_delivery_handoff",
       "source_concepts": [],
@@ -84621,10 +83903,10 @@
       ],
       "visibility_rule": "never_external",
       "evidence_risk": "low",
-      "activation_status": "DRAFT",
+      "activation_status": "RETIRED",
       "human_confirmation_required": false,
       "external_claim_policy": "pending_source_internal_only",
-      "projection_behavior": "rank_and_project_facts",
+      "projection_behavior": "internal_rank_only",
       "career_epoch": "epoch_cloud_data_platform_engineering",
       "domain_id": "domain_senior_role_w8_w11",
       "domain": "Senior Role W8–W11 Graph",
@@ -84657,7 +83939,9 @@
       "source_ledger_ref": "bul_insurtech_003",
       "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "retrieval_eligible": false,
-      "retrieval_ineligibility_reason": "LIFECYCLE_NOT_ACTIVE"
+      "retrieval_ineligibility_reason": "RETIRED_BY_OPERATOR",
+      "operator_hygiene_decision": "RETIRE",
+      "operator_hold_mode": "RETIRED"
     },
     {
       "skill_id": "skill_sr_insurtech_cto_it_enablement",
@@ -91720,7 +91004,8 @@
       },
       "source_ledger_ref": "fact_quant_act_002",
       "career_track_id": "TRACK_ACTUARIAL_RISK_DERIVATIVES",
-      "retrieval_eligible": true
+      "retrieval_eligible": true,
+      "description": "Built stochastic models and used rigorous actuarial methods to refine capital models, giving enterprise risk assessments more precise results."
     },
     {
       "skill_id": "skill_hpc_valuation_capital_adequacy",
@@ -91797,7 +91082,8 @@
       },
       "source_ledger_ref": "fact_quant_act_003",
       "career_track_id": "TRACK_ACTUARIAL_RISK_DERIVATIVES",
-      "retrieval_eligible": true
+      "retrieval_eligible": true,
+      "description": "Supported valuation frameworks run on high-performance computing for scenario testing and capital adequacy, linking HPC infrastructure with core actuarial risk fundamentals."
     },
     {
       "skill_id": "skill_insurance_guidewire",
@@ -95310,7 +94596,7 @@
         "InsurTech CTO 2014-2017 role episode skill: Reserved Instance Rightsizing Strategy."
       ],
       "user_confirmed": true,
-      "support_level": "USER_CONFIRMED_PENDING_SOURCE",
+      "support_level": "INTERNAL_ONLY",
       "role_family_weights": {
         "INSURANCE_CARRIER_TRANSFORMATION": 1.0,
         "INSURER_IT_AI_ENABLEMENT": 1.0,
@@ -95331,10 +94617,10 @@
         "insurtech_bullets",
         "insurtech_narrative"
       ],
-      "visibility_rule": "human_confirm",
+      "visibility_rule": "never_external",
       "evidence_risk": "medium",
-      "activation_status": "DRAFT",
-      "human_confirmation_required": true,
+      "activation_status": "RETIRED",
+      "human_confirmation_required": false,
       "external_claim_policy": "pending_source_internal_only",
       "projection_behavior": "internal_rank_only",
       "career_epoch": "epoch_cloud_data_platform_engineering",
@@ -95366,7 +94652,9 @@
       },
       "source_ledger_ref": "bul_insurtech_001",
       "retrieval_eligible": false,
-      "retrieval_ineligibility_reason": "LIFECYCLE_NOT_ACTIVE"
+      "retrieval_ineligibility_reason": "RETIRED_BY_OPERATOR",
+      "operator_hygiene_decision": "RETIRE",
+      "operator_hold_mode": "RETIRED"
     },
     {
       "skill_id": "skill_rto_rpo_dr_planning",
@@ -98173,7 +97461,8 @@
       ],
       "risk_of_overclaim": "high",
       "linked_fact_id": null,
-      "skill_id": "skill_derivatives_structured_derivatives"
+      "skill_id": "skill_derivatives_structured_derivatives",
+      "description": "Structured derivatives work, including structured product design, grounded in a quantitative base in derivatives pricing, capital modeling, and portfolio stress analytics from early actuarial roles."
     },
     {
       "skill": "embedded_options",
@@ -98193,7 +97482,8 @@
       ],
       "risk_of_overclaim": "high",
       "linked_fact_id": null,
-      "skill_id": "skill_insurance_liabilities_embedded_options"
+      "skill_id": "skill_insurance_liabilities_embedded_options",
+      "description": "Values embedded options in insurance products using derivative-pricing methods, drawing on actuarial techniques from work at major insurers."
     },
     {
       "skill": "insurance_liabilities",
@@ -98212,7 +97502,8 @@
       ],
       "risk_of_overclaim": "high",
       "linked_fact_id": null,
-      "skill_id": "skill_insurance_liabilities_insurance_liabilities"
+      "skill_id": "skill_insurance_liabilities_insurance_liabilities",
+      "description": "Models insurance liabilities and policy reserves with actuarial methods, based on work at major insurers."
     },
     {
       "skill": "gamma",
@@ -98256,7 +97547,8 @@
       ],
       "risk_of_overclaim": "low",
       "linked_fact_id": null,
-      "skill_id": "skill_greeks_vega"
+      "skill_id": "skill_greeks_vega",
+      "description": "Hedges volatility sensitivity by managing vega exposure, drawing on an FSA-grade foundation in derivatives pricing, capital modeling, and portfolio stress analytics."
     },
     {
       "skill": "theta",
@@ -98277,7 +97569,8 @@
       ],
       "risk_of_overclaim": "low",
       "linked_fact_id": null,
-      "skill_id": "skill_greeks_theta"
+      "skill_id": "skill_greeks_theta",
+      "description": "Manages theta and time-decay hedging in derivatives portfolios, resting on an FSA-grade base in derivatives pricing, capital modeling, and stress analytics."
     },
     {
       "skill": "delta",
@@ -98298,7 +97591,8 @@
       ],
       "risk_of_overclaim": "medium",
       "linked_fact_id": null,
-      "skill_id": "skill_greeks_delta"
+      "skill_id": "skill_greeks_delta",
+      "description": "Delta hedging for directional risk management, built on an actuarial foundation in derivatives pricing and portfolio stress analytics."
     },
     {
       "skill": "rho",
@@ -98319,7 +97613,8 @@
       ],
       "risk_of_overclaim": "medium",
       "linked_fact_id": null,
-      "skill_id": "skill_greeks_rho"
+      "skill_id": "skill_greeks_rho",
+      "description": "Rho hedging and interest-rate sensitivity analysis, drawing on actuarial training in derivatives pricing, capital modeling, and portfolio stress analytics."
     },
     {
       "skill": "convexity",
@@ -98340,7 +97635,8 @@
       ],
       "risk_of_overclaim": "medium",
       "linked_fact_id": null,
-      "skill_id": "skill_greeks_convexity"
+      "skill_id": "skill_greeks_convexity",
+      "description": "Convexity management and gamma exposure monitoring, rooted in early actuarial work on derivatives pricing, capital modeling, and stress testing portfolios."
     },
     {
       "skill": "greek_stress_testing",
@@ -98713,7 +98009,7 @@
     },
     {
       "skill": "workshops",
-      "description": "Executive workshops",
+      "description": "Led executive workshops that explained complex AI, data, and cloud architecture in business terms, so senior stakeholders could see the value and expected ROI.",
       "source_resume_file": "Partnerships & Alliances - Amit Ayer.docx",
       "source_evidence": "executive workshops",
       "support_status": "DIRECT_FROM_RESUME_ARCHIVE",
@@ -98802,7 +98098,7 @@
     },
     {
       "skill": "gtm_enablement",
-      "description": "GTM packaging and enablement",
+      "description": "Used co-marketing campaigns as the go-to-market engine of a global AI channel program built from scratch, helping produce $3M in partner-derived revenue.",
       "source_resume_file": "Partnerships & Alliances - Amit Ayer.docx",
       "source_evidence": "co-marketing campaigns",
       "support_status": "DIRECT_FROM_RESUME_ARCHIVE",
@@ -98865,7 +98161,7 @@
     },
     {
       "skill": "pnl_oversight",
-      "description": "P&L on alliance revenue",
+      "description": "Held partial P&L accountability for a channel program built from inception, which reached $3M in partner-derived revenue.",
       "source_resume_file": "Partnerships & Alliances - Amit Ayer.docx",
       "source_evidence": "P&L oversight",
       "support_status": "DIRECT_FROM_RESUME_ARCHIVE",
@@ -99595,7 +98891,19 @@
       "where_to_use": [],
       "risk_notes": "Source bullet references underwriting systems — forbidden for external claims; INTERNAL_ONLY.",
       "linked_fact_id": "bul_insurtech_003",
-      "evidence_confidence": "LOW"
+      "evidence_confidence": "LOW",
+      "operator_hygiene_decision": "RETIRE",
+      "operator_hold_mode": "RETIRED",
+      "activation_status": "RETIRED",
+      "support_level": "INTERNAL_ONLY",
+      "visibility_rule": "never_external",
+      "external_claim_policy": "pending_source_internal_only",
+      "projection_behavior": "internal_rank_only",
+      "human_confirmation_required": false,
+      "retrieval_eligible": false,
+      "retrieval_ineligibility_reason": "RETIRED_BY_OPERATOR",
+      "confidence_grade": "BLOCKED",
+      "confidence_grade_derived": "BLOCKED"
     },
     {
       "skill": "insurtech_cto_it_enablement",
@@ -100948,7 +100256,19 @@
       ],
       "risk_notes": "Pending-source skills are internal targeting only until source artifacts promote them.",
       "linked_fact_id": "bul_insurtech_001",
-      "evidence_confidence": "BLOCKED"
+      "evidence_confidence": "BLOCKED",
+      "operator_hygiene_decision": "RETIRE",
+      "operator_hold_mode": "RETIRED",
+      "activation_status": "RETIRED",
+      "support_level": "INTERNAL_ONLY",
+      "visibility_rule": "never_external",
+      "external_claim_policy": "pending_source_internal_only",
+      "projection_behavior": "internal_rank_only",
+      "human_confirmation_required": false,
+      "retrieval_eligible": false,
+      "retrieval_ineligibility_reason": "RETIRED_BY_OPERATOR",
+      "confidence_grade": "BLOCKED",
+      "confidence_grade_derived": "BLOCKED"
     },
     {
       "skill": "rto_rpo_dr_planning",
@@ -102316,6 +101636,12 @@
       "survivor_node_id": "skill_partner_cloud_vendor_joint_gtm",
       "rationale": "Phase-2 derived skill 'skill_p2_gtm_joint_vendor_roadmaps' duplicates verbatim description of canonical skill 'skill_partner_cloud_vendor_joint_gtm'.",
       "merged_at": "2026-11-27T06:46:36Z"
+    },
+    {
+      "retired_node_id": "domain_phase2_gtm_presales",
+      "survivor_node_id": "domain_gtm_presales_motion",
+      "rationale": "Operator capability domain consolidation",
+      "merged_at": "2026-11-27T13:35:57Z"
     }
   ],
   "_retired_archived_nodes": [
@@ -102362,6 +101688,175 @@
       "semantic_hardening_status": "HARDENED",
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W1",
       "archived_at": "2026-11-27T06:46:36Z"
+    },
+    {
+      "node_id": "section_early_career",
+      "archived_at": "2026-11-27T13:35:57Z"
+    },
+    {
+      "node_id": "section_experience",
+      "archived_at": "2026-11-27T13:35:57Z"
+    },
+    {
+      "node_id": "section_leadership",
+      "archived_at": "2026-11-27T13:35:57Z"
+    },
+    {
+      "node_id": "section_technical_architecture",
+      "archived_at": "2026-11-27T13:35:57Z"
+    },
+    {
+      "node_id": "repo_08a182",
+      "archived_at": "2026-11-27T13:35:57Z"
+    },
+    {
+      "node_id": "repo_0ba4ea",
+      "archived_at": "2026-11-27T13:35:57Z"
+    },
+    {
+      "node_id": "repo_0eaaf9",
+      "archived_at": "2026-11-27T13:35:57Z"
+    },
+    {
+      "node_id": "repo_0f4cc3",
+      "archived_at": "2026-11-27T13:35:57Z"
+    },
+    {
+      "node_id": "repo_2c6997",
+      "archived_at": "2026-11-27T13:35:57Z"
+    },
+    {
+      "node_id": "repo_3ffea5",
+      "archived_at": "2026-11-27T13:35:57Z"
+    },
+    {
+      "node_id": "repo_5aa1dc",
+      "archived_at": "2026-11-27T13:35:57Z"
+    },
+    {
+      "node_id": "repo_89c401",
+      "archived_at": "2026-11-27T13:35:57Z"
+    },
+    {
+      "node_id": "repo_b7a57b",
+      "archived_at": "2026-11-27T13:35:57Z"
+    },
+    {
+      "node_id": "repo_bd5d6d",
+      "archived_at": "2026-11-27T13:35:57Z"
+    },
+    {
+      "node_id": "repo_c303f9",
+      "archived_at": "2026-11-27T13:35:57Z"
+    },
+    {
+      "node_id": "repo_f2456e",
+      "archived_at": "2026-11-27T13:35:57Z"
     }
-  ]
+  ],
+  "_domain_redirects": {
+    "domain_phase2_gtm_presales": "domain_gtm_presales_motion"
+  },
+  "_repo_stub_labels": {
+    "repo_31c3a4": {
+      "label": "Resume Graph Canonical Runtime Dispatch",
+      "target_relpath": "apps_rg/runtime/orchestration/canonical_dispatch.py",
+      "updated_at": "2026-11-27T13:35:57Z"
+    },
+    "repo_3c82de": {
+      "label": "Resume Graph Executive Summary Gate X2 Validator",
+      "target_relpath": "apps_rg/runtime/validators/executive_summary_x2.py",
+      "updated_at": "2026-11-27T13:35:57Z"
+    },
+    "repo_3c8b29": {
+      "label": "Resume Graph Agent Guidance",
+      "target_relpath": "apps_rg/AGENTS.md",
+      "updated_at": "2026-11-27T13:35:57Z"
+    },
+    "repo_3dedf1": {
+      "label": "Resume Graph Fact Inventory",
+      "target_relpath": "apps_rg/fact_inventory/",
+      "updated_at": "2026-11-27T13:35:57Z"
+    },
+    "repo_488fa1": {
+      "label": "Resume Graph Package",
+      "target_relpath": "apps_rg/",
+      "updated_at": "2026-11-27T13:35:57Z"
+    },
+    "repo_51c616": {
+      "label": "Resume Graph Executive Summary Gate X3 Exit Control",
+      "target_relpath": "apps_rg/runtime/exit/executive_summary_x3.py",
+      "updated_at": "2026-11-27T13:35:57Z"
+    },
+    "repo_5c665e": {
+      "label": "MCP Governance Tooling",
+      "target_relpath": "tools/mcp/",
+      "updated_at": "2026-11-27T13:35:57Z"
+    },
+    "repo_77f811": {
+      "label": "Resume Graph Runtime Orchestration",
+      "target_relpath": "apps_rg/runtime/orchestration/",
+      "updated_at": "2026-11-27T13:35:57Z"
+    },
+    "repo_8c2730": {
+      "label": "Repository Agent Governance Guidance",
+      "target_relpath": "AGENTS.md",
+      "updated_at": "2026-11-27T13:35:57Z"
+    },
+    "repo_95d2f9": {
+      "label": "Resume Graph Exit Controls",
+      "target_relpath": "apps_rg/runtime/exit/",
+      "updated_at": "2026-11-27T13:35:57Z"
+    },
+    "repo_a1e324": {
+      "label": "Resume Graph Input Authority Prompt Block",
+      "target_relpath": "apps_rg/runtime/dispatch/input_authority_prompt_block.py",
+      "updated_at": "2026-11-27T13:35:57Z"
+    },
+    "repo_c59056": {
+      "label": "Resume Graph Executive Summary Judge Packet",
+      "target_relpath": "apps_rg/runtime/judges/executive_summary_judge_packet.py",
+      "updated_at": "2026-11-27T13:35:57Z"
+    },
+    "repo_e4b4e0": {
+      "label": "Governance Certification Artifacts",
+      "target_relpath": "artifacts/certification/",
+      "updated_at": "2026-11-27T13:35:57Z"
+    },
+    "repo_e5fd78": {
+      "label": "Resume Graph Runtime Proof Artifacts",
+      "target_relpath": "artifacts/apps_rg/runtime_proofs/",
+      "updated_at": "2026-11-27T13:35:57Z"
+    },
+    "repo_f161d0": {
+      "label": "Resume Graph Candidate Fact Ledger",
+      "target_relpath": "apps_rg/fact_inventory/candidate_fact_ledger.py",
+      "updated_at": "2026-11-27T13:35:57Z"
+    },
+    "repo_fadf24": {
+      "label": "Resume Graph Runtime Dispatch",
+      "target_relpath": "apps_rg/runtime/dispatch/",
+      "updated_at": "2026-11-27T13:35:57Z"
+    },
+    "repo_fc546d": {
+      "label": "Resume Graph Package (Authority and registry binding)",
+      "target_relpath": "apps_rg/",
+      "updated_at": "2026-11-27T13:35:57Z"
+    },
+    "repo_fcdfdc": {
+      "label": "Architecture Decision Records",
+      "target_relpath": "docs/architecture/adr/",
+      "updated_at": "2026-11-27T13:35:57Z"
+    },
+    "repo_fd0f2f": {
+      "label": "Resume Graph Runtime Validators",
+      "target_relpath": "apps_rg/runtime/validators/",
+      "updated_at": "2026-11-27T13:35:57Z"
+    },
+    "repo_fd5ea7": {
+      "label": "Resume Graph Agent Guidance (Agentic control plane design)",
+      "target_relpath": "apps_rg/AGENTS.md",
+      "updated_at": "2026-11-27T13:35:57Z"
+    }
+  }
 }

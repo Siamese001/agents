@@ -21,7 +21,9 @@ import json
 from pathlib import Path
 import re
 import shutil
+import sqlite3
 import sys
+from collections import Counter
 from typing import Any, Mapping, Sequence
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -624,8 +626,173 @@ def _consolidate_capability_domain_in_ledger(
         "retired_domain_id": retired_id,
         "repointed_skill_rows": repointed_rows,
         "removed_domain_nodes": removed_nodes,
+        "materialized_domain_retired": bool(removed_nodes > 0 or repointed_rows > 0),
         "repointed_edges": repointed_edges,
         "deduped_or_self_loop_edges": deduped_edges,
+    }
+
+
+_REPO_SEGMENT_EXPANSIONS: dict[str, str] = {
+    "apps_rg": "Resume Graph",
+    "resume_graph_engine": "Resume Graph Engine",
+    "adr": "Architecture Decision Records",
+    "mcp": "MCP Tooling",
+    "agents": "Agent Guidance",
+    "x1": "Gate X1",
+    "x2": "Gate X2",
+    "x3": "Gate X3",
+    "exit": "Exit Controls",
+    "dispatch": "Runtime Dispatch",
+    "validators": "Runtime Validators",
+    "orchestration": "Runtime Orchestration",
+    "judges": "Runtime Judges",
+    "fact_inventory": "Fact Inventory",
+    "runtime_proofs": "Runtime Proof Artifacts",
+    "certification": "Governance Certification Artifacts",
+    "tools": "Tools",
+    "docs": "Docs",
+    "artifacts": "Artifacts",
+    "architecture": "Architecture",
+    "runtime": "Runtime",
+}
+
+
+def _humanize_repo_segment(raw_seg: str) -> str:
+    stem = Path(raw_seg).stem if "." in raw_seg else raw_seg
+    low = stem.lower().strip()
+    if low in _REPO_SEGMENT_EXPANSIONS:
+        return _REPO_SEGMENT_EXPANSIONS[low]
+    words: list[str] = []
+    for tok in re.split(r"[_\-\s]+", stem.strip()):
+        if not tok:
+            continue
+        tlow = tok.lower()
+        if tlow in _REPO_SEGMENT_EXPANSIONS:
+            words.append(_REPO_SEGMENT_EXPANSIONS[tlow])
+        elif tlow in ("ai", "llm", "mcp", "sql", "ssot", "ui", "ci", "cd", "api", "aws", "rg", "adr"):
+            words.append(tlow.upper())
+        else:
+            words.append(tok.capitalize())
+    return " ".join(words).strip()
+
+
+def _canonicalize_repo_stub_label(
+    raw_label: str,
+    *,
+    relpath: str,
+    node_id: str,
+    linked_skill_labels: Sequence[str] = (),
+    used_labels: set[str] | None = None,
+) -> str:
+    """Produce a cold-reader-clear, collision-free label for a repo_evidence node."""
+    clean_rel = str(relpath or "").strip().strip("/")
+    parts = [p for p in clean_rel.split("/") if p] if clean_rel else []
+
+    if parts:
+        last = parts[-1]
+        last_low = Path(last).stem.lower()
+        if clean_rel.lower() == "agents.md":
+            base = "Repository Agent Governance Guidance"
+        elif last.lower() == "agents.md":
+            parent = _humanize_repo_segment(parts[-2]) if len(parts) >= 2 else "Repository"
+            base = f"{parent} Agent Guidance"
+        elif last_low == "apps_rg":
+            base = "Resume Graph Package"
+        elif last_low == "adr":
+            base = "Architecture Decision Records"
+        elif last_low == "mcp":
+            base = "MCP Governance Tooling"
+        elif last_low == "certification":
+            base = "Governance Certification Artifacts"
+        elif last_low == "runtime_proofs":
+            base = "Resume Graph Runtime Proof Artifacts"
+        elif last_low in ("exit", "dispatch", "validators", "orchestration", "judges", "fact_inventory"):
+            prefix = "Resume Graph" if "apps_rg" in [p.lower() for p in parts] else _humanize_repo_segment(parts[0])
+            leaf = _humanize_repo_segment(last)
+            base = leaf if leaf.lower().startswith(prefix.lower()) else f"{prefix} {leaf}"
+        else:
+            leaf = _humanize_repo_segment(last)
+            if last_low == "executive_summary_x2":
+                leaf = "Executive Summary Gate X2 Validator"
+            elif last_low == "executive_summary_x3":
+                leaf = "Executive Summary Gate X3 Exit Control"
+            prefix = "Resume Graph" if "apps_rg" in [p.lower() for p in parts] else ""
+            base = f"{prefix} {leaf}".strip() if (prefix and not leaf.lower().startswith(prefix.lower())) else leaf
+    else:
+        base = " ".join(str(raw_label or "").split()).strip() or f"Repository Evidence ({node_id})"
+
+    candidate = " ".join(base.split()).strip()
+    if used_labels is not None:
+        if candidate.lower() in used_labels:
+            qual = ""
+            for slbl in linked_skill_labels:
+                clean_s = " ".join(str(slbl or "").split()).strip()
+                if clean_s:
+                    qual = clean_s
+                    break
+            if qual:
+                candidate = f"{candidate} ({qual})"
+            else:
+                candidate = f"{candidate} ({node_id})"
+        used_labels.add(candidate.lower())
+    return candidate
+
+
+def _snapshot_sqlite_topology(db_path: Path) -> dict[str, Any]:
+    """Capture node/edge sets from SQLite for exact pre-vs-post promotion reconciliation."""
+    if not db_path.is_file():
+        return {"nodes": {}, "edges": set()}
+    con = sqlite3.connect(f"file:{db_path.as_posix()}?mode=ro", uri=True, timeout=10.0)
+    try:
+        nodes = {
+            str(r[0]): {"node_type": str(r[1] or ""), "label": str(r[2] or ""), "activation_status": str(r[3] or "")}
+            for r in con.execute("SELECT node_id, node_type, label, activation_status FROM graph_nodes").fetchall()
+        }
+        edges = {
+            (str(r[0] or ""), str(r[1] or ""), str(r[2] or ""))
+            for r in con.execute("SELECT source_node_id, edge_type, target_node_id FROM graph_edges").fetchall()
+        }
+        return {"nodes": nodes, "edges": edges}
+    finally:
+        con.close()
+
+
+def _build_topology_reconciliation(pre_topo: Mapping[str, Any], post_topo: Mapping[str, Any]) -> dict[str, Any]:
+    pre_nodes: Mapping[str, dict[str, str]] = pre_topo.get("nodes") or {}
+    post_nodes: Mapping[str, dict[str, str]] = post_topo.get("nodes") or {}
+    pre_edges: set[tuple[str, str, str]] = set(pre_topo.get("edges") or set())
+    post_edges: set[tuple[str, str, str]] = set(post_topo.get("edges") or set())
+
+    removed_ids = sorted(set(pre_nodes) - set(post_nodes))
+    added_ids = sorted(set(post_nodes) - set(pre_nodes))
+    status_changed = [
+        {
+            "node_id": nid,
+            "node_type": post_nodes[nid]["node_type"],
+            "from_status": pre_nodes[nid]["activation_status"],
+            "to_status": post_nodes[nid]["activation_status"],
+        }
+        for nid in sorted(set(pre_nodes) & set(post_nodes))
+        if pre_nodes[nid]["activation_status"] != post_nodes[nid]["activation_status"]
+    ]
+    removed_by_type = Counter(pre_nodes[nid]["node_type"] for nid in removed_ids)
+    added_edges = post_edges - pre_edges
+    removed_edges = pre_edges - post_edges
+    return {
+        "pre_node_count": len(pre_nodes),
+        "post_node_count": len(post_nodes),
+        "net_node_delta": len(post_nodes) - len(pre_nodes),
+        "removed_nodes_by_type": dict(sorted(removed_by_type.items())),
+        "removed_node_ids": removed_ids,
+        "added_node_ids": added_ids,
+        "status_changed_nodes": status_changed,
+        "pre_edge_count": len(pre_edges),
+        "post_edge_count": len(post_edges),
+        "net_edge_delta": len(post_edges) - len(pre_edges),
+        "added_edges_total": len(added_edges),
+        "removed_edges_total": len(removed_edges),
+        "added_edges_by_type": dict(sorted(Counter(et for _, et, _ in added_edges).items())),
+        "removed_edges_by_type": dict(sorted(Counter(et for _, et, _ in removed_edges).items())),
     }
 
 
@@ -1400,9 +1567,23 @@ def apply_graph_hygiene_remediation(
             shutil.copy2(target_ledger, backup_dir / f"{target_ledger.name}.bak")
         receipt["backup_dir"] = str(backup_dir)
 
+    pre_topology = _snapshot_sqlite_topology(target_db)
     ledger = json.loads(target_ledger.read_text(encoding="utf-8"))
     ledger_dirty = False
     applied_deltas: dict[str, Any] = {}
+    used_repo_stub_labels: set[str] = set()
+    node_label_lookup = {
+        str(n.get("node_id") or ""): str(n.get("label") or n.get("node_id") or "")
+        for n in (ledger.get("graph_nodes") or [])
+        if isinstance(n, dict) and n.get("node_id")
+    }
+    repo_linked_skills: dict[str, list[str]] = {}
+    for e in ledger.get("graph_edges") or []:
+        if isinstance(e, dict) and str(e.get("edge_type") or "") == "skill_supported_by_repo_evidence":
+            tgt = str(e.get("target_node_id") or "")
+            src = str(e.get("source_node_id") or "")
+            if tgt and src:
+                repo_linked_skills.setdefault(tgt, []).append(node_label_lookup.get(src, src))
 
     # 1. Legacy cluster-level auto-handlers (backward compatible)
     if "CLUSTER-02A-EXACT-DUPLICATE-SKILL-TWINS" in approved_set and "CLUSTER-02A-EXACT-DUPLICATE-SKILL-TWINS" in clusters_by_id:
@@ -1629,10 +1810,17 @@ def apply_graph_hygiene_remediation(
 
         elif akind == "rename_repo_stub":
             nid = str(params.get("node_id") or ikey).strip()
-            new_label = str(params.get("new_label") or params.get("label") or "").strip()
+            raw_label = str(params.get("new_label") or params.get("label") or "").strip()
             relpath = str(params.get("target_relpath") or "").strip()
-            if not nid or not new_label:
+            if not nid or not raw_label:
                 raise ValueError(f"rename_repo_stub requires node_id and new_label (got {params!r})")
+            new_label = _canonicalize_repo_stub_label(
+                raw_label,
+                relpath=relpath,
+                node_id=nid,
+                linked_skill_labels=repo_linked_skills.get(nid, ()),
+                used_labels=used_repo_stub_labels,
+            )
             stub_labels = ledger.setdefault("_repo_stub_labels", {})
             if isinstance(stub_labels, dict):
                 stub_labels[nid] = {
@@ -1644,7 +1832,15 @@ def apply_graph_hygiene_remediation(
                 if isinstance(n, dict) and str(n.get("node_id") or "") == nid:
                     n["label"] = new_label
             ledger_dirty = True
-            item_results.append({"item_key": ikey, "action_kind": akind, "node_id": nid, "new_label": new_label})
+            item_results.append(
+                {
+                    "item_key": ikey,
+                    "action_kind": akind,
+                    "node_id": nid,
+                    "new_label": new_label,
+                    "target_relpath": relpath,
+                }
+            )
 
         elif akind == "remove_stale_repo_stub":
             nid = str(params.get("node_id") or ikey).strip()
@@ -1715,11 +1911,14 @@ def apply_graph_hygiene_remediation(
             "sibling_link_count": mat_summary.get("graph_sibling_link_count"),
         }
 
+    post_topology = _snapshot_sqlite_topology(target_db)
+    topology_reconciliation = _build_topology_reconciliation(pre_topology, post_topology)
     post_gates = run_pre_promotion_regression_gates(target_db, before_metrics=pre_audit["baseline_counts"])
     post_audit = run_graph_hygiene_audit(repo_root=resolved_root, db_path=target_db)
 
     receipt["mutated"] = True
     receipt["applied_deltas"] = applied_deltas
+    receipt["materialized_topology_reconciliation"] = topology_reconciliation
     receipt["post_db_sha256"] = _sha256_file(target_db)
     receipt["post_ledger_sha256"] = _sha256_file(target_ledger)
     receipt["post_counts"] = post_audit["baseline_counts"]
@@ -1731,6 +1930,7 @@ def apply_graph_hygiene_remediation(
             "repo_root": str(resolved_root),
             "approved_clusters": sorted(approved_set),
             "applied_deltas": applied_deltas,
+            "materialized_topology_reconciliation": topology_reconciliation,
             "skipped_or_held_items": skipped_or_held_items,
             "baseline_counts": pre_audit["baseline_counts"],
             "post_counts": post_audit["baseline_counts"],

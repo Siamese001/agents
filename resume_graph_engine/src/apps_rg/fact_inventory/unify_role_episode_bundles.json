@@ -785,6 +785,13 @@
       ],
       "provenance_source_refs": [
         "exp_unify_001"
+      ],
+      "linked_skill_ids": [
+        "skill_ai_platform_commercialization",
+        "skill_audit_grade_observability",
+        "skill_c03_metric_heterogeneity_selection",
+        "skill_c03_sibling_skill_rejection_reasoning",
+        "skill_ibm_automated_release_pipelines"
       ]
     },
     "metric_unify_policy_gated_agent_execution_surface": {
@@ -976,6 +983,13 @@
       ],
       "provenance_source_refs": [
         "exp_unify_001"
+      ],
+      "linked_skill_ids": [
+        "skill_ai_platform_commercialization",
+        "skill_audit_grade_observability",
+        "skill_c03_metric_heterogeneity_selection",
+        "skill_c03_sibling_skill_rejection_reasoning",
+        "skill_ibm_automated_release_pipelines"
       ]
     },
     "metric_unify_cloud_data_runtime_integration_patterns": {
@@ -1004,6 +1018,13 @@
       ],
       "provenance_source_refs": [
         "exp_unify_001"
+      ],
+      "linked_skill_ids": [
+        "skill_dense_sparse_exact_retrieval_design",
+        "skill_provider_and_egress_governance",
+        "skill_runtime_resilience_controls",
+        "skill_sr_cloud_data_platform_engineering",
+        "skill_sr_w12_databricks_lakehouse_fundamentals"
       ]
     },
     "metric_unify_high_availability_distributed_service_patterns": {
@@ -1031,6 +1052,13 @@
       ],
       "provenance_source_refs": [
         "exp_unify_001"
+      ],
+      "linked_skill_ids": [
+        "skill_dense_sparse_exact_retrieval_design",
+        "skill_provider_and_egress_governance",
+        "skill_runtime_resilience_controls",
+        "skill_sr_cloud_data_platform_engineering",
+        "skill_sr_w12_databricks_lakehouse_fundamentals"
       ]
     },
     "metric_unify_partner_cosell_solution_motion_count": {
