@@ -7,6 +7,7 @@ stores, qualify retrieval, or authorize production promotion.
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str, get_runtime_environ
 import hashlib
 import json
 import os
@@ -122,7 +123,7 @@ def gpu_integration_readiness() -> tuple[bool, str]:
         return False, "W5_HARDWARE_SKIP_MODEL_SETTINGS_UNAVAILABLE"
     if not settings.embedding_model_resolved or not settings.embedding_model_path:
         return False, "W5_HARDWARE_SKIP_LOCAL_MODEL_UNAVAILABLE"
-    if os.environ.get(GPU_INTEGRATION_OPT_IN) != "1":
+    if get_runtime_env_str(GPU_INTEGRATION_OPT_IN) != "1":
         return False, "W5_GPU_OPT_IN_REQUIRED"
     return True, "READY"
 
@@ -277,7 +278,7 @@ def run_observability_benchmark(
         raise GpuEmbeddingObservabilityError("W5 W0 baseline digest mismatch")
 
     for name in ("HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE", "HF_DATASETS_OFFLINE"):
-        os.environ[name] = "1"
+        get_runtime_environ()[name] = "1"
     try:
         import torch
     except ImportError as exc:

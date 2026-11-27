@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import os
 from pathlib import Path
 from typing import Any
@@ -14,7 +15,7 @@ _ENV_ALLOW_STALE_TARGETING_SSOT = "APPS_RG_ALLOW_STALE_TARGETING_SSOT"
 
 
 def _truthy_env(name: str) -> bool:
-    raw = os.environ.get(name)
+    raw = get_runtime_env_str(name)
     if raw is None:
         return False
     return str(raw).strip().lower() in {"1", "true", "yes", "y", "on"}

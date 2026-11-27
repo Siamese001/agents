@@ -1,6 +1,7 @@
 """Deterministic X2 gates for executive summary runtime slice."""
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 EXEC_SUMMARY_MIN_SENTENCES = 3
 EXEC_SUMMARY_TARGET_SENTENCES = 4
 EXEC_SUMMARY_MAX_SENTENCES = 4
@@ -197,7 +198,7 @@ def resolve_utilization_waived_fact_ids(allowed_fact_ids: set[str]) -> set[str]:
     """Env override: APPS_RG_EXEC_SUMMARY_UTILIZATION_WAIVE_FACT_IDS=comma-separated fact ids."""
     import os
 
-    raw = str(os.environ.get("APPS_RG_EXEC_SUMMARY_UTILIZATION_WAIVE_FACT_IDS") or "").strip()
+    raw = str(get_runtime_env_str("APPS_RG_EXEC_SUMMARY_UTILIZATION_WAIVE_FACT_IDS") or "").strip()
     if raw:
         explicit = {x.strip() for x in raw.split(",") if x.strip()}
         return {fid for fid in explicit if fid in allowed_fact_ids}

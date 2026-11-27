@@ -22,6 +22,18 @@ shadow_copy_pairs:
     mirrors:
       - "resume_graph_engine/src/apps_rg/config/provider_profiles.yaml"
     policy: "MUST_MATCH_OR_IMPORT_CANONICAL"
+  - canonical: "config/"
+    mirrors:
+      - "resume_graph_engine/config/"
+    policy: "CANONICAL_RELATIVE_SYMLINK_FOR_SHARED_FILES"
+  - canonical: "resume_graph_engine/src/apps_rg/config/targeting/"
+    mirrors:
+      - "outreach_engine/config/targeting/"
+    policy: "CANONICAL_RELATIVE_SYMLINK_FOR_SHARED_FILES"
+  - canonical: "data/"
+    mirrors:
+      - "resume_graph_engine/data/"
+    policy: "CANONICAL_RELATIVE_SYMLINK_FOR_SHARED_FILES"
   - canonical: "pytest.ini"
     mirrors:
       - "resume_graph_engine/pytest.ini"

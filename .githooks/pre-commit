@@ -1,6 +1,7 @@
 #!/bin/sh
 # Native Pre-Commit Hook for Antigravity Governance (Fast Staged-Only Mode)
 set -e
+export PYTHONDONTWRITEBYTECODE=1
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"

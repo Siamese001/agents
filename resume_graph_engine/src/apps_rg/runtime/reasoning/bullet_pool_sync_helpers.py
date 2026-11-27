@@ -1,6 +1,7 @@
 """Helper utilities for bullet-pool self-consistency budgets and selector score aggregation."""
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import os
 from typing import Any
 
@@ -69,8 +70,8 @@ def resolve_competencies_round_batch(
         return 1
     sample_fast_path = (
         judge_mode != "mocked"
-        and os.environ.get("APPS_RG_SAMPLE_FAST_PATH", "1").strip().lower() in ("1", "true", "yes")
-        and not os.environ.get("PYTEST_CURRENT_TEST")
+        and get_runtime_env_str("APPS_RG_SAMPLE_FAST_PATH", "1").strip().lower() in ("1", "true", "yes")
+        and not get_runtime_env_str("PYTEST_CURRENT_TEST")
     )
     if regen_round == 0 and sample_fast_path:
         return 1

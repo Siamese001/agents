@@ -11,6 +11,7 @@ generated content or resolve the user's constraint.
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import hashlib
 import json
 import os
@@ -836,7 +837,7 @@ def build_l1_cognitive_output_disposition(
         return base
     unresolved_critical_ids = goal_constraint["unresolved_critical_requirement_ids"]
     if unresolved_critical_ids:
-        soften = os.environ.get(
+        soften = get_runtime_env_str(
             "APPS_RG_L1_SOFTEN_CRITICAL_GATES", "true"
         ).strip().lower() in ("true", "1", "yes")
         if soften:

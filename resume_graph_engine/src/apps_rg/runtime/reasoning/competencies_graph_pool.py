@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import copy
 import json
 import os
@@ -50,7 +51,7 @@ def e2e_closeout_mode_active() -> bool:
     unchanged unless this flag is set. Artifacts stamp ``e2e_closeout_mode`` so a closeout run is
     distinguishable from a strict one.
     """
-    return os.environ.get("APPS_RG_E2E_CLOSEOUT_MODE", "").strip().lower() in ("1", "true", "yes")
+    return get_runtime_env_str("APPS_RG_E2E_CLOSEOUT_MODE", "").strip().lower() in ("1", "true", "yes")
 
 
 @dataclass(frozen=True)
@@ -92,7 +93,7 @@ class CompetenciesSelectionGate:
 
 
 def _int_env_bounded(name: str, *, default: int, low: int, high: int) -> int:
-    raw = os.environ.get(name, "").strip()
+    raw = get_runtime_env_str(name, "").strip()
     if raw:
         try:
             return max(low, min(high, int(raw)))
@@ -102,7 +103,7 @@ def _int_env_bounded(name: str, *, default: int, low: int, high: int) -> int:
 
 
 def _float_env_bounded(name: str, *, default: float, low: float, high: float) -> float:
-    raw = os.environ.get(name, "").strip()
+    raw = get_runtime_env_str(name, "").strip()
     if raw:
         try:
             return max(low, min(high, float(raw)))
@@ -130,9 +131,9 @@ def competencies_max_sc_path_count() -> int:
 
 
 def min_competencies_selection_score() -> float:
-    override = os.environ.get("APPS_RG_COMPETENCIES_MIN_SELECTION_SCORE", "").strip()
+    override = get_runtime_env_str("APPS_RG_COMPETENCIES_MIN_SELECTION_SCORE", "").strip()
     if not override:
-        override = os.environ.get("APPS_RG_EMPLOYMENT_BULLET_MIN_SELECTION_SCORE", "").strip()
+        override = get_runtime_env_str("APPS_RG_EMPLOYMENT_BULLET_MIN_SELECTION_SCORE", "").strip()
     if override:
         try:
             return max(0.0, min(1.0, float(override)))
@@ -151,7 +152,7 @@ def high_signal_competencies_selection_score() -> float:
 
 
 def competencies_regen_extra_path_count() -> int:
-    raw = os.environ.get("APPS_RG_COMPETENCIES_REGEN_EXTRA_PATHS", "").strip()
+    raw = get_runtime_env_str("APPS_RG_COMPETENCIES_REGEN_EXTRA_PATHS", "").strip()
     if raw:
         try:
             return max(0, int(raw))
@@ -165,12 +166,12 @@ def competencies_regen_extra_path_count() -> int:
 
 
 def max_competencies_regen_rounds() -> int:
-    raw = os.environ.get("APPS_RG_COMPETENCIES_MAX_REGEN_ROUNDS", "").strip()
-    explicit_emp = os.environ.get("APPS_RG_EMPLOYMENT_BULLET_MAX_REGEN_ROUNDS", "").strip()
+    raw = get_runtime_env_str("APPS_RG_COMPETENCIES_MAX_REGEN_ROUNDS", "").strip()
+    explicit_emp = get_runtime_env_str("APPS_RG_EMPLOYMENT_BULLET_MAX_REGEN_ROUNDS", "").strip()
     if not raw and not explicit_emp and e2e_closeout_mode_active():
         # W6: closeout-mode cap when neither explicit regen env is set. Caps rounds (default 1) so a
         # long competencies run converges; the strict product path (no closeout flag) is unchanged.
-        cap_raw = os.environ.get("APPS_RG_COMPETENCIES_CLOSEOUT_MAX_REGEN_ROUNDS", "").strip()
+        cap_raw = get_runtime_env_str("APPS_RG_COMPETENCIES_CLOSEOUT_MAX_REGEN_ROUNDS", "").strip()
         try:
             return max(0, int(cap_raw)) if cap_raw else DEFAULT_COMPETENCIES_CLOSEOUT_MAX_REGEN_ROUNDS
         except ValueError:

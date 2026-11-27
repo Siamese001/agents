@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_environ
 import hashlib
 import hmac
 import json
@@ -431,7 +432,7 @@ def run_fresh_e2e_preflight(
     """Run all non-retriable checks before research and close out failures in-run."""
     root = Path(artifact_dir).resolve()
     repo = Path(repo_root).resolve()
-    env = environ if environ is not None else os.environ
+    env = environ if environ is not None else get_runtime_environ()
     ledger = E2EStageLedger.create(artifact_dir=root, e2e_run_id=e2e_run_id)
     secret_present = bool(str(env.get("APPS_RG_ROUTE_HMAC_SECRET") or "").strip())
     key_id = str(env.get("APPS_RG_ROUTE_HMAC_KEY_ID") or "").strip()

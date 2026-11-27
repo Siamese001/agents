@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import os
 import sys
 from dataclasses import dataclass
@@ -31,7 +32,7 @@ class AppsRgEnvelopeProviderResolutionError(RuntimeError):
 
 
 def _pytest_active() -> bool:
-    if os.environ.get("PYTEST_CURRENT_TEST"):
+    if get_runtime_env_str("PYTEST_CURRENT_TEST"):
         return True
     return "pytest" in sys.modules
 
@@ -62,7 +63,7 @@ def classify_provider_run_mode(
             raise AppsRgEnvelopeProviderResolutionError(
                 f"LIVE_EXECUTION_ENFORCEMENT: contract_mode={norm!r} is forbidden in production runtime without APPS_RG_TEST_HARNESS=1."
             )
-        raw = (os.environ.get("APPS_RG_L2_PROVIDER_MODE") or "").strip().lower()
+        raw = (get_runtime_env_str("APPS_RG_L2_PROVIDER_MODE") or "").strip().lower()
         if raw in ("stub_only", "stub", "off", "0", "false", "no"):
             raise AppsRgEnvelopeProviderResolutionError(
                 "LIVE_EXECUTION_ENFORCEMENT: APPS_RG_L2_PROVIDER_MODE=stub is forbidden in production runtime without APPS_RG_TEST_HARNESS=1."
@@ -75,7 +76,7 @@ def classify_provider_run_mode(
     if norm in (MODE_STUB_RECEIPT, MODE_DIAGNOSTIC):
         return ProviderRunMode.EXPLICIT_STUB
 
-    raw = (os.environ.get("APPS_RG_L2_PROVIDER_MODE") or "").strip().lower()
+    raw = (get_runtime_env_str("APPS_RG_L2_PROVIDER_MODE") or "").strip().lower()
     if raw in ("stub_only", "stub", "off", "0", "false", "no"):
         return ProviderRunMode.EXPLICIT_STUB
 
@@ -109,7 +110,7 @@ def assert_provider_authentic_for_full_resume(
     if run_mode != ProviderRunMode.LIVE_REQUIRED:
         return None
 
-    if os.environ.get("APPS_RG_L2_FORCE_STUB", "").strip() == "1":
+    if get_runtime_env_str("APPS_RG_L2_FORCE_STUB", "").strip() == "1":
         from apps_rg.l2_recipe.resume_output_shape import BLOCKED_STUB_PROVIDER
 
         return ProviderAuthenticityViolation(

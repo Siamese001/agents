@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import MutableMapping
+from typing import Any
 
 
 def get_runtime_environ() -> MutableMapping[str, str]:
@@ -16,7 +17,7 @@ def get_runtime_environ() -> MutableMapping[str, str]:
     return os.environ
 
 
-def get_runtime_env_str(key: str, default: str | None = None) -> str | None:
+def get_runtime_env_str(key: str, default: Any = None) -> Any:
     """Return an optional environment variable string from the approved config boundary."""
     return os.environ.get(key, default)
 

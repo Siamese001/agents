@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import json
+import os
 import subprocess
 import sys
 import time
@@ -32,10 +33,13 @@ def run_cmd(argv: list[str], cwd: Path, desc: str, timeout: int = 180, dry_run: 
         print(f"    [DRY-RUN PASS] {desc} (0.00s)")
         return True, "dry-run"
     start_t = time.time()
+    sub_env = dict(os.environ)
+    sub_env["PYTHONDONTWRITEBYTECODE"] = "1"
     try:
         proc = subprocess.run(
             argv,
             cwd=cwd,
+            env=sub_env,
             capture_output=True,
             text=True,
             timeout=timeout,

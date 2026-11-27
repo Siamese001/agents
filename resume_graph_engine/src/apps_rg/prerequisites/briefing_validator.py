@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import hashlib
 import hmac
 import json
@@ -1129,7 +1130,7 @@ def _parse_timestamp(value: Any) -> datetime | None:
 def _fixture_harness_enabled() -> bool:
     from apps_rg.evals.anthropic_deterministic_fixture import TEST_HARNESS_ENV
 
-    return str(os.environ.get(TEST_HARNESS_ENV) or "").strip().lower() in {
+    return str(get_runtime_env_str(TEST_HARNESS_ENV) or "").strip().lower() in {
         "1",
         "true",
         "yes",
@@ -1300,7 +1301,7 @@ def _validate_deterministic_fixture_handoff(
     if _sha256_bytes(artifact_bytes.get("normalized_jd", b"")) != str(identity.get("jd_sha256") or ""):
         failures.append("fixture_committed_jd_sha256_mismatch")
 
-    secret = str(os.environ.get(FIXTURE_HMAC_SECRET_ENV) or "")
+    secret = str(get_runtime_env_str(FIXTURE_HMAC_SECRET_ENV) or "")
     body = {key: value for key, value in manifest.items() if key != "fixture_signature"}
     expected_signature = fixture_signature(secret, body) if secret else ""
     if not secret or not hmac.compare_digest(

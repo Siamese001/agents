@@ -6,6 +6,7 @@ selectable for the GPT-backed lanes.
 """
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_environ
 import os
 from dataclasses import dataclass
 from enum import Enum
@@ -88,7 +89,7 @@ def resolve_provider_profile(
     environ: Mapping[str, str] | None = None,
 ) -> ProviderProfileSelection:
     """Resolve profile from explicit value, env, or Wave 10A default."""
-    env = os.environ if environ is None else environ
+    env = get_runtime_environ() if environ is None else environ
     if raw_value is not None and str(raw_value).strip():
         return ProviderProfileSelection(
             profile=normalize_provider_profile(raw_value),

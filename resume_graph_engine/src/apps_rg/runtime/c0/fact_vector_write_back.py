@@ -22,6 +22,7 @@ routing surface (no Chroma deps); only the promotion helper touches Chroma.
 """
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import hashlib
 import json
 import logging
@@ -186,12 +187,12 @@ def promotion_hitl_required(explicit: bool | None = None) -> bool:
     """
     if explicit is not None:
         return bool(explicit)
-    return _norm(os.environ.get(PROMOTION_HITL_ENV)).lower() in ("1", "true", "yes", "on")
+    return _norm(get_runtime_env_str(PROMOTION_HITL_ENV)).lower() in ("1", "true", "yes", "on")
 
 
 def promotion_mode(explicit: str | None = None) -> str:
     """Return inline/deferred promotion mode, defaulting to inline for current behavior."""
-    raw = _norm(explicit if explicit is not None else os.environ.get(PROMOTION_MODE_ENV)).lower()
+    raw = _norm(explicit if explicit is not None else get_runtime_env_str(PROMOTION_MODE_ENV)).lower()
     if not raw:
         return PROMOTION_MODE_INLINE
     if raw in (PROMOTION_MODE_INLINE, PROMOTION_MODE_DEFERRED):
@@ -214,7 +215,7 @@ def promotion_score_floor(explicit: float | None = None) -> float:
     """Return the configured promotion score floor."""
     if explicit is not None:
         return max(0.0, float(explicit))
-    raw = _norm(os.environ.get(PROMOTION_SCORE_FLOOR_ENV))
+    raw = _norm(get_runtime_env_str(PROMOTION_SCORE_FLOOR_ENV))
     if not raw:
         return DEFAULT_PROMOTION_SCORE_FLOOR
     try:
@@ -341,10 +342,10 @@ def _build_fact_vectors_uwg_commit_bundle(
 
     row_digest = _rows_digest(rows)
     run_id = _norm(request.run_id) or _norm(request.promotion_run_id) or row_digest[:12]
-    policy_hash = _norm(os.environ.get("APPS_RG_POLICY_HASH")) or "policy:apps_rg_fact_vectors_v1"
-    blueprint_hash = _norm(os.environ.get("APPS_RG_BLUEPRINT_HASH")) or "blueprint:apps_rg_fact_vectors_v1"
-    request_id = _norm(os.environ.get("APPS_RG_REQUEST_ID")) or f"req:fact-vectors:{run_id}"
-    trace_root = _norm(os.environ.get("APPS_RG_TRACE_ROOT")) or f"trace:fact-vectors:{run_id}"
+    policy_hash = _norm(get_runtime_env_str("APPS_RG_POLICY_HASH")) or "policy:apps_rg_fact_vectors_v1"
+    blueprint_hash = _norm(get_runtime_env_str("APPS_RG_BLUEPRINT_HASH")) or "blueprint:apps_rg_fact_vectors_v1"
+    request_id = _norm(get_runtime_env_str("APPS_RG_REQUEST_ID")) or f"req:fact-vectors:{run_id}"
+    trace_root = _norm(get_runtime_env_str("APPS_RG_TRACE_ROOT")) or f"trace:fact-vectors:{run_id}"
     replay_key = f"fact-vectors:{row_digest}"
     rollback = stamp_digest(
         RollbackPlan(

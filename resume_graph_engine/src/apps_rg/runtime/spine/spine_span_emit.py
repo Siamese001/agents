@@ -5,6 +5,7 @@ Append-only ``spine_span_emit_receipt.jsonl`` under the section artifact dir.
 """
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import json
 import os
 from datetime import datetime, timezone
@@ -22,9 +23,9 @@ REQUIRED_PRODUCT_SPINE_LAYERS: tuple[str, ...] = tuple(
 
 
 def spine_span_emit_enabled(*, product_visible: bool = True) -> bool:
-    if os.environ.get("APPS_RG_SPINE_SPAN_EMIT", "").strip().lower() in ("0", "false", "no"):
+    if get_runtime_env_str("APPS_RG_SPINE_SPAN_EMIT", "").strip().lower() in ("0", "false", "no"):
         return False
-    if os.environ.get("APPS_RG_SPINE_SPAN_EMIT", "").strip().lower() in ("1", "true", "yes"):
+    if get_runtime_env_str("APPS_RG_SPINE_SPAN_EMIT", "").strip().lower() in ("1", "true", "yes"):
         return True
     return bool(product_visible)
 

@@ -3,6 +3,7 @@ Canonical route profiles: apps_rg/config/domain_contract/route_profiles.yaml
 Per plan p3.2_apps-rg-l0-critical-gaps-remediation-a3f8e1.
 """
 from __future__ import annotations
+from apps_rg.config.runtime_env import get_runtime_env_str
 import hashlib
 import json
 import os
@@ -89,7 +90,7 @@ def _load_profiles() -> list[dict[str, Any]]:
     _PROFILE_CACHE = raw
     return _PROFILE_CACHE
 def _truthy_env(name: str) -> bool:
-    return os.environ.get(name, "").strip().lower() in {"1", "true", "yes", "on"}
+    return get_runtime_env_str(name, "").strip().lower() in {"1", "true", "yes", "on"}
 _ALL_SIX_L1_ROUTE_HINT_KEYS: tuple[str, ...] = (
     "execution_shape_hint",
     "multi_work_unit_hint",
@@ -111,7 +112,7 @@ def _evaluated_l1_route_hints(plan: L1PlanContract) -> dict[str, str]:
         if str(hints.get(key) or "").strip()
     }
 def _is_test_posture() -> bool:
-    return bool(os.environ.get("PYTEST_CURRENT_TEST") or _truthy_env("APPS_RG_L0_TEST_POSTURE"))
+    return bool(get_runtime_env_str("PYTEST_CURRENT_TEST") or _truthy_env("APPS_RG_L0_TEST_POSTURE"))
 def _validate_profile_row(row: Any, idx: int) -> None:
     if not isinstance(row, dict) or "spine" not in row:
         raise RouteProfileSchemaError(f"profile row {idx} must be a dict with 'spine'")
@@ -488,7 +489,7 @@ def l0_route_apps_rg(plan: L1PlanContract) -> RouteContract:
     workflow_manifest_ref = str(managed.get("workflow_manifest_ref", "") or "")
     workflow_registry_ref = str(managed.get("workflow_registry_ref", "") or "")
 
-    test_mode = os.environ.get("APPS_RG_MANAGED_WORKFLOW_TEST_ENABLED", "").strip() in ("1", "true", "yes")
+    test_mode = get_runtime_env_str("APPS_RG_MANAGED_WORKFLOW_TEST_ENABLED", "").strip() in ("1", "true", "yes")
     if execution_form.upper() == "MANAGED_WORKFLOW" and test_mode:
         manifest_path = resolve_apps_rg_path(
             _repo_root(),

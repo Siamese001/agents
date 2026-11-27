@@ -1,6 +1,7 @@
 """Executive summary prompt token budget policy (apps_rg lane-local)."""
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import hashlib
 import json
 import os
@@ -104,7 +105,7 @@ class ContextWindowProvenance:
 
 
 def _truthy_env_flag(name: str) -> bool:
-    return str(os.environ.get(name, "") or "").strip().lower() in ("1", "true", "yes", "on")
+    return str(get_runtime_env_str(name, "") or "").strip().lower() in ("1", "true", "yes", "on")
 
 
 def _server_context_window_from_models_payload(

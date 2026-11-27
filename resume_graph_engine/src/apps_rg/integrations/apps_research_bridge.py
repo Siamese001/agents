@@ -1,6 +1,7 @@
 """apps_research bridge for apps_rg managed R3R4 resume briefing delegation."""
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str, get_runtime_environ
 import hashlib
 import json
 import os
@@ -467,8 +468,8 @@ class AppsResearchBridge:
         from apps_research.types.research_types import ResearchRequest
         from apps_model_telemetry.external_model_usage import external_model_usage_scope
 
-        if not os.environ.get("SEARXNG_BASE_URL", "").strip():
-            os.environ["SEARXNG_BASE_URL"] = runtime_base_url()
+        if not get_runtime_env_str("SEARXNG_BASE_URL", "").strip():
+            get_runtime_environ()["SEARXNG_BASE_URL"] = runtime_base_url()
         jd_text = _resolve_jd_text(
             job_description_ref=job_description_ref,
             job_description_text=job_description_text,
@@ -520,8 +521,8 @@ class AppsResearchBridge:
         # Scope the override to this synchronous producer call so unrelated
         # apps_research consumers retain their own feature policy.
         retrieval_v2_env = "APPS_RESEARCH_RETRIEVAL_V2"
-        prior_retrieval_v2 = os.environ.get(retrieval_v2_env)
-        os.environ[retrieval_v2_env] = "1"
+        prior_retrieval_v2 = get_runtime_env_str(retrieval_v2_env)
+        get_runtime_environ()[retrieval_v2_env] = "1"
         try:
             with external_model_usage_scope(
                 artifact_dir=self._artifact_runs_root,
@@ -551,9 +552,9 @@ class AppsResearchBridge:
                             pass
         finally:
             if prior_retrieval_v2 is None:
-                os.environ.pop(retrieval_v2_env, None)
+                get_runtime_environ().pop(retrieval_v2_env, None)
             else:
-                os.environ[retrieval_v2_env] = prior_retrieval_v2
+                get_runtime_environ()[retrieval_v2_env] = prior_retrieval_v2
         return result
 
     def _translate(

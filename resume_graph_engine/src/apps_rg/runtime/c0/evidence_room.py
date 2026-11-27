@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import hashlib
 import json
 import os
@@ -62,7 +63,7 @@ def section_c0_evidence_room_enabled(section_id: str) -> bool:
 
     from apps_rg.runtime.c0.product_runtime_guards import assert_canonical_product_section_env
 
-    env_off = os.environ.get(ENV_APPS_RG_C0_EVIDENCE_ROOM, "1").strip().lower() in (
+    env_off = get_runtime_env_str(ENV_APPS_RG_C0_EVIDENCE_ROOM, "1").strip().lower() in (
         "0",
         "false",
         "no",
@@ -183,7 +184,7 @@ def run_section_c0_evidence_room(
         frozen_graph_plan = pool.selected_fact_plan
     strict_sel = bool(
         pp_meta.get("strict_ranked_selection")
-        or os.environ.get("APPS_RG_STRICT_RANKED_SELECTION") in ("1", "true", "True")
+        or get_runtime_env_str("APPS_RG_STRICT_RANKED_SELECTION") in ("1", "true", "True")
     )
     c03 = expand_c03_graph_bindings(
         section_id=section_id,

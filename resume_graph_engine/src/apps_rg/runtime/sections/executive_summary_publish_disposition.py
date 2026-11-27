@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import os
 from typing import Any
 
@@ -34,7 +35,7 @@ def all_model_backed_judges_pass(x1d_judges: list[dict[str, Any]]) -> bool:
 
 
 def best_effort_publish_allowed_from_env() -> bool:
-    raw = os.environ.get("APPS_RG_EXEC_SUMMARY_BEST_EFFORT_PUBLISH_ALLOWED", "").strip().lower()
+    raw = get_runtime_env_str("APPS_RG_EXEC_SUMMARY_BEST_EFFORT_PUBLISH_ALLOWED", "").strip().lower()
     return raw in ("1", "true", "yes", "on")
 
 

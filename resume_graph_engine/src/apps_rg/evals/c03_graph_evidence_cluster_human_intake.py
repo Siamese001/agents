@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import hashlib
 import hmac
 import json
@@ -145,7 +146,7 @@ def _authority_signature_issues(receipt: Mapping[str, Any]) -> list[str]:
         or receipt.get("issuer_ref") != trust["issuer_ref"]
     ):
         return ["AUTHORITY_EXTERNAL_SIGNATURE_IDENTITY"]
-    secret = os.environ.get(trust["environment_variable"], "")
+    secret = get_runtime_env_str(trust["environment_variable"], "")
     if len(secret) < 32:
         return ["AUTHORITY_EXTERNAL_SIGNING_KEY_UNAVAILABLE"]
     expected = hmac.new(

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_environ
 import hashlib
 import json
 import math
@@ -95,12 +96,12 @@ def run_residency_proof(
     *, repository_root: Path | str, output: Path | str | None = None
 ) -> tuple[dict[str, Any], Path]:
     root = Path(repository_root).resolve()
-    os.environ.setdefault("HF_HUB_OFFLINE", "1")
-    os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
-    os.environ.setdefault("HF_DATASETS_OFFLINE", "1")
-    os.environ.setdefault("EMBEDDING_ENABLED", "true")
-    os.environ.setdefault("APPS_RG_EMBEDDING_ENABLED", "true")
-    os.environ.setdefault("EMBEDDING_DEVICE", "cuda:0")
+    get_runtime_environ().setdefault("HF_HUB_OFFLINE", "1")
+    get_runtime_environ().setdefault("TRANSFORMERS_OFFLINE", "1")
+    get_runtime_environ().setdefault("HF_DATASETS_OFFLINE", "1")
+    get_runtime_environ().setdefault("EMBEDDING_ENABLED", "true")
+    get_runtime_environ().setdefault("APPS_RG_EMBEDDING_ENABLED", "true")
+    get_runtime_environ().setdefault("EMBEDDING_DEVICE", "cuda:0")
     reset_bge_runtime_for_testing()
 
     from apps_rg.cache.r1b_bge_embedding import embed_texts_bge

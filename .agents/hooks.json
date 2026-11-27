@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 tools/hook_dispatch.py --hook pre_file_write",
+            "command": "python3 -B tools/hook_dispatch.py --hook pre_file_write",
             "timeout": 30
           }
         ]
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 tools/hook_dispatch.py --hook pre_run_command",
+            "command": "python3 -B tools/hook_dispatch.py --hook pre_run_command",
             "timeout": 15
           }
         ]
@@ -27,7 +27,7 @@
     "PostInvocation": [
       {
         "type": "command",
-        "command": "python3 tools/hook_dispatch.py --hook post_invocation",
+        "command": "python3 -B tools/hook_dispatch.py --hook post_invocation",
         "timeout": 15
       }
     ]
@@ -39,7 +39,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 tools/hook_dispatch.py --hook pre_subagent_delegation",
+            "command": "python3 -B tools/hook_dispatch.py --hook pre_subagent_delegation",
             "timeout": 15
           }
         ]
@@ -51,7 +51,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 tools/hook_dispatch.py --hook post_subagent_delegation",
+            "command": "python3 -B tools/hook_dispatch.py --hook post_subagent_delegation",
             "timeout": 15
           }
         ]

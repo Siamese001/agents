@@ -7,6 +7,7 @@ section rewrites while preserving verified C0 fact grounding and format contract
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str, get_runtime_environ
 import hashlib
 import json
 import os
@@ -58,7 +59,7 @@ class ExecutiveVoiceRepairReceipt:
 
 def executive_voice_repair_enabled() -> bool:
     """Return whether the executive voice repair agent is active."""
-    raw = os.environ.get("APPS_RG_X1_REPAIR_ENABLED", "1").strip().lower()
+    raw = get_runtime_env_str("APPS_RG_X1_REPAIR_ENABLED", "1").strip().lower()
     return EXECUTIVE_VOICE_REPAIR_AGENT_ENABLED_DEFAULT and raw not in ("0", "false", "no", "off")
 
 
@@ -418,7 +419,7 @@ def _call_llm_repair(
             uses_ide_cli_judges,
         )
 
-        if uses_ide_cli_judges(os.environ) and not ide_cli_unavailable_reason(os.environ):
+        if uses_ide_cli_judges(get_runtime_environ()) and not ide_cli_unavailable_reason(get_runtime_environ()):
             try:
                 from apps_rg.runtime.providers.agy_cli_transport import run_agy
 
@@ -434,8 +435,8 @@ def _call_llm_repair(
                 return _parse_ide_cli_json_response(cli_res)
             except Exception:  # guardian: allow-broad-exception -- optional voice repair auditor returns None on CLI or parse failure
                 return None
-    if not is_openai_auditor and uses_ide_cli_generation(os.environ, model=model):
-        if ide_cli_generation_unavailable_reason(os.environ):
+    if not is_openai_auditor and uses_ide_cli_generation(get_runtime_environ(), model=model):
+        if ide_cli_generation_unavailable_reason(get_runtime_environ()):
             return None
         try:
             from apps_rg.runtime.model_capabilities import try_model_capabilities
@@ -479,9 +480,9 @@ def _call_llm_repair(
         except Exception:  # guardian: allow-broad-exception -- optional voice repair returns None on CLI or parse failure
             return None
     api_key = (
-        os.environ.get("OPENAI_API_KEY")
+        get_runtime_env_str("OPENAI_API_KEY")
         if is_openai_auditor
-        else os.environ.get("ANTHROPIC_API_KEY")
+        else get_runtime_env_str("ANTHROPIC_API_KEY")
     )
     if not api_key:
         return None

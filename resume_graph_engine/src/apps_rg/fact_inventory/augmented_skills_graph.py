@@ -5,6 +5,7 @@ Candidate fact rows remain claim-evidence substrate via proof-pool resolver; the
 """
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import hashlib
 import json
 import os
@@ -50,7 +51,7 @@ def augmented_skills_graph_path_explicit(
     *,
     repo_root: Path | None = None,
 ) -> Path:
-    env_override = str(os.environ.get("APPS_RG_AUGMENTED_SKILLS_GRAPH_PATH") or "").strip()
+    env_override = str(get_runtime_env_str("APPS_RG_AUGMENTED_SKILLS_GRAPH_PATH") or "").strip()
     root = repo_root or _repo_root()
     if path and str(path).strip():
         p = Path(path)

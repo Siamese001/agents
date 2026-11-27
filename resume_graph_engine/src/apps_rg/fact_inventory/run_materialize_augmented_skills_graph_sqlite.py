@@ -1,6 +1,7 @@
 """Materialize augmented skills graph to SQLite + validate + emit closeout receipt."""
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import json
 import os
 import subprocess
@@ -26,7 +27,7 @@ PLAN_ID = "graph-skills-sqlite-c03-w1"
 
 
 def _receipt_paths() -> tuple[Path, Path]:
-    out_dir_raw = os.environ.get("APPS_RG_AUGMENTED_SKILLS_GRAPH_SQLITE_RECEIPT_DIR")
+    out_dir_raw = get_runtime_env_str("APPS_RG_AUGMENTED_SKILLS_GRAPH_SQLITE_RECEIPT_DIR")
     out_dir = Path(out_dir_raw) if out_dir_raw else DEFAULT_OUT_DIR
     return (
         out_dir / "augmented_skills_graph_sqlite_closeout_receipt.json",

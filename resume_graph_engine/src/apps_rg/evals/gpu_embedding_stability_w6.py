@@ -7,6 +7,7 @@ does not open retrieval stores, read QRELs, or authorize production/release.
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str, get_runtime_environ
 from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import json
@@ -115,7 +116,7 @@ def gpu_stability_integration_readiness() -> tuple[bool, str]:
         return False, "W6_HARDWARE_SKIP_MODEL_SETTINGS_UNAVAILABLE"
     if not settings.embedding_model_resolved or not settings.embedding_model_path:
         return False, "W6_HARDWARE_SKIP_LOCAL_MODEL_UNAVAILABLE"
-    if os.environ.get(GPU_STABILITY_OPT_IN) != "1":
+    if get_runtime_env_str(GPU_STABILITY_OPT_IN) != "1":
         return False, "W6_GPU_STABILITY_OPT_IN_REQUIRED"
     return True, "READY"
 
@@ -253,7 +254,7 @@ def run_stability_benchmark(
         raise GpuEmbeddingStabilityError("W6 W5 baseline digest mismatch")
 
     for name in ("HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE", "HF_DATASETS_OFFLINE"):
-        os.environ[name] = "1"
+        get_runtime_environ()[name] = "1"
     try:
         import torch
     except ImportError as exc:

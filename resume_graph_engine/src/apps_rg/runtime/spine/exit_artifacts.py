@@ -6,6 +6,7 @@ Section ``x3_disposition.json`` remains mirror/input only. Canonical exit author
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import json
 import os
 from datetime import datetime, timezone
@@ -56,7 +57,7 @@ class SectionExitSpinePreconditionError(RuntimeError):
 
 
 def exit_spine_kill_switch_enabled() -> bool:
-    return os.environ.get(
+    return get_runtime_env_str(
         "APPS_RG_SECTION_EXIT_SPINE_KILL_SWITCH", "1"
     ).strip() not in (
         "0",

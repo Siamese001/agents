@@ -6,6 +6,7 @@ and the audit payload shape remain, consumed by the competencies lane for proven
 """
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import os
 
 STATUS_BLOCKED_LIVE_PROVIDER = "BLOCKED_LIVE_PROVIDER"
@@ -13,7 +14,7 @@ REASON_PROVIDER_UNAVAILABLE = "PROVIDER_UNAVAILABLE"
 
 
 def competencies_provider_preflight_timeout_s() -> float:
-    raw = os.environ.get("APPS_RG_COMPETENCIES_PROVIDER_PREFLIGHT_TIMEOUT_SECONDS", "5")
+    raw = get_runtime_env_str("APPS_RG_COMPETENCIES_PROVIDER_PREFLIGHT_TIMEOUT_SECONDS", "5")
     try:
         return max(0.5, min(float(raw), 30.0))
     except ValueError:
@@ -30,7 +31,7 @@ def competencies_provider_chat_timeout_s() -> int:
     """
     from apps_rg.runtime.providers.external_provider import external_provider_timeout_max_s
 
-    raw = os.environ.get("APPS_RG_COMPETENCIES_CHAT_TIMEOUT_SECONDS", "240")
+    raw = get_runtime_env_str("APPS_RG_COMPETENCIES_CHAT_TIMEOUT_SECONDS", "240")
     ceiling = external_provider_timeout_max_s()
     try:
         return int(max(60.0, min(float(raw), ceiling)))
@@ -39,7 +40,7 @@ def competencies_provider_chat_timeout_s() -> int:
 
 
 def competencies_provider_preflight_disabled() -> bool:
-    return os.environ.get("APPS_RG_COMPETENCIES_PROVIDER_PREFLIGHT_DISABLE", "").strip().lower() in (
+    return get_runtime_env_str("APPS_RG_COMPETENCIES_PROVIDER_PREFLIGHT_DISABLE", "").strip().lower() in (
         "1",
         "true",
         "yes",

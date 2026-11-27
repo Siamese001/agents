@@ -1,13 +1,1 @@
-# config/architectural_exceptions.yaml
-# L6 cross-layer gravity exceptions (burndown complete following modularization).
-# ADR: docs/architecture/adr/ADR-085-l6-observability-dependency-hygiene.md
-
-schema_version: l6-gravity-v1
-plan_id: repo-debt-elimination-burndown
-adg_snapshot: null
-distinct_import_edges: 0
-source_file_count: 0
-burndown_status: complete
-burndown_threshold: 24
-
-l6_downstream_exceptions: {}
+../../config/architectural_exceptions.yaml

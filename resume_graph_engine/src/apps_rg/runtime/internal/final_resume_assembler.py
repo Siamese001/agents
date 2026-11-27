@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 if __name__ == "__main__":
     raise ImportError(
         "This module is not an operator CLI entrypoint. "
@@ -150,8 +151,8 @@ def _resolve_full_resume_targeting_context(
 
     import os
 
-    target_company = os.environ.get("APPS_RG_TARGET_COMPANY", "").strip()
-    target_role = os.environ.get("APPS_RG_TARGET_ROLE", "").strip()
+    target_company = get_runtime_env_str("APPS_RG_TARGET_COMPANY", "").strip()
+    target_role = get_runtime_env_str("APPS_RG_TARGET_ROLE", "").strip()
     sources: list[str] = []
     if target_company or target_role:
         sources.append("environment")
@@ -204,7 +205,7 @@ def _resolve_full_resume_jd_context(*, output_dir: Path) -> str:
     """Resolve JD or briefing context for the aggregate full-resume judge."""
     import os
 
-    jd_env = os.environ.get("APPS_RG_JD_TEXT", "").strip()
+    jd_env = get_runtime_env_str("APPS_RG_JD_TEXT", "").strip()
     if jd_env:
         return jd_env[:4000]
 
@@ -818,7 +819,7 @@ def assemble_final_resume(
                 )
             )
             jd_context = _resolve_full_resume_jd_context(output_dir=paths.output_dir)
-            judge_mode = os.environ.get("APPS_RG_FULL_RESUME_COHERENCE_JUDGE_MODE", "blocked_if_unavailable").strip()
+            judge_mode = get_runtime_env_str("APPS_RG_FULL_RESUME_COHERENCE_JUDGE_MODE", "blocked_if_unavailable").strip()
             coherence_review = emit_full_resume_llm_coherence_review(
                 final_resume=final_resume,
                 final_resume_path=paths.output_dir / "final_resume.json",

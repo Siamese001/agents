@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import json, os, time
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -42,7 +43,7 @@ def bullet_lane_sc_enabled(section_lane: str) -> bool:
     lane = str(section_lane or "").strip().lower()
     if lane not in BULLET_POOL_LANES:
         return False
-    flag = os.environ.get("APPS_RG_BULLET_SC_DISABLE", "").strip().lower()
+    flag = get_runtime_env_str("APPS_RG_BULLET_SC_DISABLE", "").strip().lower()
     return flag not in ("1", "true", "yes")
 
 
@@ -135,13 +136,13 @@ def _flush_progress_receipt(
 def self_consistency_parallel_enabled(section_lane: str) -> bool:
     lane = str(section_lane or "").strip().lower()
     if lane == "competencies":
-        flag = os.environ.get("APPS_RG_COMPETENCIES_SC_PARALLEL", "1").strip().lower()
+        flag = get_runtime_env_str("APPS_RG_COMPETENCIES_SC_PARALLEL", "1").strip().lower()
         return flag not in _DISABLE_FLAGS
     if lane in PARALLEL_EMPLOYMENT_BULLET_SC_LANES:
-        flag = os.environ.get("APPS_RG_EMPLOYMENT_BULLET_SC_PARALLEL", "1").strip().lower()
+        flag = get_runtime_env_str("APPS_RG_EMPLOYMENT_BULLET_SC_PARALLEL", "1").strip().lower()
         return flag not in _DISABLE_FLAGS
     if lane in {"executive_summary", "headline", "headline_l6"}:
-        flag = os.environ.get("APPS_RG_SUMMARY_HEADLINE_SC_PARALLEL", "1").strip().lower()
+        flag = get_runtime_env_str("APPS_RG_SUMMARY_HEADLINE_SC_PARALLEL", "1").strip().lower()
         return flag not in _DISABLE_FLAGS
     return False
 
@@ -156,7 +157,7 @@ def self_consistency_max_parallel(section_lane: str, path_count: int) -> int:
         env_name, default = "APPS_RG_SUMMARY_HEADLINE_SC_MAX_PARALLEL", 2
     else:
         return 1
-    raw = os.environ.get(env_name, "").strip()
+    raw = get_runtime_env_str(env_name, "").strip()
     try:
         requested = int(raw) if raw else default
     except ValueError:

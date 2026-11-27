@@ -8,6 +8,7 @@ mock judges are test-harness env-only).
 """
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import os
 import sys
 
@@ -20,7 +21,7 @@ _TRUE = frozenset({"1", "true", "yes", "on", "y"})
 
 
 def _env_on(name: str) -> bool:
-    return os.environ.get(name, "").strip().lower() in _TRUE
+    return get_runtime_env_str(name, "").strip().lower() in _TRUE
 
 
 def is_test_harness() -> bool:
@@ -89,7 +90,7 @@ def assert_production_runtime(
 ) -> None:
     """Product default: no mock-judge CLI flags (X1D judges are always live)."""
     assert_production_cli_no_mock_judge_flags(argv, args=args)
-    if not is_test_harness() and not ("pytest" in sys.modules or os.environ.get("PYTEST_CURRENT_TEST")):
+    if not is_test_harness() and not ("pytest" in sys.modules or get_runtime_env_str("PYTEST_CURRENT_TEST")):
         from apps_rg.runtime.env_bootstrap import assert_live_credentials_present
 
         assert_live_credentials_present(providers=("openai",))

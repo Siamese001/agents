@@ -8,6 +8,7 @@ Filename suffix ``_adapter.py`` is exempt from authority MV per phase-a routing.
 """
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import os
 from dataclasses import dataclass
 from typing import Any
@@ -45,9 +46,9 @@ def evaluate_apps_rg_l2_quality_precheck(_prompt: CompiledPromptArtifact) -> tup
 
 
 def _use_v4_l2_envelope() -> bool:
-    if os.environ.get("APPS_RG_L2_DEV_LEGACY_PACKAGE", "").strip() == "1":
+    if get_runtime_env_str("APPS_RG_L2_DEV_LEGACY_PACKAGE", "").strip() == "1":
         return False
-    raw = os.environ.get("APPS_RG_L2_USE_V4_ENVELOPE", "").strip().lower()
+    raw = get_runtime_env_str("APPS_RG_L2_USE_V4_ENVELOPE", "").strip().lower()
     return raw not in ("0", "false", "no", "off")
 
 
@@ -55,7 +56,7 @@ def _resolve_product_mode(product_mode: bool | None) -> bool:
     """Production defaults to signed authority; pytest preserves explicit legacy tests."""
     if product_mode is not None:
         return bool(product_mode)
-    return not bool(os.environ.get("PYTEST_CURRENT_TEST"))
+    return not bool(get_runtime_env_str("PYTEST_CURRENT_TEST"))
 
 
 def _stub_sealed_from_prompt(prompt: CompiledPromptArtifact) -> SealedL2Artifact:
@@ -94,7 +95,7 @@ def _l2_execute_apps_rg_core(
     resume_artifact_contract_mode: Any | None = None,
 ) -> SealedL2Artifact:
     """Execute explicit stub/dev compatibility or the governed v4 path."""
-    if os.environ.get("APPS_RG_L2_FORCE_STUB", "").strip() == "1":
+    if get_runtime_env_str("APPS_RG_L2_FORCE_STUB", "").strip() == "1":
         return _stub_sealed_from_prompt(prompt)
     if not _use_v4_l2_envelope():
         return _legacy_package_driven(prompt)
@@ -185,7 +186,7 @@ def l2_execute_apps_rg(
         resume_artifact_contract_mode=resume_artifact_contract_mode,
     )
     if governed_l2_exit_enabled() and (
-        resolved_product_mode or os.environ.get("APPS_RG_L2_FORCE_STUB", "").strip() == "1"
+        resolved_product_mode or get_runtime_env_str("APPS_RG_L2_FORCE_STUB", "").strip() == "1"
     ):
         return governed_l2_seal_integrated(prompt, **kwargs)
     return _l2_execute_apps_rg_core(prompt, **kwargs)

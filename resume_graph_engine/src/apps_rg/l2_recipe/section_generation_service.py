@@ -9,6 +9,7 @@ Handles:
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str, get_runtime_environ
 import os
 from dataclasses import asdict
 from pathlib import Path
@@ -282,8 +283,8 @@ class SectionGenerationService:
             log_sections_manifest_write_failed("run_modular_resume_generation_phase1", exc)
             raise
 
-        prev_env = os.environ.get(MODULAR_R4_SECTIONS_ROOT_ENV)
-        os.environ[MODULAR_R4_SECTIONS_ROOT_ENV] = str(sections_root.resolve())
+        prev_env = get_runtime_env_str(MODULAR_R4_SECTIONS_ROOT_ENV)
+        get_runtime_environ()[MODULAR_R4_SECTIONS_ROOT_ENV] = str(sections_root.resolve())
         lane_argv = build_modular_lane_argv(
             provider=profile.phase1_lane_provider,
             targeting=lane_targeting,
@@ -422,30 +423,30 @@ class SectionGenerationService:
             _lane_provider_for_lane(lane_key)
             return phase1_lane_provider_source_by_lane[lane_key]
 
-        prev_whole_run_env = os.environ.get("APPS_RG_WHOLE_RUN_ENVELOPE")
-        prev_corr_env = os.environ.get("APPS_RG_CORRELATED_CLI_RUN")
+        prev_whole_run_env = get_runtime_env_str("APPS_RG_WHOLE_RUN_ENVELOPE")
+        prev_corr_env = get_runtime_env_str("APPS_RG_CORRELATED_CLI_RUN")
         prev_graph_allocation_env = {
-            ALLOCATION_PLAN_ENV: os.environ.get(ALLOCATION_PLAN_ENV),
-            ALLOCATION_USAGE_LEDGER_ENV: os.environ.get(ALLOCATION_USAGE_LEDGER_ENV),
-            SECTION_EVIDENCE_CONTRACTS_ENV: os.environ.get(SECTION_EVIDENCE_CONTRACTS_ENV),
-            SECTION_SOURCE_PLANS_ENV: os.environ.get(SECTION_SOURCE_PLANS_ENV),
-            GRAPH_SKILL_EMBEDDING_ALLOWLISTS_ENV: os.environ.get(GRAPH_SKILL_EMBEDDING_ALLOWLISTS_ENV),
-            "APPS_RG_CAREER_THESIS_PLAN_PATH": os.environ.get("APPS_RG_CAREER_THESIS_PLAN_PATH"),
+            ALLOCATION_PLAN_ENV: get_runtime_env_str(ALLOCATION_PLAN_ENV),
+            ALLOCATION_USAGE_LEDGER_ENV: get_runtime_env_str(ALLOCATION_USAGE_LEDGER_ENV),
+            SECTION_EVIDENCE_CONTRACTS_ENV: get_runtime_env_str(SECTION_EVIDENCE_CONTRACTS_ENV),
+            SECTION_SOURCE_PLANS_ENV: get_runtime_env_str(SECTION_SOURCE_PLANS_ENV),
+            GRAPH_SKILL_EMBEDDING_ALLOWLISTS_ENV: get_runtime_env_str(GRAPH_SKILL_EMBEDDING_ALLOWLISTS_ENV),
+            "APPS_RG_CAREER_THESIS_PLAN_PATH": get_runtime_env_str("APPS_RG_CAREER_THESIS_PLAN_PATH"),
         }
         try:
             rel_art = art.resolve().relative_to(repo.resolve()).as_posix()
         except ValueError:
             rel_art = str(art.resolve()).replace("\\", "/")
 
-        os.environ["APPS_RG_WHOLE_RUN_ENVELOPE"] = "1"
-        os.environ["APPS_RG_CORRELATED_CLI_RUN"] = rel_art
-        os.environ[ALLOCATION_PLAN_ENV] = resume_graph_allocation_refs["allocation_plan"]
-        os.environ[ALLOCATION_USAGE_LEDGER_ENV] = resume_graph_allocation_refs["usage_ledger"]
-        os.environ[SECTION_EVIDENCE_CONTRACTS_ENV] = resume_graph_allocation_refs["section_final_evidence_contracts"]
-        os.environ[SECTION_SOURCE_PLANS_ENV] = resume_graph_allocation_refs["section_plans"]
-        os.environ["APPS_RG_CAREER_THESIS_PLAN_PATH"] = career_thesis_plan_path
+        get_runtime_environ()["APPS_RG_WHOLE_RUN_ENVELOPE"] = "1"
+        get_runtime_environ()["APPS_RG_CORRELATED_CLI_RUN"] = rel_art
+        get_runtime_environ()[ALLOCATION_PLAN_ENV] = resume_graph_allocation_refs["allocation_plan"]
+        get_runtime_environ()[ALLOCATION_USAGE_LEDGER_ENV] = resume_graph_allocation_refs["usage_ledger"]
+        get_runtime_environ()[SECTION_EVIDENCE_CONTRACTS_ENV] = resume_graph_allocation_refs["section_final_evidence_contracts"]
+        get_runtime_environ()[SECTION_SOURCE_PLANS_ENV] = resume_graph_allocation_refs["section_plans"]
+        get_runtime_environ()["APPS_RG_CAREER_THESIS_PLAN_PATH"] = career_thesis_plan_path
         if graph_skill_embedding_required:
-            os.environ[GRAPH_SKILL_EMBEDDING_ALLOWLISTS_ENV] = (
+            get_runtime_environ()[GRAPH_SKILL_EMBEDDING_ALLOWLISTS_ENV] = (
                 graph_skill_embedding_runtime_refs["lane_allowlists"]
             )
 
@@ -564,7 +565,7 @@ class SectionGenerationService:
                 failed_lanes: dict[str, str] = {}
                 deps_by_lane = section_dag_dependencies(lanes=GENERATED_LANES)
                 for lane in topological_lane_order(GENERATED_LANES, deps_by_lane=deps_by_lane):
-                    os.environ[MODULAR_R4_SECTIONS_ROOT_ENV] = str(sections_root.resolve())
+                    get_runtime_environ()[MODULAR_R4_SECTIONS_ROOT_ENV] = str(sections_root.resolve())
                     failed_deps = [dep for dep in deps_by_lane.get(lane, ()) if dep in failed_lanes]
                     if failed_deps:
                         dep_reason = f"dependency_failed:{','.join(failed_deps)}"
@@ -728,22 +729,22 @@ class SectionGenerationService:
 
         finally:
             if prev_whole_run_env is None:
-                os.environ.pop("APPS_RG_WHOLE_RUN_ENVELOPE", None)
+                get_runtime_environ().pop("APPS_RG_WHOLE_RUN_ENVELOPE", None)
             else:
-                os.environ["APPS_RG_WHOLE_RUN_ENVELOPE"] = prev_whole_run_env
+                get_runtime_environ()["APPS_RG_WHOLE_RUN_ENVELOPE"] = prev_whole_run_env
             if prev_corr_env is None:
-                os.environ.pop("APPS_RG_CORRELATED_CLI_RUN", None)
+                get_runtime_environ().pop("APPS_RG_CORRELATED_CLI_RUN", None)
             else:
-                os.environ["APPS_RG_CORRELATED_CLI_RUN"] = prev_corr_env
+                get_runtime_environ()["APPS_RG_CORRELATED_CLI_RUN"] = prev_corr_env
             for key, previous in prev_graph_allocation_env.items():
                 if previous is None:
-                    os.environ.pop(key, None)
+                    get_runtime_environ().pop(key, None)
                 else:
-                    os.environ[key] = previous
+                    get_runtime_environ()[key] = previous
             if prev_env is None:
-                os.environ.pop(MODULAR_R4_SECTIONS_ROOT_ENV, None)
+                get_runtime_environ().pop(MODULAR_R4_SECTIONS_ROOT_ENV, None)
             else:
-                os.environ[MODULAR_R4_SECTIONS_ROOT_ENV] = prev_env
+                get_runtime_environ()[MODULAR_R4_SECTIONS_ROOT_ENV] = prev_env
 
         return (
             lane_run_dirs,

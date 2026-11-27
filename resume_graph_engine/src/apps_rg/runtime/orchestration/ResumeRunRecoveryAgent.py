@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import datetime
 import hashlib
 import json
@@ -21,7 +22,7 @@ AUTHORIZING_X3_CODES = frozenset({"X3_ALLOW", "X3D_ALLOW_FINISH", "X3A_ALLOW_RER
 
 def is_resume_run_recovery_enabled() -> bool:
     """Return whether Resume Run Recovery agent is globally enabled."""
-    val = os.environ.get("APPS_RG_X3_RECOVERY_ENABLED", "1").strip().lower()
+    val = get_runtime_env_str("APPS_RG_X3_RECOVERY_ENABLED", "1").strip().lower()
     return val in {"1", "true", "yes", "on"}
 
 

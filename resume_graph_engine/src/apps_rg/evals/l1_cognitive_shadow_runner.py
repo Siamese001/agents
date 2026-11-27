@@ -8,6 +8,7 @@ seam.  It does not grant product, release, or promotion authority.
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str, get_runtime_environ
 from dataclasses import asdict
 import hashlib
 import json
@@ -342,13 +343,13 @@ def run_l1_cognitive_shadow_arm(
         },
     )
 
-    previous_shortcuts = os.environ.get("APPS_RG_ALLOW_PRODUCT_SHORTCUTS")
-    previous_preflight_disable = os.environ.get(
+    previous_shortcuts = get_runtime_env_str("APPS_RG_ALLOW_PRODUCT_SHORTCUTS")
+    previous_preflight_disable = get_runtime_env_str(
         "APPS_RG_COMPETENCIES_PROVIDER_PREFLIGHT_DISABLE"
     )
-    os.environ["APPS_RG_ALLOW_PRODUCT_SHORTCUTS"] = "1"
+    get_runtime_environ()["APPS_RG_ALLOW_PRODUCT_SHORTCUTS"] = "1"
     if preflight_disabled:
-        os.environ["APPS_RG_COMPETENCIES_PROVIDER_PREFLIGHT_DISABLE"] = "1"
+        get_runtime_environ()["APPS_RG_COMPETENCIES_PROVIDER_PREFLIGHT_DISABLE"] = "1"
     modular_result: Any | None = None
     modular_exception = ""
     try:
@@ -384,13 +385,13 @@ def run_l1_cognitive_shadow_arm(
         modular_exception = f"{type(exc).__name__}:{exc}"
     finally:
         if previous_shortcuts is None:
-            os.environ.pop("APPS_RG_ALLOW_PRODUCT_SHORTCUTS", None)
+            get_runtime_environ().pop("APPS_RG_ALLOW_PRODUCT_SHORTCUTS", None)
         else:
-            os.environ["APPS_RG_ALLOW_PRODUCT_SHORTCUTS"] = previous_shortcuts
+            get_runtime_environ()["APPS_RG_ALLOW_PRODUCT_SHORTCUTS"] = previous_shortcuts
         if previous_preflight_disable is None:
-            os.environ.pop("APPS_RG_COMPETENCIES_PROVIDER_PREFLIGHT_DISABLE", None)
+            get_runtime_environ().pop("APPS_RG_COMPETENCIES_PROVIDER_PREFLIGHT_DISABLE", None)
         else:
-            os.environ["APPS_RG_COMPETENCIES_PROVIDER_PREFLIGHT_DISABLE"] = (
+            get_runtime_environ()["APPS_RG_COMPETENCIES_PROVIDER_PREFLIGHT_DISABLE"] = (
                 previous_preflight_disable
             )
     execution_path = emit_l1_cognitive_treatment_execution_receipt(

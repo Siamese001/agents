@@ -1,6 +1,7 @@
 """Isolated Phase-1 lane execution context (serial + parallel dispatcher)."""
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str, get_runtime_environ
 import contextlib
 import os
 from dataclasses import dataclass, field
@@ -303,8 +304,8 @@ def run_lane_in_context(
     try:
         _persist_dispatch_attempt(ctx, lane, lane_dir, status="STARTED")
         for k, v in ctx.env_overlay().items():
-            if v is not None and os.environ.get(k) != v:
-                os.environ[k] = v
+            if v is not None and get_runtime_env_str(k) != v:
+                get_runtime_environ()[k] = v
         from apps_rg.runtime.providers.wallclock_http_guard import lane_cancellation_scope
 
         provider = ctx.provider_for_lane(lane)

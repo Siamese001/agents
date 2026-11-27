@@ -1,6 +1,7 @@
 """External API provider implementation for apps_rg Wave 10A."""
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str, get_runtime_environ
 import hashlib
 import json
 import os
@@ -109,7 +110,7 @@ def apply_anthropic_adaptive_thinking_config(
     """Constrain Sonnet 5 adaptive thinking so compact JSON calls leave budget for text."""
     if not anthropic_model_uses_adaptive_thinking(body.get("model")):
         return body
-    env = os.environ if environ is None else environ
+    env = get_runtime_environ() if environ is None else environ
     resolved_effort = str(effort or env.get("APPS_RG_ANTHROPIC_EFFORT") or "low").strip().lower()
     if resolved_effort not in {"low", "medium", "high", "xhigh"}:
         resolved_effort = "low"
@@ -134,7 +135,7 @@ def external_provider_timeout_max_s() -> float:
     run. Hard-bounded to [30, 300]s so neither a typo nor a hostile value can
     turn a section call into an extended hang.
     """
-    raw = os.environ.get("APPS_RG_EXTERNAL_PROVIDER_TIMEOUT_MAX_SECONDS", "").strip()
+    raw = get_runtime_env_str("APPS_RG_EXTERNAL_PROVIDER_TIMEOUT_MAX_SECONDS", "").strip()
     if not raw:
         return DEFAULT_EXTERNAL_PROVIDER_TIMEOUT_MAX_SECONDS
     try:
@@ -312,8 +313,8 @@ class ExternalProvider:
         ):
             raise ProviderGatewayError(f"ExternalProvider cannot serve profile={provider_profile.value}")
         self.provider_profile = provider_profile
-        self.environ = os.environ if environ is None else environ
-        self._uses_process_environ = self.environ is os.environ
+        self.environ = get_runtime_environ() if environ is None else environ
+        self._uses_process_environ = self.environ is get_runtime_environ()
         if not str(model or "").strip():
             raise ProviderGatewayError(
                 f"ExternalProvider requires an explicit model for profile={provider_profile.value}; "
@@ -751,7 +752,7 @@ class ExternalProvider:
         # Optional global wall-clock floor (env). Workaround for a per-process download throttle
         # seen in the long-lived run where streamed generations trickle far slower than in a fresh
         # process; a larger budget lets them complete. Unset by default (no behavior change).
-        _floor = float(os.environ.get("APPS_RG_PROVIDER_WALLCLOCK_FLOOR_S") or 0.0)
+        _floor = float(get_runtime_env_str("APPS_RG_PROVIDER_WALLCLOCK_FLOOR_S") or 0.0)
         if _floor > float(timeout_seconds):
             timeout_seconds = min(_floor, external_provider_timeout_max_s())
         result_queue: queue.Queue[tuple[str, Any]] = queue.Queue(maxsize=1)

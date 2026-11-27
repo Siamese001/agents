@@ -8,6 +8,7 @@ Plan: apps-rg-l2-v4-envelope-adoption-e9f2b1 (W2–W7).
 """
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import hashlib
 import json
 import os
@@ -502,9 +503,9 @@ def _resolve_l2_envelope_provider_mode() -> Any:
     """
     from apps_rg.runtime.local_provider import ProviderMode
 
-    if os.environ.get("APPS_RG_L2_FORCE_STUB", "").strip() == "1":
+    if get_runtime_env_str("APPS_RG_L2_FORCE_STUB", "").strip() == "1":
         return ProviderMode.STUB_ONLY
-    raw = (os.environ.get("APPS_RG_L2_PROVIDER_MODE") or "").strip().lower()
+    raw = (get_runtime_env_str("APPS_RG_L2_PROVIDER_MODE") or "").strip().lower()
     if raw in ("stub_only", "stub", "off", "0", "false", "no"):
         return ProviderMode.STUB_ONLY
     if raw in ("live_allowed", "live", "external", "all"):
@@ -600,17 +601,17 @@ def _provider_profile_for_cpa(
                 sandbox_safe=False,
                 requires_network=True,
             )
-        if run_mode == ProviderRunMode.LIVE_REQUIRED or os.environ.get("APPS_RG_PRODUCTION_RUN", "").strip() == "1":
+        if run_mode == ProviderRunMode.LIVE_REQUIRED or get_runtime_env_str("APPS_RG_PRODUCTION_RUN", "").strip() == "1":
             raise AppsRgEnvelopeProviderResolutionError(
                 f"LIVE_REQUIRED: unknown external target_provider={tp!r} for live_allowed mode"
             )
 
-    elif run_mode == ProviderRunMode.LIVE_REQUIRED or os.environ.get("APPS_RG_PRODUCTION_RUN", "").strip() == "1":
+    elif run_mode == ProviderRunMode.LIVE_REQUIRED or get_runtime_env_str("APPS_RG_PRODUCTION_RUN", "").strip() == "1":
         raise AppsRgEnvelopeProviderResolutionError(
             f"LIVE_REQUIRED: target_provider={tp!r} is not a resolved live lane under {provider_mode}"
         )
 
-    if run_mode == ProviderRunMode.LIVE_REQUIRED or os.environ.get("APPS_RG_PRODUCTION_RUN", "").strip() == "1":
+    if run_mode == ProviderRunMode.LIVE_REQUIRED or get_runtime_env_str("APPS_RG_PRODUCTION_RUN", "").strip() == "1":
         raise AppsRgEnvelopeProviderResolutionError(
             f"LIVE_REQUIRED: fallback to apps_rg_envelope_stub is forbidden in live/production runtime for target_provider={tp!r}"
         )
@@ -798,7 +799,7 @@ def _execute_approved_work_order(
     temp_val = float(getattr(cpa, "temperature", 0.1))
     top_p_val = float(getattr(cpa, "top_p", 0.8))
     json_object_response_format = None
-    if os.environ.get("APPS_RG_RESPONSE_FORMAT_JSON_OBJECT", "").strip() == "1":
+    if get_runtime_env_str("APPS_RG_RESPONSE_FORMAT_JSON_OBJECT", "").strip() == "1":
         json_object_response_format = {"type": "json_object"}
 
     packed_prompt = prompt_text
@@ -1072,8 +1073,8 @@ def _execute_approved_work_order(
         "local_check": local_check,
         "provider_error_snippet": (str(resp.error_message or "")[:4000]) if not resp.success else "",
         "apps_rg_env_flags": {
-            "APPS_RG_DIAGNOSTIC_MIN_CONTEXT": os.environ.get("APPS_RG_DIAGNOSTIC_MIN_CONTEXT"),
-            "APPS_RG_RESPONSE_FORMAT_JSON_OBJECT": os.environ.get(
+            "APPS_RG_DIAGNOSTIC_MIN_CONTEXT": get_runtime_env_str("APPS_RG_DIAGNOSTIC_MIN_CONTEXT"),
+            "APPS_RG_RESPONSE_FORMAT_JSON_OBJECT": get_runtime_env_str(
                 "APPS_RG_RESPONSE_FORMAT_JSON_OBJECT"
             ),
         },

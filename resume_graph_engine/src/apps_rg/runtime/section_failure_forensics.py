@@ -1,6 +1,7 @@
 """Per-section forensic RCA artifacts for failed apps_rg E2E runs."""
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import hashlib
 import json
 import os
@@ -389,7 +390,7 @@ def _find_pinned_successful_same_scenario(
     repo_root: Path,
 ) -> dict[str, Any]:
     current = _scenario_identity(run_root)
-    configured = str(os.environ.get("APPS_RG_E2E_BASELINE_REF") or "").strip()
+    configured = str(get_runtime_env_str("APPS_RG_E2E_BASELINE_REF") or "").strip()
     ref, search_roots = resolve_e2e_baseline_paths(configured, DEFAULT_E2E_BASELINE_REF, repo_root)
     contract = _load_json(ref)
     if contract.get("schema_version") != "apps_rg.e2e_baseline.v1":

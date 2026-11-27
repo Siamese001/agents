@@ -1,6 +1,7 @@
 """Section spine CLI runners — invoked only via apps_rg_spine_run (d8f4a2)."""
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str, get_runtime_environ
 import inspect
 import os
 from pathlib import Path
@@ -27,7 +28,7 @@ def _lane_dispatch_status_from_x3(x3: Any) -> tuple[bool, str, str]:
 
 
 def _env_truthy(name: str) -> bool:
-    return str(os.environ.get(name) or "").strip().lower() in {
+    return str(get_runtime_env_str(name) or "").strip().lower() in {
         "1",
         "true",
         "yes",
@@ -39,7 +40,7 @@ def _env_truthy(name: str) -> bool:
 def _run_specific_targeting_required() -> bool:
     return (
         _env_truthy("APPS_RG_WHOLE_RUN_ENVELOPE")
-        or bool(str(os.environ.get("APPS_RG_CORRELATED_CLI_RUN") or "").strip())
+        or bool(str(get_runtime_env_str("APPS_RG_CORRELATED_CLI_RUN") or "").strip())
         or _env_truthy("APPS_RG_REQUIRE_RUN_SPECIFIC_TARGETING")
     )
 
@@ -364,7 +365,7 @@ def run_section_executive_summary_spine(
         is_stale_default_targeting_jd,
     )
 
-    allow_stale = os.environ.get("APPS_RG_ALLOW_STALE_TARGETING_SSOT", "").strip().lower() in {
+    allow_stale = get_runtime_env_str("APPS_RG_ALLOW_STALE_TARGETING_SSOT", "").strip().lower() in {
         "1",
         "true",
         "yes",
@@ -451,7 +452,7 @@ def run_section_executive_summary_spine(
 
     _emb_settings = resolve_apps_rg_embedding_settings(route_section="executive_summary")
     write_embedding_settings_receipt(artifact_path, _emb_settings)
-    os.environ["APPS_RG_ARTIFACT_DIR"] = str(artifact_path)
+    get_runtime_environ()["APPS_RG_ARTIFACT_DIR"] = str(artifact_path)
 
     x3 = ctx["x3"]
     outcome_authorized, exit_status, x3_code = _lane_dispatch_status_from_x3(x3)

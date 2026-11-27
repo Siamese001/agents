@@ -8,6 +8,7 @@ Other section lanes may still use SSOT defaults under ``apps_rg/config``.
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import json
 import os
 from pathlib import Path
@@ -76,7 +77,7 @@ def resolve_allow_non_allow_exit_zero(cli_flag: bool) -> bool:
         return False
     if cli_flag:
         return True
-    return _truthy_env(os.environ.get("APPS_RG_ALLOW_NON_ALLOW_EXIT_ZERO"))
+    return _truthy_env(get_runtime_env_str("APPS_RG_ALLOW_NON_ALLOW_EXIT_ZERO"))
 
 
 def resolve_phase1_lane_allow_non_allow_exit_zero(cli_flag: bool) -> bool:
@@ -244,7 +245,7 @@ def resolve_cli_x1d_judges(
     sid = normalize_section_id(str(section_id or ""))
     if cli_value is not None and str(cli_value).strip():
         return _sanitize_x1d_judges_for_section(sid, str(cli_value).strip())
-    env_csv = (os.environ.get("APPS_RG_E2E_X1D_JUDGES") or "").strip()
+    env_csv = (get_runtime_env_str("APPS_RG_E2E_X1D_JUDGES") or "").strip()
     if env_csv:
         return _sanitize_x1d_judges_for_section(sid, env_csv)
     return resolve_section_default_x1d_judges(section_id)
@@ -279,7 +280,7 @@ def resolve_cli_lane_provider_with_source(
             )
         return v, CLI_PROVIDER_RESOLUTION_CLI_OVERRIDE
 
-    raw_env = str(os.environ.get(ENV_APPS_RG_MODULAR_LANE_PROVIDER) or "").strip()
+    raw_env = str(get_runtime_env_str(ENV_APPS_RG_MODULAR_LANE_PROVIDER) or "").strip()
     if raw_env:
         resolved = resolve_apps_rg_modular_lane_provider()
         return resolved, CLI_PROVIDER_RESOLUTION_ENV_APPS_RG_MODULAR_LANE_PROVIDER
@@ -306,7 +307,7 @@ def coalesce_lane_provider_resolution_source(
 
     if explicit is not None and str(explicit).strip():
         return str(explicit).strip()
-    raw_env = str(os.environ.get(ENV_APPS_RG_MODULAR_LANE_PROVIDER) or "").strip()
+    raw_env = str(get_runtime_env_str(ENV_APPS_RG_MODULAR_LANE_PROVIDER) or "").strip()
     if raw_env:
         return CLI_PROVIDER_RESOLUTION_ENV_APPS_RG_MODULAR_LANE_PROVIDER
     if str(resolved_provider).strip().lower() == "external_claude" and not raw_env:

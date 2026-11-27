@@ -8,6 +8,7 @@ CI, and library-entry execution as well.
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_environ
 import hashlib
 import json
 import os
@@ -141,7 +142,7 @@ def configure_apps_rg_runtime_boundary(
     """
 
     root = (repo_root or find_repo_root()).resolve()
-    env = os.environ if environ is None else environ
+    env = get_runtime_environ() if environ is None else environ
     path, raw, policy_sha = _load_policy(repo_root=root, policy_path=policy_path)
     paths = raw.get("environmentPaths")
     if not isinstance(paths, dict) or not paths:
@@ -199,7 +200,7 @@ def assert_apps_rg_runtime_boundary(
     """Verify that later bootstrap code did not alter the resolved boundary."""
 
     root = (repo_root or find_repo_root()).resolve()
-    env = os.environ if environ is None else environ
+    env = get_runtime_environ() if environ is None else environ
     path, raw, policy_sha = _load_policy(repo_root=root, policy_path=policy_path)
     paths = raw.get("environmentPaths")
     if not isinstance(paths, dict):

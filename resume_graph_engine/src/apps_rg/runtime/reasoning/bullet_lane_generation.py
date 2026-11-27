@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 from dataclasses import replace
 import copy
 from datetime import datetime, timezone
@@ -165,7 +166,7 @@ EMPTY_SELECTION_REASON_PREFIX = "EMPTY_SELECTION_PRE_X2"
 def empty_selection_min_bullets() -> int:
     """Short-circuit floor: merged-bullet count below this fires SEAM B (default 1 = empty
     only; raiseable toward FINAL_BULLET_COUNT via env)."""
-    raw = os.environ.get(EMPTY_SELECTION_MIN_BULLETS_ENV, "1").strip()
+    raw = get_runtime_env_str(EMPTY_SELECTION_MIN_BULLETS_ENV, "1").strip()
     try:
         return max(0, int(raw))
     except ValueError:
@@ -236,7 +237,7 @@ def should_short_circuit_empty_selection(
     """
     from apps_rg.runtime.reasoning.employment_bullet_pool import is_employment_pool_generation
 
-    if os.environ.get(EMPTY_SELECTION_SHORT_CIRCUIT_BYPASS_ENV, "").strip() == "1":
+    if get_runtime_env_str(EMPTY_SELECTION_SHORT_CIRCUIT_BYPASS_ENV, "").strip() == "1":
         return False, ""
     if str(runtime_generation_status or "").upper() != "REAL_LLM":
         return False, ""
@@ -330,7 +331,7 @@ def _generate_employment_bullet_lane(
         if regen_round == 0:
             sample_fast_path = (
                 judge_mode != "mocked"
-                and os.environ.get("APPS_RG_SAMPLE_FAST_PATH", "0").strip().lower() in ("1", "true", "yes")
+                and get_runtime_env_str("APPS_RG_SAMPLE_FAST_PATH", "0").strip().lower() in ("1", "true", "yes")
             )
             requested_batch = 1 if sample_fast_path else initial_path_count
             batch = requested_batch

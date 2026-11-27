@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import json
 import os
 from pathlib import Path
@@ -164,7 +165,7 @@ def judge_regen_blocked_by_trim(token_budget_receipt: dict[str, Any] | None) -> 
 
 
 def targeting_parity_strict_enforcement_enabled() -> bool:
-    raw = os.environ.get("APPS_RG_EXEC_SUMMARY_TARGETING_PARITY_STRICT", "1").strip().lower()
+    raw = get_runtime_env_str("APPS_RG_EXEC_SUMMARY_TARGETING_PARITY_STRICT", "1").strip().lower()
     return raw not in ("0", "false", "no", "off")
 
 

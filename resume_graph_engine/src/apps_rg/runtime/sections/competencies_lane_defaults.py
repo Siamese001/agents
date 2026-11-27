@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 from pathlib import Path
 
 from apps_rg.runtime.briefing_resolution import resolve_briefing_for_lanes
@@ -22,7 +23,7 @@ def competencies_self_consistency_output_tokens() -> int:
     """Per-path live SC budget; full-lane/repair ceiling remains 8192."""
     import os
 
-    raw = os.environ.get("APPS_RG_COMPETENCIES_SC_OUTPUT_TOKENS", "").strip()
+    raw = get_runtime_env_str("APPS_RG_COMPETENCIES_SC_OUTPUT_TOKENS", "").strip()
     try:
         requested = int(raw) if raw else DEFAULT_COMPETENCIES_SC_OUTPUT_TOKENS
     except ValueError:

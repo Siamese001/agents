@@ -7,6 +7,7 @@ found in integrated-run JSON/text (shallow scan). Optional correlation filter wh
 """
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 import json
 import logging
 import os
@@ -242,7 +243,7 @@ def build_modular_sections_root_attachment(
 
     Raises ``ValueError`` when the env var is set without the required sibling manifest.
     """
-    raw = os.environ.get(MODULAR_R4_SECTIONS_ROOT_ENV, "").strip()
+    raw = get_runtime_env_str(MODULAR_R4_SECTIONS_ROOT_ENV, "").strip()
     env_lit = MODULAR_R4_SECTIONS_ROOT_ENV
 
     default_notes = (

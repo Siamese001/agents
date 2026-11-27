@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from apps_rg.config.runtime_env import get_runtime_env_str, get_runtime_environ
 import os
 import random
 import re
@@ -45,8 +46,8 @@ _RETRY_ALLOWED_REASON_CATEGORIES = frozenset(
 
 def _bounded_retry_attempts(environ: Mapping[str, str] | None) -> int:
     raw = str(
-        (environ or os.environ).get("APPS_RG_AVAILABILITY_RETRY_ATTEMPTS")
-        or (environ or os.environ).get("APPS_RG_CLAUDE_AVAILABILITY_RETRY_ATTEMPTS", "1")
+        (environ or get_runtime_environ()).get("APPS_RG_AVAILABILITY_RETRY_ATTEMPTS")
+        or (environ or get_runtime_environ()).get("APPS_RG_CLAUDE_AVAILABILITY_RETRY_ATTEMPTS", "1")
     ).strip()
     try:
         attempts = int(raw)
@@ -261,7 +262,7 @@ def maybe_retry_claude_availability_same_provider(
         else:
             wait_s = base_backoff
         wait_s = min(30.0, wait_s)
-        if not (os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("APPS_RG_TEST_SLEEP")):
+        if not (get_runtime_env_str("PYTEST_CURRENT_TEST") and not get_runtime_env_str("APPS_RG_TEST_SLEEP")):
             time.sleep(wait_s)
 
         provider = ExternalProvider(
