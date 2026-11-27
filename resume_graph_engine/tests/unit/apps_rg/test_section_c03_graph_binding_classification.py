@@ -11,6 +11,7 @@ import pytest
 from apps_rg.runtime.c03_graphrag_bound import build_executive_summary_c03_graphrag_bound
 from apps_rg.runtime.integrated_product_proof_gate import validate_integrated_product_proof
 from apps_rg.runtime.spine.front_contracts import (
+    _FIXTURE_DEV_BYPASS_CTX,
     activate_fixture_dev_bypass,
     deactivate_fixture_dev_bypass,
 )
@@ -113,11 +114,14 @@ def test_fixture_dev_bypass_requires_pytest(monkeypatch: pytest.MonkeyPatch) -> 
 
 def test_fixture_dev_bypass_under_pytest() -> None:
     assert os.environ.get("PYTEST_CURRENT_TEST")
+    deactivate_fixture_dev_bypass()
+    assert _FIXTURE_DEV_BYPASS_CTX.get() is False
     activate_fixture_dev_bypass(non_product_certified=True)
     try:
-        assert True
+        assert _FIXTURE_DEV_BYPASS_CTX.get() is True
     finally:
         deactivate_fixture_dev_bypass()
+    assert _FIXTURE_DEV_BYPASS_CTX.get() is False
 
 
 def test_old_shim_module_path_not_importable() -> None:

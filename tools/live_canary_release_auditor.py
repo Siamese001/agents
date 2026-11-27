@@ -108,7 +108,7 @@ def _resolve_live_canary_candidates(repo_root: Path, agy_bin: str) -> list[str]:
                     if slug and slug not in configured:
                         configured.append(slug)
         except (ImportError, OSError, ValueError):
-            pass
+            configured.clear()
 
     preferred_order = [
         "gemini-3.8-flash-medium",

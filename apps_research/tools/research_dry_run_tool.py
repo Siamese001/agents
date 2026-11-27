@@ -1,4 +1,3 @@
-# guardian: allow-silent_swallower -- explicitly approved governance exemption
 """
 apps_research dry-run diagnostic tool.
 
@@ -11,8 +10,11 @@ status + quality score. No files are written. No LLM calls.
 
 from __future__ import annotations
 
+import asyncio
+import inspect
 import logging
 import sys
+from typing import get_args
 from tqdm import tqdm
 
 logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(name)s: %(message)s")
@@ -25,18 +27,20 @@ def main() -> int:
     from apps_research.reasoning.ResearchOrchestrator import ResearchOrchestrator
     from apps_research.types.research_types import ArtifactMode, ResearchRequest
 
-    modes = [m.value for m in ArtifactMode]
+    modes = [str(m) for m in get_args(ArtifactMode)]
     failures = 0
 
     for mode in tqdm(modes, desc="Processing", unit="item"):
         try:
             req = ResearchRequest(
                 topic=_TOPIC,
-                mode=ArtifactMode(mode),
+                mode=mode,  # type: ignore[arg-type]
                 dry_run=True,
             )
             orch = ResearchOrchestrator(dry_run=True)
             result = orch.run(req)
+            if inspect.isawaitable(result):
+                result = asyncio.run(result)
             status = str(result.status)
             score = result.quality_score
             sections = len(result.sections)

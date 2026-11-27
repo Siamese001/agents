@@ -201,8 +201,7 @@ def resolve_and_verify_outreach_artifact(
     args: argparse.Namespace,
 ) -> dict[str, Any]:
     """Resolve outreach campaign artifact, verify receipts, and fail closed on missing/unsealed outputs."""
-    is_mock = hasattr(outreach_main_callable, "mock_calls") or hasattr(outreach_main_callable, "assert_called")
-    is_demo = bool(getattr(args, "demo", False))
+    _ = outreach_main_callable
 
     campaign_file = next(
         (f for name in ("campaign.json", "campaign_sequence.json", "outreach_draft.json")
@@ -223,9 +222,7 @@ def resolve_and_verify_outreach_artifact(
         raise RuntimeError(error)
 
     if campaign_file is None:
-        if not (is_demo and is_mock):
-            _fail_outreach(f"Required outreach output was not generated or is empty in {outreach_artifact_dir}")
-        campaign_file = outreach_artifact_dir / "campaign.json"
+        _fail_outreach(f"Required outreach output was not generated or is empty in {outreach_artifact_dir}")
 
     # Verify outreach receipt if present
     outreach_receipt_file = outreach_artifact_dir / "run_receipt.json"

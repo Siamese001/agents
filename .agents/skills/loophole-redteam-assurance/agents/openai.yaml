@@ -1,0 +1,4 @@
+interface:
+  display_name: "Loophole & Anti-BS Red-Team Assurance"
+  short_description: "Run 4 read-only adversarial hunters and counterfactual mutation proofs to catch mocks, fake tests, fake scans, and agent gate bypasses"
+  default_prompt: "Use loophole-redteam-assurance to dispatch the four read-only red-team hunters and run tools/loophole_redteam_auditor.py --counterfactual-self-test --audit-repo --json to uncover reachable mocks, tautological tests, unwired scanners, and agent workflow loopholes."

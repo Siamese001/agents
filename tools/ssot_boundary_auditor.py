@@ -385,8 +385,8 @@ def _compute_ratchet_backlog(repo_root: Path, drift: dict[str, Any]) -> dict[str
             env_doc = json.loads(env_ratchet_path.read_text(encoding="utf-8"))
             fc = env_doc.get("file_counts", {}) if isinstance(env_doc, dict) else {}
             env_ratchet_files = sum(1 for v in fc.values() if isinstance(v, int) and v > 0)
-        except (OSError, ValueError, TypeError):
-            pass
+        except (OSError, ValueError, TypeError) as exc:
+            raise ValueError(f"Corrupt ratchet JSON at {env_ratchet_path}: {exc}") from exc
 
     budget_total_files = 0
     budget_prod_files = 0
@@ -399,8 +399,8 @@ def _compute_ratchet_backlog(repo_root: Path, drift: dict[str, Any]) -> dict[str
                 budget_prod_files = sum(
                     1 for k in bdoc if "/tests/" not in f"/{k}" and not Path(k).name.startswith("test_")
                 )
-        except (OSError, ValueError, TypeError):
-            pass
+        except (OSError, ValueError, TypeError) as exc:
+            raise ValueError(f"Corrupt ratchet JSON at {budget_ratchet_path}: {exc}") from exc
 
     dup_configs = len(drift.get("identical", []))
     dup_targeting_md = len(drift.get("targeting_identical_md_pairs", []))

@@ -1,0 +1,6 @@
+[
+  "run loophole redteam audit",
+  "check agents repo for mocks fake tests and fake scans",
+  "audit scanners with counterfactual mutation self-test",
+  "detect guardian exemption abuse and readiness gate bypasses"
+]

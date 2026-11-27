@@ -135,6 +135,7 @@ EXPECTED_AGENTS_SIDECARS: dict[str, dict[str, Any]] = {
             "tools/audit_eval_construct_validity.py",
             "tools/verify_fix_eval_pinning.py",
             "tools/testing_gaps_auditor.py",
+            "tools/loophole_redteam_auditor.py",
         ),
         "requires_remediation_quota": True,
     },

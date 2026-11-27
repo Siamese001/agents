@@ -1,0 +1,17 @@
+{
+  "skill_name": "loophole-redteam-assurance",
+  "evals": [
+    {
+      "id": "counterfactual-scanner-proof",
+      "prompt": "Verify that the loophole red-team auditor catches planted mocks, tautological asserts, silent SyntaxError swallows, and readiness receipt bypasses with zero false positives.",
+      "expected_output": "Counterfactual self-test catches 12/12 planted loophole archetypes and produces 0 violations on clean negative controls.",
+      "files": []
+    },
+    {
+      "id": "read-only-mece-isolation",
+      "prompt": "Audit the 7 repo assurance agents and 11 package roots without breaking MECE single-writer leases.",
+      "expected_output": "All 4 red-team contracts restrict allowed_tools to read_file and run_command and validate_sidecar_separation.py passes with 0 overlaps.",
+      "files": []
+    }
+  ]
+}

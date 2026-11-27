@@ -32,31 +32,17 @@ class RepairRule:
 
 DEFAULT_VOICE_RULES: tuple[RepairRule, ...] = (
     RepairRule(
-        name="remove_first_person_singular",
-        pattern=r"\bI am\b",
-        replacement="Accomplished professional with experience in",
-        description="Eliminate first-person phrasing from executive summary opening.",
-        is_regex=True,
-    ),
-    RepairRule(
-        name="remove_first_person_pronoun",
-        pattern=r"\bmy\b",
-        replacement="the",
-        description="Replace subjective possessive pronouns with objective determiners.",
-        is_regex=True,
-    ),
-    RepairRule(
-        name="passive_voice_strengthening",
-        pattern=r"\bwas responsible for\b",
-        replacement="directed and executed",
-        description="Replace passive responsibility wording with active verbs.",
-        is_regex=True,
-    ),
-    RepairRule(
         name="trailing_whitespace_normalization",
         pattern=r"[ \t]+(?=\n|$)",
         replacement="",
-        description="Strip trailing whitespace from lines.",
+        description="Strip trailing whitespace from lines without mutating prose words.",
+        is_regex=True,
+    ),
+    RepairRule(
+        name="redundant_horizontal_space_normalization",
+        pattern=r"[ \t]{2,}",
+        replacement=" ",
+        description="Collapse redundant horizontal spaces without rewriting candidate wording.",
         is_regex=True,
     ),
 )

@@ -43,9 +43,25 @@ def test_swarm_challenger_approves_clean_text() -> None:
 
 
 def test_swarm_challenger_repairs_and_converges_within_three_turns() -> None:
-    """Text with voice violations should be repaired by Proponent and approved within 3 turns."""
-    challenger = SwarmChallenger()
+    """Text with voice violations escalates without an upstream rewriter and converges when a grounded rewriter port is injected."""
     messy_text = "I am an enterprise architect and was responsible for large system migrations."
+
+    # Without an injected rewriter port, ProponentAgent must NOT regex-splice prose; challenger escalates fail-closed.
+    default_receipt = SwarmChallenger().execute(
+        text=messy_text,
+        workflow_id="test_no_regex_mutator",
+        max_turns=3,
+    )
+    assert default_receipt.final_disposition == SwarmDisposition.ESCALATED
+    assert default_receipt.final_text == messy_text
+
+    # With an injected upstream rewriter port, challenger converges within <= 3 turns.
+    def _grounded_rewriter(_draft: str, directives: tuple[str, ...]) -> str:
+        assert "remove first person" in directives
+        assert "passive voice" in directives
+        return "Enterprise architect who led large system migrations across regulated platforms."
+
+    challenger = SwarmChallenger(proponent=ProponentAgent(rewriter=_grounded_rewriter))
     receipt = challenger.execute(
         text=messy_text,
         workflow_id="test_repair_convergence",
@@ -163,11 +179,22 @@ def test_swarm_challenger_receipt_serialization(tmp_path: Path) -> None:
 
 
 def test_executive_summary_repair_service_integration() -> None:
-    """ExecutiveSummaryRepairService must seamlessly execute challenger verification when requested."""
-    repair_service = ExecutiveSummaryRepairService()
+    """ExecutiveSummaryRepairService rejects voice violations via challenger without regex-splicing prose."""
+    default_service = ExecutiveSummaryRepairService()
     input_text = "I am a principal architect who was responsible for platform security."
-    
-    # Run with challenger enabled
+
+    blocked = default_service.repair(text=input_text, enable_challenger=True)
+    assert blocked.is_successful is False
+    assert blocked.repaired_text == input_text
+    assert blocked.swarm_receipt is not None
+    assert blocked.swarm_receipt.final_disposition == SwarmDisposition.ESCALATED
+
+    rewriter_challenger = SwarmChallenger(
+        proponent=ProponentAgent(
+            rewriter=lambda _t, _d: "Principal architect directing enterprise platform security."
+        )
+    )
+    repair_service = ExecutiveSummaryRepairService(challenger=rewriter_challenger)
     result = repair_service.repair(
         text=input_text,
         enable_challenger=True,

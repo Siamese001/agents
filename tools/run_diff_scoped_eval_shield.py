@@ -40,10 +40,10 @@ ALL_SHIELD_TRIGGER_PREFIXES: tuple[str, ...] = (
 
 
 def _expand_reverse_importers(repo_root: Path, paths: Sequence[str], *, max_callers: int = 40) -> list[str]:
-    """Expand changed Python modules via centralized core-governance reverse-importer scanner."""
+    """Expand changed Python modules via centralized core-governance 2-hop reverse-importer scanner."""
     from apps_eval._core_governance_bridge import expand_reverse_python_importers
 
-    return expand_reverse_python_importers(repo_root, paths, max_callers=max_callers, hops=1)
+    return expand_reverse_python_importers(repo_root, paths, max_callers=max_callers, hops=2)
 
 
 def select_domains_for_paths(
@@ -62,6 +62,8 @@ def select_domains_for_paths(
 
     if repo_root is not None:
         norm_paths = _expand_reverse_importers(repo_root, norm_paths)
+        if "__HUB_EXCEEDED__" in norm_paths:
+            return list(DOMAIN_RUNNERS.keys())
 
     selected: set[str] = set()
     for norm in norm_paths:
@@ -116,7 +118,7 @@ def run_eval_shield(
         changed,
         effective_lane=int(lane_info["effective_lane"]),
         run_all=run_all,
-        repo_root=root if paths is not None else None,
+        repo_root=root,
     )
 
     started = time.time()

@@ -58,7 +58,7 @@ def run_cmd(argv: list[str], cwd: Path, desc: str, timeout: int = 180, dry_run: 
         msg = f"Command timed out after {timeout}s"
         print(f"    [FAIL] {desc} ({msg})")
         return False, msg
-    except Exception as e:
+    except Exception as e:  # guardian: allow-broad-exception -- convert unexpected subprocess launch error to stage FAIL
         elapsed = time.time() - start_t
         msg = f"Failed to execute command: {e}"
         print(f"    [FAIL] {desc} ({msg})")
@@ -100,6 +100,8 @@ def _load_prior_passing_stages(receipt_path: Path, expected_head_sha: str | None
         return set()
     try:
         data = json.loads(receipt_path.read_text(encoding="utf-8"))
+        if data.get("dry_run") is True or str(data.get("terminal_outcome") or "").startswith("DRY_RUN"):
+            return set()
         if expected_head_sha and data.get("head_commit_sha") != expected_head_sha:
             return set()
         stages = data.get("stages", [])
@@ -108,8 +110,22 @@ def _load_prior_passing_stages(receipt_path: Path, expected_head_sha: str | None
             for s in stages
             if isinstance(s, dict) and s.get("status") in ("PASS", "REUSED_PASS")
         }
-    except Exception:
+    except Exception:  # guardian: allow-broad-exception -- treat corrupt or unreadable prior receipt as empty
         return set()
+
+
+def _verify_stage_target_exists(argv: list[str] | None, repo_root: Path) -> tuple[bool, str]:
+    """Fail closed when a mandatory readiness stage script or pytest target path is absent on disk."""
+    if not argv or len(argv) < 2:
+        return False, "Mandatory readiness stage command is unconfigured"
+    if len(argv) >= 4 and argv[1] == "-m" and argv[2] == "pytest":
+        target_rel = argv[3]
+    else:
+        target_rel = argv[1]
+    target_path = Path(target_rel) if Path(target_rel).is_absolute() else (repo_root / target_rel)
+    if not target_path.exists():
+        return False, f"Mandatory readiness stage target missing on disk: {target_rel}"
+    return True, ""
 
 
 def verify_main_readiness(
@@ -129,7 +145,7 @@ def verify_main_readiness(
         from tools.pr_governance_core.common import slugify_branch
 
         slug = slugify_branch(eff_branch)
-    except Exception:
+    except Exception:  # guardian: allow-broad-exception -- fallback branch slug formatting on import error
         slug = eff_branch.replace("/", "_")
 
     # Classify effective risk lane (Lane 0 / Lane 1 / Lane 2, fail-closed).
@@ -191,9 +207,7 @@ def verify_main_readiness(
         ),
         (
             "3. Adversarial Purity & Derivation Integrity",
-            [str(python_bin), "-m", "pytest", "tests/unit/test_adversarial_governance.py", "--timeout=60", "-q"]
-            if (repo_root / "tests" / "unit" / "test_adversarial_governance.py").exists()
-            else None,
+            [str(python_bin), "-m", "pytest", "tests/unit/test_adversarial_governance.py", "--timeout=60", "-q"],
             "Adversarial Quality & Purity Suite (Cases A-F)",
             120,
         ),
@@ -205,9 +219,7 @@ def verify_main_readiness(
         ),
         (
             "5. PR Merge Queue & Trunk Lock Governance",
-            [str(python_bin), "-m", "pytest", "tests/test_pr_merge_queue_governance.py", "--timeout=60", "-q"]
-            if (repo_root / "tests" / "test_pr_merge_queue_governance.py").exists()
-            else None,
+            [str(python_bin), "-m", "pytest", "tests/test_pr_merge_queue_governance.py", "--timeout=60", "-q"],
             "Governed PR Merge Queue & Trunk Lock Suite",
             120,
         ),
@@ -219,41 +231,31 @@ def verify_main_readiness(
                 "--run-offline",
                 "--out",
                 "artifacts/eval_harness/readiness/final_gate_report.json",
-            ]
-            if (repo_root / "ops_scripts" / "ci" / "check_eval_harness_promotion_evidence.py").exists()
-            else None,
+            ],
             "Resume & Outreach Eval Harness & Promotion Gate",
             180,
         ),
         (
             "7. Eval Construct Validity & Unmocked E2E Pinning",
-            [str(python_bin), "tools/audit_eval_construct_validity.py", "--verify-strict", "--include-e2e-pin"]
-            if (repo_root / "tools" / "audit_eval_construct_validity.py").exists()
-            else None,
+            [str(python_bin), "tools/audit_eval_construct_validity.py", "--verify-strict", "--include-e2e-pin"],
             "Eval Construct Validity & Unmocked E2E Pinning Gate",
             60,
         ),
         (
             "8. Diff-Scoped Unmocked Domain Eval Shield",
-            shield_cmd
-            if (repo_root / "tools" / "run_diff_scoped_eval_shield.py").exists()
-            else None,
+            shield_cmd,
             "Diff-Scoped Unmocked Domain Eval Shield",
             120,
         ),
         (
             "9. Governance Harmonization & SSOT Drift Audit",
-            [str(python_bin), "tools/audit_governance_harmonization.py", "--strict"]
-            if (repo_root / "tools" / "audit_governance_harmonization.py").exists()
-            else None,
+            [str(python_bin), "tools/audit_governance_harmonization.py", "--strict"],
             "Governance Harmonization & SSOT Drift Audit",
             60,
         ),
         (
             "10. Testing Gaps, Handoff Contracts & Mock Reachability",
-            [str(python_bin), "tools/testing_gaps_auditor.py", "--repo-root", str(repo_root)]
-            if (repo_root / "tools" / "testing_gaps_auditor.py").exists()
-            else None,
+            [str(python_bin), "tools/testing_gaps_auditor.py", "--repo-root", str(repo_root)],
             "Testing Gaps, Handoff Contracts & Mock Reachability Gate",
             90,
         ),
@@ -272,9 +274,15 @@ def verify_main_readiness(
             stage_records.append({"stage_name": stage_name, "status": "REUSED_PASS"})
             continue
 
-        if argv is None:
-            categories[stage_name] = (True, "Optional suite not present")
-            stage_records.append({"stage_name": stage_name, "status": "PASS"})
+        target_ok, target_err = _verify_stage_target_exists(argv, repo_root)
+        if not target_ok or argv is None:
+            err_msg = target_err or "Mandatory readiness stage command missing"
+            print(f"    [FAIL] {desc} ({err_msg})")
+            categories[stage_name] = (False, err_msg)
+            stage_records.append({"stage_name": stage_name, "status": "FAIL"})
+            if fail_fast:
+                print("    [FAIL-FAST] Halting readiness run on first stage failure.")
+                break
             continue
 
         ok, out = run_cmd(argv, cwd=repo_root, desc=desc, timeout=timeout_s, dry_run=dry_run)
@@ -286,21 +294,41 @@ def verify_main_readiness(
 
     all_passed = all(passed for passed, _ in categories.values()) and len(categories) == len(stage_defs)
 
-    with contextlib.suppress(Exception):
-        receipt_dir.mkdir(parents=True, exist_ok=True)
-        receipt_payload = {
-            "branch": eff_branch,
-            "head_commit_sha": head_sha,
-            "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            "effective_lane": effective_lane,
-            "lane_name": lane_name,
-            "batch_advisories": batch_advisories,
-            "total_stages": len(stage_defs),
-            "stages_evaluated": len(stage_records),
-            "stages": stage_records,
-            "terminal_outcome": "PASS" if all_passed else "FAIL",
-        }
-        receipt_path.write_text(json.dumps(receipt_payload, indent=2) + "\n", encoding="utf-8")
+    if not dry_run:
+        with contextlib.suppress(Exception):
+            receipt_dir.mkdir(parents=True, exist_ok=True)
+            receipt_payload = {
+                "branch": eff_branch,
+                "head_commit_sha": head_sha,
+                "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                "dry_run": False,
+                "effective_lane": effective_lane,
+                "lane_name": lane_name,
+                "batch_advisories": batch_advisories,
+                "total_stages": len(stage_defs),
+                "stages_evaluated": len(stage_records),
+                "stages": stage_records,
+                "terminal_outcome": "PASS" if all_passed else "FAIL",
+            }
+            receipt_path.write_text(json.dumps(receipt_payload, indent=2) + "\n", encoding="utf-8")
+    else:
+        with contextlib.suppress(Exception):
+            receipt_dir.mkdir(parents=True, exist_ok=True)
+            dry_preview_path = receipt_dir / f"local_main_readiness_{slug}_dry_run_preview.json"
+            dry_payload = {
+                "branch": eff_branch,
+                "head_commit_sha": head_sha,
+                "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                "dry_run": True,
+                "effective_lane": effective_lane,
+                "lane_name": lane_name,
+                "batch_advisories": batch_advisories,
+                "total_stages": len(stage_defs),
+                "stages_evaluated": len(stage_records),
+                "stages": stage_records,
+                "terminal_outcome": "DRY_RUN_PREVIEW" if all_passed else "FAIL",
+            }
+            dry_preview_path.write_text(json.dumps(dry_payload, indent=2) + "\n", encoding="utf-8")
 
     # Summary report
     print("\n" + "=" * 76)

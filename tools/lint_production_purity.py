@@ -46,6 +46,7 @@ PRODUCTION_DIRECTORIES: tuple[str, ...] = (
     "tools",
     "resume_graph_engine",
     "resume_engine",
+    "apps_eval",
     "apps_research",
     "apps_model_telemetry",
     "infrastructure",
@@ -57,12 +58,18 @@ PRODUCTION_DIRECTORIES: tuple[str, ...] = (
 EXCLUDED_DIRECTORIES: tuple[str, ...] = (
     "tests",
     "fixtures",
-    "apps_eval",
     "docs",
     "artifacts",
     "scratch",
     ".git",
     ".venv",
+)
+
+EXCLUDED_APPS_EVAL_PREFIXES: tuple[str, ...] = (
+    "apps_eval/fixtures/",
+    "apps_eval/suites/",
+    "apps_eval/baselines/",
+    "apps_eval/scenarios.py",
 )
 
 FORBIDDEN_FIXTURE_PATH_PATTERNS: tuple[str, ...] = _BACKEND.FORBIDDEN_FIXTURE_PATHS
@@ -80,6 +87,9 @@ def is_production_file(path: Path, repo_root: Path) -> bool:
     for exc in EXCLUDED_DIRECTORIES:
         if exc in rel.split("/") or rel.startswith(f"{exc}/"):
             return False
+
+    if any(rel == pref or rel.startswith(pref) for pref in EXCLUDED_APPS_EVAL_PREFIXES):
+        return False
 
     if "/tests/" in rel or rel.endswith("_test.py") or Path(rel).name.startswith("test_"):
         return False
@@ -148,6 +158,18 @@ def _scan_agents_function_return_purity(
     return extra
 
 
+def _line_has_allowed_config_fixture_ast(tree: ast.AST, lineno: int) -> bool:
+    """Return True only when an AST string constant on `lineno` genuinely binds `config/fixtures/`."""
+    allowed_prefix = "config/" + "fixtures/"
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            start_ln = getattr(node, "lineno", -1)
+            end_ln = getattr(node, "end_lineno", start_ln)
+            if start_ln <= lineno <= end_ln and allowed_prefix in node.value.replace("\\", "/"):
+                return True
+    return False
+
+
 def check_file_production_purity(
     file_path: Path,
     repo_root: Path,
@@ -163,8 +185,14 @@ def check_file_production_purity(
     if parsed is None:
         try:
             parsed = ast.parse("\n".join(src_lines), filename=str(file_path))
-        except SyntaxError:
-            return []
+        except SyntaxError as exc:
+            return [
+                (
+                    exc.lineno or 1,
+                    "SYNTAX_ERROR",
+                    f"SyntaxError in production module prevents purity verification: {exc.msg}",
+                )
+            ]
 
     backend = _load_backend()
     visitor = backend.ProductionPurityAstVisitor(src_lines)
@@ -173,7 +201,7 @@ def check_file_production_purity(
     for ln, sym, msg in visitor.violations:
         if "precomputed domain payload" in msg and not any(k in sym.lower() for k in PREDETERMINED_SYNTHESIS_KEYS):
             continue
-        if "binds forbidden fixture path" in msg and "config/fixtures/" in src_lines[ln - 1]:
+        if "binds forbidden fixture path" in msg and _line_has_allowed_config_fixture_ast(parsed, ln):
             continue
         combined.append((ln, sym, msg))
     seen = {(ln, sym) for ln, sym, _ in combined}

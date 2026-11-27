@@ -1,0 +1,43 @@
+schema_version: "1.0.0"
+invariant_id: "INV-GUARDIAN-EXEMPTION-REGISTRY"
+description: >-
+  Canonical allowlist and syntax contract for inline `# guardian: allow-<type> -- <justification>`
+  exemptions across all 11 executable production package roots.
+
+syntax_contract:
+  required_prefix: "guardian:"
+  required_separator: "--"
+  min_justification_chars: 8
+  pattern: '#\s*guardian:\s*(allow-[a-z][a-z0-9-]+)\s+--\s+(.{8,})'
+
+allowed_exemption_types:
+  - allow-silent-swallow
+  - allow-broad-exception
+  - allow-broad-exception-cleanup
+  - allow-return-none-swallow
+  - allow-return-empty-dict
+  - allow-log-and-swallow
+  - allow-default-fallback
+  - allow-model-id
+  - allow-chokepoint-bypass
+  - allow-layer-violation
+  - allow-exception-type-erasure
+  - allow-retry-without-backoff
+  - allow-otel-optional
+  - allow-missing-hitl-on-irreversible
+  - allow-magic-config
+  - allow-path-string
+  - allow-fixture
+  - allow-secret
+  - allow-pass
+
+forbidden_malformed_patterns:
+  - "guardian: allow-silent_swallower"
+  - "guardian: bounded"
+
+ratchet_ceilings:
+  total_production_exemptions: 365
+  allow-silent-swallow: 145
+  allow-broad-exception: 130
+  allow-return-none-swallow: 50
+  malformed_or_unregistered: 0

@@ -496,7 +496,7 @@ def run_fresh_e2e_preflight(
     if not failure_code and runtime_check is not None:
         try:
             runtime_check()
-        except Exception as exc:  # Guardian: converted to typed preflight receipt and mandatory RCA.
+        except Exception as exc:  # guardian: allow-broad-exception -- converted to typed preflight receipt and mandatory RCA
             failure_code = "PRODUCTION_RUNTIME_PREFLIGHT_FAILED"
             failure_detail = _redact_error(exc, env)
     bootstrap_receipt: dict[str, Any] | None = None
@@ -510,7 +510,7 @@ def run_fresh_e2e_preflight(
             ):
                 failure_code = "FACT_VECTOR_BOOTSTRAP_PREFLIGHT_FAILED"
                 failure_detail = "Fresh E2E fact-vector bootstrap did not return a passing receipt."
-        except Exception as exc:  # Guardian: converted to typed preflight receipt and mandatory RCA.
+        except Exception as exc:  # guardian: allow-broad-exception -- converted to typed preflight receipt and mandatory RCA
             failure_code = "FACT_VECTOR_BOOTSTRAP_PREFLIGHT_FAILED"
             failure_detail = _redact_error(exc, env)
 

@@ -294,8 +294,12 @@ def test_run_llm_judges_same_input_hash_all_providers(monkeypatch: pytest.Monkey
 
 
 def test_judge_packet_hash_deterministic() -> None:
-    packet = build_brown_brown_six_sentence_packet()
-    assert judge_packet_hash(packet) == judge_packet_hash(packet)
+    packet_a = build_brown_brown_six_sentence_packet()
+    packet_b = build_brown_brown_six_sentence_packet()
+    digest_a = judge_packet_hash(packet_a)
+    digest_b = judge_packet_hash(packet_b)
+    assert digest_a == digest_b
+    assert len(digest_a) == 16
 
 
 @pytest.mark.parametrize("provider_key", PROOF_JUDGE_PROVIDER_KEYS)

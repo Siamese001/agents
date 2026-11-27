@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sqlite3
 import sys
 import tempfile
 from pathlib import Path
@@ -46,6 +47,45 @@ from apps_eval.holdout_replay import CandidateRunnerFn
 from apps_eval.longitudinal import LongitudinalEvaluationTracker
 from apps_eval.online_grader import backfill_online_grades, load_online_eval_records
 from apps_eval.triage_promoter import promote_golden_cases
+
+
+def _snapshot_sqlite_db(source_db: Path, target_db: Path) -> None:
+    """Atomically snapshot a SQLite DB (including WAL state) into target_db for sandbox preflight."""
+    target_db.parent.mkdir(parents=True, exist_ok=True)
+    src_conn = sqlite3.connect(str(source_db))
+    try:
+        dst_conn = sqlite3.connect(str(target_db))
+        try:
+            src_conn.backup(dst_conn)
+        finally:
+            dst_conn.close()
+    finally:
+        src_conn.close()
+
+
+def _resolve_cycle_learning_ledger_path(
+    repo_root: Path,
+    src: Path,
+    out: Path,
+    ledger_db_path: Path | None,
+    *,
+    sandbox: bool,
+) -> Path:
+    if ledger_db_path is not None:
+        return Path(ledger_db_path).resolve()
+    canonical_learning_dir = (repo_root / "artifacts" / "learning").resolve()
+    live_ledger = canonical_learning_dir / "learning_ledger.sqlite"
+    if not sandbox:
+        return live_ledger
+    sandbox_ledger = out / "learning_ledger.sqlite"
+    source_ledger = (
+        (src / "learning_ledger.sqlite")
+        if (src / "learning_ledger.sqlite").is_file()
+        else (live_ledger if src == canonical_learning_dir and live_ledger.is_file() else None)
+    )
+    if source_ledger is not None and not sandbox_ledger.is_file():
+        _snapshot_sqlite_db(source_ledger, sandbox_ledger)
+    return sandbox_ledger
 
 
 def _guard_non_output_path(path: Path) -> None:
@@ -187,10 +227,8 @@ def run_eval_flywheel_cycle(
     golden_path = out / "golden_eval_cases.json"
     operator_corrections = _read_operator_corrections(src / "operator_corrections.jsonl")
     q = SqliteFindingsQueueStore(out / "remediation_queue.sqlite")
-    effective_ledger_path = (
-        Path(ledger_db_path).resolve()
-        if ledger_db_path is not None
-        else (out / "learning_ledger.sqlite" if sandbox else repo_root / "artifacts" / "learning" / "learning_ledger.sqlite")
+    effective_ledger_path = _resolve_cycle_learning_ledger_path(
+        repo_root, src, out, ledger_db_path, sandbox=sandbox
     )
     ledger_store = SqliteLearningLedgerStore(effective_ledger_path)
     try:
@@ -248,10 +286,16 @@ def run_eval_flywheel_cycle(
             long_ledger = src / "longitudinal_eval_ledger.json"
 
     eff_manifest: Mapping[str, Any] | Path | str | None = manifest_payload
-    if eff_manifest is None and not sandbox:
+    if eff_manifest is None:
+        canonical_learning_dir = (repo_root / "artifacts" / "learning").resolve()
+        harness_base = (
+            (repo_root / "artifacts" / "eval_harness")
+            if src == canonical_learning_dir
+            else (src.parent / "eval_harness")
+        )
         for cand_m in (
-            repo_root / "artifacts" / "eval_harness" / "ci_latest" / "evidence_manifest.json",
-            repo_root / "artifacts" / "eval_harness" / "latest" / "evidence_manifest.json",
+            harness_base / "ci_latest" / "evidence_manifest.json",
+            harness_base / "latest" / "evidence_manifest.json",
         ):
             if cand_m.is_file():
                 eff_manifest = cand_m

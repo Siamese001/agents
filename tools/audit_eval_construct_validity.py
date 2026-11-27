@@ -32,6 +32,21 @@ DEFAULT_SMOKE_HARNESS_PATHS: tuple[str, ...] = (
     "ops_scripts/ci/check_eval_harness_promotion_evidence.py",
 )
 
+DEFAULT_SCANNER_GLOBS: tuple[str, ...] = (
+    "tools/*_auditor.py",
+    "tools/lint_*.py",
+    "tools/verify_*.py",
+)
+
+DEFAULT_TEST_ROOTS: tuple[str, ...] = (
+    "tests",
+    "resume_graph_engine/tests",
+    "outreach_engine/tests",
+    "apps_eval/tests",
+    "scripts/local_llm",
+    "resume_graph_engine/src/apps_rg/evals",
+)
+
 DEFAULT_EVALUATOR_GLOBS: tuple[str, ...] = (
     "tools/eval_shield_core/*.py",
     "tools/run_diff_scoped_eval_shield.py",
@@ -285,6 +300,42 @@ def audit_repository(
         if rel.startswith("apps_eval/"):
             violations.extend(scan_extended_construct_validity(path))
 
+    scanned_scanner: list[str] = []
+    seen_scanner: set[Path] = set()
+    for pattern in DEFAULT_SCANNER_GLOBS:
+        for path in sorted(root.glob(pattern)):
+            resolved = path.resolve()
+            if resolved in seen_scanner or not path.is_file():
+                continue
+            seen_scanner.add(resolved)
+            rel = resolved.relative_to(root).as_posix() if resolved.is_relative_to(root) else str(path)
+            scanned_scanner.append(rel)
+            violations.extend(scan_extended_construct_validity(path, is_scanner_file=True))
+
+    scanned_tests: list[str] = []
+    seen_tests: set[Path] = set()
+    for test_root_rel in DEFAULT_TEST_ROOTS:
+        tbase = root / test_root_rel
+        if not tbase.is_dir():
+            continue
+        for path in sorted({*tbase.rglob("test_*.py"), *tbase.rglob("*_test.py")}):
+            if "__pycache__" in path.parts or ".venv" in path.parts:
+                continue
+            resolved = path.resolve()
+            if resolved in seen_tests or not path.is_file():
+                continue
+            seen_tests.add(resolved)
+            rel = resolved.relative_to(root).as_posix() if resolved.is_relative_to(root) else str(path)
+            scanned_tests.append(rel)
+            if "judge" in path.name.lower():
+                violations.extend(
+                    scan_extended_construct_validity(path, is_judge_test=True, is_test_file=True)
+                )
+            else:
+                violations.extend(
+                    scan_extended_construct_validity(path, is_judge_test=False, is_test_file=True)
+                )
+
     gp_count, gp_ceiling, gp_violations = scan_fact_inventory_graph_presence_ratchet(root)
     violations.extend(gp_violations)
 
@@ -293,6 +344,8 @@ def audit_repository(
         "status": "PASS" if not violations else "FAIL",
         "scanned_smoke_files": sorted(set(scanned_smoke)),
         "scanned_eval_files": sorted(set(scanned_eval)),
+        "scanned_scanner_files": sorted(set(scanned_scanner)),
+        "scanned_test_files": sorted(set(scanned_tests)),
         "grounding_tiers": grounding_tiers,
         "graph_presence_count": gp_count,
         "graph_presence_ceiling": gp_ceiling,
@@ -321,6 +374,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         if str(repo_root) not in sys.path:
             sys.path.insert(0, str(repo_root))
         from tools.audit_multi_ssot_judge_gate_drift import audit_multi_ssot_judge_gate_drift
+        from tools.loophole_redteam_auditor import audit_repository_loopholes, run_counterfactual_self_test
         from tools.verify_fix_eval_pinning import evaluate_non_mock_e2e_branch_requirement
 
         pin_report = evaluate_non_mock_e2e_branch_requirement(repo_root)
@@ -340,6 +394,37 @@ def main(argv: Sequence[str] | None = None) -> int:
                         "file": "tools/audit_multi_ssot_judge_gate_drift.py",
                         "line": 1,
                         "message": str(dv.get("message") or ""),
+                    }
+                )
+            report["violation_count"] = len(report["violations"])
+            report["status"] = "FAIL"
+
+        cf_report = run_counterfactual_self_test()
+        loophole_report = audit_repository_loopholes(repo_root)
+        report["loophole_redteam_report"] = {
+            "status": loophole_report["status"],
+            "total_findings": loophole_report["total_findings"],
+            "counterfactual_status": cf_report["status"],
+        }
+        if cf_report.get("status") != "PASS":
+            report["violations"].append(
+                {
+                    "code": "LOOPHOLE_COUNTERFACTUAL_SELF_TEST_FAILED",
+                    "file": "tools/loophole_redteam_auditor.py",
+                    "line": 1,
+                    "message": f"Counterfactual self-test failed: missed={cf_report.get('missed_loophole_ids')} fp={cf_report.get('clean_control_false_positives')}",
+                }
+            )
+            report["violation_count"] = len(report["violations"])
+            report["status"] = "FAIL"
+        if loophole_report.get("findings"):
+            for lf in loophole_report["findings"]:
+                report["violations"].append(
+                    {
+                        "code": f"REDTEAM_{lf['loophole_id']}_{lf['code']}",
+                        "file": lf["file"],
+                        "line": lf["line"],
+                        "message": lf["message"],
                     }
                 )
             report["violation_count"] = len(report["violations"])

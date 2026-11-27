@@ -63,10 +63,13 @@ def test_cli_eval_null_grounded_facts_used() -> None:
             [sys.executable, "-m", "outreach_engine", "eval", "--run-dir", str(t), "--json"],
             capture_output=True,
             text=True,
+            timeout=30,
         )
-        # Should not crash with TypeError: 'NoneType' object is not iterable
+        # Should fail closed cleanly (rc == 1, structured JSON) without TypeError crash
         assert "TypeError: 'NoneType' object is not iterable" not in res.stderr
-        assert res.returncode in (0, 1)
+        assert res.returncode == 1
+        eval_payload = json.loads(res.stdout)
+        assert eval_payload.get("status") == "FAILED"
 
 
 def test_cli_run_malformed_brief_emits_json_error() -> None:

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import re
 
@@ -32,6 +33,7 @@ from apps_rg.runtime.judges.headline_x1d import HEADLINE_RUBRIC
 from apps_rg.runtime.judges.ibm_narrative_x1d import NARRATIVE_RUBRIC as IBM_NARRATIVE_RUBRIC
 from apps_rg.runtime.judges.role_episode_x1d import ROLE_EPISODE_RUBRIC
 from apps_rg.runtime.judges.v3_section_judge import (
+    BLOCKING_DIFFERENTIATION_CHECK_IDS,
     build_section_v3_response_schema,
     get_apps_rg_v3_profile,
     render_section_v3_rubric,
@@ -211,9 +213,7 @@ def test_stage_a_and_stage_b_v3_e2e_across_resume_sections_and_whole_coherence()
     )
 
 
-def test_non_critical_v3_checks_preserve_weights_floors_priming_and_writer_orthogonality(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_non_critical_v3_checks_preserve_weights_floors_priming_and_writer_orthogonality() -> None:
     from apps_rg.runtime.assembly.full_resume_llm_coherence import (
         DEFAULT_PASS_THRESHOLD,
         _build_prompt as build_coherence_prompt,
@@ -231,10 +231,12 @@ def test_non_critical_v3_checks_preserve_weights_floors_priming_and_writer_ortho
         judge_row_passes_4_7_human_bar,
     )
 
-    # 1. Executive summary: 4/5 checks YES (1 non-critical NO -> 0.85 >= 0.80) MUST PASS!
+    # 1. Executive summary: 4/5 checks YES (1 non-critical NO -> >= 0.80) MUST PASS!
     exec_prof = get_apps_rg_v3_profile("executive_summary")
     assert EXEC_SUMMARY_PASS_FLOOR_0_TO_1 == exec_prof.pass_threshold == 0.80
-    non_crit_check = next(c for c in exec_prof.checks if not c.critical)
+    non_crit_check = next(
+        c for c in exec_prof.checks if not c.critical and c.id not in BLOCKING_DIFFERENTIATION_CHECK_IDS
+    )
     cand_text = "Built governed enterprise AI platform generating $42M partner co-sell pipeline."
     optional_miss_resp = {
         "cold_read_takeaway": "Strong grounded summary with minor cadence density in final clause.",
@@ -274,10 +276,12 @@ def test_non_critical_v3_checks_preserve_weights_floors_priming_and_writer_ortho
     assert "unit_score=0.65 (threshold=0.80" in fb
     assert "/5.0" not in fb
 
-    # 2. Full-resume coherence: 3/4 checks YES (1 non-critical NO -> 0.80 >= 0.80) MUST PASS!
+    # 2. Full-resume coherence: 3/4 checks YES (1 non-critical NO -> >= 0.80) MUST PASS!
     coh_prof = get_apps_rg_v3_profile("full_resume_coherence")
     assert DEFAULT_PASS_THRESHOLD == coh_prof.pass_threshold == 0.80
-    coh_non_crit = next(c for c in coh_prof.checks if not c.critical)
+    coh_non_crit = next(
+        c for c in coh_prof.checks if not c.critical and c.id not in BLOCKING_DIFFERENTIATION_CHECK_IDS
+    )
     coh_80_resp = {
         "cold_read_takeaway": "Consistent whole-resume proof arc with slight transition stiffness.",
         "checks": {
@@ -333,11 +337,23 @@ def test_non_critical_v3_checks_preserve_weights_floors_priming_and_writer_ortho
     assert "claim_binding_pass" not in coh_prompt
 
     # 4. IDE CLI quota backups never self-grade when writer maps to gemini-4-neon-medium
-    monkeypatch.setenv("APPS_RG_GENERATION_TRANSPORT", "ide_cli")
-    monkeypatch.setenv("APPS_RG_JUDGE_TRANSPORT", "ide_cli")
-    assert actual_lane_writer_model("executive_summary") == "gemini-4-neon-medium"
-    slot2_pin, _ = second_judge_model("executive_summary")
-    assert "neon" not in slot2_pin
-    for pkey, primary_pin in (("gemini_pro", "gemini-4-argon-high"), ("openai_chatgpt", slot2_pin)):
-        backups = _governed_judge_quota_backups("executive_summary", pkey, primary_pin)
-        assert all("neon" not in b for b in backups), f"Neon self-grading backup leaked: {backups}"
+    prev_gen = os.environ.get("APPS_RG_GENERATION_TRANSPORT")
+    prev_judge = os.environ.get("APPS_RG_JUDGE_TRANSPORT")
+    try:
+        os.environ["APPS_RG_GENERATION_TRANSPORT"] = "ide_cli"
+        os.environ["APPS_RG_JUDGE_TRANSPORT"] = "ide_cli"
+        assert actual_lane_writer_model("executive_summary") == "gemini-4-neon-medium"
+        slot2_pin, _ = second_judge_model("executive_summary")
+        assert "neon" not in slot2_pin
+        for pkey, primary_pin in (("gemini_pro", "gemini-4-argon-high"), ("openai_chatgpt", slot2_pin)):
+            backups = _governed_judge_quota_backups("executive_summary", pkey, primary_pin)
+            assert all("neon" not in b for b in backups), f"Neon self-grading backup leaked: {backups}"
+    finally:
+        if prev_gen is None:
+            os.environ.pop("APPS_RG_GENERATION_TRANSPORT", None)
+        else:
+            os.environ["APPS_RG_GENERATION_TRANSPORT"] = prev_gen
+        if prev_judge is None:
+            os.environ.pop("APPS_RG_JUDGE_TRANSPORT", None)
+        else:
+            os.environ["APPS_RG_JUDGE_TRANSPORT"] = prev_judge

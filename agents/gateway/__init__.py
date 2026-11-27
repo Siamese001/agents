@@ -8,6 +8,7 @@ from agents.gateway.contracts import (
 )
 from agents.gateway.model_gateway import (
     GatewayPreCommitValidationError,
+    GatewayUnregisteredCapabilityError,
     ModelCapabilityGateway,
 )
 
@@ -15,6 +16,7 @@ __all__ = [
     "CapabilityRequest",
     "CapabilityResponse",
     "GatewayPreCommitValidationError",
+    "GatewayUnregisteredCapabilityError",
     "ModelCapabilityGateway",
     "ModelTier",
     "sha256_hex",

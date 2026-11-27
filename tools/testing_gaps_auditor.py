@@ -29,24 +29,38 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from tools._testing_gaps_helpers import (
+    GENERIC_PUBLIC_SYMBOLS,
     MAX_QUARANTINED_IGNORES,
     MIN_MODULE_COVERAGE_RATIO,
     MIN_SYMBOLS_FOR_RATIO_GATE,
     MIN_SYMBOL_COVERAGE_RATIO,
+    PACKAGE_IMPORT_ROOTS,
     PRODUCTION_PACKAGES,
     PROTECTED_TEST_ROOTS,
     PYTEST_INI_PATHS,
     REQUIRED_GITHOOKS,
     TEST_ROOTS,
     _audit_pytest_inis_and_src_layout,
+    _extract_test_import_bindings,
     _inspect_decorators_and_calls_for_skip_xfail,
     _is_pytest_fixture,
     _node_has_direct_assertion,
     _parse_pure_reexport_facade,
     _resolve_facade_targets,
+    _test_ast_references_handoff,
     _test_fn_has_assertion,
 )
 from tools.audit_mock_reachability import _PRODUCTION_ROOTS, audit_production_file
+
+_OUTREACH_HANDOFF_SYMBOLS: tuple[str, ...] = (
+    "managed_research_delegation",
+    "GovernedBriefingResolver",
+    "dispatch_outreach_research_briefing",
+)
+_RESUME_HANDOFF_SYMBOLS: tuple[str, ...] = (
+    "apps_rg_handoff",
+    "apps_research_apps_rg_handoff",
+)
 
 
 def run_testing_gaps_audit(
@@ -57,7 +71,8 @@ def run_testing_gaps_audit(
 ) -> dict[str, Any]:
     """Execute the 6-pillar testing gaps, assertion strength, skip/xfail, and mock reachability audit."""
     root = repo_root.resolve()
-    referenced_symbols: set[str] = set()
+    pkg_referenced_symbols: dict[str, set[str]] = {pkg: set() for pkg, _ in PRODUCTION_PACKAGES}
+    stem_referenced_symbols: dict[str, set[str]] = {}
     zero_assertion_tests: list[dict[str, Any]] = []
     unreasoned_skips: list[str] = []
     non_strict_xfails: list[str] = []
@@ -86,37 +101,25 @@ def run_testing_gaps_audit(
                 continue
 
             if py.name != "conftest.py":
-                if any(
-                    tok in src
-                    for tok in (
-                        "managed_research_delegation",
-                        "GovernedBriefingResolver",
-                        "dispatch_outreach_research_briefing",
-                    )
-                ):
+                if _test_ast_references_handoff(tree, _OUTREACH_HANDOFF_SYMBOLS):
                     outreach_handoff_tests.append(rel)
-                if any(tok in src for tok in ("apps_rg_handoff", "apps_research_apps_rg_handoff")):
+                if _test_ast_references_handoff(tree, _RESUME_HANDOFF_SYMBOLS):
                     resume_handoff_tests.append(rel)
 
             skips, xfails = _inspect_decorators_and_calls_for_skip_xfail(tree, rel)
             unreasoned_skips.extend(skips)
             non_strict_xfails.extend(xfails)
 
+            file_imp_tokens, file_ref_syms = _extract_test_import_bindings(tree)
+            for pkg_key, pkg_roots_set in PACKAGE_IMPORT_ROOTS.items():
+                if file_imp_tokens & pkg_roots_set and pkg_key in pkg_referenced_symbols:
+                    pkg_referenced_symbols[pkg_key].update(file_ref_syms)
+            for tok in file_imp_tokens:
+                stem_referenced_symbols.setdefault(tok, set()).update(file_ref_syms)
+
             lines = src.splitlines()
             for sub in ast.walk(tree):
-                if isinstance(sub, ast.Name):
-                    referenced_symbols.add(sub.id)
-                elif isinstance(sub, ast.Attribute):
-                    referenced_symbols.add(sub.attr)
-                elif isinstance(sub, ast.Import):
-                    for alias in sub.names:
-                        referenced_symbols.update(alias.name.split("."))
-                elif isinstance(sub, ast.ImportFrom):
-                    if sub.module:
-                        referenced_symbols.update(sub.module.split("."))
-                    for alias in sub.names:
-                        referenced_symbols.add(alias.name)
-                elif isinstance(sub, ast.Call) and isinstance(sub.func, ast.Attribute):
+                if isinstance(sub, ast.Call) and isinstance(sub.func, ast.Attribute):
                     if (
                         isinstance(sub.func.value, ast.Name)
                         and sub.func.value.id == "time"
@@ -159,6 +162,7 @@ def run_testing_gaps_audit(
         uncovered_mod_paths: list[str] = []
         mod_covered: dict[Path, bool] = {}
         facade_imports: dict[Path, list[ast.ImportFrom]] = {}
+        pkg_syms = pkg_referenced_symbols.get(pkg_name, set())
         for pdir in existing_dirs:
             for py in sorted(pdir.rglob("*.py")):
                 if "tests" in py.parts or "__pycache__" in py.parts or py.name.startswith("test_"):
@@ -174,12 +178,18 @@ def run_testing_gaps_audit(
                     if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and not n.name.startswith("_")
                 ]
                 rp = py.resolve()
+                mod_tok = py.parent.name if py.name == "__init__.py" else py.stem
+                mod_stem_syms = stem_referenced_symbols.get(mod_tok, set())
                 if pubs:
                     total_mods += 1
-                    mod_cov = sum(1 for sym in pubs if sym in referenced_symbols)
+                    mod_cov = sum(
+                        1
+                        for sym in pubs
+                        if (sym in mod_stem_syms if sym in GENERIC_PUBLIC_SYMBOLS else sym in pkg_syms)
+                    )
                     total_pub += len(pubs)
                     covered_pub += mod_cov
-                    is_cov = mod_cov > 0 or py.stem in referenced_symbols
+                    is_cov = mod_cov > 0 or mod_tok in stem_referenced_symbols
                     mod_covered[rp] = is_cov
                     if is_cov:
                         covered_mods += 1
@@ -196,11 +206,19 @@ def run_testing_gaps_audit(
                 return False
             seen.add(fpy)
             fname = fpy.parent.name if fpy.name == "__init__.py" else fpy.stem
-            if fname in referenced_symbols:
+            if fname in stem_referenced_symbols:
                 return True
+            f_stem_syms = stem_referenced_symbols.get(fname, set())
             for imp in facade_imports[fpy]:
-                if any((a.asname or a.name) in referenced_symbols or a.name in referenced_symbols for a in imp.names if a.name != "*"):
-                    return True
+                for a in imp.names:
+                    if a.name == "*":
+                        continue
+                    exported = a.asname or a.name
+                    if exported in GENERIC_PUBLIC_SYMBOLS:
+                        if exported in f_stem_syms:
+                            return True
+                    elif exported in pkg_syms or a.name in pkg_syms:
+                        return True
             for tgt in _resolve_facade_targets(fpy, facade_imports[fpy], pkg_roots):
                 if mod_covered.get(tgt) or (tgt in facade_imports and _is_facade_covered(tgt, seen)):
                     return True

@@ -103,9 +103,11 @@ class TestResearchServices:
         """G3 edge: _stable_digest produces same 16-char hex for same input."""
         from apps_research.services.source_discovery_service import _stable_digest
 
-        assert _stable_digest("hello") == _stable_digest("hello")
-        assert len(_stable_digest("hello")) == 16
-        assert _stable_digest("hello") != _stable_digest("world")
+        first = _stable_digest("hello")
+        second = _stable_digest("hel" + "lo")
+        assert first == second
+        assert len(first) == 16
+        assert first != _stable_digest("world")
 
     def test_normalize_seed_urls_filters_invalid_schemes(self):
         """G3 edge: _normalize_seed_urls drops ftp/file URLs, keeps http/https."""

@@ -18,7 +18,31 @@ _FORBIDDEN_MOCK_LITERALS: dict[str, tuple[str, str]] = {
         "MR005",
         "Hardcoded fallback, default, or assignment of 'http://localhost:8000/v1'",
     ),
+    "simulated_default": (
+        "MR006",
+        "Hardcoded fallback, default, or assignment of simulated provider 'simulated_default'",
+    ),
+    "simulated-v1": (
+        "MR007",
+        "Hardcoded fallback, default, or assignment of simulated model 'simulated-v1'",
+    ),
+    "fake_default": (
+        "MR008",
+        "Hardcoded fallback, default, or assignment of fake provider 'fake_default'",
+    ),
+    "dummy_provider": (
+        "MR009",
+        "Hardcoded fallback, default, or assignment of dummy provider 'dummy_provider'",
+    ),
+    "stub_provider": (
+        "MR010",
+        "Hardcoded fallback, default, or assignment of stub provider 'stub_provider'",
+    ),
 }
+
+_FORBIDDEN_MOCK_INSPECTION_ATTRS: frozenset[str] = frozenset(
+    {"mock_calls", "assert_called", "assert_called_once"}
+)
 
 _PRODUCTION_ROOTS = [
     "agents",
@@ -132,13 +156,20 @@ class _MockReachabilityVisitor(ast.NodeVisitor):
                 self._record_literal(getattr(default_expr, "lineno", node.lineno), hit)
 
     def visit_Call(self, node: ast.Call) -> None:
+        if isinstance(node.func, ast.Name) and node.func.id == "hasattr" and len(node.args) >= 2:
+            attr_expr = node.args[1]
+            if isinstance(attr_expr, ast.Constant) and isinstance(attr_expr.value, str):
+                if attr_expr.value in _FORBIDDEN_MOCK_INSPECTION_ATTRS:
+                    self.violations.append(
+                        f"{self.rel_path}:{node.lineno}: MR011: Production code inspects mock attribute '{attr_expr.value}' via hasattr()"
+                    )
         if isinstance(node.func, ast.Attribute) and node.func.attr in ("get", "setdefault"):
             if len(node.args) >= 2:
                 hit = _check_forbidden_literal(node.args[1])
                 if hit is not None:
                     self._record_literal(node.lineno, hit)
         for kw in node.keywords:
-            if kw.arg in ("api_key", "base_url", "endpoint", "default"):
+            if kw.arg in ("api_key", "base_url", "endpoint", "default", "provider", "model_id"):
                 hit = _check_forbidden_literal(kw.value)
                 if hit is not None:
                     self._record_literal(node.lineno, hit)

@@ -63,11 +63,14 @@ def test_tier2_readiness_dry_run_records_10_stages_and_lane() -> None:
         timeout=30,
     )
     assert proc.returncode == 0, proc.stdout + "\n" + proc.stderr
-    receipt_path = REPO_ROOT / "reports" / "readiness" / "local_main_readiness_e2e_ai_sdlc_dry_run_probe_receipt.json"
-    assert receipt_path.is_file()
-    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    live_receipt_path = REPO_ROOT / "reports" / "readiness" / "local_main_readiness_e2e_ai_sdlc_dry_run_probe_receipt.json"
+    preview_path = REPO_ROOT / "reports" / "readiness" / "local_main_readiness_e2e_ai_sdlc_dry_run_probe_dry_run_preview.json"
+    assert not live_receipt_path.exists()
+    assert preview_path.is_file()
+    receipt = json.loads(preview_path.read_text(encoding="utf-8"))
     try:
-        assert receipt["terminal_outcome"] == "PASS"
+        assert receipt["dry_run"] is True
+        assert receipt["terminal_outcome"] == "DRY_RUN_PREVIEW"
         assert receipt["total_stages"] == 10
         assert receipt["stages_evaluated"] == 10
         assert "effective_lane" in receipt
@@ -77,7 +80,7 @@ def test_tier2_readiness_dry_run_records_10_stages_and_lane() -> None:
         assert "9. Governance Harmonization & SSOT Drift Audit" in stage_names
         assert "10. Testing Gaps, Handoff Contracts & Mock Reachability" in stage_names
     finally:
-        receipt_path.unlink(missing_ok=True)
+        preview_path.unlink(missing_ok=True)
 
 
 def test_governance_harmonization_and_policy_parity_end_to_end() -> None:

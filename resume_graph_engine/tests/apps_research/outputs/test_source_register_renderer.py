@@ -41,7 +41,10 @@ def test_dedup_preserves_first_seen_order():
 def test_diff_stable_output():
     """Same input always produces byte-identical output (plan §P2.1 acceptance)."""
     brief = {"source_register": [{"url": "https://x"}, {"url": "https://y"}]}
-    assert render(brief) == render(brief)
+    first = render(brief)
+    second = render({"source_register": [{"url": "https://x"}, {"url": "https://y"}]})
+    assert first == second
+    assert "[1]: https://x" in first and "[2]: https://y" in first
 
 
 def test_plain_string_entries_supported():

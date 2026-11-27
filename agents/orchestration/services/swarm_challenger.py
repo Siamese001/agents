@@ -13,7 +13,7 @@ import time
 from dataclasses import asdict, dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 
 class SwarmRole(str, Enum):
@@ -113,25 +113,31 @@ class SwarmExecutionReceipt:
 
 
 class ProponentAgent:
-    """Proponent agent generating initial drafts and executing repair directives."""
+    """Proponent agent delegating grounded revisions without post-LLM regex prose splicing."""
+
+    def __init__(
+        self,
+        rewriter: Callable[[str, Sequence[str]], str] | None = None,
+    ) -> None:
+        self._rewriter = rewriter
 
     def draft(self, text: str, directives: Sequence[str] | None = None) -> str:
-        """Generate revised text incorporating prior critique directives."""
-        if not directives:
-            return text.strip()
+        """Delegate revision to an injected upstream rewriter port; never splice prose via regex."""
+        cleaned = text.strip()
+        if not directives or self._rewriter is None:
+            return cleaned
+        return str(self._rewriter(cleaned, tuple(directives))).strip()
 
-        current = text
-        for directive in directives:
-            # Deterministic repair directives application
-            if "remove first person" in directive.lower():
-                current = re.sub(r"\b(I am|I have|I was)\b", "Accomplished leader with extensive experience", current, flags=re.IGNORECASE)
-                current = re.sub(r"\bmy\b", "the", current, flags=re.IGNORECASE)
-            elif "remove ungrounded metric" in directive.lower():
-                # Strip unsupported high-percentage claims not verified by facts
-                current = re.sub(r"\b\d{2,3}%\s+revenue\s+growth\b", "measurable enterprise growth", current, flags=re.IGNORECASE)
-            elif "passive voice" in directive.lower():
-                current = re.sub(r"\bwas responsible for\b", "directed and executed", current, flags=re.IGNORECASE)
-        return current.strip()
+
+_METRIC_CLAIM_PATTERNS: tuple[re.Pattern[str], ...] = (
+    re.compile(r"\b\d{1,4}(?:\.\d+)?%(?:\s+[a-zA-Z]+(?:\s+[a-zA-Z]+)?)?", re.IGNORECASE),
+    re.compile(r"\$\d+(?:,\d{3})*(?:\.\d+)?(?:\s*(?:[KMBT]\b|million\b|billion\b|thousand\b))?", re.IGNORECASE),
+    re.compile(r"\b\d+(?:\.\d+)?x\b", re.IGNORECASE),
+)
+_CORE_METRIC_TOKEN_RE = re.compile(
+    r"(?:\$\d+(?:,\d{3})*(?:\.\d+)?(?:\s*(?:[KMBT]\b|million\b|billion\b|thousand\b))?|\b\d{1,4}(?:\.\d+)?%|\b\d+(?:\.\d+)?x\b)",
+    re.IGNORECASE,
+)
 
 
 class CriticAgent:
@@ -160,13 +166,25 @@ class CriticAgent:
 
         # 2. Factual Grounding Evaluation against canonical assertions
         if canonical_assertions is not None:
-            # Any claim formatted as an exact metric must match a canonical assertion
-            metric_claims = re.findall(r"\b\d{2,3}%\s+\w+(?:\s+\w+)?\b", text, flags=re.IGNORECASE)
-            for claim in metric_claims:
-                if not any(claim.lower() in assertion.lower() for assertion in canonical_assertions):
-                    issues.append(f"Uncorroborated metric claim detected: '{claim}'")
-                    directives.append("remove ungrounded metric")
-                    unverified.append(claim)
+            lower_assertions = [assertion.lower() for assertion in canonical_assertions]
+            seen_claims: set[str] = set()
+            for pat in _METRIC_CLAIM_PATTERNS:
+                for match in pat.finditer(text):
+                    claim = match.group(0).strip()
+                    claim_low = claim.lower()
+                    if claim_low in seen_claims:
+                        continue
+                    seen_claims.add(claim_low)
+                    core_m = _CORE_METRIC_TOKEN_RE.search(claim)
+                    core_tok = core_m.group(0).lower() if core_m else claim_low
+                    is_grounded = any(
+                        claim_low in assertion or core_tok in assertion
+                        for assertion in lower_assertions
+                    )
+                    if not is_grounded:
+                        issues.append(f"Uncorroborated metric claim detected: '{claim}'")
+                        directives.append("remove ungrounded metric")
+                        unverified.append(claim)
 
         # 3. Disallowed patterns audit
         if disallowed_patterns:
