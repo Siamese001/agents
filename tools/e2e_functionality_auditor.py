@@ -15,9 +15,11 @@ from __future__ import annotations
 
 import argparse
 import ast
+from concurrent.futures import ThreadPoolExecutor
 import contextlib
 import io
 import json
+import re
 import stat
 import subprocess
 import sys
@@ -27,6 +29,10 @@ from pathlib import Path
 from typing import Any
 
 DEFAULT_REPO_ROOT = Path(__file__).resolve().parents[1]
+_STANDALONE_SYNC_DIGEST_RE = re.compile(
+    r"^CORE_GOVERNANCE_[A-Z0-9_]+_SHA256\s*=\s*['\"][0-9a-f]{64}['\"]",
+    re.MULTILINE,
+)
 AUDITED_PACKAGES = (
     "agents",
     "apps_eval",
@@ -74,9 +80,19 @@ def _has_valid_guardian_rationale(line_txt: str, prev_txt: str) -> bool:
     return False
 
 
-def scan_unguarded_silent_swallows(repo_root: Path) -> list[dict[str, Any]]:
-    """Fail-closed AST scan for unguarded broad except blocks returning empty values or bare pass/continue."""
+def _is_auto_synced_standalone_bundle(pkg: str, py_file: Path, src: str) -> bool:
+    """Return True only for auto-synced core-governance standalone fallback bundles (parity with ssot_boundary_auditor)."""
+    return (
+        pkg == "tools"
+        and py_file.name.startswith("_standalone_")
+        and bool(_STANDALONE_SYNC_DIGEST_RE.search(src))
+    )
+
+
+def _scan_silent_swallows_and_guardian_backlog(repo_root: Path) -> tuple[list[dict[str, Any]], int]:
+    """Single-pass AST scan for unguarded silent swallows and guardian allow-silent-swallow backlog."""
     findings: list[dict[str, Any]] = []
+    guardian_count = 0
     for pkg in AUDITED_PACKAGES:
         base = repo_root / pkg
         if not base.exists():
@@ -86,7 +102,13 @@ def scan_unguarded_silent_swallows(repo_root: Path) -> list[dict[str, Any]]:
             if "/tests/" in f"/{rel}" or "/artifacts/" in f"/{rel}" or py_file.name.startswith("test_"):
                 continue
             src = py_file.read_text(encoding="utf-8")
+            if "except" not in src or _is_auto_synced_standalone_bundle(pkg, py_file, src):
+                continue
             lines = src.splitlines()
+            if "allow-silent-swallow" in src:
+                for line in lines:
+                    if "allow-silent-swallow" in line and "except Exception" in line:
+                        guardian_count += 1
             tree = ast.parse(src, filename=str(py_file))
             for node in ast.walk(tree):
                 if not isinstance(node, ast.ExceptHandler):
@@ -113,24 +135,19 @@ def scan_unguarded_silent_swallows(repo_root: Path) -> list[dict[str, Any]]:
                             }
                         )
                         break
+    return findings, guardian_count
+
+
+def scan_unguarded_silent_swallows(repo_root: Path) -> list[dict[str, Any]]:
+    """Fail-closed AST scan for unguarded broad except blocks returning empty values or bare pass/continue."""
+    findings, _ = _scan_silent_swallows_and_guardian_backlog(repo_root)
     return findings
 
 
 def count_guardian_silent_swallows(repo_root: Path) -> int:
     """Count broad except blocks carrying allow-silent-swallow across audited packages."""
-    count = 0
-    for pkg in AUDITED_PACKAGES:
-        base = repo_root / pkg
-        if not base.exists():
-            continue
-        for py_file in sorted(base.rglob("*.py")):
-            rel = py_file.relative_to(repo_root).as_posix()
-            if "/tests/" in f"/{rel}" or "/artifacts/" in f"/{rel}" or py_file.name.startswith("test_"):
-                continue
-            for line in py_file.read_text(encoding="utf-8").splitlines():
-                if "allow-silent-swallow" in line and "except Exception" in line:
-                    count += 1
-    return count
+    _, guardian_count = _scan_silent_swallows_and_guardian_backlog(repo_root)
+    return guardian_count
 
 
 def _require_module(repo_root: Path, rel_path: str) -> Any:
@@ -327,29 +344,27 @@ def _probe_authoritative_e2e_smoke(repo_root: Path, *, read_only: bool) -> dict[
         and (stages.get("resume_tailoring") or {}).get("status") == "PASSED"
         and rcpt_data.get("skip_resume") is False
     )
-    cli_probes_passed = True
-    for subcmd in ("resume", "outreach", "e2e"):
-        proc = subprocess.run(
-            [sys.executable, "-m", "agents", subcmd, "--help"],
-            cwd=str(repo_root),
-            capture_output=True,
-            text=True,
-            shell=False,
-            timeout=30,
-        )
-        if proc.returncode != 0:
-            cli_probes_passed = False
-
-    resume_cli_proc = subprocess.run(
+    cli_cmds = (
+        [sys.executable, "-m", "agents", "resume", "--help"],
+        [sys.executable, "-m", "agents", "outreach", "--help"],
+        [sys.executable, "-m", "agents", "e2e", "--help"],
         [sys.executable, "-m", "resume_engine.cli", "--help"],
-        cwd=str(repo_root),
-        capture_output=True,
-        text=True,
-        shell=False,
-        timeout=30,
     )
-    if resume_cli_proc.returncode != 0:
-        cli_probes_passed = False
+    with ThreadPoolExecutor(max_workers=len(cli_cmds)) as cli_pool:
+        cli_procs = list(
+            cli_pool.map(
+                lambda cmd: subprocess.run(
+                    cmd,
+                    cwd=str(repo_root),
+                    capture_output=True,
+                    text=True,
+                    shell=False,
+                    timeout=30,
+                ),
+                cli_cmds,
+            )
+        )
+    cli_probes_passed = all(proc.returncode == 0 for proc in cli_procs)
 
     inspectors_mod = _require_module(repo_root, "resume_engine/cli_inspectors.py")
     with contextlib.redirect_stdout(io.StringIO()):
@@ -419,12 +434,12 @@ def _probe_authoritative_e2e_smoke(repo_root: Path, *, read_only: bool) -> dict[
     }
 
 
-def _probe_graph_traversal(repo_root: Path) -> dict[str, Any]:
-    probe_mod = _require_module(
+def _probe_graph_traversal(repo_root: Path, *, probe_mod: Any | None = None) -> dict[str, Any]:
+    mod = probe_mod if probe_mod is not None else _require_module(
         repo_root,
         "tools/run_resume_graph_traversal_probe.py",
     )
-    payload = probe_mod.run_resume_graph_traversal_probe(max_paths=100)
+    payload = mod.run_resume_graph_traversal_probe(max_paths=100)
     gaps: list[str] = []
     if payload.get("status") != "PASS":
         gaps.append(f"Resume graph traversal probe failed: {payload}")
@@ -438,15 +453,15 @@ def _probe_graph_traversal(repo_root: Path) -> dict[str, Any]:
     }
 
 
-def _probe_production_purity(repo_root: Path) -> dict[str, Any]:
-    purity_mod = _require_module(repo_root, "tools/lint_production_purity.py")
+def _probe_production_purity(repo_root: Path, *, purity_mod: Any | None = None) -> dict[str, Any]:
+    mod = purity_mod if purity_mod is not None else _require_module(repo_root, "tools/lint_production_purity.py")
     violations: list[str] = []
-    for prod_dir in purity_mod.PRODUCTION_DIRECTORIES:
+    for prod_dir in mod.PRODUCTION_DIRECTORIES:
         d = repo_root / prod_dir
         if not d.exists():
             continue
         for py_file in sorted(d.rglob("*.py")):
-            for lineno, symbol, msg in purity_mod.check_file_production_purity(py_file, repo_root):
+            for lineno, symbol, msg in mod.check_file_production_purity(py_file, repo_root):
                 rel = py_file.relative_to(repo_root).as_posix()
                 violations.append(f"{rel}:{lineno} [{symbol}] {msg}")
     return {
@@ -571,18 +586,34 @@ def run_e2e_functionality_audit(repo_root: Path | None = None, *, read_only: boo
 
     p1 = _probe_research_to_outreach_handoff(root)
     p2 = _probe_research_to_resume_handoff(root)
-    p3 = _probe_authoritative_e2e_smoke(root, read_only=read_only)
-    p4 = _probe_graph_traversal(root)
-    swallows = scan_unguarded_silent_swallows(root)
-    guardian_backlog = count_guardian_silent_swallows(root)
+
+    # Pre-load read-only worker probe modules on the main thread before concurrent execution.
+    graph_probe_mod = _require_module(root, "tools/run_resume_graph_traversal_probe.py")
+    purity_mod = _require_module(root, "tools/lint_production_purity.py")
+    if (root / "tools" / "lint_prompt_validator_vocab_symmetry.py").is_file():
+        import tools.lint_prompt_validator_vocab_symmetry  # noqa: F401
+    if (root / "tools" / "lint_apps_rg_domain_literals.py").is_file():
+        import tools.lint_apps_rg_domain_literals  # noqa: F401
+    if (root / "tools" / "lint_no_jd_overfitting.py").is_file():
+        import tools.lint_no_jd_overfitting  # noqa: F401
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        f_p4 = pool.submit(_probe_graph_traversal, root, probe_mod=graph_probe_mod)
+        f_p5 = pool.submit(_scan_silent_swallows_and_guardian_backlog, root)
+        f_p6 = pool.submit(_probe_production_purity, root, purity_mod=purity_mod)
+        f_p7 = pool.submit(_probe_vocab_symmetry_overlap_and_v2_sealing, root)
+        p3 = _probe_authoritative_e2e_smoke(root, read_only=read_only)
+        p4 = f_p4.result()
+        swallows, guardian_backlog = f_p5.result()
+        p6 = f_p6.result()
+        p7 = f_p7.result()
+
     p5 = {
         "passed": len(swallows) == 0,
         "gaps": [f"Unguarded silent swallow at {s['file']}:{s['line']}" for s in swallows[:15]],
         "unguarded_silent_swallow_count": len(swallows),
         "guardian_swallow_backlog": guardian_backlog,
     }
-    p6 = _probe_production_purity(root)
-    p7 = _probe_vocab_symmetry_overlap_and_v2_sealing(root)
 
     pillars = {
         "pillar_1_research_to_outreach_handoff": p1,
