@@ -227,6 +227,12 @@ def run_eval_flywheel_cycle(
     else:
         effective_triage_root = None
 
+    if sandbox:
+        src_queue_db = src / "remediation_queue.sqlite"
+        out_queue_db = out / "remediation_queue.sqlite"
+        if src_queue_db.is_file() and not out_queue_db.is_file():
+            _snapshot_sqlite_db(src_queue_db, out_queue_db)
+
     consol_res = consolidate_all_findings(
         source_root=src,
         output_root=out,
