@@ -1,25 +1,33 @@
-"""Thin L0 bridge binding `agents` to the centralized core-governance evaluation flywheel SSOT via importlib."""
+"""Thin L0 bridge binding `agents` to centralized core-governance and eval-flywheel SSOTs via importlib."""
 from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
 import sys
 from types import ModuleType
+from typing import Sequence
 
 from infrastructure.config.env_loader import get_env_optional_path
 
 _DEFAULT_MCP_DIR = Path.home() / ".gemini" / "config" / "plugins" / "core-governance" / "mcp"
 _MCP_DIR = (get_env_optional_path("CORE_GOVERNANCE_MCP_DIR") or _DEFAULT_MCP_DIR).resolve()
+_DEFAULT_EVAL_FLYWHEEL_MCP_DIR = Path.home() / ".gemini" / "config" / "plugins" / "eval-flywheel" / "mcp"
+_EVAL_FLYWHEEL_MCP_DIR = (
+    get_env_optional_path("EVAL_FLYWHEEL_MCP_DIR") or _DEFAULT_EVAL_FLYWHEEL_MCP_DIR
+).resolve()
 
 
-def _load_core_gov_module(name: str) -> ModuleType:
+def _load_plugin_module(name: str, search_dirs: Sequence[Path]) -> ModuleType:
     existing = sys.modules.get(name)
     if existing is not None:
         return existing
-    target = _MCP_DIR / f"{name}.py"
+    candidates = [d / f"{name}.py" for d in search_dirs]
+    target = next((p for p in candidates if p.is_file()), candidates[0])
+    if not target.is_file():
+        raise FileNotFoundError(f"Unable to load centralized module {name} from {target}")
     spec = importlib.util.spec_from_file_location(name, target)
     if spec is None or spec.loader is None:
-        raise ImportError(f"Unable to load core-governance module {name} from {target}")
+        raise ImportError(f"Unable to load centralized module {name} from {target}")
     mod = importlib.util.module_from_spec(spec)
     sys.modules[name] = mod
     spec.loader.exec_module(mod)
@@ -30,18 +38,23 @@ for _dep in (
     "atomic_concurrency",
     "workspace_parity_engine",
     "session_contract",
+):
+    _load_plugin_module(_dep, (_MCP_DIR,))
+
+for _dep in (
+    "atomic_io",
     "eval_flywheel_lifecycle",
     "eval_flywheel_longitudinal",
     "eval_flywheel_store",
     "eval_flywheel_harvester",
     "eval_flywheel_shield_core",
 ):
-    _load_core_gov_module(_dep)
+    _load_plugin_module(_dep, (_EVAL_FLYWHEEL_MCP_DIR, _MCP_DIR))
 
-_life = _load_core_gov_module("eval_flywheel_lifecycle")
-_store = _load_core_gov_module("eval_flywheel_store")
-_harv = _load_core_gov_module("eval_flywheel_harvester")
-_shld = _load_core_gov_module("eval_flywheel_shield_core")
+_life = _load_plugin_module("eval_flywheel_lifecycle", (_EVAL_FLYWHEEL_MCP_DIR, _MCP_DIR))
+_store = _load_plugin_module("eval_flywheel_store", (_EVAL_FLYWHEEL_MCP_DIR, _MCP_DIR))
+_harv = _load_plugin_module("eval_flywheel_harvester", (_EVAL_FLYWHEEL_MCP_DIR, _MCP_DIR))
+_shld = _load_plugin_module("eval_flywheel_shield_core", (_EVAL_FLYWHEEL_MCP_DIR, _MCP_DIR))
 
 PEAK_EROSION_FLOOR_PCT = _life.PEAK_EROSION_FLOOR_PCT
 POST_FIX_BASELINE_CLEAN_STREAK = _life.POST_FIX_BASELINE_CLEAN_STREAK
