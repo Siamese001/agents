@@ -298,11 +298,11 @@ def scan_r1_mock_and_canned_fallbacks(repo_root: Path) -> list[LoopholeFinding]:
     """Pillar R1: Detect simulated production adapters and mock-attribute escape hatches (LH-01, LH-03)."""
     root = repo_root.resolve()
     findings: list[LoopholeFinding] = []
-    self_rel = "tools/loophole_redteam_auditor.py"
+    scanner_self_paths = frozenset({"tools/loophole_redteam_auditor.py", "tools/audit_mock_reachability.py"})
 
     for py in _iter_prod_py_files(root):
         rel = py.relative_to(root).as_posix()
-        if rel == self_rel:
+        if rel in scanner_self_paths:
             continue
         _src, _lines, tree, err = _safe_parse_ast(py)
         if err or tree is None:

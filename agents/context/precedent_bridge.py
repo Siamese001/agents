@@ -57,7 +57,9 @@ class RuntimePrecedentBridge:
     ) -> dict[str, Any]:
         """Evaluate candidate runtime options against the calibrated 20% ambiguity margin rule."""
         if not self._store:
-            # Fallback simple evaluator if store unavailable
+            # Fail-closed fallback evaluator when persistent store is unavailable:
+            # enforces both >= 2 options, >= 0.65 top-confidence floor, and > margin_threshold spread.
+            min_confidence_floor = 0.65
             scored: list[tuple[float, Any]] = []
             for opt in options:
                 score = 0.50
@@ -68,16 +70,21 @@ class RuntimePrecedentBridge:
             top_s, top_o = scored[0] if scored else (0.0, None)
             second_s = scored[1][0] if len(scored) > 1 else 0.0
             margin = round(top_s - second_s, 4)
-            should_surface = margin <= margin_threshold
+            should_surface = (
+                len(scored) < 2
+                or top_s < min_confidence_floor
+                or margin <= margin_threshold
+            )
             return {
                 "should_surface": should_surface,
                 "margin": margin,
                 "margin_threshold": margin_threshold,
+                "min_confidence_floor": min_confidence_floor,
                 "top_option": top_o,
                 "top_score": top_s,
                 "second_score": second_s,
                 "action": "SURFACE_HITL_ATOMIC" if should_surface else "PROCEED_AUTONOMOUSLY",
-                "reason": "Evaluated via fallback in-process gate.",
+                "reason": "Evaluated via fail-closed in-process gate (0.65 floor + multi-option guard).",
             }
 
         try:

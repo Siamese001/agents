@@ -25,8 +25,11 @@ if str(ROOT / "resume_graph_engine" / "src") not in sys.path:
     sys.path.insert(0, str(ROOT / "resume_graph_engine" / "src"))
 
 from agents.context.provenance import ContextItem, ContextSnapshot, ContextSourceType
-from agents.gateway.contracts import CapabilityRequest, ModelTier
-from agents.gateway.model_gateway import ModelCapabilityGateway
+from agents.gateway.contracts import CapabilityRequest, CapabilityResponse, ModelTier
+from agents.gateway.model_gateway import (
+    GatewayUnregisteredCapabilityError,
+    ModelCapabilityGateway,
+)
 from apps_rg.bare_pipeline import run_bare_deterministic_e2e
 from apps_rg.runtime.local_provider import (
     ProviderGateway,
@@ -58,7 +61,7 @@ from tools.lint_model_neutral_naming import check_path_model_neutrality
 # -----------------------------------------------------------------------------
 
 def test_antigravity_ide_default_execution_without_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Verify that when no model is specified, execution runs on Antigravity IDE with no API key."""
+    """Verify ModelCapabilityGateway fails closed when unregistered and executes explicit adapters without API keys."""
     # Ensure all provider API keys are stripped from environment and disk reload is disabled
     monkeypatch.setattr("infrastructure.live_execution.load_agent_environment", lambda *a, **kw: None)
     for key in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY"):
@@ -81,12 +84,24 @@ def test_antigravity_ide_default_execution_without_api_key(monkeypatch: pytest.M
         model_tier=ModelTier.REASONING,
     )
 
+    with pytest.raises(GatewayUnregisteredCapabilityError, match="UNREGISTERED_CAPABILITY_ADAPTER"):
+        gateway.execute(request)
+
+    def _ide_adapter(req: CapabilityRequest) -> CapabilityResponse:
+        return CapabilityResponse(
+            content=f"Antigravity IDE handled capability '{req.capability_name}'",
+            provider="antigravity_ide",
+            model_id="ide-session-local",
+            status="SUCCESS",
+        )
+
+    gateway.register_adapter("antigravity_ide_task", _ide_adapter)
     response = gateway.execute(request)
 
     assert response.status == "SUCCESS"
-    assert response.provider == "simulated_default"
-    assert response.model_id == "simulated-v1"
-    assert "Simulated execution for capability 'antigravity_ide_task'" in response.content
+    assert response.provider == "antigravity_ide"
+    assert response.model_id == "ide-session-local"
+    assert "Antigravity IDE handled capability 'antigravity_ide_task'" in response.content
     assert len(response.observation_digest) == 64
     assert response.is_success is True
 

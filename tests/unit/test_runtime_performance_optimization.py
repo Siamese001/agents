@@ -236,8 +236,17 @@ def test_capability_gateway_execute_batch() -> None:
 
 
 def test_capability_gateway_async_execute() -> None:
-    """Verify async_execute runs non-blockingly inside an asyncio event loop."""
+    """Verify async_execute runs non-blockingly inside an asyncio event loop via registered adapter."""
     gateway = ModelCapabilityGateway()
+    gateway.register_adapter(
+        "async_test",
+        lambda req: CapabilityResponse(
+            content=f"Async result for {req.capability_name}",
+            provider="test_async",
+            model_id="test-async-v1",
+            status="SUCCESS",
+        ),
+    )
     snapshot = ContextSnapshot(snapshot_id="snap_async", items=(), max_token_budget=1000)
     req = CapabilityRequest(
         capability_name="async_test",
@@ -251,7 +260,7 @@ def test_capability_gateway_async_execute() -> None:
     response = asyncio.run(_runner())
     assert response.status == "SUCCESS"
     assert response.correlation_id == "corr_async_456"
-    assert "Simulated execution" in response.content
+    assert "Async result for async_test" in response.content
 
 
 # ---------------------------------------------------------------------------

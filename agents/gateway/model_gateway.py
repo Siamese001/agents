@@ -7,13 +7,17 @@ behind a single pre-commit validated gateway contract.
 from __future__ import annotations
 
 import time
-from typing import Any, Callable
+from typing import Any, Callable, Sequence
 
 from agents.gateway.contracts import CapabilityRequest, CapabilityResponse, ModelTier
 
 
 class GatewayPreCommitValidationError(ValueError):
     """Raised when a capability request fails pre-commit validation."""
+
+
+class GatewayUnregisteredCapabilityError(RuntimeError):
+    """Raised fail-closed when no concrete adapter is registered for a capability."""
 
 
 class ModelCapabilityGateway:
@@ -53,8 +57,10 @@ class ModelCapabilityGateway:
 
         adapter = self._adapters.get(request.capability_name)
         if adapter is None:
-            # Fallback default adapter for registered mock/generic invocation
-            adapter = self._default_adapter
+            raise GatewayUnregisteredCapabilityError(
+                f"UNREGISTERED_CAPABILITY_ADAPTER: No concrete provider adapter registered for capability "
+                f"'{request.capability_name}'. Silent fallback to simulated adapters is prohibited."
+            )
 
         start_time = time.perf_counter()
         try:
@@ -182,22 +188,10 @@ class ModelCapabilityGateway:
         import asyncio
         return await asyncio.to_thread(self.execute_batch, requests, max_workers=max_workers, batch_id=batch_id)
 
-    @staticmethod
-    def _default_adapter(request: CapabilityRequest) -> CapabilityResponse:
-        """Default simulated execution adapter when no external provider is registered."""
-        prompt_text = request.prompt_snapshot.assemble_text()
-        return CapabilityResponse(
-            content=f"Simulated execution for capability '{request.capability_name}' on prompt length {len(prompt_text)} chars.",
-            provider="simulated_default",
-            model_id="simulated-v1",
-            status="SUCCESS",
-            prompt_tokens=request.prompt_snapshot.total_estimated_tokens,
-            output_tokens=25,
-        )
-
 
 __all__ = [
     "GatewayPreCommitValidationError",
+    "GatewayUnregisteredCapabilityError",
     "ModelCapabilityGateway",
 ]
 
