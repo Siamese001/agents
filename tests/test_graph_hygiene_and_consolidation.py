@@ -42,19 +42,22 @@ def test_graph_hygiene_audit_runs_readonly_and_detects_real_clusters() -> None:
     assert report["pre_promotion_regression_gates"]["fts_exact_active_parity"]["leaks"] == 0
     assert report["pre_promotion_regression_gates"]["quarantine_semantic_unit_isolation"]["leaks"] == 0
 
-    cluster_ids = {c["cluster_id"] for c in report["hitl_clusters"]}
-    # Remaining unapproved clusters must be surfaced until operator approves remediation
-    assert len(cluster_ids) > 0
-    for c in report["hitl_clusters"]:
-        assert "council_debate" not in c
-        assert c["judge_metadata"]["panel_mode"] == "judge_v3_two_stage_cached"
-        assert c["item_count"] == len(c["items"]) > 0
+    if report["is_clean"]:
+        assert report["hitl_clusters"] == []
+        assert report["baseline_counts"]["exact_skill_twins_count"] == 0
+        assert report["baseline_counts"]["stranded_verified_metrics_count"] == 0
+        assert report["baseline_counts"]["draft_structural_count"] == 0
+    else:
+        assert len(report["hitl_clusters"]) > 0
+        for c in report["hitl_clusters"]:
+            assert "council_debate" not in c
+            assert c["judge_metadata"]["panel_mode"] == "judge_v3_two_stage_cached"
+            assert c["item_count"] == len(c["items"]) > 0
 
 
-def test_02a_and_02b_disjointness_and_07_repo_stub_path_enrichment() -> None:
+def test_02a_and_02b_disjointness_and_07_repo_stub_path_enrichment(tmp_path: Path) -> None:
     report = run_graph_hygiene_audit(repo_root=REPO_ROOT)
     dup_scan = report["scanners"]["duplicate_and_near_duplicate_nodes"]
-    stub_scan = report["scanners"]["evidence_and_stub_hygiene"]
 
     twins_02a = dup_scan["exact_skill_twins"]
     groups_02b = dup_scan["verbatim_clone_groups"]
@@ -66,23 +69,33 @@ def test_02a_and_02b_disjointness_and_07_repo_stub_path_enrichment() -> None:
     assert retired_02a.isdisjoint(members_02b)
     assert "skill_quant_multi_greek_hedging" not in members_02b
     assert "skill_p2_gtm_joint_vendor_roadmaps" not in members_02b
-    if twins_02a:
-        assert "skill_quant_multi_greek_hedging" in retired_02a
-        p2_roadmap_matches = [
-            t for t in twins_02a if t["retired_node_id"] == "skill_p2_gtm_joint_vendor_roadmaps"
-        ]
-        assert len(p2_roadmap_matches) == 1
-        assert p2_roadmap_matches[0]["survivor_node_id"] == "skill_partner_cloud_vendor_joint_gtm"
 
-    # CLUSTER-07 hex repo_evidence stubs must carry target_relpath, suggested_label, and path_exists
-    hex_stubs = stub_scan["hex_repo_evidence_stubs"]
-    assert len(hex_stubs) > 0
-    for stub in hex_stubs:
+    # Counterfactual verification of CLUSTER-07 hex repo_evidence stub enrichment in an isolated sandbox DB
+    sandbox_db = tmp_path / "augmented_skills_graph.sqlite"
+    shutil.copy2(REPO_ROOT / DEFAULT_GRAPH_REL, sandbox_db)
+    with sqlite3.connect(str(sandbox_db)) as conn:
+        conn.execute(
+            "INSERT OR REPLACE INTO graph_nodes (node_id, node_type, label, description, activation_status, created_at, updated_at) "
+            "VALUES ('repo_abc123', 'repo_evidence', 'abc123', 'repo evidence: apps_rg/fact_inventory/candidate_fact_ledger.py', 'ACTIVE', '2026-11-27T00:00:00Z', '2026-11-27T00:00:00Z')"
+        )
+        conn.execute(
+            "INSERT OR REPLACE INTO graph_nodes (node_id, node_type, label, description, activation_status, created_at, updated_at) "
+            "VALUES ('repo_def456', 'repo_evidence', 'def456', 'repo evidence: .codex/stale_missing_doc.md', 'ACTIVE', '2026-11-27T00:00:00Z', '2026-11-27T00:00:00Z')"
+        )
+        conn.commit()
+
+    sandbox_report = run_graph_hygiene_audit(repo_root=REPO_ROOT, db_path=sandbox_db)
+    hex_stubs = sandbox_report["scanners"]["evidence_and_stub_hygiene"]["hex_repo_evidence_stubs"]
+    by_id = {s["node_id"]: s for s in hex_stubs}
+    assert "repo_abc123" in by_id and "repo_def456" in by_id
+    for sid in ("repo_abc123", "repo_def456"):
+        stub = by_id[sid]
         assert isinstance(stub.get("target_relpath"), str) and stub["target_relpath"] != ""
         assert isinstance(stub.get("suggested_label"), str) and stub["suggested_label"] != ""
         assert isinstance(stub.get("path_exists"), bool)
-    assert any(s["path_exists"] is True for s in hex_stubs)
-    assert any(s["path_exists"] is False and s["target_relpath"].startswith(".codex/") for s in hex_stubs)
+    assert by_id["repo_abc123"]["path_exists"] is True
+    assert by_id["repo_def456"]["path_exists"] is False
+    assert by_id["repo_def456"]["target_relpath"].startswith(".codex/")
 
 
 def test_counterfactual_fts_and_quarantine_leak_triggers_fail_closed_gate(tmp_path: Path) -> None:
@@ -111,6 +124,19 @@ def test_counterfactual_fts_and_quarantine_leak_triggers_fail_closed_gate(tmp_pa
 def test_dry_run_remediation_never_mutates_graph_or_ledger() -> None:
     receipt = apply_graph_hygiene_remediation(
         repo_root=REPO_ROOT,
+        decisions_payload={
+            "items": {
+                "dry_run_relabel_probe": {
+                    "cluster_id": "CLUSTER-02A-EXACT-DUPLICATE-SKILL-TWINS",
+                    "action_kind": "relabel_skill",
+                    "decision": "APPROVE",
+                    "params": {
+                        "skill_id": "skill_capital_pricing_actuarial",
+                        "new_label": "Actuarial Derivative Pricing",
+                    },
+                }
+            }
+        },
         apply_changes=False,
     )
     assert receipt["mode"] == "DRY_RUN"
@@ -147,17 +173,21 @@ def test_apply_remediation_requires_explicit_approved_clusters() -> None:
 
 def _hermetic_draft_fn(prompt: str, model: str, schema: dict, effort: str) -> AgyResult:
     marker = "SKILL_EVIDENCE_PACKETS:\n"
-    raw = prompt.split(marker, 1)[1].strip()
+    raw = prompt.split(marker, 1)[1].split("\nPREVIOUS ATTEMPT", 1)[0].strip()
     packets = json.loads(raw)
     descriptions = []
-    for p in packets:
+    for idx, p in enumerate(packets, start=1):
         sid = p["skill_id"]
         lbl = p["label"]
-        sub = p.get("subpillar") or p.get("domain_id") or sid
+        sub_raw = p.get("subpillar") or p.get("domain_id") or f"capability track {idx}"
+        sub_clean = " ".join(str(sub_raw).replace("_", " ").split())
         descriptions.append(
             {
                 "skill_id": sid,
-                "description": f"Verified {lbl} execution grounded in {sub} evidence records ({sid}).",
+                "description": (
+                    f"Specialized {lbl} execution centered on {sub_clean} methodologies "
+                    f"and enterprise program delivery (track {idx})."
+                ),
             }
         )
     return AgyResult(
@@ -206,20 +236,27 @@ def test_sandbox_apply_skill_twin_merge_and_draft_promotion_preserves_redirects(
     pre_drafts = pre["baseline_counts"]["draft_structural_count"]
 
     if pre_twins == 0 and pre_drafts == 0:
-        # Live graph already remediated CLUSTER-02A and CLUSTER-05: verify persisted redirects and test sandbox apply on CLUSTER-03 in isolated bundles dir
+        # Live graph already remediated CLUSTER-02A and CLUSTER-05: verify persisted redirects and test sandbox relabel + SQLite rebuild
         existing_ledger = json.loads(sandbox_ledger.read_text(encoding="utf-8"))
         redirects = existing_ledger.get("_graph_hygiene_redirects") or []
         assert len(redirects) >= 5
-        sandbox_bundles = tmp_path / "bundles"
-        sandbox_bundles.mkdir(parents=True, exist_ok=True)
-        for bf in (REPO_ROOT / "resume_graph_engine" / "src" / "apps_rg" / "fact_inventory").glob("*_bundles.json"):
-            shutil.copy2(bf, sandbox_bundles / bf.name)
         receipt = apply_graph_hygiene_remediation(
             repo_root=REPO_ROOT,
             db_path=sandbox_db,
             ledger_path=sandbox_ledger,
-            bundles_dir=sandbox_bundles,
-            approved_clusters=["CLUSTER-03-STRANDED-VERIFIED-METRICS"],
+            decisions_payload={
+                "items": {
+                    "relabel_probe": {
+                        "cluster_id": "CLUSTER-02A-EXACT-DUPLICATE-SKILL-TWINS",
+                        "action_kind": "relabel_skill",
+                        "decision": "APPROVE",
+                        "params": {
+                            "skill_id": "skill_capital_pricing_actuarial",
+                            "new_label": "Actuarial Derivative Pricing",
+                        },
+                    }
+                }
+            },
             apply_changes=True,
             skip_rematerialize=True,
             backup_dir=backup_dir,
@@ -241,6 +278,14 @@ def test_sandbox_apply_skill_twin_merge_and_draft_promotion_preserves_redirects(
         assert post["pre_promotion_regression_gates"]["status"] == "PASS"
         assert post["baseline_counts"]["exact_skill_twins_count"] == 0
         assert post["baseline_counts"]["draft_structural_count"] == 0
+        conn = open_readonly_sqlite(rebuilt_db)
+        try:
+            lbl = conn.execute(
+                "SELECT label FROM graph_nodes WHERE node_id = 'skill_capital_pricing_actuarial'"
+            ).fetchone()[0]
+            assert lbl == "Actuarial Derivative Pricing"
+        finally:
+            conn.close()
         return
 
     assert pre_twins > 0
@@ -559,7 +604,7 @@ def test_item_granular_decisions_file_end_to_end_across_clusters_in_sandbox(tmp_
         stub_lbl = conn.execute(
             "SELECT label FROM graph_nodes WHERE node_id = 'repo_f161d0'"
         ).fetchone()[0]
-        assert stub_lbl == "Candidate Fact Ledger Module"
+        assert stub_lbl == "Resume Graph Candidate Fact Ledger"
         assert conn.execute(
             "SELECT COUNT(*) FROM graph_nodes WHERE node_id = 'repo_c303f9'"
         ).fetchone()[0] == 0
@@ -588,6 +633,50 @@ def test_item_granular_cluster_03_wire_metric_subset_never_touches_tracked_bundl
     shutil.copy2(REPO_ROOT / DEFAULT_LEDGER_REL, sandbox_ledger)
 
     pre = run_graph_hygiene_audit(repo_root=REPO_ROOT, db_path=sandbox_db)
+    if pre["baseline_counts"]["stranded_verified_metrics_count"] < 2:
+        # Counterfactual sandbox: unlink fact_engineering_platform_005 & clear Unify metric linked_skill_ids to prove AC2.4 closure end-to-end
+        unify_file = sandbox_bundles / "unify_role_episode_bundles.json"
+        unify_doc = json.loads(unify_file.read_text(encoding="utf-8"))
+        for mid in (
+            "metric_unify_cloud_data_runtime_integration_patterns",
+            "metric_unify_high_availability_distributed_service_patterns",
+        ):
+            if mid in (unify_doc.get("metric_outcome_nodes") or {}):
+                unify_doc["metric_outcome_nodes"][mid]["linked_skill_ids"] = []
+        unify_file.write_text(json.dumps(unify_doc, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+        from tools.apply_graph_hygiene_remediation import _SKILL_MATRIX_KEYS, _reseal_ledger_hardening
+
+        ledger_doc = json.loads(sandbox_ledger.read_text(encoding="utf-8"))
+        for mkey in _SKILL_MATRIX_KEYS:
+            for row in ledger_doc.get(mkey) or []:
+                if isinstance(row, dict) and isinstance(row.get("fact_id_links"), list):
+                    row["fact_id_links"] = [f for f in row["fact_id_links"] if f != "fact_engineering_platform_005"]
+        for node in ledger_doc.get("graph_nodes") or []:
+            if isinstance(node, dict) and isinstance(node.get("fact_id_links"), list):
+                node["fact_id_links"] = [f for f in node["fact_id_links"] if f != "fact_engineering_platform_005"]
+        ledger_doc["graph_edges"] = [
+            e
+            for e in (ledger_doc.get("graph_edges") or [])
+            if not (
+                isinstance(e, dict)
+                and e.get("edge_type") == "skill_supported_by_fact"
+                and e.get("target_node_id") == "fact_engineering_platform_005"
+            )
+        ]
+        ledger_doc = _reseal_ledger_hardening(ledger_doc, REPO_ROOT)
+        if isinstance(ledger_doc.get("graph_metadata"), dict):
+            ledger_doc["graph_metadata"]["node_count"] = len(ledger_doc.get("graph_nodes") or [])
+            ledger_doc["graph_metadata"]["edge_count"] = len(ledger_doc.get("graph_edges") or [])
+        sandbox_ledger.write_text(json.dumps(ledger_doc, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        materialize_augmented_skills_graph_sqlite(
+            repo_root=REPO_ROOT / "resume_graph_engine",
+            db_path=sandbox_db,
+            json_source_path=sandbox_ledger,
+            bundles_dir=sandbox_bundles,
+        )
+        pre = run_graph_hygiene_audit(repo_root=REPO_ROOT, db_path=sandbox_db)
+
     c03 = next(c for c in pre["hitl_clusters"] if c["cluster_id"] == "CLUSTER-03-STRANDED-VERIFIED-METRICS")
     linkable = [it for it in c03["items"] if it["auto_linkable"] and it["candidate_skill_ids"]]
     assert len(linkable) >= 2

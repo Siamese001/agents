@@ -67,6 +67,7 @@ MUTATING_ACTION_KINDS = frozenset(
         "purge_quarantine_leak",
         "retire_quarantined_record",
         "merge_skill_twin",
+        "relabel_skill",
         "differentiate_skill_descriptions",
         "consolidate_clone_group",
         "consolidate_capability_domain",
@@ -1218,11 +1219,179 @@ def _reseal_ledger_hardening(ledger: dict[str, Any], repo_root: Path) -> dict[st
     return w3
 
 
+def _relabel_skill_in_ledger(
+    ledger: dict[str, Any],
+    *,
+    skill_id: str,
+    new_label: str,
+) -> dict[str, Any]:
+    """Repair a mislabeled skill's display label and capability name without merging distinct skills."""
+    sid = str(skill_id or "").strip()
+    clean_label = " ".join(str(new_label or "").split()).strip()
+    if not sid or not clean_label:
+        raise ValueError(f"relabel_skill requires non-empty skill_id and new_label (got {skill_id!r}, {new_label!r})")
+    if "_" in clean_label:
+        raise ValueError(f"relabel_skill rejects snake_case label: {clean_label!r}")
+
+    old_label = ""
+    touched_rows = 0
+    for key in _SKILL_MATRIX_KEYS:
+        for row in ledger.get(key) or []:
+            if isinstance(row, dict) and str(row.get("skill_id") or "") == sid:
+                if not old_label and row.get("capability"):
+                    old_label = str(row["capability"])
+                row["capability"] = clean_label
+                touched_rows += 1
+
+    touched_node = False
+    for node in ledger.get("graph_nodes") or []:
+        if isinstance(node, dict) and str(node.get("node_id") or "") == sid:
+            if not old_label and node.get("label"):
+                old_label = str(node["label"])
+            node["label"] = clean_label
+            touched_node = True
+
+    if touched_rows == 0 and not touched_node:
+        raise ValueError(f"Unknown skill_id for relabel_skill: {sid!r}")
+
+    return {
+        "skill_id": sid,
+        "old_label": old_label,
+        "new_label": clean_label,
+        "touched_matrix_rows": touched_rows,
+        "touched_graph_node": touched_node,
+    }
+
+
+def _wire_engagement_facts_for_metrics_in_ledger(
+    ledger: dict[str, Any],
+    db_path: Path,
+    by_metric: Mapping[str, Sequence[str]],
+) -> int:
+    """Attach verified engagement-shared fact_has_metric_outcome anchors onto approved skills to satisfy AC2.4."""
+    if not by_metric or not db_path.is_file():
+        return 0
+    conn = sqlite3.connect(f"file:{db_path.as_posix()}?mode=ro", uri=True, timeout=10.0)
+    conn.execute("PRAGMA query_only=ON")
+    try:
+        pairs_to_link: list[tuple[str, str]] = []
+        for mid, sids in by_metric.items():
+            m_facts = [
+                str(r[0])
+                for r in conn.execute(
+                    "SELECT DISTINCT e.source_node_id FROM graph_edges e "
+                    "JOIN graph_nodes fn ON fn.node_id = e.source_node_id "
+                    "WHERE e.target_node_id = ? AND e.edge_type = 'fact_has_metric_outcome' "
+                    "  AND COALESCE(fn.activation_status, '') NOT IN ('QUARANTINED_UNVERIFIED_SYNTHETIC', 'BLOCKED', 'RETIRED') "
+                    "ORDER BY e.source_node_id",
+                    (mid,),
+                ).fetchall()
+            ]
+            if not m_facts:
+                continue
+            metric_bundles = {
+                str(r[0])
+                for r in conn.execute(
+                    "SELECT target_node_id FROM graph_edges "
+                    "WHERE source_node_id = ? AND edge_type = 'metric_outcome_anchors_bundle'",
+                    (mid,),
+                ).fetchall()
+            }
+            for sid in sids:
+                sid_s = str(sid).strip()
+                if not sid_s:
+                    continue
+                existing_shared = conn.execute(
+                    "SELECT COUNT(*) FROM graph_edges "
+                    "WHERE source_node_id = ? AND edge_type = 'skill_supported_by_fact' "
+                    "  AND target_node_id IN (" + ",".join("?" for _ in m_facts) + ")",
+                    (sid_s, *m_facts),
+                ).fetchone()[0]
+                if existing_shared > 0:
+                    continue
+                for fid in m_facts:
+                    if metric_bundles:
+                        shared_bundle = conn.execute(
+                            "SELECT COUNT(*) FROM graph_edges ef "
+                            "JOIN graph_edges es ON es.source_node_id = ef.source_node_id "
+                            "WHERE ef.edge_type = 'engagement_evidenced_by_fact' AND ef.target_node_id = ? "
+                            "  AND es.edge_type = 'engagement_exercises_skill' AND es.target_node_id = ? "
+                            "  AND ef.source_node_id IN (" + ",".join("?" for _ in metric_bundles) + ")",
+                            (fid, sid_s, *sorted(metric_bundles)),
+                        ).fetchone()[0]
+                        if shared_bundle <= 0:
+                            continue
+                    if (sid_s, fid) not in pairs_to_link:
+                        pairs_to_link.append((sid_s, fid))
+    finally:
+        conn.close()
+
+    if not pairs_to_link:
+        return 0
+
+    existing_triples = {
+        (
+            str(e.get("source_node_id") or e.get("source") or ""),
+            str(e.get("target_node_id") or e.get("target") or ""),
+            str(e.get("edge_type") or ""),
+        )
+        for e in (ledger.get("graph_edges") or [])
+        if isinstance(e, dict)
+    }
+    added_links = 0
+    for sid_s, fid_s in pairs_to_link:
+        row_updated = False
+        for key in _SKILL_MATRIX_KEYS:
+            for row in ledger.get(key) or []:
+                if isinstance(row, dict) and str(row.get("skill_id") or "") == sid_s:
+                    flinks = list(row.get("fact_id_links") or [])
+                    if fid_s not in flinks:
+                        flinks.append(fid_s)
+                        row["fact_id_links"] = flinks
+                        row_updated = True
+        for node in ledger.get("graph_nodes") or []:
+            if isinstance(node, dict) and str(node.get("node_id") or "") == sid_s:
+                if "fact_id_links" in node:
+                    flinks = list(node.get("fact_id_links") or [])
+                    if fid_s not in flinks:
+                        flinks.append(fid_s)
+                        node["fact_id_links"] = flinks
+                        row_updated = True
+        triple = (sid_s, fid_s, "skill_supported_by_fact")
+        if triple not in existing_triples:
+            gedges = ledger.setdefault("graph_edges", [])
+            if isinstance(gedges, list):
+                gedges.append(
+                    {
+                        "edge_id": f"edge_skill_supported_by_fact__{sid_s}__{fid_s}",
+                        "source_node_id": sid_s,
+                        "target_node_id": fid_s,
+                        "edge_type": "skill_supported_by_fact",
+                        "bridge_edge_family": "skill_fact",
+                        "weight": 1.0,
+                        "direction": "forward",
+                        "validation_status": "validated",
+                        "source_authority": "augmented_skills_graph",
+                        "external_claim_policy": "atomic_fact_default_external_proof",
+                        "projection_behavior": "rank_and_project_facts",
+                        "rationale": (
+                            f"Verified engagement-shared fact {fid_s} grounds skill {sid_s} for AC2.4 metric closure."
+                        ),
+                    }
+                )
+                existing_triples.add(triple)
+                row_updated = True
+        if row_updated:
+            added_links += 1
+    return added_links
+
+
 def _wire_metrics_by_map_in_bundles(
     bundles_dir: Path,
     by_metric: Mapping[str, Sequence[str]],
     *,
     backup_dir: Path | None = None,
+    replace_links: bool = False,
 ) -> int:
     if not by_metric or not bundles_dir.is_dir():
         return 0
@@ -1239,11 +1408,18 @@ def _wire_metrics_by_map_in_bundles(
             if str(mobj.get("approval_status") or "") != "APPROVED_GRAPH_SSOT":
                 continue
             existing = list(mobj.get("linked_skill_ids") or [])
-            added = [str(sid).strip() for sid in by_metric[mid] if str(sid).strip() and str(sid).strip() not in existing]
-            if added:
-                mobj["linked_skill_ids"] = existing + added
-                wired += 1
-                dirty = True
+            desired = list(dict.fromkeys(str(sid).strip() for sid in by_metric[mid] if str(sid).strip()))
+            if replace_links:
+                if existing != desired:
+                    mobj["linked_skill_ids"] = desired
+                    wired += 1
+                    dirty = True
+            else:
+                added = [sid for sid in desired if sid not in existing]
+                if added:
+                    mobj["linked_skill_ids"] = existing + added
+                    wired += 1
+                    dirty = True
         if dirty:
             _backup_file_once(bundle_file, backup_dir)
             bundle_file.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
@@ -1620,14 +1796,25 @@ def apply_graph_hygiene_remediation(
         applied_deltas["CLUSTER-04-ISOLATED-AND-RETIRED-NODES"] = {"archived_retired_nodes": archived}
 
     if "CLUSTER-03-STRANDED-VERIFIED-METRICS" in approved_set and "CLUSTER-03-STRANDED-VERIFIED-METRICS" in clusters_by_id:
+        c03_items = clusters_by_id["CLUSTER-03-STRANDED-VERIFIED-METRICS"]["items"]
         target_bdir = effective_bundles_dir or (resolved_root / "resume_graph_engine/src/apps_rg/fact_inventory")
         wired = _wire_stranded_verified_metrics_in_bundles(
             resolved_root,
-            clusters_by_id["CLUSTER-03-STRANDED-VERIFIED-METRICS"]["items"],
+            c03_items,
             bundles_dir=target_bdir,
             backup_dir=backup_dir,
         )
-        applied_deltas["CLUSTER-03-STRANDED-VERIFIED-METRICS"] = {"wired_verified_metrics": wired}
+        by_metric_auto = {
+            str(it["metric_id"]): list(it.get("candidate_skill_ids") or [])
+            for it in c03_items
+            if it.get("auto_linkable") and it.get("candidate_skill_ids")
+        }
+        fact_links_added = _wire_engagement_facts_for_metrics_in_ledger(ledger, target_db, by_metric_auto)
+        ledger_dirty = ledger_dirty or (fact_links_added > 0)
+        applied_deltas["CLUSTER-03-STRANDED-VERIFIED-METRICS"] = {
+            "wired_verified_metrics": wired,
+            "wired_engagement_fact_links": fact_links_added,
+        }
 
     # 2. Item-granular seriatim / cluster decisions from decisions_file / decisions_payload
     item_results: list[dict[str, Any]] = []
@@ -1711,6 +1898,13 @@ def apply_graph_hygiene_remediation(
             ledger_dirty = True
             item_results.append({"item_key": ikey, "action_kind": akind, **res})
 
+        elif akind == "relabel_skill":
+            sid = str(params.get("skill_id") or params.get("node_id") or ikey).strip()
+            new_lbl = str(params.get("new_label") or params.get("label") or "").strip()
+            res = _relabel_skill_in_ledger(ledger, skill_id=sid, new_label=new_lbl)
+            ledger_dirty = True
+            item_results.append({"item_key": ikey, "action_kind": akind, **res})
+
         elif akind == "differentiate_skill_descriptions":
             sids = [str(s).strip() for s in (params.get("skill_ids") or []) if str(s).strip()]
             if not sids:
@@ -1768,6 +1962,7 @@ def apply_graph_hygiene_remediation(
         elif akind == "wire_metric_to_skills":
             mid = str(params.get("metric_id") or ikey).strip()
             sids = [str(s).strip() for s in (params.get("skill_ids") or []) if str(s).strip()]
+            replace_links = bool(params.get("replace_links", False))
             if not mid or not sids:
                 raise ValueError(f"wire_metric_to_skills requires metric_id and non-empty skill_ids (got {params!r})")
             target_bdir = effective_bundles_dir or (resolved_root / "resume_graph_engine/src/apps_rg/fact_inventory")
@@ -1775,8 +1970,20 @@ def apply_graph_hygiene_remediation(
                 target_bdir,
                 {mid: sids},
                 backup_dir=backup_dir,
+                replace_links=replace_links,
             )
-            item_results.append({"item_key": ikey, "action_kind": akind, "metric_id": mid, "skill_ids": sids, "wired": wired})
+            fact_links_added = _wire_engagement_facts_for_metrics_in_ledger(ledger, target_db, {mid: sids})
+            ledger_dirty = ledger_dirty or (fact_links_added > 0)
+            item_results.append(
+                {
+                    "item_key": ikey,
+                    "action_kind": akind,
+                    "metric_id": mid,
+                    "skill_ids": sids,
+                    "wired": wired,
+                    "wired_engagement_fact_links": fact_links_added,
+                }
+            )
 
         elif akind == "archive_isolated_node":
             nid = str(params.get("node_id") or ikey).strip()
