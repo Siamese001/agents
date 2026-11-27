@@ -549,9 +549,12 @@ def test_empty_boundary_and_cli_sandbox_subprocess_contract_e2e(tmp_path: Path) 
         output_root=empty_out,
         sandbox=True,
         hitl_db_path=hitl_db,
+        fail_on_pending_action=True,
     )
     assert code_empty == 0
+    assert receipt_empty["findings_consolidation"]["total_findings"] == 0
     assert receipt_empty["auto_apply_dispatch"]["auto_applied_count"] == 0
+    assert receipt_empty["auto_apply_dispatch"]["pending_hitl_count"] == 0
     assert receipt_empty["next_ask_question_payload"] is None
 
     cli_src = tmp_path / "cli_src"

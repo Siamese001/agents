@@ -53,3 +53,58 @@ def test_flywheel_cycle_fail_on_pending_action_and_construct_validity(tmp_path: 
     )
     assert code == 0
     assert receipt["auto_apply_dispatch"]["pending_hitl_count"] == 0
+
+
+def test_flywheel_sandbox_isolates_custom_source_root_from_repo_triage_and_preserves_canonical(
+    tmp_path: Path,
+) -> None:
+    """Custom source_root must not leak live repo triage packets, while canonical artifacts/learning consolidates them."""
+    import json
+    import shutil
+
+    fake_repo = tmp_path / "repo"
+    (fake_repo / "config" / "governance").mkdir(parents=True)
+    shutil.copy2(
+        REPO_ROOT / "config" / "governance" / "auto_apply_policy.yaml",
+        fake_repo / "config" / "governance" / "auto_apply_policy.yaml",
+    )
+    triage_dir = fake_repo / "data" / "eval" / "triage" / "apps_lic"
+    triage_dir.mkdir(parents=True)
+    (triage_dir / "pending_pkt.json").write_text(
+        json.dumps(
+            {
+                "app_id": "apps_lic",
+                "candidate_id": "apps_lic_triage_isolation_01",
+                "status": "PENDING_REVIEW",
+                "trigger_reason": "IDE_CLI_JUDGE_V3_FAILED",
+                "staged_at": "2026-11-27T22:00:00Z",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    isolated_src = tmp_path / "empty_src"
+    isolated_src.mkdir()
+    code_iso, receipt_iso = run_eval_flywheel_cycle(
+        repo_root=fake_repo,
+        source_root=isolated_src,
+        output_root=tmp_path / "out_iso",
+        sandbox=True,
+        fail_on_pending_action=True,
+    )
+    assert code_iso == 0
+    assert receipt_iso["findings_consolidation"]["total_findings"] == 0
+    assert receipt_iso["auto_apply_dispatch"]["pending_hitl_count"] == 0
+
+    canonical_src = fake_repo / "artifacts" / "learning"
+    canonical_src.mkdir(parents=True)
+    code_canon, receipt_canon = run_eval_flywheel_cycle(
+        repo_root=fake_repo,
+        source_root=canonical_src,
+        output_root=tmp_path / "out_canon",
+        sandbox=True,
+        fail_on_pending_action=True,
+    )
+    assert code_canon == 3
+    assert receipt_canon["findings_consolidation"]["total_findings"] == 1
+    assert receipt_canon["auto_apply_dispatch"]["pending_hitl_count"] == 1
