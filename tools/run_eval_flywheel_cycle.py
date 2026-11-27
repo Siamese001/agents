@@ -175,6 +175,7 @@ def run_eval_flywheel_cycle(
     curated_holdout_seeds: Sequence[Mapping[str, Any]] = (),
     hitl_db_path: Path | None = None,
     ledger_db_path: Path | None = None,
+    triage_root: Path | None = None,
     manifest_payload: Mapping[str, Any] | Path | str | None = None,
     harvest_borderline: bool = False,
     daily_harvest_cap: int = 3,
@@ -205,22 +206,40 @@ def run_eval_flywheel_cycle(
         if r.get("passed") is False and r.get("trace_id")
     ]
 
-    effective_hitl_db = (
-        Path(hitl_db_path).resolve()
-        if hitl_db_path is not None
-        else (
-            (src / "hitl_decisions.sqlite")
-            if sandbox and (src / "hitl_decisions.sqlite").is_file()
-            else (repo_root / "artifacts" / "governance" / "hitl_decisions.sqlite")
-        )
-    )
+    canonical_learning_dir = (repo_root / "artifacts" / "learning").resolve()
+    use_canonical_repo_surfaces = src == canonical_learning_dir
+
+    if hitl_db_path is not None:
+        effective_hitl_db: Path | None = Path(hitl_db_path).resolve()
+    elif (src / "hitl_decisions.sqlite").is_file():
+        effective_hitl_db = src / "hitl_decisions.sqlite"
+    elif use_canonical_repo_surfaces:
+        effective_hitl_db = repo_root / "artifacts" / "governance" / "hitl_decisions.sqlite"
+    else:
+        effective_hitl_db = None
+
+    if triage_root is not None:
+        effective_triage_root: Path | None = Path(triage_root).resolve()
+    elif (src / "triage").is_dir():
+        effective_triage_root = src / "triage"
+    elif use_canonical_repo_surfaces:
+        effective_triage_root = repo_root / "data" / "eval" / "triage"
+    else:
+        effective_triage_root = None
+
+    if sandbox:
+        src_queue_db = src / "remediation_queue.sqlite"
+        out_queue_db = out / "remediation_queue.sqlite"
+        if src_queue_db.is_file() and not out_queue_db.is_file():
+            _snapshot_sqlite_db(src_queue_db, out_queue_db)
+
     consol_res = consolidate_all_findings(
         source_root=src,
         output_root=out,
         online_ledger_path=online_ledger,
         hitl_db_path=effective_hitl_db,
         feedback_db_path=src / "feedback_learning.sqlite",
-        triage_root=repo_root / "data" / "eval" / "triage",
+        triage_root=effective_triage_root,
         cutoff_utc=cutoff_utc,
     )
 
