@@ -436,7 +436,7 @@
         "skill_partner_partner_revenue_3m",
         "skill_partner_indirect_revenue_models",
         "skill_partner_partner_enablement_training",
-        "skill_p2_gtm_joint_vendor_roadmaps"
+        "skill_partner_partner_engineering"
       ],
       "linked_source_fact_ids": [
         "exp_unify_001",

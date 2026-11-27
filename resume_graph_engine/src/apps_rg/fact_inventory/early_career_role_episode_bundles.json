@@ -122,7 +122,6 @@
         "skill_derivatives_exotic_options",
         "skill_derivatives_structured_derivatives",
         "skill_greeks_hedging_multi_greek_hedging",
-        "skill_quant_multi_greek_hedging",
         "skill_greeks_delta",
         "skill_greeks_gamma",
         "skill_greeks_vega",
