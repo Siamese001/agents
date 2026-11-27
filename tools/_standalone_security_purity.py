@@ -10,7 +10,7 @@ import subprocess
 from pathlib import Path
 from typing import Any, NamedTuple, Sequence
 
-CORE_GOVERNANCE_LINTERS_SHA256 = "e53e89fe8112360214ee789eebe8d91c40e5e730ae5c094e153813a4fafeec09"
+CORE_GOVERNANCE_LINTERS_SHA256 = "ce67eb66cc81019cba979e3d1ddc4ea9309726d78736ab5d8c7f7f2a5bc62217"
 
 SECRET_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("Private Key", re.compile(r"-----BEGIN (?:[A-Z ]+)?PRIVATE KEY-----")),

@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 import ast
-import json
-import re
 from collections import defaultdict
+import hashlib
+import json
+import os
 from pathlib import Path
-from typing import NamedTuple, Sequence
+import re
+from typing import Any, NamedTuple, Sequence
 
-CORE_GOVERNANCE_LINTERS_SHA256 = "e53e89fe8112360214ee789eebe8d91c40e5e730ae5c094e153813a4fafeec09"
+CORE_GOVERNANCE_LINTERS_SHA256 = "ce67eb66cc81019cba979e3d1ddc4ea9309726d78736ab5d8c7f7f2a5bc62217"
 
 PROHIBITED_PATH_MODEL_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"(?i)\bgpt[0-9_\-a-z]*\b"),
@@ -185,15 +187,20 @@ def evaluate_model_ratchet(
         regs.append(f"Total model literal violations increased: {len(violations)} > {base_total}")
     return len(regs) == 0, regs
 
+def _iter_import_targets(parsed: ast.AST) -> list[tuple[str, int]]:
+    targets: list[tuple[str, int]] = []
+    for node in ast.walk(parsed):
+        if isinstance(node, ast.Import):
+            targets.extend((a.name, node.lineno) for a in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            targets.append((node.module, node.lineno))
+    return targets
+
 def check_forbidden_production_imports(
-    file_path: Path,
-    repo_root: Path,
-    *,
-    production_dirs: Sequence[str],
+    file_path: Path, repo_root: Path, *, production_dirs: Sequence[str],
     non_production_dirs: Sequence[str] = ("tests", "fixtures", "docs", "artifacts", "scratch", ".git", ".venv"),
     forbidden_prefixes: Sequence[str] = DEFAULT_FORBIDDEN_IMPORTS,
-    tree: ast.AST | None = None,
-    lines: list[str] | None = None,
+    tree: ast.AST | None = None, lines: list[str] | None = None,
 ) -> list[tuple[int, str, str]]:
     if not file_path.exists():
         return []
@@ -201,76 +208,104 @@ def check_forbidden_production_imports(
         rel = file_path.resolve().relative_to(repo_root.resolve()).as_posix()
     except ValueError:
         return []
-    if any(rel == np or rel.startswith(f"{np}/") or f"/{np}/" in rel for np in non_production_dirs):
-        return []
-    if "/tests/" in rel or rel.endswith("_test.py") or Path(rel).name.startswith("test_"):
+    if any(rel == np or rel.startswith(f"{np}/") or f"/{np}/" in rel for np in non_production_dirs) or "/tests/" in rel or rel.endswith("_test.py") or Path(rel).name.startswith("test_"):
         return []
     if production_dirs and not any(rel == pd or rel.startswith(f"{pd}/") for pd in production_dirs):
         return []
     src_lines = lines if lines is not None else file_path.read_text(encoding="utf-8", errors="replace").splitlines()
-    parsed = tree
-    if parsed is None:
+    if (parsed := tree) is None:
         try:
             parsed = ast.parse("\n".join(src_lines), filename=str(file_path))
         except SyntaxError:
             return []
     out: list[tuple[int, str, str]] = []
-    for node in ast.walk(parsed):
-        targets: list[tuple[str, int]] = []
-        if isinstance(node, ast.Import):
-            targets.extend((a.name, node.lineno) for a in node.names)
-        elif isinstance(node, ast.ImportFrom) and node.module:
-            targets.append((node.module, node.lineno))
-        for mod_name, lineno in targets:
-            head = mod_name.split(".")[0]
-            if mod_name in forbidden_prefixes or head in forbidden_prefixes or any(mod_name.startswith(f"{p}.") for p in forbidden_prefixes):
-                ln = src_lines[lineno - 1] if 1 <= lineno <= len(src_lines) else ""
-                if not LAYER_GUARDIAN_RE.search(ln):
-                    out.append((lineno, mod_name, f"Production code imports forbidden non-production/testing module '{mod_name}'."))
+    for mod_name, lineno in _iter_import_targets(parsed):
+        if mod_name in forbidden_prefixes or mod_name.split(".")[0] in forbidden_prefixes or any(mod_name.startswith(f"{p}.") for p in forbidden_prefixes):
+            if not LAYER_GUARDIAN_RE.search(src_lines[lineno - 1] if 1 <= lineno <= len(src_lines) else ""):
+                out.append((lineno, mod_name, f"Production code imports forbidden non-production/testing module '{mod_name}'."))
     return out
+
+def extract_top_level_import_specs(content: str) -> list[list[Any]]:
+    try:
+        tree = ast.parse(content)
+    except SyntaxError:
+        return []
+    specs: list[list[Any]] = []
+    def _walk(stmts: Sequence[ast.stmt]) -> None:
+        for st in stmts:
+            if isinstance(st, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            if isinstance(st, ast.If):
+                t = st.test
+                if (isinstance(t, ast.Name) and t.id == "TYPE_CHECKING") or (isinstance(t, ast.Attribute) and t.attr == "TYPE_CHECKING"):
+                    continue
+                _walk(st.body); _walk(st.orelse)
+            elif isinstance(st, ast.Import):
+                specs.extend([a.name, 0, []] for a in st.names)
+            elif isinstance(st, ast.ImportFrom):
+                specs.append([st.module or "", int(st.level or 0), [a.name for a in st.names if a.name != "*"]])
+            elif isinstance(st, (ast.Try, ast.With, ast.AsyncWith, ast.For, ast.AsyncFor, ast.While, ast.ClassDef)):
+                _walk(st.body); _walk(getattr(st, "orelse", ())); _walk(getattr(st, "finalbody", ()))
+                for h in getattr(st, "handlers", ()):
+                    _walk(h.body)
+    _walk(tree.body)
+    return specs
+
+def load_or_update_import_spec_cache(cache_path: Path, rel_to_abs: dict[str, Path]) -> dict[str, list[list[Any]]]:
+    cache: dict[str, list[list[Any]]] = {}
+    if cache_path.is_file():
+        try:
+            raw = json.loads(cache_path.read_text(encoding="utf-8"))
+            cache = raw.get("specs", {}) if isinstance(raw, dict) and isinstance(raw.get("specs"), dict) else {}
+        except Exception:
+            cache = {}
+    result, dirty = {}, False
+    for rel, fp in rel_to_abs.items():
+        try:
+            blob = fp.read_bytes()
+        except OSError:
+            continue
+        sha = hashlib.sha256(blob).hexdigest()
+        if sha not in cache:
+            cache[sha] = extract_top_level_import_specs(blob.decode("utf-8", errors="ignore"))
+            dirty = True
+        result[rel] = cache[sha]
+    if dirty:
+        try:
+            cache_path.parent.mkdir(parents=True, exist_ok=True)
+            tmp = cache_path.with_name(f".{cache_path.name}.{os.getpid()}.tmp")
+            tmp.write_text(json.dumps({"schema_version": "1.0.0", "specs": cache}, separators=(",", ":")), encoding="utf-8")
+            os.replace(tmp, cache_path)
+        except OSError:
+            pass
+    return result
 
 def find_import_cycles_tarjan(adj: dict[str, set[str]]) -> list[list[str]]:
     """Detect strongly connected components with size > 1 (or self-loops) via Tarjan's algorithm."""
-    index = 0
-    stack: list[str] = []
-    on_stack: set[str] = set()
-    indices: dict[str, int] = {}
-    lowlink: dict[str, int] = {}
-    cycles: list[list[str]] = []
-
+    index, stack, on_stack, indices, lowlink, cycles = 0, [], set(), {}, {}, []
     def strongconnect(v: str) -> None:
         nonlocal index
-        indices[v] = index
-        lowlink[v] = index
-        index += 1
-        stack.append(v)
-        on_stack.add(v)
+        indices[v] = lowlink[v] = index; index += 1
+        stack.append(v); on_stack.add(v)
         for w in sorted(adj.get(v, ())):
             if w not in indices:
-                strongconnect(w)
-                lowlink[v] = min(lowlink[v], lowlink[w])
+                strongconnect(w); lowlink[v] = min(lowlink[v], lowlink[w])
             elif w in on_stack:
                 lowlink[v] = min(lowlink[v], indices[w])
         if lowlink[v] == indices[v]:
             scc: list[str] = []
             while True:
-                w = stack.pop()
-                on_stack.remove(w)
-                scc.append(w)
+                w = stack.pop(); on_stack.remove(w); scc.append(w)
                 if w == v:
                     break
             if len(scc) > 1 or (len(scc) == 1 and v in adj.get(v, ())):
                 cycles.append(list(reversed(scc)))
-
     for node in sorted(adj):
         if node not in indices:
             strongconnect(node)
     return cycles
 
-def check_numeric_layer_dag(
-    module_layers: dict[str, int],
-    module_imports: dict[str, list[tuple[int, str, bool]]],
-) -> list[LayerViolation]:
+def check_numeric_layer_dag(module_layers: dict[str, int], module_imports: dict[str, list[tuple[int, str, bool]]]) -> list[LayerViolation]:
     """Verify downward-only imports (`source_layer >= target_layer`) across top-level and unguarded imports."""
     violations: list[LayerViolation] = []
     adj: dict[str, set[str]] = defaultdict(set)
@@ -281,18 +316,8 @@ def check_numeric_layer_dag(
                 adj[src_mod].add(dst_mod)
             dst_layer = module_layers.get(dst_mod)
             if src_layer is not None and dst_layer is not None and src_layer < dst_layer and not is_guarded_lazy:
-                violations.append(
-                    LayerViolation(
-                        src_mod,
-                        lineno,
-                        dst_mod,
-                        "UPWARD_LAYER_IMPORT",
-                        f"Lower layer L{src_layer} ('{src_mod}') must not import higher layer L{dst_layer} ('{dst_mod}').",
-                    )
-                )
+                violations.append(LayerViolation(src_mod, lineno, dst_mod, "UPWARD_LAYER_IMPORT", f"Lower layer L{src_layer} ('{src_mod}') must not import higher layer L{dst_layer} ('{dst_mod}')."))
     for cyc in find_import_cycles_tarjan(adj):
         head = cyc[0]
-        violations.append(
-            LayerViolation(head, 1, " -> ".join([*cyc, head]), "CIRCULAR_IMPORT", f"Circular top-level import cycle: {' -> '.join([*cyc, head])}")
-        )
+        violations.append(LayerViolation(head, 1, " -> ".join([*cyc, head]), "CIRCULAR_IMPORT", f"Circular top-level import cycle: {' -> '.join([*cyc, head])}"))
     return violations
