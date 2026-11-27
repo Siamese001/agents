@@ -191,36 +191,49 @@ class PrePaddedColbertCache:
     def __init__(self) -> None:
         self._key: tuple[str, int, str] | None = None
         self.tensors: dict[str, tuple[tuple[float, ...], ...]] = {}
+        self._raw: dict[str, tuple[int, int, str, bytes]] = {}
 
     def ensure_loaded(
         self, conn: sqlite3.Connection, *, db_path: str = ":memory:", digest: str = ""
     ) -> None:
-        """Decode int8 quantized ColBERT token vectors from assertion_colbert_vectors."""
+        """Index quantized ColBERT blobs lazily; decode on demand per admitted ID."""
         cache_key = (str(db_path), _mtime_ns(db_path), str(digest))
-        if self._key == cache_key and self.tensors:
+        if self._key == cache_key and (self._raw or self.tensors):
             return
         has_table = conn.execute(
             "SELECT 1 FROM sqlite_master WHERE name = 'assertion_colbert_vectors' LIMIT 1"
         ).fetchone()
         if not has_table:
-            self.tensors, self._key = {}, cache_key
+            self.tensors, self._raw, self._key = {}, {}, cache_key
             return
         rows = conn.execute(
             "SELECT assertion_id, token_count, dim, scales_json, vectors_int8 "
             "FROM assertion_colbert_vectors ORDER BY assertion_id"
         ).fetchall()
-        decoded: dict[str, tuple[tuple[float, ...], ...]] = {}
+        raw_map: dict[str, tuple[int, int, str, bytes]] = {}
         for aid, t_count, c_dim, scales_json, blob in rows:
-            try:
-                decoded[str(aid)] = decode_colbert_int8(
-                    bytes(blob),
-                    json.loads(str(scales_json or "[]")),
-                    token_count=int(t_count),
-                    dim=int(c_dim),
-                )
-            except (ValueError, TypeError, json.JSONDecodeError):
-                continue
-        self.tensors, self._key = decoded, cache_key
+            raw_map[str(aid)] = (int(t_count), int(c_dim), str(scales_json or "[]"), bytes(blob))
+        self.tensors, self._raw, self._key = {}, raw_map, cache_key
+
+    def _get_decoded(self, rid: str) -> tuple[tuple[float, ...], ...] | None:
+        cached = self.tensors.get(rid)
+        if cached is not None:
+            return cached
+        raw = self._raw.get(rid)
+        if raw is None:
+            return None
+        t_count, c_dim, scales_json, blob = raw
+        try:
+            decoded = decode_colbert_int8(
+                blob,
+                json.loads(scales_json),
+                token_count=t_count,
+                dim=c_dim,
+            )
+        except (ValueError, TypeError, json.JSONDecodeError):
+            return None
+        self.tensors[rid] = decoded
+        return decoded
 
     def score_admitted(
         self,
@@ -238,7 +251,7 @@ class PrePaddedColbertCache:
         step = max(1, int(tile_size))
         for start in range(0, len(admitted_ids), step):
             for rid in admitted_ids[start : start + step]:
-                d_vecs = self.tensors.get(str(rid))
+                d_vecs = self._get_decoded(str(rid))
                 if not d_vecs:
                     scored.append((0.0, str(rid)))
                     continue
