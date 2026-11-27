@@ -409,6 +409,7 @@ PROMPT_STAGE_ALLOWED_WRITE_PATHS: dict[str, tuple[str, ...]] = {
         "tools/eval_shield_core/",
         "tools/govern_eval_findings.py",
         "tools/lint_production_purity.py",
+        "tools/loophole_redteam_auditor.py",
         "tools/run_diff_scoped_eval_shield.py",
         "tools/run_eval_flywheel_cycle.py",
         "tools/validate_eval_rubrics.py",
