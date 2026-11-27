@@ -1076,6 +1076,56 @@ def draft_grounded_skill_descriptions(
     return drafted
 
 
+def verify_promotion_judge_receipt(
+    receipt_path: Path,
+    *,
+    expected_artifact_sha256: str | None = None,
+    min_distinct_families: int = 2,
+) -> dict[str, Any]:
+    """Fail-closed verification of a sealed dual-judge hygiene promotion receipt."""
+    p = Path(receipt_path)
+    if not p.is_file():
+        raise JudgeV3ProvenanceError(f"Missing promotion judge receipt: {p}")
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise JudgeV3ProvenanceError(f"Unreadable promotion judge receipt {p}: {exc}") from exc
+    if not isinstance(data, dict):
+        raise JudgeV3ProvenanceError(f"Invalid promotion judge receipt schema at {p}")
+    passed = bool(data.get("passed")) and str(data.get("status") or "").upper() == "PASS"
+    if not passed:
+        raise JudgeV3ProvenanceError(
+            f"Promotion judge receipt failed gate: status={data.get('status')!r}, passed={data.get('passed')!r}"
+        )
+    families: set[str] = set()
+    for fam in data.get("judge_families") or []:
+        if str(fam).strip():
+            families.add(str(fam).strip().lower())
+    for verdict in data.get("judge_verdicts") or data.get("judges") or []:
+        if isinstance(verdict, Mapping):
+            model = str(verdict.get("model") or verdict.get("judge_model") or "").strip()
+            fam = str(verdict.get("provider_family") or verdict.get("family") or "").strip()
+            if fam:
+                families.add(fam.lower())
+            elif model:
+                families.add(infer_provider_family(model).lower())
+    if len(families) < min_distinct_families:
+        raise JudgeV3ProvenanceError(
+            f"Promotion judge receipt lacks cross-family orthogonality: families={sorted(families)} (< {min_distinct_families})"
+        )
+    receipt_sha = str(data.get("artifact_sha256") or "").strip()
+    if expected_artifact_sha256 and receipt_sha != str(expected_artifact_sha256).strip():
+        raise JudgeV3ProvenanceError(
+            f"Promotion judge receipt artifact_sha256 mismatch: receipt={receipt_sha!r} expected={expected_artifact_sha256!r}"
+        )
+    return {
+        "verified": True,
+        "receipt_path": str(p),
+        "judge_families": sorted(families),
+        "artifact_sha256": receipt_sha,
+    }
+
+
 def _fetch_sqlite_item_enrichment(db_path: Path, item: dict[str, Any]) -> dict[str, Any]:
     """Hydrate minimal node/fact/bullet details from SQLite when CLI is called directly on raw audit output."""
     if not db_path.is_file():

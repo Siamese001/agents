@@ -52,8 +52,9 @@ SCALE_SIGNALS: frozenset[str] = frozenset({
 })
 
 _NUMERIC_SIGNAL_PATTERN = re.compile(
-    r"\$\d+[mk]?\b|\b\d+[\.,]\d+%|\b\d+%|\b\d+x\b|\b\d+\s+to\s+\d+\b|"
-    r"\b\d+\s*(?:percent|million|billion)\b",
+    r"\$\d+(?:\.\d+)?[mkb]?\b|\b\d+[\.,]\d+%|\b\d+%|\b\d+(?:\.\d+)?x\b|\b\d+\s+to\s+\d+\b|"
+    r"(?:<\s*)?\b\d+(?:\.\d+)?\s*(?:ms|tb|gb)\b|"
+    r"\b\d+(?:\.\d+)?\s*(?:percent|million|billion)\b",
     re.IGNORECASE,
 )
 _FIRST_WORD_RE = re.compile(r"^\s*([a-zA-Z]+(?:-[a-zA-Z]+)?)")
@@ -86,7 +87,9 @@ _CONCRETE_DELIVERY_PATTERN = re.compile(
     r"\b(?:aws|azure|gcp|databricks|kafka|kubernetes|api|microservices|"
     r"route[- ]policy|control plane|runtime|observability|lineage|retrieval|"
     r"solution architecture|reference architecture|account planning|"
-    r"subscription forecasting|proof bundle|policy[- ]gated|soc ?2|"
+    r"subscription forecasting|proof bundle|policy[- ]gated|soc ?2|nydfs|"
+    r"guidewire|policycenter|claimcenter|solvency ?ii|ag43|fsa|erm|actuarial|"
+    r"underwriting|stochastic|derivatives|capital\s+reserves?|"
     r"shared responsibility|financial-services|financial services|"
     r"insur(?:ance|tech|er|ers)?|"
     r"value[- ]realization|expansion\s+readiness|adoption\s+progress|"
@@ -187,7 +190,8 @@ _TECH_TOKEN_PATTERN = re.compile(
     r"policy.gating|execution.trace|traceability|sandbox|"
     r"cloud.native|cloud|platform|architecture|infrastructure|pipelines?|devsecops|ci/cd|cicd|"
     r"bi|dashboard|dashboards|data.model|data.models|semantic.view|semantic.views|dependency.graph|semantic.edge|"
-    r"regulatory|compliance|basel|ccar|sox|iso|"
+    r"regulatory|compliance|basel|bcbs|ccar|sox|iso|soc ?2|nydfs|"
+    r"actuarial|solvency|ag43|fsa|erm|guidewire|policycenter|claimcenter|underwriting|stochastic|derivatives|multi-greek|"
     r"saas|paas|iaas|serverless|lambda|"
     r"consumption.based\s+licensing|renewal.signal\s+instrumentation|"
     r"usage.based\s+subscription\s+forecasting|subscription\s+forecasting|"

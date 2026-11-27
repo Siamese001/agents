@@ -27,7 +27,12 @@ from .storage import (
 from .materializer_ingress import run_materializer_ingress
 from .materializer_indexing import run_materializer_indexing
 from .lineage import validate_projection_source_authorities
-from .edge_evidence import calibrate_edge_confidence, extract_edge_evidence
+from .edge_evidence import (
+    calibrate_edge_confidence,
+    compute_compounding_skill_confidence,
+    extract_edge_evidence,
+    load_verbatim_quote_index,
+)
 from .type_registry import (
     compute_type_registry_digest,
     get_edge_type_registry_rows,
@@ -81,18 +86,14 @@ def _materialize_augmented_skills_graph_sqlite_locked(
         json_source_path=json_source_path,
         bundles_dir=bundles_dir,
     )
-    run_materializer_indexing(ctx)
 
     out_path = ctx["out_path"]
     node_rows = ctx["node_rows"]
     edge_rows = ctx["edge_rows"]
     skill_fact_rows = ctx["skill_fact_rows"]
+    skill_epoch_link_rows = ctx.get("skill_epoch_link_rows") or []
+    skill_employment_link_rows = ctx.get("skill_employment_link_rows") or []
     section_rows = ctx["section_rows"]
-    selection_feature_rows = ctx["selection_feature_rows"]
-    role_family_skill_weight_rows = ctx["role_family_skill_weight_rows"]
-    projection_rows = ctx["projection_rows"]
-    graph_index_rows = ctx["graph_index_rows"]
-    summary = ctx["summary"]
     ledger_hash = ctx["ledger_hash"]
     gver = ctx["gver"]
     src_path = ctx["src_path"]
@@ -102,6 +103,154 @@ def _materialize_augmented_skills_graph_sqlite_locked(
     builder_git_commit = ctx.get("builder_git_commit", "")
     build_inputs = ctx.get("build_inputs", [])
     semantic_contract_version = ctx.get("semantic_contract_version", "")
+
+    for nr in node_rows.values():
+        nr.setdefault("career_epoch", "")
+        nr.setdefault("phase_ordinal", None)
+        nr.setdefault("title", "")
+        nr.setdefault("operating_context", "")
+        nr.setdefault("employer", "")
+        nr.setdefault("start_date", "")
+        nr.setdefault("end_date", "")
+        nr.setdefault("is_current", 0)
+        nr.setdefault("origin_kind", "ledger_node")
+        nr.setdefault("origin_ref", nr.get("node_id", ""))
+        nr.setdefault("source_refs_json", "[]")
+        nr.setdefault("authority_refs_json", "[]")
+        nr.setdefault("build_run_id", build_run_id)
+
+    # Wave 3 + Wave 4: Run Bayesian compounding confidence & edge calibration BEFORE path/sibling indexing
+    node_types_by_id = {nid: str(r.get("node_type") or "") for nid, r in node_rows.items()}
+    quote_index = load_verbatim_quote_index(root)
+    facts_by_skill: dict[str, set[str]] = {}
+    facts_by_metric: dict[str, list[str]] = {}
+    skill_metric_counts: dict[str, int] = {}
+    skill_has_bullet: set[str] = set()
+    skill_has_cert: set[str] = set()
+    cert_validated_pillars: set[str] = set()
+    for er in edge_rows:
+        et_i = str(er.get("edge_type") or "")
+        s_i = str(er.get("source_node_id") or "")
+        t_i = str(er.get("target_node_id") or "")
+        if et_i == "skill_supported_by_fact" and s_i and t_i:
+            facts_by_skill.setdefault(s_i, set()).add(t_i)
+        elif et_i == "skill_supported_by_locked_bullet" and s_i:
+            skill_has_bullet.add(s_i)
+        elif et_i == "skill_supported_by_certification" and s_i:
+            skill_has_cert.add(s_i)
+        elif et_i == "credential_validates_domain" and t_i:
+            cert_validated_pillars.add(t_i)
+        elif et_i in ("fact_has_metric_outcome", "locked_bullet_has_metric_outcome") and s_i and t_i:
+            facts_by_metric.setdefault(t_i, []).append(s_i)
+        elif et_i == "skill_surfaces_metric_outcome" and s_i and t_i:
+            skill_metric_counts[s_i] = skill_metric_counts.get(s_i, 0) + 1
+
+    skill_rows_by_id = ctx.get("skill_rows_by_id") or {}
+    emps_by_skill_cnt: dict[str, set[str]] = {}
+    for _eml in skill_employment_link_rows:
+        emps_by_skill_cnt.setdefault(str(_eml["skill_id"]), set()).add(str(_eml["employment_id"]))
+    epochs_by_skill_cnt: dict[str, set[str]] = {}
+    for _epl in skill_epoch_link_rows:
+        epochs_by_skill_cnt.setdefault(str(_epl["skill_id"]), set()).add(str(_epl["epoch_id"]))
+
+    for nid, nr in node_rows.items():
+        ntype = str(nr.get("node_type") or "")
+        if ntype == "skill":
+            srow = skill_rows_by_id.get(nid)
+            sk_facts = facts_by_skill.get(nid, set())
+            q_facts = sum(1 for fid in sk_facts if fid in quote_index)
+            pillar_id = str((srow or {}).get("pillar") or "").strip()
+            has_cred = (nid in skill_has_cert) or (pillar_id in cert_validated_pillars)
+            is_human = bool(
+                (srow or {}).get("user_confirmed")
+                or (srow or {}).get("human_confirmed_archive_promotion")
+                or str(nr.get("activation_status") or "") == "ACTIVE_CONFIRMED"
+            )
+            c_score, c_tier, c_act = compute_compounding_skill_confidence(
+                nr,
+                skill_row=srow,
+                fact_count=len(sk_facts),
+                quote_backed_facts=q_facts,
+                distinct_employers=max(1, len(emps_by_skill_cnt.get(nid, set()))),
+                distinct_epochs=max(1, len(epochs_by_skill_cnt.get(nid, set()))),
+                has_credential=has_cred,
+                has_locked_bullet=(nid in skill_has_bullet),
+                human_confirmed=is_human,
+                metric_count=skill_metric_counts.get(nid, 0),
+            )
+            nr["confidence_score"] = c_score
+            nr["confidence_tier"] = c_tier
+            nr["confidence"] = c_tier
+            if c_act:
+                nr["activation_status"] = c_act
+        elif ntype == "metric_outcome":
+            m_act = str(nr.get("activation_status") or "").strip().upper()
+            if m_act in ("QUARANTINED_UNVERIFIED_SYNTHETIC", "BLOCKED", "RETIRED"):
+                nr["confidence_score"] = 0.0
+                nr["confidence_tier"] = "LOW"
+                nr["confidence"] = "LOW"
+                nr["external_eligible"] = 0
+            else:
+                m_facts = len(facts_by_metric.get(nid, ()))
+                m_quoted = 1 if (nid in quote_index or f"metric_outcome_{nid}" in quote_index) else 0
+                m_score = round(min(0.98, 0.84 + 0.04 * min(3, m_facts) + 0.04 * m_quoted), 4)
+                nr["confidence_score"] = m_score
+                nr["confidence_tier"] = "HIGH"
+                nr["confidence"] = "HIGH"
+
+    node_scores_by_id = {nid: r.get("confidence_score") for nid, r in node_rows.items()}
+    node_status_by_id = {nid: str(r.get("activation_status") or "") for nid, r in node_rows.items()}
+    connecting_facts_by_pair: dict[tuple[str, str], list[str]] = {}
+    for er in edge_rows:
+        if str(er.get("edge_type") or "") == "skill_surfaces_metric_outcome":
+            s_i = str(er.get("source_node_id") or "")
+            t_i = str(er.get("target_node_id") or "")
+            shared = sorted(facts_by_skill.get(s_i, set()).intersection(facts_by_metric.get(t_i, ())))
+            if shared:
+                connecting_facts_by_pair[(s_i, t_i)] = shared
+
+    all_edge_evidence_rows: list[dict[str, Any]] = []
+    for er in edge_rows:
+        er.setdefault("traversable", 1)
+        src_id = str(er.get("source_node_id") or "")
+        tgt_id = str(er.get("target_node_id") or "")
+        src_status = node_status_by_id.get(src_id, "")
+        tgt_status = node_status_by_id.get(tgt_id, "")
+        quarantined_endpoint = ""
+        if src_status.upper() == "QUARANTINED_UNVERIFIED_SYNTHETIC" or (
+            node_types_by_id.get(src_id) == "metric_outcome"
+            and src_status.upper() in ("BLOCKED", "RETIRED")
+        ):
+            quarantined_endpoint = src_status
+        elif tgt_status.upper() == "QUARANTINED_UNVERIFIED_SYNTHETIC" or (
+            node_types_by_id.get(tgt_id) == "metric_outcome"
+            and tgt_status.upper() in ("BLOCKED", "RETIRED")
+        ):
+            quarantined_endpoint = tgt_status
+        ev_rows = extract_edge_evidence(
+            er,
+            node_types_by_id=node_types_by_id,
+            connecting_facts_by_pair=connecting_facts_by_pair,
+            quote_index=quote_index,
+            metric_to_facts=facts_by_metric,
+        )
+        src_score = node_scores_by_id.get(src_id)
+        calibrate_edge_confidence(
+            er,
+            ev_rows,
+            source_node_score=src_score,
+            target_node_status=quarantined_endpoint,
+            correlation_rho=0.20,
+        )
+        all_edge_evidence_rows.extend(ev_rows)
+
+    run_materializer_indexing(ctx)
+    skill_lexical_alias_rows = ctx.get("skill_lexical_alias_rows") or []
+    selection_feature_rows = ctx["selection_feature_rows"]
+    role_family_skill_weight_rows = ctx["role_family_skill_weight_rows"]
+    projection_rows = ctx["projection_rows"]
+    graph_index_rows = ctx["graph_index_rows"]
+    summary = ctx["summary"]
 
     maintenance_lock = _acquire_sqlite_maintenance_lock(out_path)
     expected_target_digest = _sqlite_projection_digest(out_path)
@@ -152,35 +301,6 @@ def _materialize_augmented_skills_graph_sqlite_locked(
             get_edge_type_registry_rows(),
         )
 
-        for nr in node_rows.values():
-            nr.setdefault("career_epoch", "")
-            nr.setdefault("phase_ordinal", None)
-            nr.setdefault("title", "")
-            nr.setdefault("operating_context", "")
-            nr.setdefault("employer", "")
-            nr.setdefault("start_date", "")
-            nr.setdefault("end_date", "")
-            nr.setdefault("is_current", 0)
-            nr.setdefault("origin_kind", "ledger_node")
-            nr.setdefault("origin_ref", nr.get("node_id", ""))
-            nr.setdefault("source_refs_json", "[]")
-            nr.setdefault("authority_refs_json", "[]")
-            nr.setdefault("build_run_id", build_run_id)
-
-        node_types_by_id = {nid: str(r.get("node_type") or "") for nid, r in node_rows.items()}
-        node_scores_by_id = {nid: r.get("confidence_score") for nid, r in node_rows.items()}
-        all_edge_evidence_rows: list[dict[str, Any]] = []
-
-        for er in edge_rows:
-            er.setdefault("traversable", 1)
-            ev_rows = extract_edge_evidence(
-                er,
-                node_types_by_id=node_types_by_id,
-            )
-            src_score = node_scores_by_id.get(str(er.get("source_node_id") or ""))
-            calibrate_edge_confidence(er, ev_rows, source_node_score=src_score)
-            all_edge_evidence_rows.extend(ev_rows)
-
         conn.executemany(
             """
             INSERT INTO graph_nodes (
@@ -205,8 +325,22 @@ def _materialize_augmented_skills_graph_sqlite_locked(
         conn.execute(
             """
             INSERT INTO graph_nodes_fts (node_id, node_type, label, description)
-            SELECT node_id, node_type, label, description FROM graph_nodes
-            WHERE COALESCE(activation_status, '') NOT IN (
+            SELECT
+                gn.node_id,
+                gn.node_type,
+                gn.label,
+                TRIM(
+                    gn.description || COALESCE(
+                        (
+                            SELECT ' | Aliases: ' || GROUP_CONCAT(sla.alias_text, '; ')
+                            FROM skill_lexical_aliases sla
+                            WHERE sla.skill_id = gn.node_id
+                        ),
+                        ''
+                    )
+                )
+            FROM graph_nodes gn
+            WHERE COALESCE(gn.activation_status, '') NOT IN (
                 'QUARANTINED_UNVERIFIED_SYNTHETIC', 'BLOCKED', 'RETIRED'
             )
             """
@@ -265,6 +399,38 @@ def _materialize_augmented_skills_graph_sqlite_locked(
         )
         conn.executemany(
             """
+            INSERT INTO skill_epoch_links (
+                skill_id, epoch_id, phase_ordinal, fact_count, engagement_count, is_primary
+            ) VALUES (
+                :skill_id, :epoch_id, :phase_ordinal, :fact_count, :engagement_count, :is_primary
+            )
+            """,
+            skill_epoch_link_rows,
+        )
+        conn.executemany(
+            """
+            INSERT INTO skill_employment_links (
+                skill_id, employment_id, employer, start_date, end_date,
+                last_exercised_date, fact_count, engagement_count, evidence_weight, is_primary
+            ) VALUES (
+                :skill_id, :employment_id, :employer, :start_date, :end_date,
+                :last_exercised_date, :fact_count, :engagement_count, :evidence_weight, :is_primary
+            )
+            """,
+            skill_employment_link_rows,
+        )
+        conn.executemany(
+            """
+            INSERT OR IGNORE INTO skill_lexical_aliases (
+                skill_id, alias_text, alias_kind, acronym_pair, external_eligible
+            ) VALUES (
+                :skill_id, :alias_text, :alias_kind, :acronym_pair, :external_eligible
+            )
+            """,
+            skill_lexical_alias_rows,
+        )
+        conn.executemany(
+            """
             INSERT INTO section_eligibility (
                 node_id, section_id, allowed, claim_policy, reason, blocked_reason
             ) VALUES (
@@ -289,13 +455,17 @@ def _materialize_augmented_skills_graph_sqlite_locked(
             """
             INSERT INTO c03_skill_selection_features (
                 skill_id, pillar, subpillar, domain_id, career_track_id, career_epoch,
-                phase_ordinal, skill_family, metric_bucket, role_family_weights,
+                phase_ordinal, span_start_ordinal, span_end_ordinal, epoch_recurrence_count,
+                tenure_span_years, last_exercised_date, employers_json,
+                skill_family, metric_bucket, role_family_weights,
                 allowed_sections, source_fact_count, confidence, confidence_score,
                 confidence_tier, activation_status,
                 support_level, external_eligible, source_authority, source_trace, updated_at
             ) VALUES (
                 :skill_id, :pillar, :subpillar, :domain_id, :career_track_id, :career_epoch,
-                :phase_ordinal, :skill_family, :metric_bucket, :role_family_weights,
+                :phase_ordinal, :span_start_ordinal, :span_end_ordinal, :epoch_recurrence_count,
+                :tenure_span_years, :last_exercised_date, :employers_json,
+                :skill_family, :metric_bucket, :role_family_weights,
                 :allowed_sections, :source_fact_count, :confidence, :confidence_score,
                 :confidence_tier, :activation_status,
                 :support_level, :external_eligible, :source_authority, :source_trace, :updated_at
@@ -416,6 +586,15 @@ def _materialize_augmented_skills_graph_sqlite_locked(
             conn,
             build_run_id=build_run_id,
             input_manifest_digest=summary["input_manifest_digest"],
+        )
+        conn.execute("DELETE FROM semantic_unit_fts")
+        conn.execute(
+            """
+            INSERT INTO semantic_unit_fts (unit_id, unit_type, root_node_id, text)
+            SELECT unit_id, unit_type, root_node_id, text
+            FROM semantic_unit
+            WHERE COALESCE(external_eligible, 0) = 1
+            """
         )
         summary.update(unit_summary)
         conn.execute(

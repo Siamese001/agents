@@ -59,6 +59,27 @@ def run_materializer_indexing(ctx: dict[str, Any]) -> None:
         if sid and sec:
             allowed_sections_by_skill.setdefault(sid, []).append(sec)
 
+    skill_epoch_link_rows = ctx.get("skill_epoch_link_rows") or []
+    skill_employment_link_rows = ctx.get("skill_employment_link_rows") or []
+    epochs_by_skill: dict[str, list[dict[str, Any]]] = {}
+    for _el in skill_epoch_link_rows:
+        epochs_by_skill.setdefault(str(_el["skill_id"]), []).append(_el)
+    emps_by_skill: dict[str, list[dict[str, Any]]] = {}
+    for _em in skill_employment_link_rows:
+        emps_by_skill.setdefault(str(_em["skill_id"]), []).append(_em)
+
+    def _ym_to_years(ym: str) -> float | None:
+        s = str(ym or "").strip()
+        if not s:
+            return None
+        parts = s.split("-")
+        try:
+            year = int(parts[0])
+            month = int(parts[1]) if len(parts) > 1 else 6
+            return year + (month - 1) / 12.0
+        except (ValueError, IndexError):
+            return None
+
     selection_feature_rows: list[dict[str, Any]] = []
     role_family_skill_weight_rows: list[dict[str, Any]] = []
     for sid, row in skill_rows_by_id.items():
@@ -90,6 +111,30 @@ def run_materializer_indexing(ctx: dict[str, Any]) -> None:
             raw_track, raw_track.lower() if raw_track.startswith("track_") else "track_data_tech_cloud_ml"
         )
         epoch, ordinal = canonical_career_epoch_and_ordinal(sid, row.get("career_epoch"))
+        sk_epochs = epochs_by_skill.get(sid) or []
+        sk_emps = emps_by_skill.get(sid) or []
+        ep_ordinals = [
+            int(e["phase_ordinal"]) for e in sk_epochs if e.get("phase_ordinal") is not None
+        ]
+        if not ep_ordinals and ordinal is not None:
+            ep_ordinals = [int(ordinal)]
+        span_start_ord = min(ep_ordinals) if ep_ordinals else ordinal
+        span_end_ord = max(ep_ordinals) if ep_ordinals else ordinal
+        epoch_recurrence = max(1, len({str(e["epoch_id"]) for e in sk_epochs if e.get("epoch_id")}))
+        start_vals = [v for e in sk_emps if (v := _ym_to_years(str(e.get("start_date") or ""))) is not None]
+        end_vals = [
+            (2026.9 if not str(e.get("end_date") or "").strip() else _ym_to_years(str(e.get("end_date") or "")))
+            for e in sk_emps
+        ]
+        end_vals_clean = [v for v in end_vals if v is not None]
+        tenure_span_years = (
+            round(max(0.5, max(end_vals_clean) - min(start_vals)), 1)
+            if start_vals and end_vals_clean
+            else 0.0
+        )
+        last_ex_dates = [str(e.get("last_exercised_date") or "") for e in sk_emps if str(e.get("last_exercised_date") or "")]
+        last_exercised_date = max(last_ex_dates) if last_ex_dates else ""
+        employers_list = sorted({str(e.get("employer") or "") for e in sk_emps if str(e.get("employer") or "")})
         selection_feature_rows.append(
             {
                 "skill_id": sid,
@@ -99,6 +144,12 @@ def run_materializer_indexing(ctx: dict[str, Any]) -> None:
                 "career_track_id": canonical_track_id,
                 "career_epoch": epoch,
                 "phase_ordinal": ordinal,
+                "span_start_ordinal": span_start_ord,
+                "span_end_ordinal": span_end_ord,
+                "epoch_recurrence_count": epoch_recurrence,
+                "tenure_span_years": tenure_span_years,
+                "last_exercised_date": last_exercised_date,
+                "employers_json": json.dumps(employers_list),
                 "skill_family": family,
                 "metric_bucket": metric_bucket_for_row(row),
                 "role_family_weights": json.dumps(row.get("role_family_weights") or {}, sort_keys=True),
@@ -270,6 +321,8 @@ def run_materializer_indexing(ctx: dict[str, Any]) -> None:
         "node_count_sqlite": len(node_rows),
         "edge_count_sqlite": len(edge_rows),
         "skill_fact_link_count": len(skill_fact_rows),
+        "skill_epoch_link_count": len(skill_epoch_link_rows),
+        "skill_employment_link_count": len(skill_employment_link_rows),
         "section_eligibility_count": len(section_rows),
         "role_family_projection_count": len(projection_rows),
         "c03_skill_selection_feature_count": len(selection_feature_rows),
@@ -287,10 +340,68 @@ def run_materializer_indexing(ctx: dict[str, Any]) -> None:
         summary["max_siblings_per_node"] = max_siblings_per_node
 
 
+    # Wave 2: Populate skill_lexical_aliases for ATS screening and FTS5 recall
+    _CANONICAL_ACRONYM_PAIRS: tuple[tuple[str, str, str], ...] = (
+        ("fsa", "FSA", "Fellow of the Society of Actuaries (FSA)"),
+        ("erm", "ERM", "Enterprise Risk Management (ERM)"),
+        ("enterprise risk", "ERM", "Enterprise Risk Management (ERM)"),
+        ("rag", "RAG", "Retrieval-Augmented Generation (RAG)"),
+        ("graphrag", "GraphRAG", "Graph Retrieval-Augmented Generation (GraphRAG)"),
+        ("hpc", "HPC", "High-Performance Computing (HPC)"),
+        ("soc 2", "SOC 2", "Service Organization Control 2 (SOC 2)"),
+        ("bcbs", "BCBS 239", "Basel Committee on Banking Supervision 239 (BCBS 239)"),
+        ("ccar", "CCAR", "Comprehensive Capital Analysis and Review (CCAR)"),
+        ("ag43", "AG43", "Actuarial Guideline 43 (AG43)"),
+        ("solvency", "Solvency II", "Solvency II Regulatory Capital"),
+        ("aws", "AWS", "Amazon Web Services (AWS)"),
+        ("hitl", "HITL", "Human-in-the-Loop (HITL)"),
+        ("mcp", "MCP", "Model Context Protocol (MCP)"),
+        ("a2a", "A2A", "Agent-to-Agent (A2A)"),
+    )
+    skill_lexical_alias_rows: list[dict[str, Any]] = []
+    seen_aliases: set[tuple[str, str]] = set()
+    for sid, row in sorted(skill_rows_by_id.items()):
+        if sid in FORBIDDEN_SKILL_NODE_IDS or sid not in node_rows:
+            continue
+        ext_elig = int(node_rows[sid].get("external_eligible") or 0)
+        lbl = str(node_rows[sid].get("label") or row.get("capability") or "").strip()
+
+        def _push_alias(text: str, kind: str, pair: str = "") -> None:
+            clean = " ".join(str(text or "").replace("_", " ").split()).strip()
+            if not clean or len(clean) < 2:
+                return
+            key = (sid, clean.lower())
+            if key in seen_aliases:
+                return
+            seen_aliases.add(key)
+            skill_lexical_alias_rows.append(
+                {
+                    "skill_id": sid,
+                    "alias_text": clean,
+                    "alias_kind": kind,
+                    "acronym_pair": pair,
+                    "external_eligible": ext_elig,
+                }
+            )
+
+        if lbl:
+            _push_alias(lbl, "canonical_noun")
+        for kw in row.get("ats_keywords") or []:
+            _push_alias(str(kw), "ats_canonical")
+        for ph in (row.get("allowed_phrases") or [])[:4]:
+            _push_alias(str(ph), "allowed_phrase")
+        corpus_low = " ".join([sid, lbl, str(node_rows[sid].get("description") or "")]).lower()
+        for needle, acro, expanded in _CANONICAL_ACRONYM_PAIRS:
+            if needle in corpus_low:
+                _push_alias(acro, "acronym", expanded)
+                _push_alias(expanded, "expanded_form", expanded)
+
     ctx["selection_feature_rows"] = selection_feature_rows
     ctx["role_family_skill_weight_rows"] = role_family_skill_weight_rows
     ctx["projection_rows"] = projection_rows
     ctx["graph_index_rows"] = graph_index_rows
+    ctx["skill_lexical_alias_rows"] = skill_lexical_alias_rows
+    summary["skill_lexical_alias_count"] = len(skill_lexical_alias_rows)
     ctx["summary"] = summary
 
 __all__ = ["run_materializer_indexing"]

@@ -253,9 +253,6 @@ OPERATOR_ARCHIVE_PROMOTION_BY_SKILL: dict[str, list[str]] = {
 
 FORBIDDEN_PROMOTION_SKILL_SUBSTRINGS = (
     "airline",
-    "brokerage",
-    "underwriting",
-    "claims",
     "marketplace",
 )
 

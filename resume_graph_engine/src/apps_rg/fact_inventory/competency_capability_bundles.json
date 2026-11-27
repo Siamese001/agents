@@ -604,13 +604,20 @@
         "skill_watson_studio_fraud_aml"
       ],
       "linked_source_fact_ids": [
-        "fact_quant_hpc_003"
+        "fact_quant_hpc_003",
+        "fact_rag_insurance_001",
+        "fact_solvency_001",
+        "fact_ey_guidewire_001",
+        "fact_insurance_liabilities_001",
+        "fact_insurtech_aws_001"
       ],
       "employer_bindings": [
+        "employment_exp_unify_001",
         "employment_exp_ey_001",
         "employment_exp_insurtech_001"
       ],
       "role_episode_bindings": [
+        "reb_unify_regulated_enterprise_ai_governance",
         "reb_ey_capital_optimization_solvency",
         "reb_insurtech_regulated_aws_control_implementation"
       ],
@@ -629,8 +636,12 @@
         "enterprise risk management",
         "regulatory capital",
         "Solvency II",
+        "AG43",
         "capital modeling",
         "FSA",
+        "Guidewire",
+        "underwriting",
+        "claims",
         "regulated insurers",
         "insurance platform modernization"
       ]

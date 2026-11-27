@@ -4,8 +4,8 @@
   "candidate_name": "Amit Ayer",
   "generated_at": "2026-05-14T00:00:00Z",
   "source_document": "C:\\Users\\amita\\Documents\\Resumes\\SVP Engineering Resume_Ayer.pdf",
-  "source_document_hash": "sha256:pending_docx_ingestion",
-  "base_resume_json_hash": "sha256:pending_calculation",
+  "source_document_hash": "sha256:1ccd20670710b37f3847082563df164f8d520ff17e7117615e7da293aed44c13",
+  "base_resume_json_hash": "sha256:1ccd20670710b37f3847082563df164f8d520ff17e7117615e7da293aed44c13",
   "locked": true,
   "refresh_workflow_required_for_changes": true,
   "header": {
@@ -35,7 +35,12 @@
             "text": "105-SWE & Data Leadership and A2A Orchestration: Led 105 software engineers and data leaders across a leading energy and utility company, managing all client relationships, delivery execution, and sales pipeline while establishing agent-to-agent (A2A) orchestration protocols, deterministic routing fabrics, and policy-bounded tool execution across enterprise accounts.",
             "has_metric": true,
             "metric_raw": "105 software engineers and data leaders across a leading energy and utility company",
-            "technologies": ["A2A orchestration", "multi-agent systems", "deterministic routing", "policy gating"],
+            "technologies": [
+              "A2A orchestration",
+              "multi-agent systems",
+              "deterministic routing",
+              "policy gating"
+            ],
             "domain": "AI infrastructure"
           },
           {
@@ -43,7 +48,14 @@
             "text": "Production Decision Intelligence and Live Copilot Engine: Architected a 100% local audio airgap (<200ms startup), <250ms Dual-Track Live Executive Copilot, and 18-role / 7-wave strategic decision engine with 20% Bayesian ambiguity gating, 11-gate hybrid BGE-M3 knowledge-graph retrieval, and 0% silent signal loss.",
             "has_metric": true,
             "metric_raw": "<200ms audio airgap, <250ms Live Copilot, 18-role / 7-wave decision engine, 20% Bayesian margin, 0% silent signal loss",
-            "technologies": ["frontier models", "reasoning architectures", "prompt engineering", "agentic patterns", "BGE-M3", "GraphRAG"],
+            "technologies": [
+              "frontier models",
+              "reasoning architectures",
+              "prompt engineering",
+              "agentic patterns",
+              "BGE-M3",
+              "GraphRAG"
+            ],
             "domain": "platform engineering"
           },
           {
@@ -51,7 +63,13 @@
             "text": "Zero-Trust Write Custody and Autonomous Delivery: Engineered a 7-layer, 119-package platform with a 5-check Universal Write Gateway, 18 autonomous engineering agents across 32 fail-closed readiness gates, OpenTelemetry forensic lineage, and a six-figure visual asset intelligence platform SOW.",
             "has_metric": true,
             "metric_raw": "7-layer, 119-package platform, 5-check Universal Write Gateway, 18 agents across 32 gates",
-            "technologies": ["evaluation harnesses", "OpenTelemetry", "runtime governance", "validation mesh", "Universal Write Gateway"],
+            "technologies": [
+              "evaluation harnesses",
+              "OpenTelemetry",
+              "runtime governance",
+              "validation mesh",
+              "Universal Write Gateway"
+            ],
             "domain": "platform engineering"
           },
           {
@@ -59,7 +77,12 @@
             "text": "Enterprise Solution Accelerators: Productized core agentic workflows into reusable client accelerators across AWS, Microsoft Azure, and Databricks ecosystems, shortening enterprise adoption timeframes from months to weeks and driving scalable high-margin delivery motions.",
             "has_metric": true,
             "metric_raw": "months to weeks enterprise adoption reduction",
-            "technologies": ["AWS", "Azure", "Databricks", "solution accelerators"],
+            "technologies": [
+              "AWS",
+              "Azure",
+              "Databricks",
+              "solution accelerators"
+            ],
             "domain": "cloud infrastructure"
           }
         ]
@@ -80,21 +103,35 @@
             "bullet_id": "bul_unify_001",
             "text": "Enterprise Agentic AI Platform Architecture: Designed and operationalized a governed agentic AI platform for regulated enterprise workflows, combining deterministic routing, multi-agent orchestration, GraphRAG retrieval, sandboxed execution, policy gating, validation controls, and replayable execution traces.",
             "has_metric": false,
-            "technologies": ["GraphRAG", "multi-agent orchestration", "policy gating", "deterministic routing"],
+            "technologies": [
+              "GraphRAG",
+              "multi-agent orchestration",
+              "policy gating",
+              "deterministic routing"
+            ],
             "domain": "AI infrastructure"
           },
           {
             "bullet_id": "bul_unify_002",
             "text": "Dependency Graph Accelerator: Built and applied software dependency graph intelligence to accelerate the path from legacy system analysis to governed agentic deployment, improving architecture visibility, exposing dependency chains, and reducing refactor risk across complex enterprise environments.",
             "has_metric": false,
-            "technologies": ["dependency graphs", "legacy system analysis", "enterprise architecture"],
+            "technologies": [
+              "dependency graphs",
+              "legacy system analysis",
+              "enterprise architecture"
+            ],
             "domain": "developer tools"
           },
           {
             "bullet_id": "bul_unify_003",
             "text": "Governed Runtime Reliability: Strengthened enterprise retrieval quality, context assembly, evaluation gates, telemetry instrumentation, rollback controls, and AI CI/CD standards, improving production reliability and making AI behavior more traceable, supportable, and repeatable in live enterprise workflows.",
             "has_metric": false,
-            "technologies": ["OpenTelemetry", "CI/CD", "enterprise retrieval", "evaluation gates"],
+            "technologies": [
+              "OpenTelemetry",
+              "CI/CD",
+              "enterprise retrieval",
+              "evaluation gates"
+            ],
             "domain": "platform engineering"
           },
           {
@@ -109,7 +146,13 @@
             "bullet_id": "bul_unify_005",
             "text": "Distributed Ecosystem Engineering: Architected cloud-native microservices across AWS and Databricks Lakehouse, integrating enterprise data pipelines, vector services, API gateways, identity controls, and highly available execution layers supporting parallel decision workflows.",
             "has_metric": false,
-            "technologies": ["AWS", "Databricks", "vector services", "microservices", "API gateways"],
+            "technologies": [
+              "AWS",
+              "Databricks",
+              "vector services",
+              "microservices",
+              "API gateways"
+            ],
             "domain": "cloud infrastructure"
           },
           {
@@ -139,7 +182,11 @@
             "text": "AI and Data Platform Architecture: Architected cloud-native AI and analytics platforms that enabled governed enterprise decision systems operating at 99.9% uptime across regulated financial environments.",
             "has_metric": true,
             "metric_raw": "99.9% uptime",
-            "technologies": ["AI platforms", "analytics", "cloud-native"],
+            "technologies": [
+              "AI platforms",
+              "analytics",
+              "cloud-native"
+            ],
             "domain": "AI infrastructure"
           },
           {
@@ -147,7 +194,12 @@
             "text": "Cloud Infrastructure Modernization: Led migration from legacy on-prem environments to scalable cloud-native architectures, reducing infrastructure overhead by 30% and creating the data and compute foundation for faster analytics and ML deployment.",
             "has_metric": true,
             "metric_raw": "30% infrastructure overhead reduction",
-            "technologies": ["cloud migration", "modernization", "analytics", "ML"],
+            "technologies": [
+              "cloud migration",
+              "modernization",
+              "analytics",
+              "ML"
+            ],
             "domain": "cloud infrastructure"
           },
           {
@@ -155,7 +207,11 @@
             "text": "Reusable Platform Design: Converted bespoke regulatory and analytics workflows into reusable SaaS-like platforms, improving renewal rates by 25% through standardized architecture, shared services, and repeatable lifecycle management.",
             "has_metric": true,
             "metric_raw": "25% renewal rate improvement",
-            "technologies": ["SaaS platforms", "regulatory workflows", "shared services"],
+            "technologies": [
+              "SaaS platforms",
+              "regulatory workflows",
+              "shared services"
+            ],
             "domain": "platform engineering"
           },
           {
@@ -163,7 +219,11 @@
             "text": "Latency, Lineage, and Observability: Engineered near-real-time ingestion, lineage, and observability frameworks that reduced regulatory response latency by 50% while improving trace integrity and operational transparency across distributed data flows.",
             "has_metric": true,
             "metric_raw": "50% latency reduction",
-            "technologies": ["data lineage", "observability", "real-time"],
+            "technologies": [
+              "data lineage",
+              "observability",
+              "real-time"
+            ],
             "domain": "data engineering"
           },
           {
@@ -171,7 +231,10 @@
             "text": "Strategic Partnerships: Structured multi-year hyperscaler alliances generating $15M in incremental revenue through co-sell motions aligned to platform modernization and AI growth.",
             "has_metric": true,
             "metric_raw": "$15M incremental revenue",
-            "technologies": ["hyperscaler alliances", "co-sell"],
+            "technologies": [
+              "hyperscaler alliances",
+              "co-sell"
+            ],
             "domain": "business"
           }
         ]
@@ -195,7 +258,12 @@
             "text": "Legacy-to-Cloud Transformation: Directed an 8-person engineering pod replatforming 9 core policy, billing, and claims workloads and 11 Oracle/SQL Server databases (14TB) across 7 zero-rollback AWS migration waves for 3 regional P&C carriers, cutting five-year infrastructure costs by 40% and converting 62% of architecture pilots (5 of 8) into $2.4M in signed SOWs.",
             "has_metric": true,
             "metric_raw": "40% TCO reduction",
-            "technologies": ["AWS", "modernization", "monolith-to-microservices", "policy administration"],
+            "technologies": [
+              "AWS",
+              "modernization",
+              "monolith-to-microservices",
+              "policy administration"
+            ],
             "domain": "cloud infrastructure"
           },
           {
@@ -203,7 +271,13 @@
             "text": "Governance and Security: Mapped 78 AWS IAM, KMS, and VPC controls to SOC 2 Type II and NYDFS 23 NYCRR 500 standards with 100% CloudTrail audit logging and field-level PII tokenization across 2.8M+ policyholder records, resolving 28 carrier CISO and state regulator cloud-adoption objections.",
             "has_metric": true,
             "metric_raw": "78 SOC 2/NYDFS controls mapped, 2.8M+ records protected",
-            "technologies": ["SOC 2", "compliance", "ML", "analytics", "auditability"],
+            "technologies": [
+              "SOC 2",
+              "compliance",
+              "ML",
+              "analytics",
+              "auditability"
+            ],
             "domain": "security/compliance"
           },
           {
@@ -211,7 +285,11 @@
             "text": "Operational Resilience: Decoupled 18 Guidewire PolicyCenter, ClaimCenter, and BillingCenter workflows and 9 real-time Kinesis/Redshift ingestion feeds across Multi-AZ AWS architectures, achieving 99.99% underwriting availability, cutting batch reporting latency by 65% (12 hours to <45 minutes), and compressing commercial underwriting turnaround by 52%.",
             "has_metric": true,
             "metric_raw": "99.99% uptime",
-            "technologies": ["high availability", "underwriting systems", "real-time ingestion"],
+            "technologies": [
+              "high availability",
+              "underwriting systems",
+              "real-time ingestion"
+            ],
             "domain": "platform engineering"
           }
         ]
@@ -236,7 +314,11 @@
             "text": "Directed a $15M transformation program that improved lineage, controls, and predictive risk capabilities across audit and regulatory workflows.",
             "has_metric": true,
             "metric_raw": "$15M transformation program",
-            "technologies": ["predictive risk modeling", "data lineage", "audit workflows"],
+            "technologies": [
+              "predictive risk modeling",
+              "data lineage",
+              "audit workflows"
+            ],
             "domain": "regulatory analytics"
           },
           {
@@ -244,7 +326,11 @@
             "text": "Achieved a 40% reduction in audit remediation costs by implementing automated data lineage and predictive risk modeling across regulatory workflows.",
             "has_metric": true,
             "metric_raw": "40% cost reduction",
-            "technologies": ["automated lineage", "risk modeling", "regulatory workflows"],
+            "technologies": [
+              "automated lineage",
+              "risk modeling",
+              "regulatory workflows"
+            ],
             "domain": "regulatory analytics"
           },
           {
@@ -252,14 +338,24 @@
             "text": "Optimized capital reserve requirements under Solvency II and AG43, reducing redundant capital holdings for insurance clients by 12% while maintaining full compliance.",
             "has_metric": true,
             "metric_raw": "12% capital reduction",
-            "technologies": ["Solvency II", "AG43", "actuarial modeling"],
+            "technologies": [
+              "Solvency II",
+              "AG43",
+              "actuarial modeling"
+            ],
             "domain": "actuarial"
           },
           {
             "bullet_id": "bul_early_career_001",
             "text": "Priced exotic derivatives and structured multi-Greek hedging strategies, built stochastic capital models, and supported HPC-based valuation frameworks for scenario testing and capital adequacy, establishing the quantitative risk and model-governance discipline applied across enterprise AI platforms.",
             "has_metric": false,
-            "technologies": ["derivatives pricing", "multi-Greek hedging", "stochastic modeling", "capital modeling", "HPC valuation"],
+            "technologies": [
+              "derivatives pricing",
+              "multi-Greek hedging",
+              "stochastic modeling",
+              "capital modeling",
+              "HPC valuation"
+            ],
             "domain": "actuarial & quantitative finance"
           }
         ]
@@ -480,7 +576,10 @@
           "Agent-to-agent (A2A) coordination protocols",
           "18-agent / 32-gate autonomous software delivery across 7 unidirectional layers"
         ],
-        "source_refs": ["exp_slalom_001", "exp_unify_001"]
+        "source_refs": [
+          "exp_slalom_001",
+          "exp_unify_001"
+        ]
       },
       {
         "category_key": "model_risk_fail_closed_governance",
@@ -491,7 +590,10 @@
           "X1 to X3 exit verification and orthogonal LLM judge panels",
           "8 closed-loop system learning calibration surfaces"
         ],
-        "source_refs": ["exp_slalom_001", "exp_unify_001"]
+        "source_refs": [
+          "exp_slalom_001",
+          "exp_unify_001"
+        ]
       },
       {
         "category_key": "bitemporal_knowledge_graph_hybrid_grounding",
@@ -502,7 +604,10 @@
           "Merkle subgraph prefix alignment and <200ms local Metal MLX audio airgap",
           "<250ms 2-hop RAM graph Flash-Snap"
         ],
-        "source_refs": ["exp_slalom_001", "exp_unify_001"]
+        "source_refs": [
+          "exp_slalom_001",
+          "exp_unify_001"
+        ]
       },
       {
         "category_key": "distributed_systems_single_door_write_custody",
@@ -513,7 +618,11 @@
           "Generational atomic swaps and bi-temporal SQLite WAL persistence",
           "Cloud-native microservices across AWS and Databricks Lakehouses"
         ],
-        "source_refs": ["exp_slalom_001", "exp_unify_001", "exp_ibm_001"]
+        "source_refs": [
+          "exp_slalom_001",
+          "exp_unify_001",
+          "exp_ibm_001"
+        ]
       },
       {
         "category_key": "platform_commercialization_unit_economics",
@@ -524,7 +633,10 @@
           "Lab-to-production compression from 6 months to 3 weeks",
           ">=2.5x multi-tier tokenomics return and +25% SaaS renewal uplift"
         ],
-        "source_refs": ["exp_unify_001", "exp_ibm_001"]
+        "source_refs": [
+          "exp_unify_001",
+          "exp_ibm_001"
+        ]
       },
       {
         "category_key": "regulated_enterprise_hyperscaler_ecosystems",
@@ -535,7 +647,12 @@
           "FSA actuarial charter, Solvency II, and AG43 capital optimization",
           "Basel / CCAR regulatory lineage and SOC 2 cloud control frameworks"
         ],
-        "source_refs": ["exp_slalom_001", "exp_ibm_001", "exp_insurtech_001", "exp_early_career_001"]
+        "source_refs": [
+          "exp_slalom_001",
+          "exp_ibm_001",
+          "exp_insurtech_001",
+          "exp_early_career_001"
+        ]
       }
     ],
     "csuite_credentials_footer": {

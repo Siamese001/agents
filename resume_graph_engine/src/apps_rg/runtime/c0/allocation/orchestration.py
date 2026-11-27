@@ -126,6 +126,91 @@ def build_whole_resume_graph_allocation(
     candidates = _candidate_sets_from_section_plans(
         section_plans, slot_specs, mandate_route=mandate_route_dict
     )
+    quad_retrieval_receipt: dict[str, Any] = {"executed": False, "source": "external_override" if embedding_skill_scores_by_section is not None else "unavailable"}
+    if embedding_skill_scores_by_section is None and (jd_text or target_role):
+        try:
+            import sqlite3
+            from apps_rg.fact_inventory.skills_graph.storage import default_graph_sqlite_path
+            from apps_rg.runtime.c0.allocation.candidate_normalization import _candidate_sort_key
+            from apps_rg.runtime.quad_graph_retriever import QuadGraphHybridRetriever
+
+            graph_db = default_graph_sqlite_path(repo_root)
+            if graph_db.is_file():
+                q_conn = sqlite3.connect(f"file:{graph_db.resolve().as_posix()}?mode=ro", uri=True, timeout=10.0)
+                q_conn.execute("PRAGMA query_only=ON")
+                try:
+                    import sys as _sys
+
+                    _bge_mod = _sys.modules.get("apps_rg.runtime.bge_embedding")
+                    _bge_warm = bool(_bge_mod is not None and getattr(_bge_mod, "_RESIDENT_RUNTIMES", None))
+                    q_text = f"{target_role} {jd_text[:1500]}".strip()
+                    q_res = QuadGraphHybridRetriever(q_conn, db_path=str(graph_db)).retrieve(
+                        q_text,
+                        top_k=120,
+                        union_limit=200,
+                        include_graph_signals=True,
+                        use_live_bge=_bge_warm,
+                    )
+                    unit_to_root = {
+                        str(r[0]): str(r[1])
+                        for r in q_conn.execute("SELECT unit_id, root_node_id FROM semantic_unit").fetchall()
+                        if r[0] and r[1]
+                    }
+                    skill_scores: dict[str, float] = {}
+                    for item in q_res.get("results") or []:
+                        rid = str(item.get("record_id") or "")
+                        sc = float(item.get("final_score") or 0.0)
+                        if rid.startswith("skill_"):
+                            skill_scores[rid] = max(skill_scores.get(rid, 0.0), sc)
+                        elif rid in unit_to_root:
+                            root_id = unit_to_root[rid]
+                            if root_id.startswith("skill_"):
+                                skill_scores[root_id] = max(skill_scores.get(root_id, 0.0), sc)
+                    if skill_scores:
+                        from apps_rg.runtime.c0.c0_perf_sync_helpers import diversify_slot_candidates
+
+                        max_s = max(skill_scores.values()) or 1.0
+                        norm_scores = {k: round(v / max_s, 6) for k, v in skill_scores.items()}
+                        slot_meta = {
+                            str(sp.get("slot_id") or ""): (
+                                str(sp.get("required_root_id") or ""),
+                                str(sp.get("section_id") or ""),
+                            )
+                            for sp in slot_specs
+                        }
+                        enriched: dict[str, list[dict[str, Any]]] = {}
+                        for slot_id, raw_rows in candidates.items():
+                            updated_rows: list[dict[str, Any]] = []
+                            for raw in raw_rows:
+                                row = dict(raw)
+                                sid = str(row.get("skill_id") or "")
+                                if sid in norm_scores:
+                                    row["embedding_similarity"] = round(float(norm_scores[sid]), 9)
+                                updated_rows.append(row)
+                            updated_rows.sort(key=_candidate_sort_key)
+                            req_root, sec_id = slot_meta.get(slot_id, ("", ""))
+                            enriched[slot_id] = diversify_slot_candidates(
+                                updated_rows,
+                                required_root_id=req_root,
+                                section_id=sec_id,
+                            )
+                        candidates = enriched
+                    quad_retrieval_receipt = {
+                        "executed": True,
+                        "source": "quad_graph_hybrid_retriever_live",
+                        "result_count": len(q_res.get("results") or []),
+                        "scored_skill_count": len(skill_scores),
+                        "active_weights": dict(q_res.get("active_weights") or {}),
+                        "dense_executed": bool(q_res.get("dense_executed")),
+                        "sparse_executed": bool(q_res.get("sparse_executed")),
+                        "bm25_executed": bool(q_res.get("bm25_executed")),
+                        "colbert_executed": bool(q_res.get("colbert_executed")),
+                    }
+                finally:
+                    q_conn.close()
+        except (OSError, ValueError, RuntimeError, ImportError):
+            pass
+
     if embedding_skill_scores_by_section is not None:
         candidates = _bind_embedding_candidates(
             candidates,
@@ -152,6 +237,7 @@ def build_whole_resume_graph_allocation(
     )
     plan["selection_policy"] = policy.to_dict()
     plan["mandate_route"] = mandate_route_dict
+    plan["quad_retrieval_receipt"] = quad_retrieval_receipt
     plan["credential_elevation_ids"] = list(mandate_route.credential_elevation_ids)
     plan["two_page_slot_budget"] = dict(mandate_route.slot_budget_profile)
     try:

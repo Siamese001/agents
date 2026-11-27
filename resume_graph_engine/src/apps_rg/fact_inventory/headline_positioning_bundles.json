@@ -26,7 +26,8 @@
     "executive_transformation_strategy",
     "pe_due_diligence_value_creation",
     "enterprise_operating_model",
-    "csuite_transformation_advisory"
+    "csuite_transformation_advisory",
+    "quantitative_actuarial_ai_governance"
   ],
   "bundles": [
     {
@@ -295,6 +296,36 @@
       "platform_signal": "governed_transformation_architecture",
       "governance_signal": "board_level_transformation_governance",
       "target_relevance_rationale": "C-suite transformation governance and executive stakeholder alignment for enterprise AI programs.",
+      "allowed_sections": ["headline"],
+      "activation_status": "ACTIVE",
+      "external_claim_policy": "skill_projection_not_proof"
+    },
+    {
+      "headline_positioning_bundle_id": "hpb_quantitative_actuarial_ai_governance",
+      "positioning_family": "quantitative_actuarial_ai_governance",
+      "display_phrase_candidate": "FSA Actuarial & Governed AI Architecture",
+      "source_competency_bundle_ids": ["ccb_insurance_domain_erm", "ccb_runtime_governance"],
+      "graph_skill_node_ids": [
+        "skill_actuarial_fsa",
+        "skill_risk_enterprise_risk_controls",
+        "skill_runtime_gate_mesh_design"
+      ],
+      "linked_source_fact_ids": [
+        "fact_certs_001",
+        "fact_solvency_001",
+        "fact_rag_insurance_001",
+        "fact_governance_001"
+      ],
+      "graph_lineage_refs": [
+        "ccb_insurance_domain_erm",
+        "ccb_runtime_governance",
+        "reb_unify_regulated_enterprise_ai_governance"
+      ],
+      "seniority_signal": "regulated_actuarial_ai_leadership",
+      "technical_specificity_signal": "high",
+      "platform_signal": "governed_insurance_ai_architecture",
+      "governance_signal": "actuarial_erm_and_runtime_controls",
+      "target_relevance_rationale": "Elevates Fellow of the Society of Actuaries (FSA) rigor, Enterprise Risk Management (ERM), and governed AI architecture for insurance, banking, and risk leadership mandates.",
       "allowed_sections": ["headline"],
       "activation_status": "ACTIVE",
       "external_claim_policy": "skill_projection_not_proof"

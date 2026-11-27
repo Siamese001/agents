@@ -548,14 +548,17 @@ def _synthesize_live_graph_section_snapshots(
     target_company: str,
     target_role: str,
 ) -> dict[str, dict[str, Any]]:
-    """Synthesize all resume sections live from sealed graph allocations with zero HOLD-banned figures."""
-    from apps_rg.runtime.contracts.metric_lexical_primitives import HOLD_METRIC_TEXT_RE
+    """Synthesize all resume sections live from sealed graph allocations with scoped HOLD guards."""
+    from apps_rg.runtime.contracts.metric_lexical_primitives import (
+        HOLD_METRIC_TEXT_RE,
+        section_allows_hold_metric_scrub,
+    )
 
-    def _clean_text(text: str) -> str:
+    def _clean_text(text: str, *, section_id: str = "") -> str:
         raw = re.sub(r"\s+", " ", str(text or "")).strip()
         if not raw:
             return ""
-        if HOLD_METRIC_TEXT_RE.search(raw):
+        if section_allows_hold_metric_scrub(section_id) and HOLD_METRIC_TEXT_RE.search(raw):
             raw = HOLD_METRIC_TEXT_RE.sub("", raw)
             raw = re.sub(r"\s{2,}", " ", raw).strip(" ,;:")
         return raw.rstrip(".") + "."
@@ -570,9 +573,13 @@ def _synthesize_live_graph_section_snapshots(
     mandate_route = alloc_plan.get("mandate_route") if isinstance(alloc_plan.get("mandate_route"), dict) else {}
     cred_ids = list(alloc_plan.get("credential_elevation_ids") or mandate_route.get("credential_elevation_ids") or [])
     cred_labels: dict[str, str] = {
-        "cert_fsa_001": "FSA Actuarial Fellow",
-        "edu_columbia_ms_biostat_001": "Columbia MS Biostatistics",
+        "cert_fsa_001": "Fellow of the Society of Actuaries (FSA)",
+        "edu_columbia_ms_001": "M.S. Biostatistics, Columbia University",
+        "edu_columbia_ms_biostat_001": "M.S. Biostatistics, Columbia University",
+        "cert_aws_sa_pro_001": "AWS Solutions Architect Professional",
         "cert_aws_sap_001": "AWS Solutions Architect Professional",
+        "cert_aws_cml_001": "AWS Machine Learning Engineer Associate",
+        "cert_databricks_lakehouse_001": "Databricks Lakehouse",
         "edu_brown_ba_001": "Brown University",
     }
     elevated_creds = [cred_labels[cid] for cid in cred_ids if cid in cred_labels]
@@ -615,7 +622,7 @@ def _synthesize_live_graph_section_snapshots(
             sent = claim
         if metric and metric.lower() not in sent.lower():
             sent = f"{sent.rstrip('.')}, delivering {metric}"
-        cleaned = _clean_text(sent)
+        cleaned = _clean_text(sent, section_id="ibm_bullets")
         if cleaned:
             exec_sentences.append(cleaned)
     exec_summary_text = " ".join(exec_sentences)
@@ -636,11 +643,11 @@ def _synthesize_live_graph_section_snapshots(
             cid = str(r.get("claim_unit_id") or "").rsplit(":", 1)[-1]
             claim = str(r.get("root_claim_text") or r.get("root_claim_action") or "").strip()
             metric = str(r.get("metric_text") or "").strip()
-            if metric and HOLD_METRIC_TEXT_RE.search(metric):
+            if metric and section_allows_hold_metric_scrub(bullet_sec) and HOLD_METRIC_TEXT_RE.search(metric):
                 metric = ""
             if metric and metric.lower() not in claim.lower():
                 claim = f"{claim.rstrip('.')}, delivering {metric}"
-            text = _clean_text(claim)
+            text = _clean_text(claim, section_id=bullet_sec)
             if text:
                 bullets_out.append(
                     {

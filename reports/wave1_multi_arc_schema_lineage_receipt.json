@@ -1,0 +1,13 @@
+{
+  "wave": "Wave 1",
+  "status": "COMPLETED",
+  "node_count": 844,
+  "edge_count": 5545,
+  "skill_epoch_link_count": 475,
+  "skill_employment_link_count": 418,
+  "slalom_skills_count": 69,
+  "multi_employer_skills_count": 129,
+  "credentials_count": 6,
+  "quoted_edge_evidence_count": 2188,
+  "zero_record_build_inputs": 0
+}

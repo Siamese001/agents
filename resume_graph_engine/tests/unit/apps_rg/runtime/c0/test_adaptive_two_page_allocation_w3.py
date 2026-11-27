@@ -109,7 +109,7 @@ def test_bank_caio_mrm_and_healthcare_payer_cdao_dynamic_sizing_and_credentials(
     )
     payer_plan = payer_bundle["allocation_plan"]
     assert validate_resume_graph_allocation_plan(payer_plan) == []
-    assert "edu_columbia_ms_biostat_001" in payer_plan["credential_elevation_ids"]
+    assert "edu_columbia_ms_001" in payer_plan["credential_elevation_ids"]
     payer_counts = _bullet_counts(payer_plan)
     assert payer_counts["early_career_bullets"] >= 2
     payer_early_roots = {

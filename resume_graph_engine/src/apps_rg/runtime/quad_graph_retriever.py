@@ -59,12 +59,41 @@ class VectorCache:
         ).fetchall()
         r_ids: list[str] = []
         vecs: list[tuple[float, ...]] = []
+        seen_ids: set[str] = set()
         for uid, blob in rows:
             raw = bytes(blob)
             if len(raw) == BGE_DENSE_DIM * 4:
-                vec = struct.unpack(f"<{BGE_DENSE_DIM}f", raw)
-                r_ids.append(str(uid))
-                vecs.append(tuple(float(v) for v in vec))
+                vec = tuple(float(v) for v in struct.unpack(f"<{BGE_DENSE_DIM}f", raw))
+                uid_s = str(uid)
+                r_ids.append(uid_s)
+                vecs.append(vec)
+                seen_ids.add(uid_s)
+        # Wave 4: Map skill/engagement/metric root_node_ids onto their unit_vectors so zero skills get 0.0 dense similarity
+        has_su = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE name = 'semantic_unit' LIMIT 1"
+        ).fetchone()
+        if has_su and r_ids:
+            idx_by_uid = {rid: i for i, rid in enumerate(r_ids)}
+            root_rows = conn.execute(
+                """
+                SELECT root_node_id, unit_id
+                FROM semantic_unit
+                WHERE TRIM(COALESCE(root_node_id, '')) <> ''
+                  AND COALESCE(external_eligible, 0) = 1
+                ORDER BY CASE unit_type
+                    WHEN 'skill_evidence_cluster' THEN 0
+                    WHEN 'engagement_episode' THEN 1
+                    WHEN 'metric_outcome_story' THEN 2
+                    ELSE 3
+                END, unit_id
+                """
+            ).fetchall()
+            for root_nid, uid in root_rows:
+                rn = str(root_nid)
+                if rn not in seen_ids and str(uid) in idx_by_uid:
+                    r_ids.append(rn)
+                    vecs.append(vecs[idx_by_uid[str(uid)]])
+                    seen_ids.add(rn)
         self.record_ids = r_ids
         self.id_to_idx = {rid: idx for idx, rid in enumerate(r_ids)}
         self.vectors = vecs
@@ -291,6 +320,7 @@ class QuadGraphHybridRetriever:
         rrf_k: int = DEFAULT_RRF_K,
         weights: Mapping[str, float] | None = None,
         include_graph_signals: bool = True,
+        use_live_bge: bool = True,
     ) -> dict[str, Any]:
         """Run Stage-1 (Dense + Sparse + BM25) union, Stage-2 ColBERT MaxSim, and 1-hop graph fusion."""
         meta_row = self.conn.execute(
@@ -350,7 +380,7 @@ class QuadGraphHybridRetriever:
                 "graph_traversal_executed": False,
             }
 
-        q_head = project_text_multi_head(query_text)
+        q_head = project_text_multi_head(query_text, use_live_bge=use_live_bge)
         cap = max(union_limit, len(authority_ids))
         dense_pairs = self.vector_cache.score_query(q_head.dense_vector, allowed_ids=authority_ids, top_k=cap)
         sparse_pairs = self.sparse_cache.score_query(

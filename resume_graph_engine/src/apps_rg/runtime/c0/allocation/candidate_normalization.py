@@ -120,6 +120,7 @@ def _normalize_candidate(
     row["edge_ids"] = _strings(row.get("edge_ids"))
     row["citation_refs"] = _strings(row.get("citation_refs"))
     row["authority_pass"] = row.get("authority_pass") is True
+    row["multi_arc_epoch_count"] = max(0, int(row.get("multi_arc_epoch_count") or 0))
     for key in (
         "proof_strength_raw",
         "target_alignment_score",

@@ -96,10 +96,10 @@
       "non_retrieval_eligible_count": 50,
       "node_count": 373,
       "edge_count": 2508,
-      "current_graph_nodes_sha256": "2667167e60254807ee9752097fffaa32cc4d1399f44d52cc49c1b5f4ad8a269b",
-      "current_graph_edges_sha256": "bdac4b6d9141823f5caf4e722cb92f06bbc7c2e56960015c656b0185051c0d66",
+      "current_graph_nodes_sha256": "5e7c9e9f26770c73e8f460140dfffdfb5708b2dd34093188bdd0ab00967c6f0b",
+      "current_graph_edges_sha256": "c7b3a218cf9229de5a6b85730a3a116c96703782c38d56d40dd7a10d1bd84992",
       "current_edge_count": 2482,
-      "current_skill_rows_sha256": "fb7a16524cf62513baa6bea4b3ca1968c0178c6e26e35e564d323e4f1b15f060"
+      "current_skill_rows_sha256": "39498230a87e38b346435887223182a597f311011203fbf6a0cfc195ee8bf1aa"
     },
     "node_count": 376,
     "edge_count": 2322
@@ -521,8 +521,8 @@
       "source_w2_marker_sha256": "f9022c3a159926aff274ba87eb78c40f42f677f3e6a6eb23969513adc8582d56",
       "current_edge_count": 2556,
       "current_graph_edges_sha256": "c7b3a218cf9229de5a6b85730a3a116c96703782c38d56d40dd7a10d1bd84992",
-      "current_graph_nodes_sha256": "6988e14bd1b94f9fb04f019fa44a466b3ad88894dc036489444ed5a217d41fc1",
-      "current_skill_rows_sha256": "32b94391955d63e066af30a4b528e00cfc2cb81f58d9d28a814e6f748e098252",
+      "current_graph_nodes_sha256": "5e7c9e9f26770c73e8f460140dfffdfb5708b2dd34093188bdd0ab00967c6f0b",
+      "current_skill_rows_sha256": "39498230a87e38b346435887223182a597f311011203fbf6a0cfc195ee8bf1aa",
       "retired_edge_count": 1,
       "retired_edge_reason_counts": {
         "DRAFT_BLOCK_EDGE_CONFLICTS_WITH_ROW": 1
@@ -1872,7 +1872,7 @@
     {
       "node_id": "skill_derivatives_derivatives_pricing",
       "node_type": "skill_row",
-      "label": "derivatives_pricing",
+      "label": "Derivatives Pricing",
       "description": "advanced derivative pricing, multi-Greek hedging, and capital modeling at Towers Perrin, ING, and Aetna",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -1901,7 +1901,7 @@
     {
       "node_id": "skill_greeks_hedging_multi_greek_hedging",
       "node_type": "skill_row",
-      "label": "multi_greek_hedging",
+      "label": "Multi Greek Hedging",
       "description": "orchestrating multi-Greek hedges for exotic options",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -1934,7 +1934,7 @@
     {
       "node_id": "skill_derivatives_exotic_options",
       "node_type": "skill_row",
-      "label": "exotic_options",
+      "label": "Exotic Options",
       "description": "multi-Greek hedges for exotic options",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -1963,7 +1963,7 @@
     {
       "node_id": "skill_derivatives_structured_derivatives",
       "node_type": "skill_row",
-      "label": "structured_derivatives",
+      "label": "Structured Derivatives",
       "description": "Structured derivatives work, including structured product design, grounded in a quantitative base in derivatives pricing, capital modeling, and portfolio stress analytics from early actuarial roles.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -1993,7 +1993,7 @@
     {
       "node_id": "skill_insurance_liabilities_embedded_options",
       "node_type": "skill_row",
-      "label": "embedded_options",
+      "label": "Embedded Options",
       "description": "Values embedded options in insurance products using derivative-pricing methods, drawing on actuarial techniques from work at major insurers.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -2025,7 +2025,7 @@
     {
       "node_id": "skill_insurance_liabilities_insurance_liabilities",
       "node_type": "skill_row",
-      "label": "insurance_liabilities",
+      "label": "Insurance Liabilities",
       "description": "Models insurance liabilities and policy reserves with actuarial methods, based on work at major insurers.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -2232,7 +2232,7 @@
     {
       "node_id": "skill_risk_greek_stress_testing",
       "node_type": "skill_row",
-      "label": "greek_stress_testing",
+      "label": "Greek Stress Testing",
       "description": "Deployed advanced Greek parameter stress-testing and scenario analyses",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -2267,7 +2267,7 @@
     {
       "node_id": "skill_capital_capital_modeling",
       "node_type": "skill_row",
-      "label": "capital_modeling",
+      "label": "Capital Modeling",
       "description": "capital modeling at Towers Perrin, ING, and Aetna",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -2338,7 +2338,7 @@
     {
       "node_id": "skill_capital_pricing_actuarial",
       "node_type": "skill_row",
-      "label": "pricing_actuarial",
+      "label": "Pricing Actuarial",
       "description": "pricing of complex derivatives while completing Fellowship requirements",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -2367,7 +2367,7 @@
     {
       "node_id": "skill_actuarial_fsa_fellowship",
       "node_type": "skill_row",
-      "label": "fsa_fellowship",
+      "label": "FSA Fellowship",
       "description": "Fellow of the Society of Actuaries | Earned 2010",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -2398,7 +2398,7 @@
     {
       "node_id": "skill_actuarial_actuarial_software",
       "node_type": "skill_row",
-      "label": "actuarial_software",
+      "label": "Actuarial Software",
       "description": "sale and rollout of specialized actuarial software",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -2427,19 +2427,19 @@
     {
       "node_id": "skill_risk_enterprise_risk_controls",
       "node_type": "skill_row",
-      "label": "enterprise_risk_controls",
+      "label": "Enterprise Risk Management (ERM) Controls",
       "description": "data usage controls and compliance checkpoints",
-      "support_level": "BUNDLE_SUPPORTED",
+      "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
-      "activation_status": "ACTIVE",
+      "activation_status": "ACTIVE_CONFIRMED",
       "evidence_risk": "medium",
       "source_refs": [
         "AI and Data Governance - Amit Ayer.docx",
         "fact_governance_001"
       ],
       "projection_behavior": "rank_and_project_facts",
-      "external_claim_policy": "external_resume_claim_requires_active_fact_or_confirmed_snippet",
-      "confidence_grade": "BLOCKED",
+      "external_claim_policy": "atomic_fact_default_external_proof",
+      "confidence_grade": "HIGH",
       "confidence_grade_derived": "BLOCKED",
       "retrieval_eligible": true,
       "semantic_contract_version": "apps_rg.c03_graph_node_semantic_contract.v1",
@@ -2456,7 +2456,7 @@
     {
       "node_id": "skill_risk_model_risk",
       "node_type": "skill_row",
-      "label": "model_risk",
+      "label": "Model Risk",
       "description": "model explainability and data security frameworks",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -2485,7 +2485,7 @@
     {
       "node_id": "skill_capital_regulatory_capital",
       "node_type": "skill_row",
-      "label": "regulatory_capital",
+      "label": "Regulatory Capital",
       "description": "Basel/CCAR compliance programs, streamlining capital reporting",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -2514,7 +2514,7 @@
     {
       "node_id": "skill_partner_aws_ecosystem",
       "node_type": "skill_row",
-      "label": "aws_ecosystem",
+      "label": "AWS Ecosystem",
       "description": "AWS Partner: Advanced Migration and Modernization Sales Training",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -2601,7 +2601,7 @@
     {
       "node_id": "skill_partner_cloud_partner_ecosystem",
       "node_type": "skill_row",
-      "label": "cloud_partner_ecosystem",
+      "label": "Cloud Partner Ecosystem",
       "description": "IBM–AWS alliance for financial services",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -2684,7 +2684,7 @@
     {
       "node_id": "skill_partner_partner_motions",
       "node_type": "skill_row",
-      "label": "partner_motions",
+      "label": "Partner Motions",
       "description": "Built a global AI channel program from inception",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -2764,7 +2764,7 @@
     {
       "node_id": "skill_partner_co_selling",
       "node_type": "skill_row",
-      "label": "co_selling",
+      "label": "Co Selling",
       "description": "Forged co-selling frameworks with SIs and ISVs",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -2793,7 +2793,7 @@
     {
       "node_id": "skill_partner_partner_engineering",
       "node_type": "skill_row",
-      "label": "partner_engineering",
+      "label": "Partner Engineering",
       "description": "Archive-verified capability backed by fact_partnerships_gtm_001, fact_partnerships_gtm_002.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -2825,7 +2825,7 @@
     {
       "node_id": "skill_partner_pre_sales",
       "node_type": "skill_row",
-      "label": "pre_sales",
+      "label": "Pre Sales",
       "description": "executive workshops, leading to faster adoption",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -2906,7 +2906,7 @@
     {
       "node_id": "skill_partner_solution_architecture",
       "node_type": "skill_row",
-      "label": "solution_architecture",
+      "label": "Solution Architecture",
       "description": "technical strategy and architecture",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -3014,7 +3014,7 @@
     {
       "node_id": "skill_partner_customer_deal_support",
       "node_type": "skill_row",
-      "label": "customer_deal_support",
+      "label": "Customer Deal Support",
       "description": "Drove $5 Million in Annual Contract Value",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -3046,7 +3046,7 @@
     {
       "node_id": "skill_partner_enterprise_negotiations",
       "node_type": "skill_row",
-      "label": "enterprise_negotiations",
+      "label": "Enterprise Negotiations",
       "description": "enterprise contract negotiations",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -3132,7 +3132,7 @@
     {
       "node_id": "skill_partner_sales_revenue_targets",
       "node_type": "skill_row",
-      "label": "sales_revenue_targets",
+      "label": "Sales Revenue Targets",
       "description": "Achieved 110% of annual revenue targets",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -3161,7 +3161,7 @@
     {
       "node_id": "skill_partner_gtm_enablement",
       "node_type": "skill_row",
-      "label": "gtm_enablement",
+      "label": "GTM Enablement",
       "description": "Used co-marketing campaigns as the go-to-market engine of a global AI channel program built from scratch, helping produce $3M in partner-derived revenue.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -3242,7 +3242,7 @@
     {
       "node_id": "skill_partner_partner_led_ai_solutions",
       "node_type": "skill_row",
-      "label": "partner_led_ai_solutions",
+      "label": "Partner Led AI Solutions",
       "description": "co-developing advanced analytics frameworks with strategic partners",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -3271,7 +3271,7 @@
     {
       "node_id": "skill_partner_product_feedback_loops",
       "node_type": "skill_row",
-      "label": "product_feedback_loops",
+      "label": "Product Feedback Loops",
       "description": "Archive-verified capability backed by fact_partnerships_gtm_001, fact_solutions_001.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -3303,7 +3303,7 @@
     {
       "node_id": "skill_partner_pnl_oversight",
       "node_type": "skill_row",
-      "label": "pnl_oversight",
+      "label": "P&L Oversight",
       "description": "Held partial P&L accountability for a channel program built from inception, which reached $3M in partner-derived revenue.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -3383,7 +3383,7 @@
     {
       "node_id": "skill_partner_partner_revenue_3m",
       "node_type": "skill_row",
-      "label": "partner_revenue_3m",
+      "label": "Partner Revenue 3m",
       "description": "3 million dollars in partner-derived revenue",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -3412,7 +3412,7 @@
     {
       "node_id": "skill_revops_salesforce_pipeline_analytics",
       "node_type": "skill_row",
-      "label": "salesforce_pipeline_analytics",
+      "label": "Salesforce Pipeline Analytics",
       "description": "Designed analytics in Salesforce to prioritize high-potential deals, generating $10M in new annual recurring revenue",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
@@ -3441,7 +3441,7 @@
     {
       "node_id": "skill_revops_salesforce_forecast_pipeline",
       "node_type": "skill_row",
-      "label": "salesforce_forecast_pipeline",
+      "label": "Salesforce Forecast Pipeline",
       "description": "maintaining a forecast pipeline in Salesforce that drove $10M in net-new revenue",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
@@ -3470,7 +3470,7 @@
     {
       "node_id": "skill_revops_usage_based_subscription_forecasting",
       "node_type": "skill_row",
-      "label": "usage_based_subscription_forecasting",
+      "label": "Usage Based Subscription Forecasting",
       "description": "Developed AI-enhanced usage-based forecasting models to optimize subscription pricing and renewals, adding $5M in recurring revenue",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
@@ -3499,7 +3499,7 @@
     {
       "node_id": "skill_revops_sales_forecasting_frameworks",
       "node_type": "skill_row",
-      "label": "sales_forecasting_frameworks",
+      "label": "Sales Forecasting Frameworks",
       "description": "Implemented robust sales forecasting frameworks, harmonizing CRM data with executive insights to drive accurate revenue projections",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -3580,7 +3580,7 @@
     {
       "node_id": "skill_revops_multi_channel_gtm_alignment",
       "node_type": "skill_row",
-      "label": "multi_channel_gtm_alignment",
+      "label": "Multi Channel GTM Alignment",
       "description": "Architected multi-channel GTM strategies, aligning marketing, product, and sales to expand market share and increase ARR",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -3662,7 +3662,7 @@
     {
       "node_id": "skill_sales_modernization_deals_15m",
       "node_type": "skill_row",
-      "label": "modernization_deals_15m",
+      "label": "Modernization Deals 15m",
       "description": "Closed multi-year modernization deals exceeding $15M by demonstrating ROI on HPC simulations for stress testing and cutting scenario runtimes by 40%.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
@@ -3691,7 +3691,7 @@
     {
       "node_id": "skill_sales_global_financial_institutions_leadership",
       "node_type": "skill_row",
-      "label": "global_financial_institutions_sales_leadership",
+      "label": "Global Financial Institutions Sales Leadership",
       "description": "Oversaw strategic sales engagements for top-tier financial institutions across EMEA, APAC, and North America, guiding a 20-member distributed sales team",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
@@ -3720,7 +3720,7 @@
     {
       "node_id": "skill_partner_ibm_aws_alliance_joint_revenue",
       "node_type": "skill_row",
-      "label": "ibm_aws_alliance_joint_revenue",
+      "label": "IBM AWS Alliance Joint Revenue",
       "description": "Held executive responsibility for expanding AI and cloud-focused revenue streams within the IBM–AWS alliance for financial services and designed AI-driven sales frameworks that boosted joint revenue by 20%",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
@@ -3749,7 +3749,7 @@
     {
       "node_id": "skill_partner_cloud_vendor_joint_gtm",
       "node_type": "skill_row",
-      "label": "cloud_vendor_joint_gtm",
+      "label": "Cloud Vendor Joint GTM",
       "description": "Forged relationships with leading cloud and AI vendors, combining market influence with innovative solution roadmaps",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -3812,7 +3812,7 @@
       "node_id": "skill_partner_hyperscaler_cosell",
       "node_type": "skill",
       "pillar": "pillar_hyperscaler_marketplace_partner_gtm",
-      "label": "Hyperscaler Co-Sell Motion",
+      "label": "Hyperscaler Cosell",
       "description": "Held executive responsibility for expanding AI and cloud-focused revenue streams within the IBM-AWS alliance for financial services and designed AI-driven sales frameworks that boosted joint revenue by 20%.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -3874,7 +3874,7 @@
       "node_id": "skill_partner_presales_sa_support",
       "node_type": "skill",
       "pillar": "pillar_presales_solutioning",
-      "label": "Partner Pre-Sales SA Support",
+      "label": "Partner Presales Sa Support",
       "description": "Gave partner sales teams pre-sales technical support, turning solution architecture for AI, data, and cloud into executive value propositions with measurable ROI.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -3997,7 +3997,7 @@
       "node_id": "skill_partner_ai_architecture_advisory",
       "node_type": "skill",
       "pillar": "pillar_applied_ai_partner_architecture",
-      "label": "AI Architecture Advisory to Partners",
+      "label": "AI Architecture Advisory",
       "description": "Advised partners on AI architecture by shaping solution roadmaps with cloud and AI vendors, helping enterprises adopt advanced analytics and platform services with a clearer technical path.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -4026,7 +4026,7 @@
     {
       "node_id": "skill_finance_cost_optimization_dashboards",
       "node_type": "skill_row",
-      "label": "finance_cost_optimization_dashboards",
+      "label": "Finance Cost Optimization Dashboards",
       "description": "Deployed transparent budget dashboards and microservices to reallocate underused resources and drive 30% cost optimization for senior finance teams",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
@@ -4055,7 +4055,7 @@
     {
       "node_id": "skill_finance_ma_synergy_due_diligence",
       "node_type": "skill_row",
-      "label": "ma_synergy_due_diligence",
+      "label": "Ma Synergy Due Diligence",
       "description": "Conducted preliminary M&A due diligence and developed synergy models to quantify technology integration costs and revenue opportunities",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
@@ -4084,7 +4084,7 @@
     {
       "node_id": "skill_customer_nrr_predictive_analytics_20pct",
       "node_type": "skill_row",
-      "label": "net_revenue_retention_predictive_analytics",
+      "label": "Net Revenue Retention Predictive Analytics",
       "description": "Enhanced Net Revenue Retention by 20%: Introduced predictive analytics for early risk detection and built strategic alliances with professional services and technology firms",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -4116,7 +4116,7 @@
     {
       "node_id": "skill_customer_satisfaction_nps_25pct",
       "node_type": "skill_row",
-      "label": "customer_satisfaction_nps_program",
+      "label": "Customer Satisfaction NPS Program",
       "description": "Increased Customer Satisfaction by 25%: Integrated anomaly detection with a structured NPS feedback process",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -4148,7 +4148,7 @@
     {
       "node_id": "skill_commercial_board_level_stakeholder_alignment",
       "node_type": "skill_row",
-      "label": "board_level_stakeholder_alignment",
+      "label": "Board Level Stakeholder Alignment",
       "description": "aligning C level stakeholders around data centric solutions",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -4230,7 +4230,7 @@
     {
       "node_id": "skill_commercial_gtm_investment_pipeline",
       "node_type": "skill_row",
-      "label": "gtm_investment_pipeline_decisions",
+      "label": "GTM Investment Pipeline Decisions",
       "description": "maintaining a forecast pipeline in Salesforce that drove $10M in net-new revenue and informed go-to-market investment decisions",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -4312,7 +4312,7 @@
     {
       "node_id": "skill_p2_gtm_discovery_qualification",
       "node_type": "skill_row",
-      "label": "discovery_qualification",
+      "label": "Discovery Qualification",
       "description": "Designed analytics in Salesforce to prioritize high-potential deals, generating $10M in new annual recurring revenue and refining GTM strategies.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
@@ -4341,7 +4341,7 @@
     {
       "node_id": "skill_p2_gtm_executive_buyer_alignment",
       "node_type": "skill_row",
-      "label": "executive_buyer_alignment",
+      "label": "Executive Buyer Alignment",
       "description": "Drove $5M in annual contract value by aligning generative AI workflows with CFO priorities and facilitating enterprise-wide adoption of data-driven decision-making.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
@@ -4370,7 +4370,7 @@
     {
       "node_id": "skill_p2_gtm_commercial_validation_pilots",
       "node_type": "skill_row",
-      "label": "commercial_validation_pilots",
+      "label": "Commercial Validation Pilots",
       "description": "validating measurable ROI for clients through pilot engagements",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -4451,7 +4451,7 @@
     {
       "node_id": "skill_p2_gtm_presales_delivery_handoff",
       "node_type": "skill_row",
-      "label": "presales_to_delivery_handoff",
+      "label": "Presales to Delivery Handoff",
       "description": "converting bespoke client delivery into reusable IP deployed across enterprise lines of business",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -4533,7 +4533,7 @@
     {
       "node_id": "skill_p2_tech_reference_architecture",
       "node_type": "skill_row",
-      "label": "reference_architecture_industry_solutions",
+      "label": "Reference Architecture Industry Solutions",
       "description": "Developed industry-specific AI, analytics, and cloud modernization solutions across financial-services risk, compliance, fraud, and regulatory use cases.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
@@ -4562,7 +4562,7 @@
     {
       "node_id": "skill_p2_tech_devops_pipeline_blueprint",
       "node_type": "skill_row",
-      "label": "devops_pipeline_cicd_blueprint",
+      "label": "Devops Pipeline CI/CD Blueprint",
       "description": "Strengthened enterprise retrieval quality, context assembly, evaluation gates, telemetry instrumentation, rollback controls, and AI CI/CD standards",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
@@ -4591,7 +4591,7 @@
     {
       "node_id": "skill_p2_tech_demoable_accelerator",
       "node_type": "skill_row",
-      "label": "demoable_solution_accelerator",
+      "label": "Demoable Solution Accelerator",
       "description": "commercialization of a production-grade generative AI Solution Accelerator within a consulting firm",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -4672,7 +4672,7 @@
     {
       "node_id": "skill_p2_tech_reusable_accelerators",
       "node_type": "skill_row",
-      "label": "reusable_implementation_accelerators",
+      "label": "Reusable Implementation Accelerators",
       "description": "Productized core agentic AI primitives into reusable platform services, generating $22M in IP-led revenue",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
@@ -4703,7 +4703,7 @@
     {
       "node_id": "skill_p2_tech_adoption_derisking",
       "node_type": "skill_row",
-      "label": "adoption_derisking_pilots",
+      "label": "Adoption Derisking Pilots",
       "description": "executive workshops, leading to faster adoption across major financial accounts",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -4784,7 +4784,7 @@
     {
       "node_id": "skill_p2_tech_ibm_cloud_portfolio_anchor",
       "node_type": "skill_row",
-      "label": "ibm_cloud_portfolio_architecture_anchor",
+      "label": "IBM Cloud Portfolio Architecture Anchor",
       "description": "Led architecture and commercial ownership of a $30M cloud and AI transformation portfolio",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -4865,7 +4865,7 @@
     {
       "node_id": "skill_sr_insurtech_legacy_cloud_modernization",
       "node_type": "skill_row",
-      "label": "insurtech_legacy_cloud_modernization",
+      "label": "Insurtech Legacy Cloud Modernization",
       "description": "Led end-to-end modernization of monolithic policy administration systems into AWS-based architectures for middle-market insurers (InsurTech CTO).",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -4894,7 +4894,7 @@
     {
       "node_id": "skill_sr_insurtech_regulated_insurer_controls",
       "node_type": "skill_row",
-      "label": "insurtech_regulated_insurer_controls",
+      "label": "Insurtech Regulated Insurer Controls",
       "description": "Designed SOC 2-aligned cloud control frameworks enabling regulated insurers to adopt modern analytics and ML with auditability.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -4923,7 +4923,7 @@
     {
       "node_id": "skill_sr_insurance_systems_resilience_internal",
       "node_type": "skill_row",
-      "label": "insurance_systems_resilience_internal",
+      "label": "Insurance Systems Resilience Internal",
       "description": "Held internal capability candidate for insurance_systems_resilience_internal in epoch_cloud_data_platform_engineering; it cannot support an external claim until its pending-source policy is cleared.",
       "support_level": "INTERNAL_ONLY",
       "visibility_rule": "never_external",
@@ -4957,7 +4957,7 @@
     {
       "node_id": "skill_sr_insurtech_cto_it_enablement",
       "node_type": "skill_row",
-      "label": "insurtech_cto_it_enablement",
+      "label": "Insurtech CTO IT Enablement",
       "description": "Founded and led a cloud-native engineering firm modernizing legacy insurance technology stacks for middle-market insurers.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -4986,7 +4986,7 @@
     {
       "node_id": "skill_sr_cloud_data_platform_engineering",
       "node_type": "skill_row",
-      "label": "cloud_data_platform_engineering",
+      "label": "Cloud Data Platform Engineering",
       "description": "Cloud-native architectures and platform engineering for regulated financial services clients.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
@@ -5015,7 +5015,7 @@
     {
       "node_id": "skill_sr_enterprise_portfolio_data_governance",
       "node_type": "skill_row",
-      "label": "enterprise_portfolio_data_governance",
+      "label": "Enterprise Portfolio Data Governance",
       "description": "Defined documentation standards and centralized data catalogs that expedited audits.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
@@ -5044,7 +5044,7 @@
     {
       "node_id": "skill_sr_basel_ccar_lineage_regulatory",
       "node_type": "skill_row",
-      "label": "basel_ccar_lineage_regulatory",
+      "label": "Basel CCAR Lineage Regulatory",
       "description": "Implemented Basel III / CCAR data lineage, cataloging, and automated validation frameworks.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
@@ -5073,7 +5073,7 @@
     {
       "node_id": "skill_sr_banking_ai_governance_controls",
       "node_type": "skill_row",
-      "label": "banking_ai_governance_controls",
+      "label": "Banking AI Governance Controls",
       "description": "Enterprise AI rollout for a major banking client with data usage controls and compliance checkpoints.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
@@ -5102,7 +5102,7 @@
     {
       "node_id": "skill_sr_regulated_financial_institutions_fluency",
       "node_type": "skill_row",
-      "label": "regulated_financial_institutions_fluency",
+      "label": "Regulated Financial Institutions Fluency",
       "description": "Regulatory IT transformations for top banks and insurers with Basel and CCAR compliance emphasis.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -5192,7 +5192,7 @@
     {
       "node_id": "skill_sr_microservices_integration_platform",
       "node_type": "skill_row",
-      "label": "microservices_integration_platform",
+      "label": "Microservices Integration Platform",
       "description": "Migrated monolithic systems to cloud-native microservices for high availability and integration.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
@@ -5221,7 +5221,7 @@
     {
       "node_id": "skill_sr_w12_databricks_lakehouse_fundamentals",
       "node_type": "skill_row",
-      "label": "databricks_lakehouse_fundamentals",
+      "label": "Databricks Lakehouse Fundamentals",
       "description": "Databricks Lakehouse Fundamentals Accreditation (2023); AWS/Databricks lakehouse architecture in platform engineering.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -5250,7 +5250,7 @@
     {
       "node_id": "skill_sr_w12_hyperscaler_alliance_co_sell",
       "node_type": "skill_row",
-      "label": "hyperscaler_alliance_co_sell",
+      "label": "Hyperscaler Alliance Co Sell",
       "description": "Structured multi-year hyperscaler alliances generating $15M in incremental revenue through co-sell motions aligned to platform modernization and AI growth.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -5279,7 +5279,7 @@
     {
       "node_id": "skill_sr_w12_joint_ai_solution_development",
       "node_type": "skill_row",
-      "label": "joint_ai_solution_development",
+      "label": "Joint AI Solution Development",
       "description": "Co-developing advanced analytics frameworks with strategic partners.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -5308,7 +5308,7 @@
     {
       "node_id": "skill_sr_w12_industry_reference_architecture",
       "node_type": "skill_row",
-      "label": "industry_reference_architecture_partner",
+      "label": "Industry Reference Architecture Partner",
       "description": "Industry Solutions archive: reference architectures and regulated modernization patterns (complements skill_p2_tech_reference_architecture).",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -8626,7 +8626,7 @@
     {
       "node_id": "skill_ibm_automated_release_pipelines",
       "node_type": "skill_row",
-      "label": "automated_release_pipelines",
+      "label": "Automated Release Pipelines",
       "description": "IBM-employer-bound skill: automated_release_pipelines. Employer: IBM | Time window: 2017-04 to 2022-10 | Source: archive wave ibm_graph_promotion_wave_2026-05-28.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -8661,7 +8661,7 @@
     {
       "node_id": "skill_ibm_devsecops_pipeline_security",
       "node_type": "skill_row",
-      "label": "devsecops_pipeline_security",
+      "label": "DevSecOps Pipeline Security",
       "description": "IBM-employer-bound skill: devsecops_pipeline_security. Employer: IBM | Time window: 2017-04 to 2022-10 | Source: archive wave ibm_graph_promotion_wave_2026-05-28.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -8696,7 +8696,7 @@
     {
       "node_id": "skill_ibm_metadata_audit_rbac",
       "node_type": "skill_row",
-      "label": "metadata_audit_rbac_governance",
+      "label": "Metadata Audit Rbac Governance",
       "description": "IBM-employer-bound skill: metadata_audit_rbac_governance. Employer: IBM | Time window: 2017-04 to 2022-10 | Source: archive wave ibm_graph_promotion_wave_2026-05-28.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -8733,7 +8733,7 @@
     {
       "node_id": "skill_ibm_watson_studio_analytics",
       "node_type": "skill_row",
-      "label": "watson_studio_analytics",
+      "label": "Watson Studio Analytics",
       "description": "IBM-employer-bound skill: watson_studio_analytics. Employer: IBM | Time window: 2017-04 to 2022-10 | Source: archive wave ibm_graph_promotion_wave_2026-05-28.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -8762,7 +8762,7 @@
     {
       "node_id": "skill_quant_stochastic_modeling",
       "node_type": "skill_row",
-      "label": "stochastic_modeling",
+      "label": "Pricing Actuarial",
       "description": "Built stochastic models and used rigorous actuarial methods to refine capital models, giving enterprise risk assessments more precise results.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -8791,7 +8791,7 @@
     {
       "node_id": "skill_hpc_valuation_capital_adequacy",
       "node_type": "skill_row",
-      "label": "hpc_valuation_capital_adequacy",
+      "label": "Pricing Actuarial",
       "description": "Supported valuation frameworks run on high-performance computing for scenario testing and capital adequacy, linking HPC infrastructure with core actuarial risk fundamentals.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -8820,7 +8820,7 @@
     {
       "node_id": "skill_insurance_guidewire",
       "node_type": "skill_row",
-      "label": "insurance_core_platform_tooling",
+      "label": "Insurance Core Platform Tooling",
       "description": "EY Insurance Core Modernization skill: insurance core platform tooling.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -8849,7 +8849,7 @@
     {
       "node_id": "skill_insurance_claims_automation",
       "node_type": "skill_row",
-      "label": "claims_process_modernization",
+      "label": "Claims Process Modernization",
       "description": "EY Insurance Core Modernization skill: claims process modernization at the core platform requirements level.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -8878,7 +8878,7 @@
     {
       "node_id": "skill_insurance_policy_administration",
       "node_type": "skill_row",
-      "label": "policy_lifecycle_rules_configuration",
+      "label": "Policy Lifecycle Rules Configuration",
       "description": "EY Insurance Core Modernization skill: policy lifecycle rules configuration.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -8907,7 +8907,7 @@
     {
       "node_id": "skill_cloud_aws_rehosting",
       "node_type": "skill_row",
-      "label": "aws_rehosting",
+      "label": "Pricing Actuarial",
       "description": "InsurTech CTO (2014-2017): first-wave AWS adoption; re-hosted legacy relational databases to AWS for insurance technology platforms.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -8936,7 +8936,7 @@
     {
       "node_id": "skill_insurance_solvency_regimes",
       "node_type": "skill_row",
-      "label": "solvency_regimes",
+      "label": "Regulatory Capital",
       "description": "EY Principal: insurance regulatory IT modernization for Solvency II / AG43 across P&C and life insurers (user-confirmed).",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -8965,7 +8965,7 @@
     {
       "node_id": "skill_risk_three_lines_of_defense",
       "node_type": "skill_row",
-      "label": "three_lines_of_defense",
+      "label": "Regulatory Capital",
       "description": "EY: three-lines-of-defense risk-governance operating models across global financial institutions (user-confirmed).",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -8994,7 +8994,7 @@
     {
       "node_id": "skill_risk_data_aggregation_bcbs239",
       "node_type": "skill_row",
-      "label": "risk_data_aggregation_bcbs239",
+      "label": "Regulatory Capital",
       "description": "BCBS 239-aligned risk-data aggregation: centralized lineage, cataloging, and metadata for consistent, auditable risk metrics (user-confirmed).",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -9024,7 +9024,7 @@
       "node_id": "skill_svp_it_strategy_innovation",
       "node_type": "skill",
       "pillar": "pillar_insurer_it_strategy_ai_enablement",
-      "label": "Svp IT Strategy Innovation",
+      "label": "SVP IT Strategy Innovation",
       "description": "Partnered with C-suite executives and cross-functional leaders to align AI, analytics, cloud, risk, and financial strategies with measurable business outcomes.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
@@ -9058,7 +9058,7 @@
       "node_id": "skill_soc2_zero_trust_security",
       "node_type": "skill",
       "pillar": "pillar_regulatory_governance",
-      "label": "SOC2 Zero Trust Security",
+      "label": "Cloud Security Compliance",
       "description": "Embedded zero-trust security and compliance (SOC2, GDPR, CCPA), enabling sales to Fortune 100 clients",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -9088,7 +9088,7 @@
       "node_id": "skill_confluent_streaming_platforms",
       "node_type": "skill",
       "pillar": "pillar_interoperability_integration_ecosystem",
-      "label": "Confluent Streaming Platforms",
+      "label": "Streaming Data Platforms",
       "description": "integrating CPQ automations with real-time data ingestion, collaborating with Confluent and AWS to unify customer intelligence",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -9120,7 +9120,7 @@
       "node_id": "skill_watson_studio_fraud_aml",
       "node_type": "skill",
       "pillar": "pillar_banking_platform_responsible_ai",
-      "label": "Watson Studio Fraud AML",
+      "label": "Fraud and AML Detection",
       "description": "Utilized Watson Studio for fraud detection and money laundering analytics, ensuring regulatory compliance and operational security",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -9148,7 +9148,7 @@
       "node_id": "skill_finra_sec_regulatory_compliance",
       "node_type": "skill",
       "pillar": "pillar_regulatory_governance",
-      "label": "Finra SEC Regulatory Compliance",
+      "label": "Securities Regulatory Compliance",
       "description": "satisfying rigorous FINRA and SEC mandates",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -9176,7 +9176,7 @@
       "node_id": "skill_credit_adjudication_default_risk",
       "node_type": "skill",
       "pillar": "pillar_risk_management",
-      "label": "Credit Adjudication Default Risk",
+      "label": "Credit Risk and Adjudication",
       "description": "AI-driven credit adjudication project that cut default exposure by 15% through dynamic risk profiling and improved underwriting accuracy",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -10953,7 +10953,7 @@
     {
       "node_id": "skill_insurance_product_rate_rules_configuration",
       "node_type": "skill_row",
-      "label": "product_rate_rules_configuration",
+      "label": "Product Rate Rules Configuration",
       "description": "EY Insurance Core Modernization skill: product rate rules configuration.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
@@ -10982,7 +10982,7 @@
     {
       "node_id": "skill_insurance_billing_rating_underwriting_handoffs",
       "node_type": "skill_row",
-      "label": "billing_rating_underwriting_handoffs",
+      "label": "Billing Rating Underwriting Handoffs",
       "description": "EY Insurance Core Modernization skill: billing rating underwriting handoffs.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
@@ -11011,7 +11011,7 @@
     {
       "node_id": "skill_insurance_core_integration_data_conversion",
       "node_type": "skill_row",
-      "label": "core_integration_data_conversion",
+      "label": "Core Integration Data Conversion",
       "description": "EY Insurance Core Modernization skill: core integration data conversion.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
@@ -11040,7 +11040,7 @@
     {
       "node_id": "skill_insurance_core_to_bi_reporting_handoff",
       "node_type": "skill_row",
-      "label": "core_to_bi_reporting_handoff",
+      "label": "Core to BI Reporting Handoff",
       "description": "EY Insurance Core Modernization skill: core to bi reporting handoff.",
       "support_level": "DERIVED_SUPPORTED",
       "visibility_rule": "role_family_match",
@@ -11141,7 +11141,7 @@
     {
       "node_id": "skill_c03_metric_heterogeneity_selection",
       "node_type": "skill",
-      "label": "metric-heterogeneous graph evidence selection",
+      "label": "C03 Metric Heterogeneity Selection",
       "description": "C0.3 graph selection must vary metric and outcome buckets across resume sections.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "internal_runtime_and_resume_when_fact_backed",
@@ -11173,7 +11173,7 @@
     {
       "node_id": "skill_c03_reverse_traversal_receipts",
       "node_type": "skill",
-      "label": "reverse graph traversal receipts",
+      "label": "C03 Reverse Traversal Receipts",
       "description": "C0.3 graph proof must support forward and reverse traversal receipts.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "internal_runtime_and_resume_when_fact_backed",
@@ -11203,7 +11203,7 @@
     {
       "node_id": "skill_c03_sibling_skill_rejection_reasoning",
       "node_type": "skill",
-      "label": "sibling-skill rejection receipts",
+      "label": "C03 Sibling Skill Rejection Reasoning",
       "description": "C0.3 should record rejected sibling skills and rejection reasons to avoid repeated proof metrics.",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "internal_runtime_and_resume_when_fact_backed",
@@ -12355,7 +12355,7 @@
     {
       "node_id": "skill:c03:agentic_runtime_orchestration",
       "node_type": "skill",
-      "label": "Agentic runtime orchestration",
+      "label": "C03 Agentic Runtime Orchestration",
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W1",
       "metric_bucket": "platform_reliability",
       "capability_domain": "domain_agentic_runtime_governance",
@@ -12394,7 +12394,7 @@
     {
       "node_id": "skill:c03:agentic_policy_gate_design",
       "node_type": "skill",
-      "label": "Agentic policy gate design",
+      "label": "C03 Agentic Policy Gate Design",
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W1",
       "metric_bucket": "risk_control",
       "capability_domain": "domain_agentic_runtime_governance",
@@ -12433,7 +12433,7 @@
     {
       "node_id": "skill:c03:agent_trace_observability",
       "node_type": "skill",
-      "label": "Agent trace observability",
+      "label": "C03 Agent Trace Observability",
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W1",
       "metric_bucket": "operational_resilience",
       "capability_domain": "domain_agentic_runtime_governance",
@@ -12472,7 +12472,7 @@
     {
       "node_id": "skill:c03:graph_retrieval_traversal_design",
       "node_type": "skill",
-      "label": "Graph retrieval traversal design",
+      "label": "C03 Graph Retrieval Traversal Design",
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W1",
       "metric_bucket": "data_lineage",
       "capability_domain": "domain_graph_retrieval_evidence",
@@ -12510,7 +12510,7 @@
     {
       "node_id": "skill:c03:evidence_binding_provenance",
       "node_type": "skill",
-      "label": "Evidence binding provenance",
+      "label": "C03 Evidence Binding Provenance",
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W1",
       "metric_bucket": "compliance_audit",
       "capability_domain": "domain_graph_retrieval_evidence",
@@ -12549,7 +12549,7 @@
     {
       "node_id": "skill:c03:retrieval_quality_guardrails",
       "node_type": "skill",
-      "label": "Retrieval quality guardrails",
+      "label": "C03 Retrieval Quality Guardrails",
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W1",
       "metric_bucket": "quality_accuracy",
       "capability_domain": "domain_graph_retrieval_evidence",
@@ -12583,7 +12583,7 @@
     {
       "node_id": "skill:c03:llm_platform_latency_engineering",
       "node_type": "skill",
-      "label": "LLM platform latency engineering",
+      "label": "C03 LLM Platform Latency Engineering",
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W1",
       "metric_bucket": "latency",
       "capability_domain": "domain_ai_platform_engineering",
@@ -12613,7 +12613,7 @@
     {
       "node_id": "skill:c03:mlops_release_governance",
       "node_type": "skill",
-      "label": "MLOps release governance",
+      "label": "C03 MLOps Release Governance",
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W1",
       "metric_bucket": "delivery_throughput",
       "capability_domain": "domain_ai_platform_engineering",
@@ -12649,7 +12649,7 @@
     {
       "node_id": "skill:c03:data_platform_lineage_architecture",
       "node_type": "skill",
-      "label": "Data platform lineage architecture",
+      "label": "C03 Data Platform Lineage Architecture",
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W1",
       "metric_bucket": "data_lineage",
       "capability_domain": "domain_ai_platform_engineering",
@@ -12687,7 +12687,7 @@
     {
       "node_id": "skill:c03:model_risk_control_design",
       "node_type": "skill",
-      "label": "Model risk control design",
+      "label": "C03 Model Risk Control Design",
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W1",
       "metric_bucket": "risk_control",
       "capability_domain": "domain_regulated_ai_controls",
@@ -12725,7 +12725,7 @@
     {
       "node_id": "skill:c03:actuarial_ai_risk_translation",
       "node_type": "skill",
-      "label": "Actuarial AI risk translation",
+      "label": "C03 Actuarial AI Risk Translation",
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W1",
       "metric_bucket": "governance_maturity",
       "capability_domain": "domain_regulated_ai_controls",
@@ -12759,7 +12759,7 @@
     {
       "node_id": "skill:c03:compliance_audit_readiness",
       "node_type": "skill",
-      "label": "Compliance audit readiness",
+      "label": "C03 Compliance Audit Readiness",
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W1",
       "metric_bucket": "compliance_audit",
       "capability_domain": "domain_regulated_ai_controls",
@@ -12798,7 +12798,7 @@
     {
       "node_id": "skill:c03:hyperscaler_partner_cosell",
       "node_type": "skill",
-      "label": "Hyperscaler partner co-sell",
+      "label": "C03 Hyperscaler Partner Cosell",
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W1",
       "metric_bucket": "partner_gtm",
       "capability_domain": "domain_partner_gtm_commercialization",
@@ -12834,7 +12834,7 @@
     {
       "node_id": "skill:c03:ai_solution_value_story",
       "node_type": "skill",
-      "label": "AI solution value story",
+      "label": "C03 AI Solution Value Story",
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W1",
       "metric_bucket": "revenue_growth",
       "capability_domain": "domain_partner_gtm_commercialization",
@@ -12870,7 +12870,7 @@
     {
       "node_id": "skill:c03:enterprise_adoption_enablement",
       "node_type": "skill",
-      "label": "Enterprise adoption enablement",
+      "label": "C03 Enterprise Adoption Enablement",
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W1",
       "metric_bucket": "adoption",
       "capability_domain": "domain_enterprise_delivery_operating_model",
@@ -12906,7 +12906,7 @@
     {
       "node_id": "skill:c03:delivery_governance_operating_rhythm",
       "node_type": "skill",
-      "label": "Delivery governance operating rhythm",
+      "label": "C03 Delivery Governance Operating Rhythm",
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W1",
       "metric_bucket": "cycle_time",
       "capability_domain": "domain_enterprise_delivery_operating_model",
@@ -12945,7 +12945,7 @@
     {
       "node_id": "skill_meddpicc_sales_qualification",
       "node_type": "skill_row",
-      "label": "MEDDPICC",
+      "label": "Enterprise Deal Qualification",
       "description": "applying MEDDPICC principles to qualify complex opportunities and build consensus among key decision makers",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -12977,7 +12977,7 @@
     {
       "node_id": "skill_cpq_deal_velocity_automation",
       "node_type": "skill_row",
-      "label": "CPQ",
+      "label": "CPQ and Deal Automation",
       "description": "integrating CPQ automations with real-time data ingestion, collaborating with Confluent and AWS to unify customer intelligence across finance, risk, and compliance teams",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -13007,7 +13007,7 @@
     {
       "node_id": "skill_saas_arr_ltv_cac_metrics",
       "node_type": "skill_row",
-      "label": "ARR",
+      "label": "SaaS Growth Metrics",
       "description": "SaaS metric optimization (ARR, churn, LTV/CAC), enterprise data governance — driving recurring revenue growth",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -13039,7 +13039,7 @@
     {
       "node_id": "skill_nps_customer_health_scoring",
       "node_type": "skill_row",
-      "label": "NPS",
+      "label": "Customer Health and Retention",
       "description": "integrated anomaly detection with a structured NPS feedback process that reinforced trust and maximized platform utilization",
       "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "visibility_rule": "role_family_match",
@@ -75136,7 +75136,8 @@
       "narrative_synthesis_guidance": "Synthesize only from linked fact_id_links and approved bundles; skill_id is not proof.",
       "claim_verification_policy": "External resume claims allowed only when external_claim_policy permits and fact_id backs metrics.",
       "zero_hallucination_guardrail": "Do not claim X1 X2 X3 exit control beyond repo evidence and linked facts; fail closed if proof missing.",
-      "career_track_id": "TRACK_GENAI_AGENTIC"
+      "career_track_id": "TRACK_GENAI_AGENTIC",
+      "operator_hold_mode": "INTERNAL_ONLY"
     },
     {
       "skill_id": "skill_llm_judge_packet_design",
@@ -78531,12 +78532,12 @@
       "career_epoch": "epoch_actuarial_financial_engineering",
       "domain_id": "domain_actuarial_foundation",
       "domain": "Actuarial Foundation",
-      "capability": "derivatives_pricing",
+      "capability": "Derivatives Pricing",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "derivatives_pricing"
+        "Derivatives Pricing"
       ],
       "achievement_framing_guidance": "Frame derivatives_pricing with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -78608,12 +78609,12 @@
       "career_epoch": "epoch_actuarial_financial_engineering",
       "domain_id": "domain_actuarial_foundation",
       "domain": "Actuarial Foundation",
-      "capability": "multi_greek_hedging",
+      "capability": "Multi Greek Hedging",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "multi_greek_hedging"
+        "Multi Greek Hedging"
       ],
       "achievement_framing_guidance": "Frame multi_greek_hedging with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -78688,14 +78689,13 @@
       "career_epoch": "epoch_actuarial_financial_engineering",
       "domain_id": "domain_actuarial_foundation",
       "domain": "Actuarial Foundation",
-      "capability": "exotic_options",
+      "capability": "Exotic Options",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
         "derivatives",
-        "exotic options",
-        "exotic_options"
+        "exotic options"
       ],
       "achievement_framing_guidance": "Frame exotic_options with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -78766,13 +78766,12 @@
       "career_epoch": "epoch_actuarial_financial_engineering",
       "domain_id": "domain_actuarial_foundation",
       "domain": "Actuarial Foundation",
-      "capability": "structured_derivatives",
+      "capability": "Structured Derivatives",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "structured derivatives",
-        "structured_derivatives"
+        "structured derivatives"
       ],
       "achievement_framing_guidance": "Frame structured_derivatives with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -78847,13 +78846,12 @@
       "career_epoch": "cross_career",
       "domain_id": "domain_legacy_matrix",
       "domain": "embedded_options",
-      "capability": "embedded_options",
+      "capability": "Embedded Options",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
         "embedded options",
-        "embedded_options",
         "insurance derivatives"
       ],
       "achievement_framing_guidance": "Frame embedded_options with scope, mechanism, and outcome; metrics only from linked fact_id.",
@@ -78926,13 +78924,12 @@
       "career_epoch": "cross_career",
       "domain_id": "domain_legacy_matrix",
       "domain": "insurance_liabilities",
-      "capability": "insurance_liabilities",
+      "capability": "Insurance Liabilities",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
         "insurance liabilities",
-        "insurance_liabilities",
         "policy reserves"
       ],
       "achievement_framing_guidance": "Frame insurance_liabilities with scope, mechanism, and outcome; metrics only from linked fact_id.",
@@ -79433,7 +79430,7 @@
       "fact_id_links": [
         "fact_quant_hpc_001"
       ],
-      "pillar": "pillar_risk_management",
+      "pillar": "pillar_trading_hpc",
       "subpillar": "greek_stress_testing",
       "career_stage": "early_career",
       "source_resume_files": [
@@ -79492,12 +79489,12 @@
       "career_epoch": "epoch_actuarial_financial_engineering",
       "domain_id": "domain_enterprise_risk",
       "domain": "Enterprise Risk",
-      "capability": "greek_stress_testing",
+      "capability": "Greek Stress Testing",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "greek_stress_testing",
+        "Greek Stress Testing",
         "scenario analysis",
         "stress testing"
       ],
@@ -79578,12 +79575,12 @@
       "career_epoch": "epoch_actuarial_financial_engineering",
       "domain_id": "domain_enterprise_risk",
       "domain": "Enterprise Risk",
-      "capability": "capital_modeling",
+      "capability": "Capital Modeling",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "capital_modeling"
+        "Capital Modeling"
       ],
       "achievement_framing_guidance": "Frame capital_modeling with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -79739,12 +79736,12 @@
       "career_epoch": "epoch_actuarial_financial_engineering",
       "domain_id": "domain_enterprise_risk",
       "domain": "Enterprise Risk",
-      "capability": "pricing_actuarial",
+      "capability": "Pricing Actuarial",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "pricing_actuarial"
+        "Pricing Actuarial"
       ],
       "achievement_framing_guidance": "Frame pricing_actuarial with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -79817,12 +79814,12 @@
       "career_epoch": "epoch_actuarial_financial_engineering",
       "domain_id": "domain_actuarial_foundation",
       "domain": "Actuarial Foundation",
-      "capability": "fsa_fellowship",
+      "capability": "FSA Fellowship",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "fsa_fellowship"
+        "FSA Fellowship"
       ],
       "achievement_framing_guidance": "Frame fsa_fellowship with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -79895,13 +79892,12 @@
       "career_epoch": "epoch_actuarial_financial_engineering",
       "domain_id": "domain_actuarial_foundation",
       "domain": "Actuarial Foundation",
-      "capability": "actuarial_software",
+      "capability": "Actuarial Software",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
         "actuarial software",
-        "actuarial_software",
         "insurance"
       ],
       "achievement_framing_guidance": "Frame actuarial_software with scope, mechanism, and outcome; metrics only from linked fact_id.",
@@ -79927,9 +79923,12 @@
     {
       "skill_id": "skill_risk_enterprise_risk_controls",
       "fact_id_links": [
-        "fact_governance_001"
+        "fact_governance_001",
+        "fact_solvency_001",
+        "fact_three_lines_001",
+        "fact_bcbs239_001"
       ],
-      "pillar": "pillar_risk_management",
+      "pillar": "pillar_enterprise_risk_controls",
       "subpillar": "enterprise_risk_controls",
       "career_stage": "cross_career",
       "source_resume_files": [
@@ -79938,8 +79937,8 @@
       "source_snippets": [
         "data usage controls and compliance checkpoints"
       ],
-      "user_confirmed": false,
-      "support_level": "BUNDLE_SUPPORTED",
+      "user_confirmed": true,
+      "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
       "role_family_weights": {
         "AI_GOVERNANCE_RISK": 1.0
       },
@@ -79954,19 +79953,19 @@
       ],
       "visibility_rule": "role_family_match",
       "evidence_risk": "medium",
-      "activation_status": "ACTIVE",
+      "activation_status": "ACTIVE_CONFIRMED",
       "human_confirmation_required": false,
-      "external_claim_policy": "external_resume_claim_requires_active_fact_or_confirmed_snippet",
+      "external_claim_policy": "atomic_fact_default_external_proof",
       "projection_behavior": "rank_and_project_facts",
       "career_epoch": "epoch_actuarial_financial_engineering",
       "domain_id": "domain_enterprise_risk",
       "domain": "Enterprise Risk",
-      "capability": "enterprise_risk_controls",
+      "capability": "Enterprise Risk Management (ERM) Controls",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "enterprise_risk_controls"
+        "Enterprise Risk Controls"
       ],
       "achievement_framing_guidance": "Frame enterprise_risk_controls with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -79974,7 +79973,7 @@
       "claim_verification_policy": "External resume claims allowed only when external_claim_policy permits and fact_id backs metrics.",
       "zero_hallucination_guardrail": "Do not claim enterprise_risk_controls beyond repo evidence and linked facts; fail closed if proof missing.",
       "career_track_id": "TRACK_ACTUARIAL_RISK_DERIVATIVES",
-      "confidence_grade": "BLOCKED",
+      "confidence_grade": "HIGH",
       "confidence_grade_derived": "BLOCKED",
       "graph_hop_path": [
         "track_actuarial_risk_derivatives",
@@ -79986,7 +79985,9 @@
         "fact_governance_001": "primary"
       },
       "source_ledger_ref": "fact_governance_001",
-      "retrieval_eligible": true
+      "retrieval_eligible": true,
+      "confidence": "HIGH",
+      "operator_hygiene_decision": "PROMOTE_EXTERNAL"
     },
     {
       "skill_id": "skill_risk_model_risk",
@@ -80037,12 +80038,12 @@
       "career_epoch": "epoch_actuarial_financial_engineering",
       "domain_id": "domain_enterprise_risk",
       "domain": "Enterprise Risk",
-      "capability": "model_risk",
+      "capability": "Model Risk",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "model_risk"
+        "Model Risk"
       ],
       "achievement_framing_guidance": "Frame model_risk with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -80115,12 +80116,12 @@
       "career_epoch": "epoch_actuarial_financial_engineering",
       "domain_id": "domain_enterprise_risk",
       "domain": "Enterprise Risk",
-      "capability": "regulatory_capital",
+      "capability": "Regulatory Capital",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "regulatory_capital"
+        "Regulatory Capital"
       ],
       "achievement_framing_guidance": "Frame regulatory_capital with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -80184,12 +80185,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_partner_gtm",
       "domain": "Partner GTM",
-      "capability": "aws_ecosystem",
+      "capability": "AWS Ecosystem",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "aws_ecosystem"
+        "AWS Ecosystem"
       ],
       "achievement_framing_guidance": "Frame aws_ecosystem with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -80266,12 +80267,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_partner_gtm",
       "domain": "Partner GTM",
-      "capability": "cloud_partner_ecosystem",
+      "capability": "Cloud Partner Ecosystem",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "cloud_partner_ecosystem"
+        "Cloud Partner Ecosystem"
       ],
       "achievement_framing_guidance": "Frame cloud_partner_ecosystem with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -80343,12 +80344,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_partner_gtm",
       "domain": "Partner GTM",
-      "capability": "partner_motions",
+      "capability": "Partner Motions",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "partner_motions"
+        "Partner Motions"
       ],
       "achievement_framing_guidance": "Frame partner_motions with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -80422,12 +80423,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_partner_gtm",
       "domain": "Partner GTM",
-      "capability": "co_selling",
+      "capability": "Co Selling",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "co_selling"
+        "Co Selling"
       ],
       "achievement_framing_guidance": "Frame co_selling with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -80488,14 +80489,14 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_partner_gtm",
       "domain": "Partner GTM",
-      "capability": "partner_engineering",
+      "capability": "Partner Engineering",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
         "co-selling",
         "partner enablement",
-        "partner_engineering"
+        "Partner Engineering"
       ],
       "achievement_framing_guidance": "Frame partner_engineering with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -80553,12 +80554,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_partner_gtm",
       "domain": "Partner GTM",
-      "capability": "pre_sales",
+      "capability": "Pre Sales",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "pre_sales"
+        "Pre Sales"
       ],
       "achievement_framing_guidance": "Frame pre_sales with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -80631,12 +80632,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_partner_gtm",
       "domain": "Partner GTM",
-      "capability": "solution_architecture",
+      "capability": "Solution Architecture",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "solution_architecture"
+        "Solution Architecture"
       ],
       "achievement_framing_guidance": "Frame solution_architecture with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -80777,12 +80778,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_partner_gtm",
       "domain": "Partner GTM",
-      "capability": "customer_deal_support",
+      "capability": "Customer Deal Support",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "customer_deal_support"
+        "Customer Deal Support"
       ],
       "achievement_framing_guidance": "Frame customer_deal_support with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -80850,12 +80851,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_partner_gtm",
       "domain": "Partner GTM",
-      "capability": "enterprise_negotiations",
+      "capability": "Enterprise Negotiations",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "enterprise_negotiations"
+        "Enterprise Negotiations"
       ],
       "achievement_framing_guidance": "Frame enterprise_negotiations with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -80924,12 +80925,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_partner_gtm",
       "domain": "Partner GTM",
-      "capability": "sales_revenue_targets",
+      "capability": "Sales Revenue Targets",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "sales_revenue_targets"
+        "Sales Revenue Targets"
       ],
       "achievement_framing_guidance": "Frame sales_revenue_targets with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -80989,12 +80990,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_partner_gtm",
       "domain": "Partner GTM",
-      "capability": "gtm_enablement",
+      "capability": "GTM Enablement",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "gtm_enablement"
+        "GTM Enablement"
       ],
       "achievement_framing_guidance": "Frame gtm_enablement with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -81066,12 +81067,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_partner_gtm",
       "domain": "Partner GTM",
-      "capability": "partner_led_ai_solutions",
+      "capability": "Partner Led AI Solutions",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "partner_led_ai_solutions"
+        "Partner Led AI Solutions"
       ],
       "achievement_framing_guidance": "Frame partner_led_ai_solutions with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -81132,13 +81133,13 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_partner_gtm",
       "domain": "Partner GTM",
-      "capability": "product_feedback_loops",
+      "capability": "Product Feedback Loops",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
         "partner feedback",
-        "product_feedback_loops"
+        "Product Feedback Loops"
       ],
       "achievement_framing_guidance": "Frame product_feedback_loops with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -81193,12 +81194,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_partner_gtm",
       "domain": "Partner GTM",
-      "capability": "pnl_oversight",
+      "capability": "P&L Oversight",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "pnl_oversight"
+        "P&L Oversight"
       ],
       "achievement_framing_guidance": "Frame pnl_oversight with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -81268,12 +81269,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_partner_gtm",
       "domain": "Partner GTM",
-      "capability": "partner_revenue_3m",
+      "capability": "Partner Revenue 3m",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "partner_revenue_3m"
+        "Partner Revenue 3m"
       ],
       "achievement_framing_guidance": "Frame partner_revenue_3m with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -81347,12 +81348,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_revenue_operations",
       "domain": "Revenue Operations",
-      "capability": "salesforce_pipeline_analytics",
+      "capability": "Salesforce Pipeline Analytics",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "salesforce_pipeline_analytics"
+        "Salesforce Pipeline Analytics"
       ],
       "achievement_framing_guidance": "Frame salesforce_pipeline_analytics with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -81412,12 +81413,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_revenue_operations",
       "domain": "Revenue Operations",
-      "capability": "salesforce_forecast_pipeline",
+      "capability": "Salesforce Forecast Pipeline",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "salesforce_forecast_pipeline"
+        "Salesforce Forecast Pipeline"
       ],
       "achievement_framing_guidance": "Frame salesforce_forecast_pipeline with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -81480,12 +81481,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_revenue_operations",
       "domain": "Revenue Operations",
-      "capability": "usage_based_subscription_forecasting",
+      "capability": "Usage Based Subscription Forecasting",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "usage_based_subscription_forecasting"
+        "Usage Based Subscription Forecasting"
       ],
       "achievement_framing_guidance": "Frame usage_based_subscription_forecasting with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -81547,12 +81548,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_revenue_operations",
       "domain": "Revenue Operations",
-      "capability": "sales_forecasting_frameworks",
+      "capability": "Sales Forecasting Frameworks",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "sales_forecasting_frameworks"
+        "Sales Forecasting Frameworks"
       ],
       "achievement_framing_guidance": "Frame sales_forecasting_frameworks with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -81626,12 +81627,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_revenue_operations",
       "domain": "Revenue Operations",
-      "capability": "multi_channel_gtm_alignment",
+      "capability": "Multi Channel GTM Alignment",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "multi_channel_gtm_alignment"
+        "Multi Channel GTM Alignment"
       ],
       "achievement_framing_guidance": "Frame multi_channel_gtm_alignment with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -81705,12 +81706,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_commercial_expansion",
       "domain": "Commercial Expansion",
-      "capability": "modernization_deals_15m",
+      "capability": "Modernization Deals 15m",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "modernization_deals_15m"
+        "Modernization Deals 15m"
       ],
       "achievement_framing_guidance": "Frame modernization_deals_15m with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -81777,12 +81778,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_commercial_expansion",
       "domain": "Commercial Expansion",
-      "capability": "global_financial_institutions_sales_leadership",
+      "capability": "Global Financial Institutions Sales Leadership",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "global_financial_institutions_sales_leadership"
+        "Global Financial Institutions Sales Leadership"
       ],
       "achievement_framing_guidance": "Frame global_financial_institutions_sales_leadership with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -81846,12 +81847,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_commercial_expansion",
       "domain": "Commercial Expansion",
-      "capability": "ibm_aws_alliance_joint_revenue",
+      "capability": "IBM AWS Alliance Joint Revenue",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "ibm_aws_alliance_joint_revenue"
+        "IBM AWS Alliance Joint Revenue"
       ],
       "achievement_framing_guidance": "Frame ibm_aws_alliance_joint_revenue with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -81927,12 +81928,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_commercial_expansion",
       "domain": "Commercial Expansion",
-      "capability": "cloud_vendor_joint_gtm",
+      "capability": "Cloud Vendor Joint GTM",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "cloud_vendor_joint_gtm"
+        "Cloud Vendor Joint GTM"
       ],
       "achievement_framing_guidance": "Frame cloud_vendor_joint_gtm with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -82020,7 +82021,7 @@
         "Deloitte",
         "Infosys"
       ],
-      "capability": "gsi_partner_enablement",
+      "capability": "GSI Partner Enablement",
       "ats_keywords": [
         "global AI channel program",
         "partner enablement",
@@ -82102,7 +82103,7 @@
         "co-sell credits",
         "cloud marketplace listing"
       ],
-      "capability": "hyperscaler_cosell",
+      "capability": "Hyperscaler Cosell",
       "ats_keywords": [
         "IBM-AWS alliance",
         "hyperscaler co-sell",
@@ -82179,7 +82180,7 @@
         "Anthropic reference architecture",
         "formal certification path"
       ],
-      "capability": "joint_solution_development",
+      "capability": "Joint Solution Development",
       "ats_keywords": [
         "co-developing analytics frameworks",
         "joint solution development",
@@ -82257,7 +82258,7 @@
         "managed Partner SA team",
         "quota-carrying partner SE team"
       ],
-      "capability": "partner_presales_sa_support",
+      "capability": "Partner Presales Sa Support",
       "ats_keywords": [
         "solution architecture",
         "pre-sales technical support",
@@ -82338,7 +82339,7 @@
         "partner attach rates",
         "reseller margin program"
       ],
-      "capability": "indirect_revenue_models",
+      "capability": "Indirect Revenue Models",
       "ats_keywords": [
         "partner-derived revenue",
         "channel program",
@@ -82415,7 +82416,7 @@
         "MDF allocation",
         "formal partner QBR ownership"
       ],
-      "capability": "alliance_gtm_execution",
+      "capability": "Alliance GTM Execution",
       "ats_keywords": [
         "joint go-to-market strategies",
         "cloud and AI vendors",
@@ -82491,7 +82492,7 @@
         "certification tracks",
         "enablement portal ownership"
       ],
-      "capability": "partner_enablement_training",
+      "capability": "Partner Enablement Training",
       "ats_keywords": [
         "global AI channel program",
         "partner enablement training",
@@ -82567,7 +82568,7 @@
         "validated Anthropic reference designs",
         "Claude deployment owner"
       ],
-      "capability": "ai_architecture_advisory",
+      "capability": "AI Architecture Advisory",
       "ats_keywords": [
         "AI architecture advisory",
         "solution roadmaps",
@@ -82634,12 +82635,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_commercial_expansion",
       "domain": "Commercial Expansion",
-      "capability": "finance_cost_optimization_dashboards",
+      "capability": "Finance Cost Optimization Dashboards",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "finance_cost_optimization_dashboards"
+        "Finance Cost Optimization Dashboards"
       ],
       "achievement_framing_guidance": "Frame finance_cost_optimization_dashboards with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -82699,12 +82700,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_commercial_expansion",
       "domain": "Commercial Expansion",
-      "capability": "ma_synergy_due_diligence",
+      "capability": "Ma Synergy Due Diligence",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "ma_synergy_due_diligence"
+        "Ma Synergy Due Diligence"
       ],
       "achievement_framing_guidance": "Frame ma_synergy_due_diligence with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -82775,12 +82776,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_commercial_expansion",
       "domain": "Commercial Expansion",
-      "capability": "net_revenue_retention_predictive_analytics",
+      "capability": "Net Revenue Retention Predictive Analytics",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "net_revenue_retention_predictive_analytics"
+        "Net Revenue Retention Predictive Analytics"
       ],
       "achievement_framing_guidance": "Frame net_revenue_retention_predictive_analytics with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -82848,12 +82849,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_commercial_expansion",
       "domain": "Commercial Expansion",
-      "capability": "customer_satisfaction_nps_program",
+      "capability": "Customer Satisfaction NPS Program",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "customer_satisfaction_nps_program"
+        "Customer Satisfaction NPS Program"
       ],
       "achievement_framing_guidance": "Frame customer_satisfaction_nps_program with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -82912,12 +82913,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_commercial_expansion",
       "domain": "Commercial Expansion",
-      "capability": "board_level_stakeholder_alignment",
+      "capability": "Board Level Stakeholder Alignment",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "board_level_stakeholder_alignment"
+        "Board Level Stakeholder Alignment"
       ],
       "achievement_framing_guidance": "Frame board_level_stakeholder_alignment with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -82989,12 +82990,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_commercial_expansion",
       "domain": "Commercial Expansion",
-      "capability": "gtm_investment_pipeline_decisions",
+      "capability": "GTM Investment Pipeline Decisions",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "gtm_investment_pipeline_decisions"
+        "GTM Investment Pipeline Decisions"
       ],
       "achievement_framing_guidance": "Frame gtm_investment_pipeline_decisions with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -83065,12 +83066,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_gtm_presales_motion",
       "domain": "Phase 2 GTM / Pre-Sales",
-      "capability": "discovery_qualification",
+      "capability": "Discovery Qualification",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "discovery_qualification"
+        "Discovery Qualification"
       ],
       "achievement_framing_guidance": "Frame discovery_qualification with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -83131,12 +83132,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_gtm_presales_motion",
       "domain": "Phase 2 GTM / Pre-Sales",
-      "capability": "executive_buyer_alignment",
+      "capability": "Executive Buyer Alignment",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "executive_buyer_alignment"
+        "Executive Buyer Alignment"
       ],
       "achievement_framing_guidance": "Frame executive_buyer_alignment with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -83197,12 +83198,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_gtm_presales_motion",
       "domain": "Phase 2 GTM / Pre-Sales",
-      "capability": "commercial_validation_pilots",
+      "capability": "Commercial Validation Pilots",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "commercial_validation_pilots"
+        "Commercial Validation Pilots"
       ],
       "achievement_framing_guidance": "Frame commercial_validation_pilots with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -83274,12 +83275,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_gtm_presales_motion",
       "domain": "Phase 2 GTM / Pre-Sales",
-      "capability": "presales_to_delivery_handoff",
+      "capability": "Presales to Delivery Handoff",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "presales_to_delivery_handoff"
+        "Presales to Delivery Handoff"
       ],
       "achievement_framing_guidance": "Frame presales_to_delivery_handoff with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -83351,12 +83352,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_phase2_technical_presales",
       "domain": "Phase 2 Technical Pre-Sales Accelerators",
-      "capability": "reference_architecture_industry_solutions",
+      "capability": "Reference Architecture Industry Solutions",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "reference_architecture_industry_solutions"
+        "Reference Architecture Industry Solutions"
       ],
       "achievement_framing_guidance": "Frame reference_architecture_industry_solutions with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -83417,12 +83418,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_phase2_technical_presales",
       "domain": "Phase 2 Technical Pre-Sales Accelerators",
-      "capability": "devops_pipeline_cicd_blueprint",
+      "capability": "Devops Pipeline CI/CD Blueprint",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "devops_pipeline_cicd_blueprint"
+        "Devops Pipeline CI/CD Blueprint"
       ],
       "achievement_framing_guidance": "Frame devops_pipeline_cicd_blueprint with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -83482,12 +83483,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_phase2_technical_presales",
       "domain": "Phase 2 Technical Pre-Sales Accelerators",
-      "capability": "demoable_solution_accelerator",
+      "capability": "Demoable Solution Accelerator",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "demoable_solution_accelerator"
+        "Demoable Solution Accelerator"
       ],
       "achievement_framing_guidance": "Frame demoable_solution_accelerator with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -83559,12 +83560,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_phase2_technical_presales",
       "domain": "Phase 2 Technical Pre-Sales Accelerators",
-      "capability": "reusable_implementation_accelerators",
+      "capability": "Reusable Implementation Accelerators",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "reusable_implementation_accelerators"
+        "Reusable Implementation Accelerators"
       ],
       "achievement_framing_guidance": "Frame reusable_implementation_accelerators with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -83624,12 +83625,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_phase2_technical_presales",
       "domain": "Phase 2 Technical Pre-Sales Accelerators",
-      "capability": "adoption_derisking_pilots",
+      "capability": "Adoption Derisking Pilots",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "adoption_derisking_pilots"
+        "Adoption Derisking Pilots"
       ],
       "achievement_framing_guidance": "Frame adoption_derisking_pilots with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -83700,12 +83701,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_phase2_technical_presales",
       "domain": "Phase 2 Technical Pre-Sales Accelerators",
-      "capability": "ibm_cloud_portfolio_architecture_anchor",
+      "capability": "IBM Cloud Portfolio Architecture Anchor",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "ibm_cloud_portfolio_architecture_anchor"
+        "IBM Cloud Portfolio Architecture Anchor"
       ],
       "achievement_framing_guidance": "Frame ibm_cloud_portfolio_architecture_anchor with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -83779,12 +83780,12 @@
       "career_epoch": "epoch_cloud_data_platform_engineering",
       "domain_id": "domain_senior_role_w8_w11",
       "domain": "Senior Role W8–W11 Graph",
-      "capability": "insurtech_legacy_cloud_modernization",
+      "capability": "Insurtech Legacy Cloud Modernization",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "insurtech_legacy_cloud_modernization"
+        "Insurtech Legacy Cloud Modernization"
       ],
       "achievement_framing_guidance": "Frame insurtech_legacy_cloud_modernization with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -83846,12 +83847,12 @@
       "career_epoch": "epoch_cloud_data_platform_engineering",
       "domain_id": "domain_senior_role_w8_w11",
       "domain": "Senior Role W8–W11 Graph",
-      "capability": "insurtech_regulated_insurer_controls",
+      "capability": "Insurtech Regulated Insurer Controls",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "insurtech_regulated_insurer_controls"
+        "Insurtech Regulated Insurer Controls"
       ],
       "achievement_framing_guidance": "Frame insurtech_regulated_insurer_controls with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -83910,13 +83911,13 @@
       "career_epoch": "epoch_cloud_data_platform_engineering",
       "domain_id": "domain_senior_role_w8_w11",
       "domain": "Senior Role W8–W11 Graph",
-      "capability": "insurance_systems_resilience_internal",
+      "capability": "Insurance Systems Resilience Internal",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
         "insurance",
-        "insurance_systems_resilience_internal",
+        "Insurance Systems Resilience Internal",
         "operational resilience"
       ],
       "achievement_framing_guidance": "Frame insurance_systems_resilience_internal with scope, mechanism, and outcome; metrics only from linked fact_id.",
@@ -83985,12 +83986,12 @@
       "career_epoch": "epoch_cloud_data_platform_engineering",
       "domain_id": "domain_senior_role_w8_w11",
       "domain": "Senior Role W8–W11 Graph",
-      "capability": "insurtech_cto_it_enablement",
+      "capability": "Insurtech CTO IT Enablement",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "insurtech_cto_it_enablement"
+        "Insurtech CTO IT Enablement"
       ],
       "achievement_framing_guidance": "Frame insurtech_cto_it_enablement with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -84050,12 +84051,12 @@
       "career_epoch": "epoch_cloud_data_platform_engineering",
       "domain_id": "domain_senior_role_w8_w11",
       "domain": "Senior Role W8–W11 Graph",
-      "capability": "cloud_data_platform_engineering",
+      "capability": "Cloud Data Platform Engineering",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "cloud_data_platform_engineering"
+        "Cloud Data Platform Engineering"
       ],
       "achievement_framing_guidance": "Frame cloud_data_platform_engineering with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -84116,12 +84117,12 @@
       "career_epoch": "epoch_enterprise_risk_governance",
       "domain_id": "domain_senior_role_w8_w11",
       "domain": "Senior Role W8–W11 Graph",
-      "capability": "enterprise_portfolio_data_governance",
+      "capability": "Enterprise Portfolio Data Governance",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "enterprise_portfolio_data_governance"
+        "Enterprise Portfolio Data Governance"
       ],
       "achievement_framing_guidance": "Frame enterprise_portfolio_data_governance with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -84194,12 +84195,12 @@
       "career_epoch": "epoch_enterprise_risk_governance",
       "domain_id": "domain_senior_role_w8_w11",
       "domain": "Senior Role W8–W11 Graph",
-      "capability": "basel_ccar_lineage_regulatory",
+      "capability": "Basel CCAR Lineage Regulatory",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "basel_ccar_lineage_regulatory"
+        "Basel CCAR Lineage Regulatory"
       ],
       "achievement_framing_guidance": "Frame basel_ccar_lineage_regulatory with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -84259,12 +84260,12 @@
       "career_epoch": "epoch_enterprise_risk_governance",
       "domain_id": "domain_senior_role_w8_w11",
       "domain": "Senior Role W8–W11 Graph",
-      "capability": "banking_ai_governance_controls",
+      "capability": "Banking AI Governance Controls",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "banking_ai_governance_controls"
+        "Banking AI Governance Controls"
       ],
       "achievement_framing_guidance": "Frame banking_ai_governance_controls with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -84331,12 +84332,12 @@
       "career_epoch": "epoch_enterprise_risk_governance",
       "domain_id": "domain_senior_role_w8_w11",
       "domain": "Senior Role W8–W11 Graph",
-      "capability": "regulated_financial_institutions_fluency",
+      "capability": "Regulated Financial Institutions Fluency",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "regulated_financial_institutions_fluency"
+        "Regulated Financial Institutions Fluency"
       ],
       "achievement_framing_guidance": "Frame regulated_financial_institutions_fluency with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -84408,12 +84409,12 @@
       "career_epoch": "epoch_cloud_data_platform_engineering",
       "domain_id": "domain_senior_role_w8_w11",
       "domain": "Senior Role W8–W11 Graph",
-      "capability": "microservices_integration_platform",
+      "capability": "Microservices Integration Platform",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "microservices_integration_platform"
+        "Microservices Integration Platform"
       ],
       "achievement_framing_guidance": "Frame microservices_integration_platform with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -84474,12 +84475,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_senior_role_w12_partner",
       "domain": "Senior Role W12 Partner / Hyperscaler",
-      "capability": "databricks_lakehouse_fundamentals",
+      "capability": "Databricks Lakehouse Fundamentals",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "databricks_lakehouse_fundamentals"
+        "Databricks Lakehouse Fundamentals"
       ],
       "achievement_framing_guidance": "Frame databricks_lakehouse_fundamentals with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -84542,12 +84543,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_senior_role_w12_partner",
       "domain": "Senior Role W12 Partner / Hyperscaler",
-      "capability": "hyperscaler_alliance_co_sell",
+      "capability": "Hyperscaler Alliance Co Sell",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "hyperscaler_alliance_co_sell"
+        "Hyperscaler Alliance Co Sell"
       ],
       "achievement_framing_guidance": "Frame hyperscaler_alliance_co_sell with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -84608,12 +84609,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_senior_role_w12_partner",
       "domain": "Senior Role W12 Partner / Hyperscaler",
-      "capability": "joint_ai_solution_development",
+      "capability": "Joint AI Solution Development",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "joint_ai_solution_development"
+        "Joint AI Solution Development"
       ],
       "achievement_framing_guidance": "Frame joint_ai_solution_development with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -84685,12 +84686,12 @@
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "domain_id": "domain_senior_role_w12_partner",
       "domain": "Senior Role W12 Partner / Hyperscaler",
-      "capability": "industry_reference_architecture_partner",
+      "capability": "Industry Reference Architecture Partner",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "industry_reference_architecture_partner"
+        "Industry Reference Architecture Partner"
       ],
       "achievement_framing_guidance": "Frame industry_reference_architecture_partner with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -87636,7 +87637,8 @@
         "fact_governance_003": "primary"
       },
       "source_ledger_ref": "fact_governance_003",
-      "retrieval_eligible": true
+      "retrieval_eligible": true,
+      "operator_hold_mode": "INTERNAL_ONLY"
     },
     {
       "skill_id": "skill_llm_judge_packet_design",
@@ -89760,14 +89762,14 @@
       "career_epoch": "epoch_enterprise_risk_governance",
       "domain_id": "domain_senior_role_w8_w11",
       "domain": "Senior Role W8–W11 Graph",
-      "capability": "svp_it_strategy_innovation",
+      "capability": "SVP IT Strategy Innovation",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "svp_it_strategy_innovation",
-        "it_strategy",
-        "enterprise_architecture"
+        "SVP IT Strategy Innovation",
+        "IT Strategy",
+        "Enterprise Architecture"
       ],
       "achievement_framing_guidance": "Frame SVP IT strategy and innovation with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -89849,7 +89851,7 @@
       "career_epoch": "epoch_ibm_client_partner_consulting",
       "domain_id": "domain_gtm_presales_motion",
       "domain": "GTM & Presales Motion",
-      "capability": "enterprise_deal_qualification",
+      "capability": "Enterprise Deal Qualification",
       "source_concepts": [
         "MEDDPICC",
         "enterprise sales",
@@ -89924,7 +89926,7 @@
       "career_epoch": "epoch_unify_chief_ai_officer",
       "domain_id": "domain_revenue_operations",
       "domain": "Revenue Operations",
-      "capability": "cpq_and_deal_automation",
+      "capability": "CPQ and Deal Automation",
       "source_concepts": [
         "CPQ",
         "deal velocity",
@@ -90005,7 +90007,7 @@
       "career_epoch": "epoch_unify_chief_ai_officer",
       "domain_id": "domain_regulatory_governance",
       "domain": "Regulatory Governance",
-      "capability": "cloud_security_compliance",
+      "capability": "Cloud Security Compliance",
       "source_concepts": [
         "SOC2",
         "zero-trust",
@@ -90093,7 +90095,7 @@
       "career_epoch": "epoch_unify_chief_ai_officer",
       "domain_id": "domain_strategic_finance_saas",
       "domain": "Strategic Finance & SaaS",
-      "capability": "saas_growth_metrics",
+      "capability": "SaaS Growth Metrics",
       "source_concepts": [
         "ARR",
         "LTV/CAC",
@@ -90185,7 +90187,7 @@
       "career_epoch": "epoch_unify_chief_ai_officer",
       "domain_id": "domain_interoperability_integration_ecosystem",
       "domain": "Interoperability & Integration Ecosystem",
-      "capability": "streaming_data_platforms",
+      "capability": "Streaming Data Platforms",
       "source_concepts": [
         "Confluent",
         "Kafka",
@@ -90274,7 +90276,7 @@
       "career_epoch": "epoch_ibm_client_partner_consulting",
       "domain_id": "domain_banking_platform_responsible_ai",
       "domain": "Banking Platform & Responsible AI",
-      "capability": "fraud_and_aml_detection",
+      "capability": "Fraud and AML Detection",
       "source_concepts": [
         "Watson Studio",
         "fraud detection",
@@ -90357,7 +90359,7 @@
       "career_epoch": "epoch_unify_chief_ai_officer",
       "domain_id": "domain_customer_stakeholder",
       "domain": "Customer & Stakeholder",
-      "capability": "customer_health_and_retention",
+      "capability": "Customer Health and Retention",
       "source_concepts": [
         "NPS",
         "customer health",
@@ -90438,7 +90440,7 @@
       "career_epoch": "epoch_actuarial_financial_engineering",
       "domain_id": "domain_regulatory_governance",
       "domain": "Regulatory Governance",
-      "capability": "securities_regulatory_compliance",
+      "capability": "Securities Regulatory Compliance",
       "source_concepts": [
         "FINRA",
         "SEC",
@@ -90526,7 +90528,7 @@
       "career_epoch": "epoch_ibm_client_partner_consulting",
       "domain_id": "domain_risk_management",
       "domain": "Risk Management",
-      "capability": "credit_risk_and_adjudication",
+      "capability": "Credit Risk and Adjudication",
       "source_concepts": [
         "credit adjudication",
         "default risk",
@@ -90621,7 +90623,7 @@
       "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "domain_id": "domain_interoperability_integration_ecosystem",
       "domain": "Interoperability & Integration Ecosystem",
-      "capability": "automated_release_pipelines",
+      "capability": "Automated Release Pipelines",
       "source_concepts": [
         "CI/CD",
         "code scanning",
@@ -90716,7 +90718,7 @@
       "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "domain_id": "domain_interoperability_integration_ecosystem",
       "domain": "Interoperability & Integration Ecosystem",
-      "capability": "devsecops_pipeline_security",
+      "capability": "DevSecOps Pipeline Security",
       "source_concepts": [
         "DevSecOps",
         "security scanning",
@@ -90811,7 +90813,7 @@
       "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "domain_id": "domain_enterprise_risk",
       "domain": "Enterprise Risk",
-      "capability": "metadata_audit_rbac_governance",
+      "capability": "Metadata Audit Rbac Governance",
       "source_concepts": [
         "metadata",
         "audit trail",
@@ -90896,7 +90898,7 @@
       "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "domain_id": "domain_banking_platform_responsible_ai",
       "domain": "Banking Platform / Responsible AI",
-      "capability": "watson_studio_analytics",
+      "capability": "Watson Studio Analytics",
       "source_concepts": [
         "Watson Studio",
         "IBM Watson",
@@ -90979,12 +90981,12 @@
       "career_epoch": "epoch_actuarial_financial_engineering",
       "domain_id": "domain_enterprise_risk",
       "domain": "Enterprise Risk",
-      "capability": "pricing_actuarial",
+      "capability": "Pricing Actuarial",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "pricing_actuarial"
+        "Pricing Actuarial"
       ],
       "achievement_framing_guidance": "Frame pricing_actuarial with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -91012,7 +91014,7 @@
       "fact_id_links": [
         "fact_quant_act_003"
       ],
-      "pillar": "pillar_capital_modeling",
+      "pillar": "pillar_trading_hpc",
       "subpillar": "hpc_valuation_capital_adequacy",
       "career_stage": "early_career",
       "source_resume_files": [
@@ -91057,12 +91059,12 @@
       "career_epoch": "epoch_actuarial_financial_engineering",
       "domain_id": "domain_enterprise_risk",
       "domain": "Enterprise Risk",
-      "capability": "pricing_actuarial",
+      "capability": "Pricing Actuarial",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
       "ats_keywords": [
-        "pricing_actuarial"
+        "Pricing Actuarial"
       ],
       "achievement_framing_guidance": "Frame pricing_actuarial with scope, mechanism, and outcome; metrics only from linked fact_id.",
       "quantification_policy": "No invented numbers; require metric-bound fact_id or approved derivative.",
@@ -91132,7 +91134,7 @@
       "career_epoch": "epoch_actuarial_financial_engineering",
       "domain_id": "domain_insurance_core_modernization",
       "domain": "Insurance Core Modernization",
-      "capability": "insurance_core_platform_tooling",
+      "capability": "Insurance Core Platform Tooling",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
@@ -91213,7 +91215,7 @@
       "career_epoch": "epoch_actuarial_financial_engineering",
       "domain_id": "domain_insurance_core_modernization",
       "domain": "Insurance Core Modernization",
-      "capability": "claims_process_modernization",
+      "capability": "Claims Process Modernization",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
@@ -91292,7 +91294,7 @@
       "career_epoch": "epoch_actuarial_financial_engineering",
       "domain_id": "domain_insurance_core_modernization",
       "domain": "Insurance Core Modernization",
-      "capability": "policy_lifecycle_rules_configuration",
+      "capability": "Policy Lifecycle Rules Configuration",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
@@ -91363,7 +91365,7 @@
       "career_epoch": "epoch_actuarial_financial_engineering",
       "domain_id": "domain_enterprise_risk",
       "domain": "Enterprise Risk",
-      "capability": "pricing_actuarial",
+      "capability": "Pricing Actuarial",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
@@ -91442,7 +91444,7 @@
       "career_epoch": "epoch_actuarial_financial_engineering",
       "domain_id": "domain_enterprise_risk",
       "domain": "Enterprise Risk",
-      "capability": "regulatory_capital",
+      "capability": "Regulatory Capital",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
@@ -91510,7 +91512,7 @@
       "career_epoch": "epoch_actuarial_financial_engineering",
       "domain_id": "domain_enterprise_risk",
       "domain": "Enterprise Risk",
-      "capability": "regulatory_capital",
+      "capability": "Regulatory Capital",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
@@ -91577,7 +91579,7 @@
       "career_epoch": "epoch_actuarial_financial_engineering",
       "domain_id": "domain_enterprise_risk",
       "domain": "Enterprise Risk",
-      "capability": "regulatory_capital",
+      "capability": "Regulatory Capital",
       "source_concepts": [],
       "repo_evidence_files": [],
       "node_type": "skill_row",
@@ -95028,7 +95030,8 @@
       "link_class_by_fact": {
         "fact_engineering_platform_001": "primary"
       },
-      "retrieval_eligible": true
+      "retrieval_eligible": true,
+      "operator_hold_mode": "INTERNAL_ONLY"
     },
     {
       "node_type": "skill_row",
@@ -95692,7 +95695,7 @@
       "source_ledger_ref": "fact_ey_guidewire_001",
       "skill_id": "skill_insurance_product_rate_rules_configuration",
       "subpillar": "product_rate_rules_configuration",
-      "capability": "product_rate_rules_configuration",
+      "capability": "Product Rate Rules Configuration",
       "allowed_phrases": [
         "product/rate/rule configuration",
         "insurance product configuration templates",
@@ -95772,7 +95775,7 @@
       "source_ledger_ref": "fact_ey_guidewire_001",
       "skill_id": "skill_insurance_billing_rating_underwriting_handoffs",
       "subpillar": "billing_rating_underwriting_handoffs",
-      "capability": "billing_rating_underwriting_handoffs",
+      "capability": "Billing Rating Underwriting Handoffs",
       "allowed_phrases": [
         "billing/rating/underwriting handoff design",
         "agency and direct bill workflow handoffs",
@@ -95854,7 +95857,7 @@
       "source_ledger_ref": "fact_ey_guidewire_001",
       "skill_id": "skill_insurance_core_integration_data_conversion",
       "subpillar": "core_integration_data_conversion",
-      "capability": "core_integration_data_conversion",
+      "capability": "Core Integration Data Conversion",
       "allowed_phrases": [
         "legacy-to-core data conversion mapping",
         "source-target data dictionary design",
@@ -95934,7 +95937,7 @@
       "source_ledger_ref": "fact_ey_guidewire_001",
       "skill_id": "skill_insurance_core_to_bi_reporting_handoff",
       "subpillar": "core_to_bi_reporting_handoff",
-      "capability": "core_to_bi_reporting_handoff",
+      "capability": "Core to BI Reporting Handoff",
       "allowed_phrases": [
         "core-to-BI reporting handoff design",
         "claims/policy/billing data mart handoffs",
@@ -96018,7 +96021,9 @@
       "career_track_id": "TRACK_GENAI_AGENTIC",
       "career_epoch": "epoch_agentic_ai_runtime_architecture",
       "retrieval_eligible": true,
-      "confidence_grade": "HIGH"
+      "confidence_grade": "HIGH",
+      "capability": "C03 Metric Heterogeneity Selection",
+      "operator_hold_mode": "INTERNAL_ONLY"
     },
     {
       "skill_id": "skill_c03_reverse_traversal_receipts",
@@ -96077,7 +96082,9 @@
       "career_track_id": "TRACK_GENAI_AGENTIC",
       "career_epoch": "epoch_agentic_ai_runtime_architecture",
       "retrieval_eligible": true,
-      "confidence_grade": "HIGH"
+      "confidence_grade": "HIGH",
+      "capability": "C03 Reverse Traversal Receipts",
+      "operator_hold_mode": "INTERNAL_ONLY"
     },
     {
       "skill_id": "skill_c03_sibling_skill_rejection_reasoning",
@@ -96136,7 +96143,9 @@
       "career_track_id": "TRACK_GENAI_AGENTIC",
       "career_epoch": "epoch_agentic_ai_runtime_architecture",
       "retrieval_eligible": true,
-      "confidence_grade": "HIGH"
+      "confidence_grade": "HIGH",
+      "capability": "C03 Sibling Skill Rejection Reasoning",
+      "operator_hold_mode": "INTERNAL_ONLY"
     },
     {
       "skill_id": "skill:c03:agentic_runtime_orchestration",
@@ -96216,7 +96225,8 @@
       "linked_metric_outcome_ids": [
         "metric_insurtech_cloud_migration_velocity_sprints",
         "metric_unify_event_stream_throughput_rps"
-      ]
+      ],
+      "capability": "C03 Agentic Runtime Orchestration"
     },
     {
       "skill_id": "skill:c03:agentic_policy_gate_design",
@@ -96293,7 +96303,8 @@
       "career_track_id": "TRACK_GENAI_AGENTIC",
       "career_epoch": "epoch_agentic_ai_runtime_architecture",
       "retrieval_eligible": false,
-      "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE"
+      "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE",
+      "capability": "C03 Agentic Policy Gate Design"
     },
     {
       "skill_id": "skill:c03:agent_trace_observability",
@@ -96369,7 +96380,8 @@
       "career_track_id": "TRACK_GENAI_AGENTIC",
       "career_epoch": "epoch_agentic_ai_runtime_architecture",
       "retrieval_eligible": false,
-      "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE"
+      "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE",
+      "capability": "C03 Agent Trace Observability"
     },
     {
       "skill_id": "skill:c03:graph_retrieval_traversal_design",
@@ -96444,7 +96456,8 @@
       "career_track_id": "TRACK_GENAI_AGENTIC",
       "career_epoch": "epoch_agentic_ai_runtime_architecture",
       "retrieval_eligible": false,
-      "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE"
+      "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE",
+      "capability": "C03 Graph Retrieval Traversal Design"
     },
     {
       "skill_id": "skill:c03:evidence_binding_provenance",
@@ -96520,7 +96533,8 @@
       "career_track_id": "TRACK_GENAI_AGENTIC",
       "career_epoch": "epoch_agentic_ai_runtime_architecture",
       "retrieval_eligible": false,
-      "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE"
+      "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE",
+      "capability": "C03 Evidence Binding Provenance"
     },
     {
       "skill_id": "skill:c03:retrieval_quality_guardrails",
@@ -96592,7 +96606,8 @@
       "career_track_id": "TRACK_GENAI_AGENTIC",
       "career_epoch": "epoch_agentic_ai_runtime_architecture",
       "retrieval_eligible": false,
-      "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE"
+      "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE",
+      "capability": "C03 Retrieval Quality Guardrails"
     },
     {
       "skill_id": "skill:c03:llm_platform_latency_engineering",
@@ -96664,7 +96679,8 @@
       "linked_metric_outcome_ids": [
         "metric_insurtech_cloud_data_lake_scale_tb",
         "metric_insurtech_cloud_migration_velocity_sprints"
-      ]
+      ],
+      "capability": "C03 LLM Platform Latency Engineering"
     },
     {
       "skill_id": "skill:c03:mlops_release_governance",
@@ -96741,7 +96757,8 @@
       "linked_metric_outcome_ids": [
         "metric_unify_message_processing_latency_p99_ms",
         "metric_unify_pipeline_ingestion_data_volume_daily"
-      ]
+      ],
+      "capability": "C03 MLOps Release Governance"
     },
     {
       "skill_id": "skill:c03:data_platform_lineage_architecture",
@@ -96816,7 +96833,8 @@
       "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "career_epoch": "epoch_cloud_data_platform_engineering",
       "retrieval_eligible": false,
-      "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE"
+      "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE",
+      "capability": "C03 Data Platform Lineage Architecture"
     },
     {
       "skill_id": "skill:c03:model_risk_control_design",
@@ -96896,7 +96914,8 @@
       "linked_metric_outcome_ids": [
         "metric_ey_model_risk_findings_remediated_count",
         "metric_ey_model_validation_variant_count"
-      ]
+      ],
+      "capability": "C03 Model Risk Control Design"
     },
     {
       "skill_id": "skill:c03:actuarial_ai_risk_translation",
@@ -96966,7 +96985,8 @@
       "career_track_id": "TRACK_ACTUARIAL_RISK_DERIVATIVES",
       "career_epoch": "epoch_enterprise_risk_governance",
       "retrieval_eligible": false,
-      "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE"
+      "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE",
+      "capability": "C03 Actuarial AI Risk Translation"
     },
     {
       "skill_id": "skill:c03:compliance_audit_readiness",
@@ -97046,7 +97066,8 @@
       "linked_metric_outcome_ids": [
         "metric_ey_audit_control_automation_workflows_count",
         "metric_ey_bcbs239_risk_data_domain_count"
-      ]
+      ],
+      "capability": "C03 Compliance Audit Readiness"
     },
     {
       "skill_id": "skill:c03:hyperscaler_partner_cosell",
@@ -97123,7 +97144,8 @@
       "linked_metric_outcome_ids": [
         "metric_ibm_cloud_catalog_asset_download_count",
         "metric_ibm_partner_cosell_pipeline_deal_count"
-      ]
+      ],
+      "capability": "C03 Hyperscaler Partner Cosell"
     },
     {
       "skill_id": "skill:c03:ai_solution_value_story",
@@ -97197,7 +97219,8 @@
       "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "retrieval_eligible": false,
-      "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE"
+      "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE",
+      "capability": "C03 AI Solution Value Story"
     },
     {
       "skill_id": "skill:c03:enterprise_adoption_enablement",
@@ -97274,7 +97297,8 @@
       "linked_metric_outcome_ids": [
         "metric_ibm_client_briefing_session_count",
         "metric_unify_engineering_team_size_engineers"
-      ]
+      ],
+      "capability": "C03 Enterprise Adoption Enablement"
     },
     {
       "skill_id": "skill:c03:delivery_governance_operating_rhythm",
@@ -97355,7 +97379,8 @@
       "linked_metric_outcome_ids": [
         "metric_unify_engineering_team_size_engineers",
         "metric_unify_platform_services_migrated_count"
-      ]
+      ],
+      "capability": "C03 Delivery Governance Operating Rhythm"
     }
   ],
   "actuarial_career_matrix": [

@@ -76,18 +76,26 @@ METRIC_EQUIVALENTS: Final[dict[str, str]] = {
 }
 
 EXACT_METRIC_PATTERNS: Final[tuple[tuple[re.Pattern[str], str], ...]] = (
-    (re.compile(r"(?:\$|\busd\s*)(\d+(?:\.\d+)?)\s*(m|million|b|billion)?\b", re.I), "USD"),
+    (re.compile(r"(?:\$|\busd\s*)(\d+(?:\.\d+)?)\s*(m|million|b|billion|k)?\b", re.I), "USD"),
     (re.compile(r"\b(\d+(?:\.\d+)?)\s*(%|percent\b|percentage\b)", re.I), "PERCENT"),
+    (re.compile(r"(?:<\s*)?(\d+(?:\.\d+)?)\s*(ms|milliseconds?)\b", re.I), "LATENCY_MS"),
+    (re.compile(r"\b(\d+(?:\.\d+)?)\s*(tb|gb)\b", re.I), "DATA_VOLUME"),
     (re.compile(r"\b(\d+(?:\.\d+)?)\s*(x|times)\b", re.I), "MULTIPLIER"),
     (
         re.compile(
             r"\b(\d+(?:\.\d+)?)\+?\s*(countries|clients|customers|partners|teams|"
-            r"workflows|platforms|products|programs|markets|regions|applications|systems)\b",
+            r"workflows|platforms|products|programs|markets|regions|applications|systems|"
+            r"controls|records|databases|workloads|carriers|engineers|leaders)\b",
             re.I,
         ),
         "COUNT",
     ),
 )
+
+
+def section_allows_hold_metric_scrub(section_id: str) -> bool:
+    """Scope HOLD_METRIC_TEXT_RE strictly to IBM legacy holds; never scrub approved Unify/InsurTech/EY metrics."""
+    return str(section_id or "").strip().lower() in {"ibm_bullets", "ibm_narrative"}
 
 ENTAILMENT_NUMERIC_TOKEN_RE: Final[re.Pattern[str]] = re.compile(
     r"""

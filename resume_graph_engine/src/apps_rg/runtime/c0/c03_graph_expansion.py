@@ -1076,7 +1076,7 @@ def expand_c03_graph_bindings(
         sorted(Counter(str(r.get("metric_bucket") or "general_business_outcome") for r in selected_flat).items())
     )
     from apps_rg.runtime.graph_runtime_persistence import record_c03_expansion_events
-    record_c03_expansion_events(
+    telemetry_receipt = record_c03_expansion_events(
         ctx if "ctx" in locals() else None,
         run_id=run_id,
         section_id=section_id,
@@ -1105,6 +1105,7 @@ def expand_c03_graph_bindings(
         "graph_candidate_decision_ledger": decisions,
         "graph_candidate_receipt": candidate_receipt,
         "graph_traversal_receipt": traversal_receipt,
+        "runtime_telemetry_db_path": str(telemetry_receipt.get("telemetry_db_path") or ""),
         "binding_metrics": {
             "atom_count": len(bindings),
             "direct_support_count": direct,

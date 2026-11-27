@@ -74,7 +74,7 @@ SIX_ARCHETYPES: tuple[dict[str, object], ...] = (
             "Vertex AI co-sell alliances, GSI reference architectures, executive workshops, and enterprise adoption."
         ),
         "expected_profile": "ai_partnerships_gtm",
-        "expected_credential": "cert_aws_sap_001",
+        "expected_credential": "cert_aws_sa_pro_001",
         "min_ey_bullets": 1,
         "min_early_bullets": 1,
         "require_t1_headline": False,
@@ -89,7 +89,7 @@ SIX_ARCHETYPES: tuple[dict[str, object], ...] = (
             "P&L value creation, AWS cloud modernization, and governed AI transformation across financial companies."
         ),
         "expected_profile": "executive_agentic_transformation",
-        "expected_credential": "cert_aws_sap_001",
+        "expected_credential": "cert_aws_sa_pro_001",
         "min_ey_bullets": 2,
         "min_early_bullets": 1,
         "require_t1_headline": False,
@@ -104,7 +104,7 @@ SIX_ARCHETYPES: tuple[dict[str, object], ...] = (
             "distributed cloud reliability, P&L commercial growth, and enterprise AI adoption."
         ),
         "expected_profile": "svp_agentic_engineering",
-        "expected_credential": "cert_aws_sap_001",
+        "expected_credential": "cert_aws_sa_pro_001",
         "min_ey_bullets": 1,
         "min_early_bullets": 1,
         "require_t1_headline": False,
@@ -119,7 +119,7 @@ SIX_ARCHETYPES: tuple[dict[str, object], ...] = (
             "forecasting, actuarial reserving, HIPAA governance, and clinical AI decision platforms."
         ),
         "expected_profile": "healthcare_payer_data_ai",
-        "expected_credential": "edu_columbia_ms_biostat_001",
+        "expected_credential": "edu_columbia_ms_001",
         "min_ey_bullets": 2,
         "min_early_bullets": 2,
         "require_t1_headline": True,

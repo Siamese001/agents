@@ -87,6 +87,71 @@ _ALLOWED_OPERATORS = frozenset({">=", "<=", "=="})
 _ALLOWED_FAILURE_STATUSES = frozenset({"BLOCK", "FAIL", "MIGRATION_REQUIRED"})
 
 
+def evaluate_confidence_calibration_health(conn: Any) -> dict[str, Any]:
+    """Evaluate Wave 3 confidence calibration anti-collapse and quarantine leak gates."""
+    rows = conn.execute(
+        """
+        SELECT ROUND(confidence_score, 4) AS score, COUNT(*) AS cnt
+        FROM graph_nodes
+        WHERE node_type = 'skill'
+          AND external_eligible = 1
+          AND confidence_score IS NOT NULL
+        GROUP BY ROUND(confidence_score, 4)
+        ORDER BY cnt DESC
+        """
+    ).fetchall()
+    total_skills = sum(int(r[1]) for r in rows)
+    max_bucket_cnt = int(rows[0][1]) if rows else 0
+    concentration = round(max_bucket_cnt / total_skills, 4) if total_skills else 0.0
+    distinct_scores = len(rows)
+
+    quarantined_total = int(
+        conn.execute(
+            """
+            SELECT COUNT(*) FROM graph_nodes
+            WHERE activation_status = 'QUARANTINED_UNVERIFIED_SYNTHETIC'
+            """
+        ).fetchone()[0]
+    )
+    quarantined_high_leaks = int(
+        conn.execute(
+            """
+            SELECT COUNT(*) FROM graph_nodes
+            WHERE activation_status = 'QUARANTINED_UNVERIFIED_SYNTHETIC'
+              AND (COALESCE(confidence_score, 0.0) > 0.0 OR confidence_tier = 'HIGH' OR external_eligible = 1)
+            """
+        ).fetchone()[0]
+    )
+    quarantined_traversable_edges = int(
+        conn.execute(
+            """
+            SELECT COUNT(*) FROM graph_edges ge
+            JOIN graph_nodes gn ON gn.node_id IN (ge.source_node_id, ge.target_node_id)
+            WHERE gn.activation_status = 'QUARANTINED_UNVERIFIED_SYNTHETIC'
+              AND COALESCE(ge.traversable, 1) = 1
+            """
+        ).fetchone()[0]
+    )
+    leak_rate = round(quarantined_high_leaks / max(1, quarantined_total), 4) if quarantined_total else 0.0
+    passed = (
+        concentration <= 0.35
+        and leak_rate == 0.0
+        and quarantined_traversable_edges == 0
+        and distinct_scores >= 10
+    )
+    return {
+        "status": "PASS" if passed else "FAIL",
+        "external_skill_count": total_skills,
+        "distinct_confidence_scores": distinct_scores,
+        "confidence_bucket_concentration": concentration,
+        "confidence_bucket_concentration_max": 0.35,
+        "quarantined_total": quarantined_total,
+        "quarantined_high_confidence_leaks": quarantined_high_leaks,
+        "quarantined_high_confidence_leak_rate": leak_rate,
+        "quarantined_traversable_edges": quarantined_traversable_edges,
+    }
+
+
 def _repo_root() -> Path:
     return repository_root(Path(__file__))
 

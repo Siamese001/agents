@@ -1,0 +1,10 @@
+{
+  "wave": "Wave 4",
+  "status": "COMPLETED",
+  "graph_path_count": 24879,
+  "paths_with_sections": 22576,
+  "role_section_view_rows": 10844,
+  "multi_arc_view_rows": 144,
+  "semantic_unit_fts_rows": 391,
+  "steiner_bridge_count": 50
+}

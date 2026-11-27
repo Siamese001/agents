@@ -565,8 +565,9 @@ def assemble_c03_graph_sqlite_context(
             LEFT JOIN c03_skill_selection_features f
               ON f.skill_id = n.node_id
             WHERE n.node_type = 'skill'
+              AND n.activation_status <> 'RETIRED'
               AND (
-                n.activation_status NOT IN ('DRAFT','INTERNAL_ONLY','DO_NOT_PROMOTE','BLOCKED')
+                n.activation_status NOT IN ('DRAFT','INTERNAL_ONLY','DO_NOT_PROMOTE','BLOCKED','RETIRED')
                 OR n.external_eligible = 1
               )
             ORDER BY

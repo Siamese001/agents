@@ -118,7 +118,7 @@ def test_six_executive_archetypes_route_distinctly_without_split_brain() -> None
     )
     assert health_cdao.canonical_projection_role == "HEALTHCARE_PAYER_DATA_AI"
     assert health_cdao.selector_profile == "healthcare_payer_data_ai"
-    assert "edu_columbia_ms_biostat_001" in health_cdao.credential_elevation_ids
+    assert "edu_columbia_ms_001" in health_cdao.credential_elevation_ids
     assert "cert_fsa_001" in health_cdao.credential_elevation_ids
     assert health_cdao.slot_budget_profile["early_career_bullets"] >= 2
 

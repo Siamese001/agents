@@ -1575,18 +1575,21 @@ _MULTIHOP_SEED_NODE_TYPES: frozenset[str] = frozenset(
     }
 )
 _MULTIHOP_PRIORITY_EDGE_TYPES: dict[str, int] = {
-    "pillar_phase_bridge": 0,
-    "skill_reinforces_skill": 1,
-    "career_track_contains_pillar": 2,
-    "pillar_contains_skill": 3,
-    "engagement_exercises_skill": 4,
-    "skill_supported_by_certification": 5,
-    "skill_surfaces_metric_outcome": 6,
-    "skill_supported_by_fact": 7,
-    "fact_has_metric_outcome": 8,
-    "metric_outcome_anchors_bundle": 9,
-    "engagement_at_employment": 10,
-    "employment_in_career_track": 11,
+    "demonstrates_continuity_from": 0,
+    "transfers_quantitative_rigor_to": 0,
+    "credential_validates_domain": 1,
+    "pillar_phase_bridge": 1,
+    "skill_reinforces_skill": 2,
+    "career_track_contains_pillar": 3,
+    "pillar_contains_skill": 4,
+    "engagement_exercises_skill": 5,
+    "skill_supported_by_certification": 6,
+    "skill_surfaces_metric_outcome": 7,
+    "skill_supported_by_fact": 8,
+    "fact_has_metric_outcome": 9,
+    "metric_outcome_anchors_bundle": 10,
+    "engagement_at_employment": 11,
+    "employment_in_career_track": 12,
 }
 
 
@@ -1605,9 +1608,44 @@ def build_graph_index_rows(
     max_multihop_neighbors_per_center: int = 32,
 ) -> dict[str, list[dict[str, Any]]]:
     """Build generated multi-hop graph-index rows before the SQLite file exists."""
+    import math as _math
+    from collections import Counter as _Counter
+
     nodes = {str(row.get("node_id") or ""): dict(row) for row in node_rows if row.get("node_id")}
     edges = [dict(row) for row in edge_rows]
     node_types = {node_id: str(row.get("node_type") or "") for node_id, row in nodes.items()}
+
+    allowed_sections_by_node: dict[str, set[str]] = defaultdict(set)
+    for srow in section_rows:
+        if int(srow.get("allowed") or 0) == 1:
+            nid_s = str(srow.get("node_id") or "").strip()
+            sec_s = str(srow.get("section_id") or "").strip()
+            if nid_s and sec_s and sec_s != "*":
+                allowed_sections_by_node[nid_s].add(sec_s)
+
+    node_degree: _Counter[str] = _Counter()
+    for edge in edges:
+        if int(edge.get("traversable", 1)) == 0:
+            continue
+        s_e = str(edge.get("source_node_id") or "")
+        t_e = str(edge.get("target_node_id") or "")
+        if s_e and t_e:
+            node_degree[s_e] += 1
+            node_degree[t_e] += 1
+
+    def _sections_for_path(path_nodes: Sequence[str]) -> list[str]:
+        found: set[str] = set()
+        for n in path_nodes:
+            if node_types.get(n) == "section" or n.startswith("section_"):
+                found.add(n)
+            if n in allowed_sections_by_node:
+                found.update(allowed_sections_by_node[n])
+        return sorted(found)
+
+    def _rarity_novelty(path_nodes: Sequence[str]) -> float:
+        degs = [node_degree.get(n, 1) for n in path_nodes]
+        mean_deg = sum(degs) / max(1, len(degs))
+        return round(min(1.0, 1.0 / _math.log2(2.0 + mean_deg)), 6)
 
     graph_paths: list[dict[str, Any]] = []
     seen_path_ids: set[str] = set()
@@ -1634,13 +1672,9 @@ def build_graph_index_rows(
             node_id for node_id in (src, tgt) if node_types.get(node_id) in SKILL_FACT_EVIDENCE_NODE_TYPES
         ]
         metrics = [node_id for node_id in (src, tgt) if node_types.get(node_id) in METRIC_NODE_TYPES]
-        sections = [
-            node_id
-            for node_id in (src, tgt)
-            if node_types.get(node_id) == "section" or node_id.startswith("section_")
-        ]
-        proof_score = min(1.0, 0.25 * len(facts) + 0.20 * len(metrics) + 0.15 * len(sections))
-        novelty_score = 1.0 / max(1, len(metrics) + len(facts))
+        sections = _sections_for_path((src, tgt))
+        proof_score = min(1.0, 0.25 * len(facts) + 0.20 * len(metrics) + 0.15 * min(3, len(sections)))
+        novelty_score = _rarity_novelty((src, tgt))
         path_score = round(proof_score + novelty_score + 0.5, 6)
         signature = f"{src}->{tgt}"
         path_identity = f"{signature}|{edge_id}"
@@ -1702,12 +1736,13 @@ def build_graph_index_rows(
                     new_etypes = edge_types + [str(edge["edge_type"])]
                     depth = len(new_eids)
                     end_type = node_types.get(nxt, "")
-                    has_bridge = any(et in ("pillar_phase_bridge", "skill_reinforces_skill") for et in new_etypes)
+                    has_bridge = any(
+                        et in ("pillar_phase_bridge", "skill_reinforces_skill", "demonstrates_continuity_from", "transfers_quantitative_rigor_to")
+                        for et in new_etypes
+                    )
                     facts = [n for n in new_nodes if node_types.get(n) in SKILL_FACT_EVIDENCE_NODE_TYPES]
                     metrics = [n for n in new_nodes if node_types.get(n) in METRIC_NODE_TYPES]
-                    sections = [
-                        n for n in new_nodes if node_types.get(n) == "section" or n.startswith("section_")
-                    ]
+                    sections = _sections_for_path(new_nodes)
                     high_value = bool(
                         has_bridge
                         or metrics
@@ -1720,8 +1755,8 @@ def build_graph_index_rows(
                         if path_id not in seen_path_ids:
                             seen_path_ids.add(path_id)
                             bridge_bonus = 0.35 if has_bridge else 0.0
-                            proof_score = min(1.0, 0.25 * len(facts) + 0.20 * len(metrics) + 0.15 * len(sections))
-                            novelty_score = 1.0 / max(1, len(metrics) + len(facts))
+                            proof_score = min(1.0, 0.25 * len(facts) + 0.20 * len(metrics) + 0.15 * min(3, len(sections)))
+                            novelty_score = _rarity_novelty(new_nodes)
                             path_score = round(proof_score + novelty_score + bridge_bonus + (1.0 / (1 + depth)), 6)
                             graph_paths.append(
                                 {

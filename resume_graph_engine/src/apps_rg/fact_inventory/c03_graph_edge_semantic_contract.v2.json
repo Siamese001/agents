@@ -27,7 +27,9 @@
     "TEMPORAL_SEQUENCE",
     "ASSOCIATIVE_BRIDGE",
     "POLICY_ELIGIBILITY",
-    "POLICY_RESTRICTION"
+    "POLICY_RESTRICTION",
+    "CROSS_ARC_CONTINUITY",
+    "CREDENTIAL_VALIDATION"
   ],
   "assertion_type_by_edge_type": {
     "capability_domain_contains_skill": "STRUCTURAL_CONTAINMENT",
@@ -77,7 +79,13 @@
     "engagement_exercises_skill": "EVIDENTIAL_SUPPORT",
     "engagement_evidenced_by_fact": "EVIDENTIAL_SUPPORT",
     "srfs_rule_requires_fact_id_only": "POLICY_RESTRICTION",
-    "srfs_policy_requires_fact_id_only": "POLICY_RESTRICTION"
+    "srfs_policy_requires_fact_id_only": "POLICY_RESTRICTION",
+    "epoch_precedes_epoch": "TEMPORAL_SEQUENCE",
+    "employment_precedes_employment": "TEMPORAL_SEQUENCE",
+    "skill_exercised_in_epoch": "TEMPORAL_SEQUENCE",
+    "demonstrates_continuity_from": "CROSS_ARC_CONTINUITY",
+    "credential_validates_domain": "CREDENTIAL_VALIDATION",
+    "transfers_quantitative_rigor_to": "CROSS_ARC_CONTINUITY"
   },
   "assertion_basis_kinds": [
     "evidence_reference",
@@ -117,6 +125,14 @@
     ],
     "ASSOCIATIVE_BRIDGE": [
       "non_causal_bridge"
+    ],
+    "CROSS_ARC_CONTINUITY": [
+      "evidence_reference",
+      "non_causal_bridge"
+    ],
+    "CREDENTIAL_VALIDATION": [
+      "evidence_reference",
+      "operator_confirmation"
     ]
   },
   "basis_kind_by_edge_type": {
@@ -167,7 +183,13 @@
     "engagement_exercises_skill": "evidence_reference",
     "engagement_evidenced_by_fact": "evidence_reference",
     "srfs_rule_requires_fact_id_only": "policy_predicate",
-    "srfs_policy_requires_fact_id_only": "policy_predicate"
+    "srfs_policy_requires_fact_id_only": "policy_predicate",
+    "epoch_precedes_epoch": "taxonomy_rule",
+    "employment_precedes_employment": "taxonomy_rule",
+    "skill_exercised_in_epoch": "taxonomy_rule",
+    "demonstrates_continuity_from": "evidence_reference",
+    "credential_validates_domain": "evidence_reference",
+    "transfers_quantitative_rigor_to": "evidence_reference"
   },
   "derivation_rule_id_by_edge_type": {
     "capability_domain_contains_skill": "rule_domain_skill_containment",
@@ -217,7 +239,13 @@
     "engagement_exercises_skill": "rule_engagement_exercises_skill",
     "engagement_evidenced_by_fact": "rule_engagement_evidenced_by_fact",
     "srfs_rule_requires_fact_id_only": "rule_srfs_rule_requires_fact_id_only",
-    "srfs_policy_requires_fact_id_only": "rule_srfs_policy_requires_fact_id_only"
+    "srfs_policy_requires_fact_id_only": "rule_srfs_policy_requires_fact_id_only",
+    "epoch_precedes_epoch": "rule_epoch_precedes_epoch",
+    "employment_precedes_employment": "rule_employment_precedes_employment",
+    "skill_exercised_in_epoch": "rule_skill_exercised_in_epoch",
+    "demonstrates_continuity_from": "rule_demonstrates_continuity_from",
+    "credential_validates_domain": "rule_credential_validates_domain",
+    "transfers_quantitative_rigor_to": "rule_transfers_quantitative_rigor_to"
   },
   "inverse_label_by_edge_type": {
     "capability_domain_contains_skill": "skill_in_domain",
@@ -267,7 +295,13 @@
     "engagement_exercises_skill": "skill_exercised_in_engagement",
     "engagement_evidenced_by_fact": "fact_evidences_engagement",
     "srfs_rule_requires_fact_id_only": "policy_governed_by_rule",
-    "srfs_policy_requires_fact_id_only": "policy_relies_on_policy"
+    "srfs_policy_requires_fact_id_only": "policy_relies_on_policy",
+    "epoch_precedes_epoch": "epoch_succeeds_epoch",
+    "employment_precedes_employment": "employment_succeeds_employment",
+    "skill_exercised_in_epoch": "epoch_exercises_skill",
+    "demonstrates_continuity_from": "continuity_extended_by",
+    "credential_validates_domain": "domain_validated_by_credential",
+    "transfers_quantitative_rigor_to": "receives_quantitative_rigor_from"
   },
   "origin_kinds": [
     "ledger_edge",

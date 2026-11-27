@@ -21,6 +21,8 @@ ASSERTION_TYPES: frozenset[str] = frozenset(
         "METRIC_BINDING",
         "TEMPORAL_SEQUENCE",
         "ASSOCIATIVE_BRIDGE",
+        "CROSS_ARC_CONTINUITY",
+        "CREDENTIAL_VALIDATION",
     }
 )
 
@@ -233,6 +235,26 @@ def harden_edge_row(
     return row
 
 
+def _derive_edge_family(edge_type: str, assertion_type: str) -> str:
+    """Derive a non-blank canonical edge_family when missing."""
+    et = str(edge_type or "").strip()
+    if et.startswith(("epoch_", "employment_precedes", "career_track_precedes", "skill_exercised")):
+        return "temporal_spine"
+    if et in ("demonstrates_continuity_from", "transfers_quantitative_rigor_to"):
+        return "cross_arc_continuity"
+    if et == "credential_validates_domain":
+        return "credential_validation"
+    if et.startswith("engagement_"):
+        return "engagement_evidence"
+    if "metric" in et:
+        return "metric_binding"
+    if "section" in et or assertion_type in ("POLICY_ELIGIBILITY", "POLICY_RESTRICTION"):
+        return "policy_governance"
+    if assertion_type == "EVIDENTIAL_SUPPORT":
+        return "evidential_support"
+    return "capability_hierarchy"
+
+
 def finalize_and_harden_edge_rows(
     edge_rows: list[dict[str, Any]],
     *,
@@ -242,28 +264,39 @@ def finalize_and_harden_edge_rows(
     repo_root: Path,
 ) -> list[dict[str, Any]]:
     """Apply default edge fields and harden edge rows against contract v2."""
-    for row in edge_rows:
+    out: list[dict[str, Any]] = []
+    for raw_edge in edge_rows:
+        row = dict(raw_edge)
         edge_type = str(row.get("edge_type") or "")
         row.setdefault("rationale", edge_type)
         row.setdefault("projection_behavior", "graph_traversal")
-        row.setdefault("external_claim_policy", "graph_routing_not_claim_proof")
-        row.setdefault("validation_status", str(row.get("evidence_status") or ""))
+        raw_policy = str(row.get("external_claim_policy") or "").strip()
+        if not raw_policy or raw_policy == "approved_by_graph_presence":
+            row["external_claim_policy"] = (
+                "atomic_fact_default_external_proof"
+                if edge_type in ("skill_supported_by_fact", "skill_supported_by_locked_bullet", "skill_supported_by_certification")
+                else "graph_routing_not_claim_proof"
+            )
+        val_status = str(row.get("validation_status") or row.get("evidence_status") or "").strip()
+        row["validation_status"] = val_status or "validated"
         row.setdefault("edge_note", "")
         row.setdefault("operator_note", "")
         row.setdefault("business_story", "")
         row.setdefault("technical_story", "")
-
-    return [
-        harden_edge_row(
-            raw_edge,
+        hardened = harden_edge_row(
+            row,
             build_run_id=build_run_id,
             contract=contract,
             default_origin_kind="ledger_edge",
             default_origin_artifact_sha256=ledger_hash,
             repo_root=repo_root,
         )
-        for raw_edge in edge_rows
-    ]
+        if not str(hardened.get("edge_family") or "").strip():
+            hardened["edge_family"] = _derive_edge_family(
+                hardened["edge_type"], hardened["assertion_type"]
+            )
+        out.append(hardened)
+    return out
 
 
 __all__ = [

@@ -8,7 +8,8 @@ from collections import Counter
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-_TOKEN_RE = re.compile(r"[a-z0-9]+")
+_TOKEN_RE = re.compile(r"[a-z0-9]+(?:[&+/.-][a-z0-9+]+)*")
+_SIMPLE_ALNUM_RE = re.compile(r"[a-z0-9]+")
 
 CALIBRATED_HYBRID_RRF_WEIGHTS: dict[str, float] = {
     "dense": 0.25,
@@ -164,7 +165,14 @@ class GraphSkillHybridRetrievalError(ValueError):
 
 
 def _tokens(text: str) -> list[str]:
-    return _TOKEN_RE.findall(text.lower())
+    low = text.lower()
+    compound = _TOKEN_RE.findall(low)
+    out: list[str] = []
+    for tok in compound:
+        out.append(tok)
+        if any(ch in tok for ch in ("&", "+", "-", "/", ".")):
+            out.extend(sub for sub in _SIMPLE_ALNUM_RE.findall(tok) if sub != tok)
+    return out
 
 
 def bm25_rank(

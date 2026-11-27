@@ -56,7 +56,8 @@ DDL_STATEMENTS: tuple[str, ...] = (
         assertion_type TEXT NOT NULL DEFAULT 'STRUCTURAL_CONTAINMENT' CHECK (assertion_type IN (
             'STRUCTURAL_CONTAINMENT','TAXONOMIC_ATTRIBUTION','EVIDENTIAL_SUPPORT',
             'POLICY_ELIGIBILITY','POLICY_RESTRICTION','METRIC_BINDING',
-            'TEMPORAL_SEQUENCE','ASSOCIATIVE_BRIDGE'
+            'TEMPORAL_SEQUENCE','ASSOCIATIVE_BRIDGE',
+            'CROSS_ARC_CONTINUITY','CREDENTIAL_VALIDATION'
         )),
         assertion_basis TEXT NOT NULL DEFAULT 'taxonomy_rule' CHECK (assertion_basis IN (
             'evidence_reference','source_field_derivation','taxonomy_rule',
@@ -121,7 +122,8 @@ DDL_STATEMENTS: tuple[str, ...] = (
         assertion_type TEXT NOT NULL CHECK (assertion_type IN (
             'STRUCTURAL_CONTAINMENT','TAXONOMIC_ATTRIBUTION','EVIDENTIAL_SUPPORT',
             'POLICY_ELIGIBILITY','POLICY_RESTRICTION','METRIC_BINDING',
-            'TEMPORAL_SEQUENCE','ASSOCIATIVE_BRIDGE'
+            'TEMPORAL_SEQUENCE','ASSOCIATIVE_BRIDGE',
+            'CROSS_ARC_CONTINUITY','CREDENTIAL_VALIDATION'
         )),
         layer TEXT NOT NULL CHECK (layer IN ('knowledge','evidence','policy','projection','derived','temporal')),
         traversable INTEGER NOT NULL DEFAULT 1 CHECK (traversable IN (0, 1)),
@@ -162,6 +164,12 @@ DDL_STATEMENTS: tuple[str, ...] = (
         career_track_id TEXT NOT NULL DEFAULT '',
         career_epoch TEXT NOT NULL DEFAULT '',
         phase_ordinal INTEGER DEFAULT NULL,
+        span_start_ordinal INTEGER DEFAULT NULL,
+        span_end_ordinal INTEGER DEFAULT NULL,
+        epoch_recurrence_count INTEGER NOT NULL DEFAULT 1,
+        tenure_span_years REAL NOT NULL DEFAULT 0.0,
+        last_exercised_date TEXT NOT NULL DEFAULT '',
+        employers_json TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(employers_json) AND json_type(employers_json) = 'array'),
         skill_family TEXT NOT NULL DEFAULT '',
         metric_bucket TEXT NOT NULL DEFAULT 'general_business_outcome',
         role_family_weights TEXT NOT NULL DEFAULT '{}',
@@ -277,7 +285,7 @@ DDL_STATEMENTS: tuple[str, ...] = (
         build_run_id TEXT NOT NULL,
         input_role TEXT NOT NULL CHECK (input_role IN (
             'canonical_graph_ledger','candidate_fact_ledger','role_episode_bundle',
-            'edge_semantic_contract','primary_ledger','metric_bundles','source_manifest','contract'
+            'edge_semantic_contract','primary_ledger','metric_bundles','source_manifest','contract','base_resume'
         )),
         artifact_relpath TEXT NOT NULL CHECK (TRIM(artifact_relpath) <> ''),
         artifact_sha256 TEXT NOT NULL CHECK (length(artifact_sha256) = 64),
@@ -558,12 +566,120 @@ DDL_STATEMENTS: tuple[str, ...] = (
     CREATE INDEX IF NOT EXISTS idx_semantic_unit_member_id ON semantic_unit_member(member_id, member_kind)
     """,
     """
+    CREATE TABLE IF NOT EXISTS skill_epoch_links (
+        skill_id TEXT NOT NULL,
+        epoch_id TEXT NOT NULL,
+        phase_ordinal INTEGER DEFAULT NULL,
+        fact_count INTEGER NOT NULL DEFAULT 0 CHECK (fact_count >= 0),
+        engagement_count INTEGER NOT NULL DEFAULT 0 CHECK (engagement_count >= 0),
+        is_primary INTEGER NOT NULL DEFAULT 0 CHECK (is_primary IN (0, 1)),
+        PRIMARY KEY (skill_id, epoch_id),
+        FOREIGN KEY (skill_id) REFERENCES graph_nodes(node_id),
+        FOREIGN KEY (epoch_id) REFERENCES graph_nodes(node_id)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS skill_employment_links (
+        skill_id TEXT NOT NULL,
+        employment_id TEXT NOT NULL,
+        employer TEXT NOT NULL DEFAULT '',
+        start_date TEXT NOT NULL DEFAULT '',
+        end_date TEXT NOT NULL DEFAULT '',
+        last_exercised_date TEXT NOT NULL DEFAULT '',
+        fact_count INTEGER NOT NULL DEFAULT 0 CHECK (fact_count >= 0),
+        engagement_count INTEGER NOT NULL DEFAULT 0 CHECK (engagement_count >= 0),
+        evidence_weight REAL NOT NULL DEFAULT 1.0 CHECK (evidence_weight >= 0.0),
+        is_primary INTEGER NOT NULL DEFAULT 0 CHECK (is_primary IN (0, 1)),
+        PRIMARY KEY (skill_id, employment_id),
+        FOREIGN KEY (skill_id) REFERENCES graph_nodes(node_id),
+        FOREIGN KEY (employment_id) REFERENCES graph_nodes(node_id)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS skill_lexical_aliases (
+        skill_id TEXT NOT NULL,
+        alias_text TEXT NOT NULL CHECK (TRIM(alias_text) <> ''),
+        alias_kind TEXT NOT NULL DEFAULT 'ats_canonical' CHECK (alias_kind IN (
+            'canonical_noun','acronym','expanded_form','ats_canonical','allowed_phrase','concept_alias'
+        )),
+        acronym_pair TEXT NOT NULL DEFAULT '',
+        external_eligible INTEGER NOT NULL DEFAULT 1 CHECK (external_eligible IN (0, 1)),
+        PRIMARY KEY (skill_id, alias_text),
+        FOREIGN KEY (skill_id) REFERENCES graph_nodes(node_id)
+    )
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_skill_epoch_links_epoch ON skill_epoch_links(epoch_id, phase_ordinal)",
+    "CREATE INDEX IF NOT EXISTS idx_skill_emp_links_emp ON skill_employment_links(employment_id, last_exercised_date DESC)",
+    "CREATE INDEX IF NOT EXISTS idx_skill_lexical_aliases_alias ON skill_lexical_aliases(alias_text)",
+    "CREATE INDEX IF NOT EXISTS idx_graph_paths_start_end_rank ON graph_paths(start_node_id, end_node_id, path_depth ASC, path_score DESC, path_id)",
+    "CREATE INDEX IF NOT EXISTS idx_section_elig_sec_allowed_node ON section_eligibility(section_id, allowed, node_id, claim_policy)",
+    "CREATE INDEX IF NOT EXISTS idx_edge_evidence_edge_indep_strength ON edge_evidence(edge_id, is_independent, evidence_strength DESC)",
+    """
     CREATE VIRTUAL TABLE IF NOT EXISTS graph_nodes_fts USING fts5(
         node_id UNINDEXED,
         node_type UNINDEXED,
         label,
-        description
+        description,
+        tokenize='porter unicode61'
     )
+    """,
+    """
+    CREATE VIRTUAL TABLE IF NOT EXISTS semantic_unit_fts USING fts5(
+        unit_id UNINDEXED,
+        unit_type UNINDEXED,
+        root_node_id UNINDEXED,
+        text,
+        tokenize='porter unicode61'
+    )
+    """,
+    """
+    CREATE VIEW IF NOT EXISTS v_role_section_skill_candidates AS
+    SELECT
+        w.role_family_key,
+        se.section_id,
+        n.node_id AS skill_id,
+        n.label,
+        n.confidence_score,
+        n.confidence_tier,
+        w.weight AS role_weight,
+        f.pillar,
+        f.career_track_id,
+        f.career_epoch,
+        f.span_start_ordinal,
+        f.span_end_ordinal,
+        f.epoch_recurrence_count,
+        f.tenure_span_years,
+        f.last_exercised_date,
+        f.employers_json,
+        f.metric_bucket
+    FROM c03_role_family_skill_weights w
+    JOIN c03_skill_selection_features f ON f.skill_id = w.skill_id
+    JOIN graph_nodes n ON n.node_id = w.skill_id AND n.node_type = 'skill'
+    JOIN section_eligibility se ON se.node_id = w.skill_id AND se.allowed = 1
+    WHERE n.external_eligible = 1
+      AND COALESCE(n.activation_status, '') NOT IN (
+          'QUARANTINED_UNVERIFIED_SYNTHETIC', 'BLOCKED', 'RETIRED', 'DRAFT'
+      )
+    """,
+    """
+    CREATE VIEW IF NOT EXISTS v_multi_arc_skill_continuity AS
+    SELECT
+        f.skill_id,
+        n.label,
+        f.pillar,
+        f.career_track_id,
+        f.span_start_ordinal,
+        f.span_end_ordinal,
+        f.epoch_recurrence_count,
+        f.tenure_span_years,
+        f.last_exercised_date,
+        f.employers_json,
+        n.confidence_score,
+        n.confidence_tier
+    FROM c03_skill_selection_features f
+    JOIN graph_nodes n ON n.node_id = f.skill_id AND n.node_type = 'skill'
+    WHERE n.external_eligible = 1
+      AND (f.epoch_recurrence_count >= 2 OR json_array_length(f.employers_json) >= 2)
     """,
 )
 

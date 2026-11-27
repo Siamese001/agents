@@ -1,4 +1,4 @@
-"""Brown & Brown executive discipline clusters projection (Option A)."""
+"""Insurance IT strategy executive discipline clusters projection (Option A)."""
 from __future__ import annotations
 
 import copy
@@ -23,7 +23,7 @@ _INSURANCE_IT_STRATEGY_8UNIT_KEYS: frozenset[tuple[str, str]] = frozenset(
 def insurance_it_strategy_executive_clusters_layout_is_present(
     selected_plan: Mapping[str, Any],
 ) -> bool:
-    """Return whether plan carries the Brown & Brown 8-unit allocation for executive clusters."""
+    """Return whether plan carries the insurance IT strategy 8-unit allocation for executive clusters."""
     if str(selected_plan.get("target_role_profile") or "").strip() != "insurance_it_strategy":
         return False
     rows = selected_plan.get("allocation_assignments") or selected_plan.get("assignments") or []

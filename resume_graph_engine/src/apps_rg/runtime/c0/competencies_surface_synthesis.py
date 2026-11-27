@@ -139,11 +139,59 @@ _ACRONYM_CASE: Mapping[str, str] = {
     "tco": "TCO",
     "naic": "NAIC",
     "ip": "IP",
+    "fsa": "FSA",
+    "erm": "ERM",
+    "rag": "RAG",
+    "ag43": "AG43",
+    "nydfs": "NYDFS",
+    "p&c": "P&C",
     "graphrag": "GraphRAG",
     "devsecops": "DevSecOps",
     "llmops": "LLMOps",
     "soc2": "SOC2",
 }
+
+FIRST_MENTION_ACRONYM_PAIRS: Mapping[str, str] = {
+    "FSA": "Fellow of the Society of Actuaries (FSA)",
+    "ERM": "Enterprise Risk Management (ERM)",
+    "RAG": "Retrieval-Augmented Generation (RAG)",
+    "CCAR": "Comprehensive Capital Analysis and Review (CCAR)",
+    "HIPAA": "Health Insurance Portability and Accountability Act (HIPAA)",
+}
+
+
+def format_ats_canonical_skill_phrase(
+    phrase: str,
+    *,
+    expand_first_mention: bool = False,
+    seen_acronyms: set[str] | None = None,
+    max_words: int = 5,
+) -> str:
+    """Normalize a skill phrase into a clean ATS-scannable 2-to-5 word canonical term.
+
+    When ``expand_first_mention`` is True, expands standalone first-mention acronyms
+    (e.g. FSA, ERM, RAG) into full-term + parenthetical acronym pairs for ATS recall.
+    """
+    raw = re.sub(r"[_\s]+", " ", str(phrase or "").strip())
+    if not raw:
+        return ""
+    tokens = _normalize_sid_words(raw.split())
+    if not expand_first_mention and len(tokens) > max_words:
+        tokens = tokens[:max_words]
+    out_text = " ".join(tokens)
+    if expand_first_mention:
+        tracker = seen_acronyms if seen_acronyms is not None else set()
+        for acr, expanded in FIRST_MENTION_ACRONYM_PAIRS.items():
+            if acr in tracker:
+                continue
+            if expanded.casefold() in out_text.casefold():
+                tracker.add(acr)
+                continue
+            pat = re.compile(rf"(?<![A-Za-z0-9]){re.escape(acr)}(?![A-Za-z0-9])")
+            if pat.search(out_text):
+                out_text = pat.sub(expanded, out_text, count=1)
+                tracker.add(acr)
+    return out_text
 
 _CTX_NOUN_ORDER = (
     "workflows",
@@ -340,6 +388,8 @@ def synthesize_graph_bound_surface_phrase(
 
 
 __all__ = [
+    "FIRST_MENTION_ACRONYM_PAIRS",
+    "format_ats_canonical_skill_phrase",
     "phrase_passes_svp_richness",
     "synthesize_graph_bound_surface_phrase",
 ]

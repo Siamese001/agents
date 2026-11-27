@@ -447,10 +447,146 @@ def run_materializer_ingress(
                 }
             )
 
-    from .topology_normalization import FACT_TO_EMPLOYMENT_MAP
+    from .topology_normalization import (
+        FACT_TO_EMPLOYMENT_MAP,
+        MULTI_EMPLOYMENT_FACTS_MAP,
+    )
+    from apps_rg.repository_layout import resolve_apps_rg_path
 
+    retired_tradersense_facts = frozenset({"fact_quant_hpc_002", "fact_partnerships_gtm_005"})
     for fid_map in sorted(FACT_TO_EMPLOYMENT_MAP):
+        if fid_map in retired_tradersense_facts:
+            continue
         _ensure_fact_node(node_rows, fid_map, ts=ts, candidate_registry=candidate_registry)
+
+    # Materialize verified base-resume credentials and education nodes (Wave 1)
+    _CREDENTIAL_PILLAR_BINDINGS: dict[str, tuple[str, ...]] = {
+        "cert_fsa_001": (
+            "pillar_actuarial_foundation",
+            "pillar_capital_modeling",
+            "pillar_enterprise_risk_controls",
+            "pillar_regulatory_governance",
+        ),
+        "cert_aws_sa_pro_001": (
+            "pillar_cloud_data_aws",
+            "pillar_applied_ai_partner_architecture",
+        ),
+        "cert_aws_cml_001": (
+            "pillar_agentic_ai_platforms",
+            "pillar_cloud_data_aws",
+        ),
+        "cert_databricks_lakehouse_001": (
+            "pillar_cloud_data_aws",
+            "pillar_agentic_ai_platforms",
+        ),
+        "edu_columbia_ms_001": (
+            "pillar_actuarial_foundation",
+            "pillar_risk_management",
+        ),
+        "edu_brown_ba_001": ("pillar_actuarial_foundation",),
+    }
+    base_resume_path = resolve_apps_rg_path(root, "resume", "base", "amit_ayer_base_resume_v1.json")
+    base_resume_rel = (
+        str(base_resume_path.relative_to(root))
+        if base_resume_path.is_file() and base_resume_path.is_relative_to(root)
+        else "resume_graph_engine/src/apps_rg/resume/base/amit_ayer_base_resume_v1.json"
+    )
+    if base_resume_path.is_file():
+        try:
+            br_payload = json.loads(base_resume_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError, ValueError):
+            br_payload = {}
+        br_facts = br_payload.get("facts") if isinstance(br_payload, dict) else {}
+        if isinstance(br_facts, dict):
+            cred_entries: list[tuple[str, str, str, str]] = []
+            for c_item in br_facts.get("certifications") or []:
+                if not isinstance(c_item, dict):
+                    continue
+                cid = str(c_item.get("fact_id") or "").strip()
+                cname = str(c_item.get("name") or "").strip()
+                issuer = str(c_item.get("issuing_organization") or "").strip()
+                cyear = str(c_item.get("year") or "").strip()
+                if not cid or not cname:
+                    continue
+                full_label = f"{issuer} {cname}".strip() if issuer and issuer.lower() not in cname.lower() else cname
+                if cid == "cert_fsa_001" and "(FSA)" not in full_label:
+                    full_label = f"{full_label} (FSA)"
+                desc = f"Verified professional credential: {full_label}" + (f" ({cyear})." if cyear else ".")
+                cred_entries.append((cid, full_label, desc, cyear))
+            for e_item in br_facts.get("education") or []:
+                if not isinstance(e_item, dict):
+                    continue
+                eid_c = str(e_item.get("fact_id") or "").strip()
+                deg = str(e_item.get("degree") or "").strip()
+                inst = str(e_item.get("institution") or "").strip()
+                honors = str(e_item.get("honors") or "").strip()
+                if not eid_c or not deg:
+                    continue
+                full_label = f"{deg}, {inst}" if inst else deg
+                desc = f"Verified academic credential: {full_label}" + (f" ({honors})." if honors else ".")
+                cred_entries.append((eid_c, full_label, desc, ""))
+            for cid, full_label, desc, cyear in cred_entries:
+                c_epoch = (
+                    "epoch_actuarial_financial_engineering"
+                    if cid in ("cert_fsa_001", "edu_columbia_ms_001", "edu_brown_ba_001")
+                    else "epoch_agentic_ai_runtime_architecture"
+                )
+                c_ord = EPOCH_ORDINAL.get(c_epoch)
+                node_rows[cid] = {
+                    "node_id": cid,
+                    "node_type": "certification",
+                    "label": full_label,
+                    "description": desc,
+                    "activation_status": "ACTIVE_CONFIRMED",
+                    "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
+                    "confidence": "HIGH",
+                    "confidence_score": 0.95,
+                    "confidence_tier": "HIGH",
+                    "external_eligible": 1,
+                    "career_epoch": c_epoch,
+                    "phase_ordinal": c_ord,
+                    "start_date": cyear,
+                    "source_authority": "augmented_skills_graph",
+                    "origin_kind": "ledger_node",
+                    "origin_ref": f"base_resume:{cid}",
+                    "source_refs_json": json.dumps([f"base_resume:{base_resume_rel}#{cid}"]),
+                    "authority_refs_json": json.dumps(["authority:augmented_skills_graph:certification"]),
+                    "created_at": ts,
+                    "updated_at": ts,
+                }
+                for target_pillar in _CREDENTIAL_PILLAR_BINDINGS.get(cid, ()):
+                    if target_pillar in node_rows and node_rows[target_pillar].get("node_type") == "pillar":
+                        cv_eid = f"edge_credential_validates_domain__{cid}__{target_pillar}"
+                        edge_by_id[cv_eid] = {
+                            "edge_id": cv_eid,
+                            "source_node_id": cid,
+                            "target_node_id": target_pillar,
+                            "edge_family": "credential_validation",
+                            "edge_type": "credential_validates_domain",
+                            "weight": 1.0,
+                            "confidence": "NOT_APPLICABLE",
+                            "directional": 1,
+                            "evidence_status": "validated",
+                            "section_fit": "ALL",
+                            "source_authority": "augmented_skills_graph",
+                            "rationale": f"Verified credential {full_label} validates capability pillar {target_pillar}.",
+                            "projection_behavior": "graph_structure",
+                            "external_claim_policy": "atomic_fact_default_external_proof",
+                            "validation_status": "validated",
+                            "edge_note": "",
+                            "operator_note": "",
+                            "business_story": "",
+                            "technical_story": "",
+                            "assertion_type": "CREDENTIAL_VALIDATION",
+                            "assertion_basis": "evidence_reference",
+                            "assertion_basis_refs": [f"node:{cid}", f"base_resume:{cid}"],
+                            "canonical_assertion_text": f"Verified credential {full_label} validates capability pillar {target_pillar}.",
+                            "lifecycle_disposition": "ACTIVE_POLICY_GATED",
+                            "origin_kind": "derived_projection",
+                            "origin_ref": f"{cid}->{target_pillar}",
+                            "derivation_rule_id": "rule_credential_validates_domain",
+                            "traversable": 1,
+                        }
 
     for sid, row in skill_rows_by_id.items():
         if sid in FORBIDDEN_SKILL_NODE_IDS:
@@ -597,6 +733,319 @@ def run_materializer_ingress(
         ledger_hash=ledger_hash,
         bundles_dir=bundles_dir,
     )
+
+    # Wave 1 Multi-Era & Multi-Employer Junction Links (skill_epoch_links, skill_employment_links)
+    eng_to_emp: dict[str, str] = {}
+    for _er in edge_rows:
+        if str(_er.get("edge_type") or "") == "engagement_at_employment":
+            _s = str(_er.get("source_node_id") or "").strip()
+            _t = str(_er.get("target_node_id") or "").strip()
+            if _s and _t:
+                eng_to_emp[_s] = _t
+
+    skill_emp_fact_counts: dict[tuple[str, str], int] = {}
+    skill_emp_eng_counts: dict[tuple[str, str], int] = {}
+    for _sf in skill_fact_rows:
+        _sid = str(_sf.get("skill_id") or "").strip()
+        _fid = str(_sf.get("fact_id") or "").strip()
+        if not _sid or not _fid or _sid not in node_rows:
+            continue
+        _emps: set[str] = set()
+        _primary_emp = FACT_TO_EMPLOYMENT_MAP.get(_fid)
+        if _primary_emp:
+            _emps.add(_primary_emp)
+        for _me in MULTI_EMPLOYMENT_FACTS_MAP.get(_fid, ()):
+            _emps.add(_me)
+        if _fid.startswith("employment_exp_") and _fid in EMPLOYMENT_DATES_AND_TITLES:
+            _emps.add(_fid)
+        for _emp_id in _emps:
+            if _emp_id in node_rows:
+                skill_emp_fact_counts[(_sid, _emp_id)] = skill_emp_fact_counts.get((_sid, _emp_id), 0) + 1
+
+    for _er in edge_rows:
+        _et = str(_er.get("edge_type") or "")
+        _src = str(_er.get("source_node_id") or "").strip()
+        _tgt = str(_er.get("target_node_id") or "").strip()
+        if _et == "engagement_exercises_skill" and _src in eng_to_emp and _tgt in node_rows:
+            _emp_id = eng_to_emp[_src]
+            if _emp_id in node_rows:
+                skill_emp_eng_counts[(_tgt, _emp_id)] = skill_emp_eng_counts.get((_tgt, _emp_id), 0) + 1
+        elif _et == "skill_supported_by_employment" and _src in node_rows and _tgt in node_rows:
+            skill_emp_fact_counts[(_src, _tgt)] = skill_emp_fact_counts.get((_src, _tgt), 0) + 1
+        elif _et == "employment_produces_skill" and _src in node_rows and _tgt in node_rows:
+            skill_emp_fact_counts[(_tgt, _src)] = skill_emp_fact_counts.get((_tgt, _src), 0) + 1
+
+    epoch_to_primary_emp: dict[str, str] = {
+        ep: emp_id for emp_id, ep in CANONICAL_EMPLOYMENT_EPOCHS.items()
+    }
+    skill_employment_link_rows: list[dict[str, Any]] = []
+    skill_epoch_link_rows: list[dict[str, Any]] = []
+    existing_edge_triples = {
+        (str(e.get("source_node_id") or ""), str(e.get("target_node_id") or ""), str(e.get("edge_type") or ""))
+        for e in edge_rows
+    }
+    for _sid, _snode in sorted(node_rows.items()):
+        if _snode.get("node_type") != "skill":
+            continue
+        _primary_epoch = str(_snode.get("career_epoch") or "").strip()
+        _emp_ids = {
+            emp_id
+            for (s, emp_id) in set(skill_emp_fact_counts.keys()) | set(skill_emp_eng_counts.keys())
+            if s == _sid
+        }
+        if not _emp_ids and _primary_epoch in epoch_to_primary_emp:
+            _fallback_emp = epoch_to_primary_emp[_primary_epoch]
+            if _fallback_emp in node_rows:
+                _emp_ids.add(_fallback_emp)
+
+        _emp_entries: list[dict[str, Any]] = []
+        for _emp_id in sorted(_emp_ids):
+            _emeta = EMPLOYMENT_DATES_AND_TITLES.get(_emp_id) or {}
+            _fc = skill_emp_fact_counts.get((_sid, _emp_id), 0)
+            _ec = skill_emp_eng_counts.get((_sid, _emp_id), 0)
+            _sdate = str(_emeta.get("start_date") or "")
+            _edate = str(_emeta.get("end_date") or "")
+            _is_cur = int(_emeta.get("is_current") or 0)
+            _last_date = _sdate if _is_cur else (_edate or _sdate)
+            _emp_entries.append(
+                {
+                    "skill_id": _sid,
+                    "employment_id": _emp_id,
+                    "employer": str(_emeta.get("employer") or ""),
+                    "start_date": _sdate,
+                    "end_date": _edate,
+                    "last_exercised_date": _last_date,
+                    "fact_count": _fc,
+                    "engagement_count": _ec,
+                    "evidence_weight": round(min(1.0, 0.4 + 0.2 * _fc + 0.15 * _ec), 4),
+                    "is_primary": 0,
+                }
+            )
+        if _emp_entries:
+            _best_emp = max(
+                _emp_entries,
+                key=lambda r: (r["last_exercised_date"], r["fact_count"] + r["engagement_count"], r["employment_id"]),
+            )
+            _best_emp["is_primary"] = 1
+            skill_employment_link_rows.extend(_emp_entries)
+
+        _epoch_counts: dict[str, tuple[int, int]] = {}
+        for _entry in _emp_entries:
+            _ep = CANONICAL_EMPLOYMENT_EPOCHS.get(_entry["employment_id"], "")
+            if _ep and _ep in node_rows:
+                _pf, _pe = _epoch_counts.get(_ep, (0, 0))
+                _epoch_counts[_ep] = (_pf + int(_entry["fact_count"]), _pe + int(_entry["engagement_count"]))
+        if _primary_epoch and _primary_epoch in node_rows and _primary_epoch not in _epoch_counts:
+            _epoch_counts[_primary_epoch] = (0, 0)
+
+        for _ep_id, (_fc_ep, _ec_ep) in sorted(_epoch_counts.items()):
+            _ord_ep = EPOCH_ORDINAL.get(_ep_id)
+            skill_epoch_link_rows.append(
+                {
+                    "skill_id": _sid,
+                    "epoch_id": _ep_id,
+                    "phase_ordinal": _ord_ep,
+                    "fact_count": _fc_ep,
+                    "engagement_count": _ec_ep,
+                    "is_primary": 1 if _ep_id == _primary_epoch else 0,
+                }
+            )
+            _triple = (_sid, _ep_id, "skill_exercised_in_epoch")
+            if _triple not in existing_edge_triples:
+                existing_edge_triples.add(_triple)
+                edge_rows.append(
+                    {
+                        "edge_id": f"edge_skill_exercised_in_epoch__{_sid}__{_ep_id}",
+                        "source_node_id": _sid,
+                        "target_node_id": _ep_id,
+                        "edge_family": "temporal_spine",
+                        "edge_type": "skill_exercised_in_epoch",
+                        "weight": 1.0,
+                        "confidence": "NOT_APPLICABLE",
+                        "directional": 1,
+                        "evidence_status": "validated",
+                        "section_fit": "ALL",
+                        "source_authority": "augmented_skills_graph",
+                        "rationale": f"Skill {_sid} was exercised during career epoch {_ep_id}.",
+                        "projection_behavior": "graph_structure",
+                        "external_claim_policy": "graph_routing_not_claim_proof",
+                        "validation_status": "validated",
+                        "edge_note": "",
+                        "operator_note": "",
+                        "business_story": "",
+                        "technical_story": "",
+                        "assertion_type": "TEMPORAL_SEQUENCE",
+                        "assertion_basis": "taxonomy_rule",
+                        "assertion_basis_refs": [f"skill:{_sid}", f"epoch:{_ep_id}"],
+                        "canonical_assertion_text": f"Skill {_sid} was exercised during career epoch {_ep_id}.",
+                        "lifecycle_disposition": "ACTIVE_POLICY_GATED",
+                        "origin_kind": "derived_projection",
+                        "origin_ref": f"{_sid}->{_ep_id}",
+                        "derivation_rule_id": "rule_skill_exercised_in_epoch",
+                        "build_run_id": build_run_id,
+                        "confidence_score": None,
+                        "confidence_tier": "NOT_APPLICABLE",
+                        "confidence_method": "rule_governed",
+                        "traversable": 1,
+                    }
+                )
+
+    # Wave 2 Cross-Arc Continuity Assertions (dual-endpoint verified fact witnesses)
+    _CROSS_ARC_PILLAR_CONTINUITY: tuple[tuple[str, str, tuple[str, str], str], ...] = (
+        (
+            "pillar_agentic_ai_platforms",
+            "pillar_actuarial_foundation",
+            ("fact_engineering_platform_001", "fact_solvency_001"),
+            "Regulated agentic AI control-plane architecture extends quantitative actuarial capital and risk governance rigor.",
+        ),
+        (
+            "pillar_agentic_ai_platforms",
+            "pillar_enterprise_risk_controls",
+            ("fact_rag_insurance_001", "fact_three_lines_001"),
+            "Governed multi-agent workflows and GraphRAG underwriting/claims controls extend enterprise risk controls.",
+        ),
+        (
+            "pillar_cloud_data_aws",
+            "pillar_insurance_carrier_transformation",
+            ("fact_insurtech_aws_001", "fact_ey_guidewire_001"),
+            "AWS and Databricks cloud-native modernization extends core P&C carrier Guidewire and policy-stack transformations.",
+        ),
+        (
+            "pillar_regulatory_governance",
+            "pillar_capital_modeling",
+            ("fact_governance_001", "fact_bcbs239_001"),
+            "Enterprise AI model-risk governance extends BCBS 239, Solvency II, and AG43 regulatory capital auditability.",
+        ),
+        (
+            "pillar_underwriting_claims_ops_ai",
+            "pillar_embedded_options_insurance",
+            ("fact_rag_insurance_001", "fact_insurance_liabilities_001"),
+            "AI underwriting and claims automation extends deep insurance liability and actuarial reserving domain expertise.",
+        ),
+    )
+    for _src_p, _tgt_p, (_f_src, _f_tgt), _rat in _CROSS_ARC_PILLAR_CONTINUITY:
+        if (
+            _src_p in node_rows
+            and _tgt_p in node_rows
+            and _f_src in node_rows
+            and _f_tgt in node_rows
+            and (_src_p, _tgt_p, "demonstrates_continuity_from") not in existing_edge_triples
+        ):
+            existing_edge_triples.add((_src_p, _tgt_p, "demonstrates_continuity_from"))
+            edge_rows.append(
+                {
+                    "edge_id": f"edge_demonstrates_continuity_from__{_src_p}__{_tgt_p}",
+                    "source_node_id": _src_p,
+                    "target_node_id": _tgt_p,
+                    "edge_family": "cross_arc_continuity",
+                    "edge_type": "demonstrates_continuity_from",
+                    "weight": 0.95,
+                    "confidence": "NOT_APPLICABLE",
+                    "directional": 1,
+                    "evidence_status": "validated",
+                    "section_fit": "ALL",
+                    "source_authority": "augmented_skills_graph",
+                    "rationale": _rat,
+                    "projection_behavior": "graph_structure",
+                    "external_claim_policy": "atomic_fact_default_external_proof",
+                    "validation_status": "validated",
+                    "edge_note": "",
+                    "operator_note": "",
+                    "business_story": _rat,
+                    "technical_story": _rat,
+                    "assertion_type": "CROSS_ARC_CONTINUITY",
+                    "assertion_basis": "evidence_reference",
+                    "assertion_basis_refs": [f"fact:{_f_src}", f"fact:{_f_tgt}"],
+                    "canonical_assertion_text": _rat,
+                    "lifecycle_disposition": "ACTIVE_POLICY_GATED",
+                    "origin_kind": "derived_projection",
+                    "origin_ref": f"{_src_p}->{_tgt_p}",
+                    "derivation_rule_id": "rule_demonstrates_continuity_from",
+                    "build_run_id": build_run_id,
+                    "confidence_score": None,
+                    "confidence_tier": "NOT_APPLICABLE",
+                    "confidence_method": "rule_governed",
+                    "traversable": 1,
+                }
+            )
+
+    _QUANT_RIGOR_TRANSFERS: tuple[tuple[str, str, tuple[str, str], str], ...] = (
+        (
+            "skill_actuarial_fsa_fellowship",
+            "skill_ai_governance_certification",
+            ("fact_certs_001", "fact_governance_001"),
+            "FSA actuarial governance discipline transfers directly to enterprise AI model-risk certification.",
+        ),
+        (
+            "skill_capital_regulatory_capital",
+            "skill_risk_enterprise_risk_controls",
+            ("fact_solvency_001", "fact_three_lines_001"),
+            "Solvency II and AG43 regulatory capital rigor transfers to enterprise risk and model control governance.",
+        ),
+        (
+            "skill_quant_stochastic_modeling",
+            "skill_risk_and_hitl_route_posture",
+            ("fact_quant_act_001", "fact_slalom_007"),
+            "Stochastic actuarial modeling transfers quantitative calibration rigor to Bayesian HITL ambiguity gating.",
+        ),
+        (
+            "skill_sr_insurtech_regulated_insurer_controls",
+            "skill_governed_agentic_systems_architecture",
+            ("fact_insurtech_aws_001", "fact_rag_insurance_001"),
+            "SOC 2 and NYDFS regulated insurer cloud controls transfer directly into governed insurance AI agent architectures.",
+        ),
+        (
+            "skill_hpc_valuation_capital_adequacy",
+            "skill_sr_cloud_data_platform_engineering",
+            ("fact_quant_hpc_003", "fact_data_analytics_001"),
+            "High-performance valuation compute transfers directly into scalable cloud data platform engineering.",
+        ),
+    )
+    for _src_s, _tgt_s, (_f_src, _f_tgt), _rat in _QUANT_RIGOR_TRANSFERS:
+        if (
+            _src_s in node_rows
+            and _tgt_s in node_rows
+            and _f_src in node_rows
+            and _f_tgt in node_rows
+            and (_src_s, _tgt_s, "transfers_quantitative_rigor_to") not in existing_edge_triples
+        ):
+            existing_edge_triples.add((_src_s, _tgt_s, "transfers_quantitative_rigor_to"))
+            edge_rows.append(
+                {
+                    "edge_id": f"edge_transfers_quantitative_rigor_to__{_src_s}__{_tgt_s}",
+                    "source_node_id": _src_s,
+                    "target_node_id": _tgt_s,
+                    "edge_family": "cross_arc_continuity",
+                    "edge_type": "transfers_quantitative_rigor_to",
+                    "weight": 0.95,
+                    "confidence": "NOT_APPLICABLE",
+                    "directional": 1,
+                    "evidence_status": "validated",
+                    "section_fit": "ALL",
+                    "source_authority": "augmented_skills_graph",
+                    "rationale": _rat,
+                    "projection_behavior": "graph_structure",
+                    "external_claim_policy": "atomic_fact_default_external_proof",
+                    "validation_status": "validated",
+                    "edge_note": "",
+                    "operator_note": "",
+                    "business_story": _rat,
+                    "technical_story": _rat,
+                    "assertion_type": "CROSS_ARC_CONTINUITY",
+                    "assertion_basis": "evidence_reference",
+                    "assertion_basis_refs": [f"fact:{_f_src}", f"fact:{_f_tgt}"],
+                    "canonical_assertion_text": _rat,
+                    "lifecycle_disposition": "ACTIVE_POLICY_GATED",
+                    "origin_kind": "derived_projection",
+                    "origin_ref": f"{_src_s}->{_tgt_s}",
+                    "derivation_rule_id": "rule_transfers_quantitative_rigor_to",
+                    "build_run_id": build_run_id,
+                    "confidence_score": None,
+                    "confidence_tier": "NOT_APPLICABLE",
+                    "confidence_method": "rule_governed",
+                    "traversable": 1,
+                }
+            )
     raw_redirects = payload.get("_graph_hygiene_redirects") or []
     if isinstance(raw_redirects, list) and raw_redirects:
         redirect_map: dict[str, str] = {
@@ -666,6 +1115,8 @@ def run_materializer_ingress(
         "build_inputs": build_inputs, "semantic_contract_version": SEMANTIC_CONTRACT_VERSION_V2,
         "gver": gver, "ts": ts, "skill_rows_by_id": skill_rows_by_id,
         "node_rows": node_rows, "edge_rows": edge_rows, "skill_fact_rows": skill_fact_rows,
+        "skill_epoch_link_rows": skill_epoch_link_rows,
+        "skill_employment_link_rows": skill_employment_link_rows,
         "section_rows": list(section_by_key.values()),
         "projected_signature_report": projected_signature_report,
     }

@@ -59,18 +59,18 @@ CANONICAL_TAXONOMY_TO_PROJECTION: dict[str, str] = {
 
 PROJECTION_TRACK_WEIGHTS: dict[str, dict[str, float]] = {
     "SVP_ENGINEERING_AI_PLATFORM": {
-        "track_actuarial_risk_derivatives": 0.12,
-        "track_data_tech_cloud_ml": 0.28,
+        "track_actuarial_risk_derivatives": 0.10,
+        "track_data_tech_cloud_ml": 0.30,
         "track_genai_agentic": 0.60,
     },
     "CHIEF_AI_OFFICER": {
-        "track_actuarial_risk_derivatives": 0.18,
-        "track_data_tech_cloud_ml": 0.27,
+        "track_actuarial_risk_derivatives": 0.16,
+        "track_data_tech_cloud_ml": 0.29,
         "track_genai_agentic": 0.55,
     },
     "FIELD_CTO": {
-        "track_actuarial_risk_derivatives": 0.10,
-        "track_data_tech_cloud_ml": 0.42,
+        "track_actuarial_risk_derivatives": 0.09,
+        "track_data_tech_cloud_ml": 0.43,
         "track_genai_agentic": 0.48,
     },
     "GOVERNANCE_RISK": {
@@ -84,8 +84,8 @@ PROJECTION_TRACK_WEIGHTS: dict[str, dict[str, float]] = {
         "track_genai_agentic": 0.10,
     },
     "ANTHROPIC_PARTNERSHIPS_APPLIED_AI": {
-        "track_actuarial_risk_derivatives": 0.10,
-        "track_data_tech_cloud_ml": 0.55,
+        "track_actuarial_risk_derivatives": 0.09,
+        "track_data_tech_cloud_ml": 0.56,
         "track_genai_agentic": 0.35,
     },
     "INSURANCE_CARRIER_TRANSFORMATION": {
@@ -99,8 +99,8 @@ PROJECTION_TRACK_WEIGHTS: dict[str, dict[str, float]] = {
         "track_genai_agentic": 0.35,
     },
     "INSURANCE_BROKERAGE_IT_INNOVATION": {
-        "track_actuarial_risk_derivatives": 0.18,
-        "track_data_tech_cloud_ml": 0.47,
+        "track_actuarial_risk_derivatives": 0.22,
+        "track_data_tech_cloud_ml": 0.43,
         "track_genai_agentic": 0.35,
     },
     "BANKING_PLATFORM_AI": {
@@ -753,17 +753,17 @@ def resolve_mandate_route(
         SLOT_BUDGET_BY_PROFILE.get(sel_prof) or SLOT_BUDGET_BY_PROFILE["balanced_enterprise_ai"]
     )
 
-    # Credential elevation policy (Operator Q2): elevate FSA / Columbia MS Biostatistics / AWS SAP
-    # whenever differentiating for the target mandate.
+    # Credential elevation policy (canonical graph node IDs): elevate FSA / Columbia MS / AWS SA Pro
+    # strictly when differentiating for the target mandate (role-routed actuarial elevation).
     creds: list[str] = []
     if ins_hits >= 1 or bank_hits >= 1 or health_hits >= 1 or quant_hits >= 1 or pe_hits >= 2:
         creds.append("cert_fsa_001")
     if health_hits >= 1 or role_has_cdao or quant_hits >= 1 or bank_hits >= 1 or ins_hits >= 2:
-        creds.append("edu_columbia_ms_biostat_001")
+        creds.append("edu_columbia_ms_001")
     if agentic_hits >= 1 or partner_hits >= 1 or has_word_signal(blob, "aws") or has_word_signal(blob, "cloud"):
-        creds.append("cert_aws_sap_001")
+        creds.append("cert_aws_sa_pro_001")
     if not creds:
-        creds.extend(["cert_fsa_001", "cert_aws_sap_001"])
+        creds.extend(["cert_fsa_001", "cert_aws_sa_pro_001"])
 
     return MandateRouteDecision(
         canonical_projection_role=proj,

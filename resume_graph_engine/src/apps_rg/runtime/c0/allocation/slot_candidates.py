@@ -371,13 +371,13 @@ def _candidate_sets_from_section_plans(
                 if not metric_options:
                     continue
             elif (
-                (slot.section_id.endswith("_bullets") and slot.section_id != "insurtech_bullets")
+                slot.section_id.endswith("_bullets")
                 or slot.section_id == "executive_summary"
             ) and metrics:
                 populated: list[dict[str, Any] | None] = []
                 for metric in metrics:
                     metric_raw_text = str(metric.get("metric") or "")
-                    if slot.section_id in {"ibm_bullets", "executive_summary"} and HOLD_METRIC_TEXT_RE.search(metric_raw_text):
+                    if slot.section_id == "ibm_bullets" and HOLD_METRIC_TEXT_RE.search(metric_raw_text):
                         continue
                     value, unit = extract_exact_metric_value_unit(metric_raw_text)
                     populated.append({**metric, "metric_value": value, "metric_unit": unit})

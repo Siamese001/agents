@@ -89,9 +89,9 @@ ROLE_FAMILY_TRACK_WEIGHTS: dict[str, dict[str, float]] = {
         "track_genai_agentic": 0.35,
     },
     "INSURANCE_BROKERAGE_IT_INNOVATION": {
-        "track_actuarial_risk_derivatives": 0.10,
-        "track_data_tech_cloud_ml": 0.50,
-        "track_genai_agentic": 0.40,
+        "track_actuarial_risk_derivatives": 0.22,
+        "track_data_tech_cloud_ml": 0.43,
+        "track_genai_agentic": 0.35,
     },
     "BANKING_PLATFORM_AI": {
         "track_actuarial_risk_derivatives": 0.35,
@@ -172,6 +172,11 @@ SENIOR_ROLE_TAXONOMY_IDS: frozenset[str] = frozenset(
         "CONSULTING_DELIVERY_LEADERSHIP",
         "DATA_ANALYTICS_LEADERSHIP",
         "STRATEGIC_FINANCE",
+        "HEALTHCARE_PAYER_DATA_AI",
+        "PE_OPERATING_PARTNER_TRANSFORMATION",
+        "AI_FINANCIAL_SERVICES",
+        "CHIEF_REVENUE_OFFICER_COMPOSITE",
+        "THREE_PHASE_GENERALIST",
     }
 )
 
@@ -197,7 +202,41 @@ TAXONOMY_TO_PROJECTION_ROLE: dict[str, str] = {
     "PARTNER_APPLIED_AI_ARCHITECTURE": "PARTNER_APPLIED_AI_ARCHITECTURE",
     "HYPERSCALER_MARKETPLACE_GTM": "HYPERSCALER_MARKETPLACE_GTM",
     "CONSULTING_DELIVERY_LEADERSHIP": "CONSULTING_DELIVERY_LEADERSHIP",
+    "HEALTHCARE_PAYER_DATA_AI": "HEALTHCARE_PAYER_DATA_AI",
+    "PE_OPERATING_PARTNER_TRANSFORMATION": "PE_OPERATING_PARTNER_TRANSFORMATION",
+    "AI_FINANCIAL_SERVICES": "AI_FINANCIAL_SERVICES",
+    "CHIEF_REVENUE_OFFICER_COMPOSITE": "CHIEF_REVENUE_OFFICER_COMPOSITE",
+    "THREE_PHASE_GENERALIST": "THREE_PHASE_GENERALIST",
 }
+
+
+def blend_top_k_track_weights(
+    profile_scores: dict[str, float],
+    *,
+    top_k: int = 3,
+    enforce_three_era_floor: bool = True,
+) -> dict[str, float]:
+    """Compute a convex combination of track weights across the top-K matching profiles."""
+    valid = [
+        (key, float(score))
+        for key, score in profile_scores.items()
+        if key in ROLE_FAMILY_TRACK_WEIGHTS and float(score) > 0.0
+    ]
+    if not valid:
+        return dict(DEFAULT_TRACK_WEIGHTS)
+    valid.sort(key=lambda item: (-item[1], item[0]))
+    selected = valid[: max(1, int(top_k))]
+    score_sum = sum(score for _, score in selected)
+    blended = {tid: 0.0 for tid in TRACK_NODE_IDS}
+    for key, score in selected:
+        share = score / score_sum
+        profile_weights = ROLE_FAMILY_TRACK_WEIGHTS[key]
+        for tid in TRACK_NODE_IDS:
+            blended[tid] += share * float(profile_weights.get(tid, 0.0))
+    floor = 0.08 if enforce_three_era_floor else 0.0
+    clipped = {tid: max(floor, blended[tid]) for tid in TRACK_NODE_IDS}
+    total = sum(clipped.values()) or 1.0
+    return {tid: round(clipped[tid] / total, 4) for tid in TRACK_NODE_IDS}
 
 HYBRID_JD_FIXTURE = (
     "SVP Engineering — Agentic AI platform leader for regulated financial services. "

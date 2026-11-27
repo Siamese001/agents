@@ -118,6 +118,189 @@ class ATSValidationResult:
             self.metadata = {}
 
 
+@dataclass(frozen=True)
+class ATSJDRequirementCoverageResult:
+    """Deterministic closeout gate result for JD must-have requirement coverage."""
+
+    passed: bool
+    coverage_ratio: float
+    min_coverage: float
+    matched_terms: tuple[str, ...]
+    missing_terms: tuple[str, ...]
+    acronym_pair_hits: tuple[str, ...]
+    total_requirements: int
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "passed": self.passed,
+            "coverage_ratio": self.coverage_ratio,
+            "min_coverage": self.min_coverage,
+            "matched_terms": list(self.matched_terms),
+            "missing_terms": list(self.missing_terms),
+            "acronym_pair_hits": list(self.acronym_pair_hits),
+            "total_requirements": self.total_requirements,
+        }
+
+
+_CANONICAL_ATS_ACRONYM_PAIRS: dict[str, tuple[str, ...]] = {
+    "fsa": ("fsa", "fellow of the society of actuaries"),
+    "erm": ("erm", "enterprise risk management"),
+    "rag": ("rag", "retrieval-augmented generation", "retrieval augmented generation", "graphrag"),
+    "graphrag": ("graphrag", "graph rag"),
+    "llm": ("llm", "llms", "large language model", "large language models"),
+    "aws": ("aws", "amazon web services"),
+    "ccar": ("ccar", "comprehensive capital analysis and review"),
+    "hipaa": ("hipaa", "health insurance portability and accountability act"),
+    "p&c": ("p&c", "property and casualty", "property & casualty"),
+    "sr 11-7": ("sr 11-7", "sr 11 7", "model risk management"),
+    "bcbs 239": ("bcbs 239", "bcbs239", "risk data aggregation"),
+    "soc 2": ("soc 2", "soc2"),
+}
+
+_CANONICAL_JD_DOMAIN_PHRASES: tuple[str, ...] = (
+    "solvency ii",
+    "ag43",
+    "fsa",
+    "erm",
+    "enterprise risk management",
+    "actuarial",
+    "guidewire",
+    "underwriting",
+    "claims",
+    "policy administration",
+    "sr 11-7",
+    "bcbs 239",
+    "ccar",
+    "basel",
+    "hipaa",
+    "nydfs",
+    "soc 2",
+    "graphrag",
+    "rag",
+    "multi-agent",
+    "agentic",
+    "llmops",
+    "llm",
+    "aws",
+    "databricks",
+    "lakehouse",
+    "microservices",
+    "distributed systems",
+    "cloud modernization",
+    "ai governance",
+    "model risk",
+    "p&c",
+    "co-sell",
+    "hyperscaler",
+    "m&a",
+    "ebitda",
+    "biostatistics",
+    "derivatives",
+)
+
+
+def _flatten_resume_surface(final_resume: dict[str, Any] | str) -> str:
+    if isinstance(final_resume, str):
+        return final_resume
+    if isinstance(final_resume, dict) and isinstance(final_resume.get("sections"), list):
+        from apps_rg.runtime.assembly.full_resume_text import flatten_final_resume_to_text
+
+        flattened = flatten_final_resume_to_text(final_resume)
+        extras: list[str] = []
+        for sec in final_resume.get("sections") or []:
+            if isinstance(sec, dict):
+                rt = str(sec.get("rendered_text") or "").strip()
+                if rt and rt not in flattened:
+                    extras.append(rt)
+        return "\n".join([flattened, *extras]).strip() if extras else flattened
+    parts: list[str] = []
+
+    def _walk(obj: Any) -> None:
+        if isinstance(obj, str):
+            parts.append(obj)
+        elif isinstance(obj, dict):
+            for k, v in obj.items():
+                if not str(k).startswith("_"):
+                    _walk(v)
+        elif isinstance(obj, (list, tuple)):
+            for item in obj:
+                _walk(item)
+
+    _walk(final_resume)
+    return "\n".join(parts)
+
+
+def _term_present_in_text(text_lower: str, term: str) -> bool:
+    clean = term.strip().lower()
+    if not clean:
+        return False
+    escaped = re.escape(clean).replace(r"\ ", r"[\s\-/]+")
+    return bool(re.search(rf"(?<![a-z0-9]){escaped}(?![a-z0-9])", text_lower))
+
+
+def extract_jd_must_have_requirements(jd_text: str) -> tuple[str, ...]:
+    """Extract canonical domain and technical must-have requirements from JD text."""
+    text_lower = str(jd_text or "").lower()
+    found: list[str] = []
+    for phrase in _CANONICAL_JD_DOMAIN_PHRASES:
+        if _term_present_in_text(text_lower, phrase):
+            found.append(phrase)
+    return tuple(dict.fromkeys(found))
+
+
+def evaluate_ats_jd_requirement_coverage(
+    final_resume: dict[str, Any] | str,
+    jd_text: str,
+    *,
+    required_terms: list[str] | tuple[str, ...] | None = None,
+    min_coverage: float = 0.70,
+    acronym_pairs: dict[str, tuple[str, ...]] | None = None,
+) -> ATSJDRequirementCoverageResult:
+    """Evaluate assembled resume text against canonical JD must-have requirements."""
+    surface = _flatten_resume_surface(final_resume)
+    surface_lower = surface.lower()
+    reqs = tuple(
+        dict.fromkeys(
+            str(t).strip().lower()
+            for t in (required_terms if required_terms is not None else extract_jd_must_have_requirements(jd_text))
+            if str(t).strip()
+        )
+    )
+    if not reqs:
+        return ATSJDRequirementCoverageResult(
+            passed=True,
+            coverage_ratio=1.0,
+            min_coverage=float(min_coverage),
+            matched_terms=(),
+            missing_terms=(),
+            acronym_pair_hits=(),
+            total_requirements=0,
+        )
+    pair_map = acronym_pairs if acronym_pairs is not None else _CANONICAL_ATS_ACRONYM_PAIRS
+    matched: list[str] = []
+    missing: list[str] = []
+    pair_hits: list[str] = []
+    for req in reqs:
+        variants = pair_map.get(req, (req,))
+        hit_variants = [v for v in variants if _term_present_in_text(surface_lower, v)]
+        if hit_variants:
+            matched.append(req)
+            if len(variants) > 1 and len(hit_variants) >= 2:
+                pair_hits.append(req)
+        else:
+            missing.append(req)
+    ratio = round(len(matched) / len(reqs), 4)
+    return ATSJDRequirementCoverageResult(
+        passed=ratio >= float(min_coverage),
+        coverage_ratio=ratio,
+        min_coverage=float(min_coverage),
+        matched_terms=tuple(matched),
+        missing_terms=tuple(missing),
+        acronym_pair_hits=tuple(pair_hits),
+        total_requirements=len(reqs),
+    )
+
+
 class AtsValidator:
     """
     Pure deterministic ATS validation logic.

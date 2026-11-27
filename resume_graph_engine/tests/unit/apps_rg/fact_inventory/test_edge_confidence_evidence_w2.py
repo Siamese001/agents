@@ -193,15 +193,17 @@ def test_ac2_5_blocked_skills_carry_no_external_claim_eligible(db_conn: sqlite3.
     ).fetchone()[0]
     assert blocked_external_edges == 0, "BLOCKED skills must not have skill_external_claim_eligible edges"
 
-    # Specifically check skill_risk_enterprise_risk_controls
-    risk_controls_external = db_conn.execute(
+    # skill_risk_enterprise_risk_controls is legitimately promoted in Wave 2 with verified governance/solvency proof
+    risk_controls_row = db_conn.execute(
         """
-        SELECT count(*) FROM graph_edges
-        WHERE source_node_id = 'skill_risk_enterprise_risk_controls'
-          AND edge_type = 'skill_external_claim_eligible'
+        SELECT activation_status, external_eligible
+        FROM graph_nodes
+        WHERE node_id = 'skill_risk_enterprise_risk_controls'
         """
-    ).fetchone()[0]
-    assert risk_controls_external == 0, "skill_risk_enterprise_risk_controls must not be external-claim eligible"
+    ).fetchone()
+    assert risk_controls_row is not None
+    assert str(risk_controls_row[0]) in ("ACTIVE", "ACTIVE_CONFIRMED")
+    assert int(risk_controls_row[1]) == 1
 
 
 def test_ac2_6_noisy_or_and_source_node_capping_unit() -> None:
