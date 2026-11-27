@@ -254,8 +254,12 @@ def _build_judge_user_prompt(resume_display_text: str, claim_ledger: list[dict[s
     return f"{RUBRIC}\n\nRESUME_DISPLAY_TEXT:\n{resume_display_text}\n\nCLAIM_LEDGER:\n{json.dumps(claim_ledger, separators=(',', ':'))}"
 
 
+def _is_test_environment() -> bool:
+    return bool(get_runtime_env_str("PYTEST_CURRENT_TEST") or "pytest" in sys.modules)
+
+
 def _mocked_output(provider_key: str, input_hash: str) -> JudgeOutput:
-    if get_runtime_env_str("APPS_RG_PRODUCTION_RUN", "").strip() == "1" or not (get_runtime_env_str("PYTEST_CURRENT_TEST") or "pytest" in sys.modules):
+    if get_runtime_env_str("APPS_RG_PRODUCTION_RUN", "").strip() == "1" or not _is_test_environment():
         raise RuntimeError("MOCK_JUDGE_FORBIDDEN")
     p_name = PROVIDERS.get(provider_key, {"provider_name": provider_key})["provider_name"]
     return JudgeOutput(f"x1d_{provider_key}_exec_summary", p_name, provider_key, "MOCKED", "MOCKED", _policy_model_name(provider_key, "executive_summary"), False, False, None, input_hash=input_hash, output_hash="mocked-output", score=0.80, score_scale="0_to_1", normalized_score=0.80, threshold=DEFAULT_THRESHOLD, normalized_threshold=0.80, pass_=True, findings=["MOCKED plumbing judge."])
@@ -282,7 +286,7 @@ def run_llm_judges(*, resume_display_text: str, claim_ledger: list[dict[str, Any
         if key not in PROVIDERS:
             return _make_blocked_output(key, input_hash, "BLOCKED_PROVIDER_UNAVAILABLE", "BLOCKED_PROVIDER_UNAVAILABLE", f"Unknown judge provider key: {key}")
         if mode == "mocked":
-            if get_runtime_env_str("APPS_RG_PRODUCTION_RUN", "").strip() == "1" or not (get_runtime_env_str("PYTEST_CURRENT_TEST") or "pytest" in sys.modules):
+            if get_runtime_env_str("APPS_RG_PRODUCTION_RUN", "").strip() == "1" or not _is_test_environment():
                 raise RuntimeError("MOCK_JUDGE_FORBIDDEN")
             return _mocked_output(key, input_hash)
         api_key, env_checked = resolve_x1d_provider_credentials(key, get_runtime_environ())

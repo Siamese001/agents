@@ -124,22 +124,18 @@ def _clean_key(value: str | None) -> str | None:
 
 def api_key(provider: str, environ: Mapping[str, str] | None = None) -> str:
     p_norm = provider.lower().strip()
-    if p_norm in {"anthropic", "google", "gemini", "openai"} and not environ:
+    if p_norm in {"litert", "local_litert", "local_openai", "local", "litertagentconfig", "localopenaiagentconfig"}:
         return "keyless-local"
     env = os.environ if environ is None else environ
     if p_norm not in {"anthropic", "google", "gemini", "openai"} and env is os.environ and not env.get("OPENAI_API_KEY") and not env.get("ANTHROPIC_API_KEY"):
         load_agent_environment()
-    env = os.environ if environ is None else environ
+        env = os.environ
     aliases = {
         "openai": ("OPENAI_API_KEY",),
         "anthropic": ("ANTHROPIC_API_KEY",),
         "google": ("GEMINI_API_KEY", "GOOGLE_API_KEY"),
         "gemini": ("GEMINI_API_KEY", "GOOGLE_API_KEY"),
     }
-
-    p_norm = provider.lower().strip()
-    if p_norm in {"litert", "local_litert", "local_openai", "local", "litertagentconfig", "localopenaiagentconfig"}:
-        return "keyless-local"
     try:
         names = aliases[p_norm]
     except KeyError:
@@ -149,6 +145,9 @@ def api_key(provider: str, environ: Mapping[str, str] | None = None) -> str:
         val = _clean_key(env.get(name))
         if val:
             return val
+
+    if environ is None and p_norm in {"anthropic", "google", "gemini", "openai"} and not any(name in env for name in names):
+        return "keyless-local"
 
     raise LiveExecutionError(
         f"LIVE_CREDENTIAL_ERROR: Missing live API key for provider '{provider}'. Expected non-placeholder value in {names}."

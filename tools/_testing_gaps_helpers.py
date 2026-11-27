@@ -47,6 +47,129 @@ REQUIRED_GITHOOKS: tuple[str, ...] = (
     "post-merge",
 )
 
+PACKAGE_IMPORT_ROOTS: dict[str, frozenset[str]] = {
+    "agents": frozenset({"agents"}),
+    "outreach_engine": frozenset({"apps_lic", "outreach_engine"}),
+    "resume_engine": frozenset({"resume_engine"}),
+    "resume_graph_engine": frozenset({"apps_rg", "resume_graph_engine", "apps_standalone_import_guard", "otel"}),
+    "apps_research": frozenset({"apps_research"}),
+    "apps_eval": frozenset({"apps_eval"}),
+    "apps_model_telemetry": frozenset({"apps_model_telemetry"}),
+    "infrastructure": frozenset({"infrastructure"}),
+    "ops_scripts": frozenset({"ops_scripts"}),
+    "scripts": frozenset({"scripts"}),
+    "tools": frozenset({"tools"}),
+}
+
+GENERIC_PUBLIC_SYMBOLS: frozenset[str] = frozenset(
+    {
+        "main",
+        "run",
+        "execute",
+        "validate",
+        "evaluate",
+        "check",
+        "audit",
+        "load",
+        "save",
+        "close",
+        "reset",
+        "clear",
+        "get",
+        "set",
+        "build",
+        "render",
+        "parse",
+        "create",
+        "update",
+        "delete",
+        "resolve",
+        "verify",
+        "to_dict",
+        "from_dict",
+        "as_dict",
+        "summary",
+        "status",
+    }
+)
+
+
+def _extract_test_import_bindings(tree: ast.Module) -> tuple[set[str], set[str]]:
+    """Return (imported_module_or_symbol_tokens, referenced_ast_symbols) for one test file."""
+    imp_tokens: set[str] = set()
+    ref_symbols: set[str] = set()
+    for sub in ast.walk(tree):
+        if isinstance(sub, ast.Name):
+            ref_symbols.add(sub.id)
+        elif isinstance(sub, ast.Attribute):
+            ref_symbols.add(sub.attr)
+        elif isinstance(sub, ast.Import):
+            for alias in sub.names:
+                parts = alias.name.split(".")
+                imp_tokens.update(parts)
+                ref_symbols.update(parts)
+                if alias.asname:
+                    ref_symbols.add(alias.asname)
+        elif isinstance(sub, ast.ImportFrom):
+            if sub.module:
+                parts = sub.module.split(".")
+                imp_tokens.update(parts)
+                ref_symbols.update(parts)
+            for alias in sub.names:
+                imp_tokens.add(alias.name)
+                ref_symbols.add(alias.name)
+                if alias.asname:
+                    ref_symbols.add(alias.asname)
+        elif isinstance(sub, ast.Call):
+            fn = sub.func
+            fn_name = fn.id if isinstance(fn, ast.Name) else (fn.attr if isinstance(fn, ast.Attribute) else "")
+            if fn_name in ("import_module", "load_repo_module", "_require_module") and sub.args:
+                arg0 = sub.args[0]
+                if isinstance(arg0, ast.Constant) and isinstance(arg0.value, str):
+                    cleaned = arg0.value.removesuffix(".py").replace("/", ".")
+                    parts = [p for p in cleaned.split(".") if p]
+                    imp_tokens.update(parts)
+                    ref_symbols.update(parts)
+    return imp_tokens, ref_symbols
+
+
+def _docstring_constant_ids(tree: ast.Module) -> set[int]:
+    doc_ids: set[int] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)) and node.body:
+            first = node.body[0]
+            if isinstance(first, ast.Expr) and isinstance(first.value, ast.Constant) and isinstance(first.value.value, str):
+                doc_ids.add(id(first.value))
+    return doc_ids
+
+
+def _test_ast_references_handoff(tree: ast.Module, symbols: Sequence[str]) -> bool:
+    """Verify AST-level import, symbol, attribute, or non-docstring contract reference (ignoring comments/docstrings)."""
+    target_set = set(symbols)
+    doc_ids = _docstring_constant_ids(tree)
+    for sub in ast.walk(tree):
+        if isinstance(sub, ast.Import):
+            for alias in sub.names:
+                if any(part in target_set for part in alias.name.split(".")):
+                    return True
+        elif isinstance(sub, ast.ImportFrom):
+            if sub.module and any(part in target_set for part in sub.module.split(".")):
+                return True
+            if any(alias.name in target_set for alias in sub.names):
+                return True
+        elif isinstance(sub, ast.Name) and sub.id in target_set:
+            return True
+        elif isinstance(sub, ast.Attribute) and sub.attr in target_set:
+            return True
+        elif (
+            isinstance(sub, ast.Constant)
+            and isinstance(sub.value, str)
+            and id(sub) not in doc_ids
+            and sub.value in target_set
+        ):
+            return True
+    return False
+
 
 def _is_pytest_fixture(fn_node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
     for dec in fn_node.decorator_list:
@@ -59,10 +182,20 @@ def _is_pytest_fixture(fn_node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
 
 
 def _node_has_direct_assertion(fn_node: ast.AST) -> bool:
-    assertion_call_prefixes = ("assert", "_assert", "require_", "_check_")
+    assertion_call_prefixes = ("assert", "_assert", "require_")
     assertion_call_exact = {"raises", "warns", "fail", "deprecated_call", "check_schema"}
+    dead_branch_nodes: set[int] = set()
     for sub in ast.walk(fn_node):
+        if isinstance(sub, ast.If) and isinstance(sub.test, ast.Constant) and sub.test.value is False:
+            for inner in ast.walk(sub):
+                if inner is not sub:
+                    dead_branch_nodes.add(id(inner))
+    for sub in ast.walk(fn_node):
+        if id(sub) in dead_branch_nodes:
+            continue
         if isinstance(sub, ast.Assert):
+            if isinstance(sub.test, ast.Constant) and sub.test.value is True:
+                continue
             return True
         if isinstance(sub, ast.Raise) and sub.exc is not None:
             return True
@@ -267,20 +400,24 @@ def _audit_pytest_inis_and_src_layout(root: Path) -> tuple[list[str], list[str],
 
 
 __all__ = [
+    "GENERIC_PUBLIC_SYMBOLS",
     "MAX_QUARANTINED_IGNORES",
     "MIN_MODULE_COVERAGE_RATIO",
     "MIN_SYMBOLS_FOR_RATIO_GATE",
     "MIN_SYMBOL_COVERAGE_RATIO",
+    "PACKAGE_IMPORT_ROOTS",
     "PRODUCTION_PACKAGES",
     "PROTECTED_TEST_ROOTS",
     "PYTEST_INI_PATHS",
     "REQUIRED_GITHOOKS",
     "TEST_ROOTS",
     "_audit_pytest_inis_and_src_layout",
+    "_extract_test_import_bindings",
     "_inspect_decorators_and_calls_for_skip_xfail",
     "_is_pytest_fixture",
     "_node_has_direct_assertion",
     "_parse_pure_reexport_facade",
     "_resolve_facade_targets",
+    "_test_ast_references_handoff",
     "_test_fn_has_assertion",
 ]

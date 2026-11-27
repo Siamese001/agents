@@ -102,7 +102,7 @@ def test_write_modular_generate_step_receipt_preserves_result_refs_and_policy(
 )
 def test_pa_guard_accepts_every_current_artifact_key(key: str) -> None:
     step = steps.GenerateResumeStep()
-    step._check_pa_guard({key: object()})
+    assert step._check_pa_guard({key: object()}) is None
 
 
 def test_pa_guard_error_names_current_step() -> None:

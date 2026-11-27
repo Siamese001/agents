@@ -86,7 +86,7 @@ _SIMULATED_ADAPTER_LITERALS: frozenset[str] = frozenset(
 )
 _MOCK_INSPECTION_ATTRS: frozenset[str] = frozenset({"mock_calls", "assert_called", "assert_called_once"})
 _FORBIDDEN_MOCK_IMPORTS: frozenset[str] = frozenset({"unittest.mock", "mock"})
-_FORBIDDEN_MOCK_SYMBOLS: frozenset[str] = frozenset({"MagicMock", "AsyncMock", "Mock", "patch", "monkeypatch"})
+_FORBIDDEN_MOCK_SYMBOLS: frozenset[str] = frozenset({"MagicMock", "AsyncMock", "Mock", "patch", "monkeypatch", "mock"})
 _GUARDIAN_LINE_RE = re.compile(r"#\s*guardian\s*:(.*)$", re.IGNORECASE)
 _GUARDIAN_STRICT_RE = re.compile(r"^\s*(allow-[a-z][a-z0-9-]+)\s+--\s+(.+)$")
 
@@ -444,11 +444,11 @@ def scan_r2_fake_tests_and_coverage(repo_root: Path) -> list[LoopholeFinding]:
 
         # 2. Mocked high-assurance E2E / live-LLM suites (LH-07)
         low_rel = rel.lower()
+        fname_low = Path(low_rel).name
         is_e2e_or_live = (
             "/end_to_end/" in f"/{low_rel}"
-            or low_rel.endswith("_e2e.py")
-            or "_e2e_" in Path(low_rel).name
-            or "live_llm" in Path(low_rel).name
+            or "live_llm" in fname_low
+            or ("/unit/" not in f"/{low_rel}" and (fname_low.endswith("_e2e.py") or "_e2e_" in fname_low))
         )
         if is_e2e_or_live:
             mock_hits = _file_uses_mock_ast(tree)

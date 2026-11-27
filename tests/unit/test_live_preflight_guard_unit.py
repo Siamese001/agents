@@ -1,4 +1,4 @@
-"""End-to-End Live LLM Enforcement & Mock Elimination Verification Suite."""
+"""Unit tests for live-preflight mock-flag and placeholder-credential guards."""
 
 from __future__ import annotations
 
@@ -65,8 +65,8 @@ def test_e2e_preflight_validates_env_agents_credentials():
         assert fingerprints["anthropic"]
         assert fingerprints["google"]
 
-    # Verify fail-closed when a key is missing
-    with mock.patch.dict(os.environ, {"OPENAI_API_KEY": ""}, clear=True):
+    # Verify fail-closed when a key is a rejected placeholder value
+    with mock.patch.dict(os.environ, {"OPENAI_API_KEY": "placeholder"}, clear=True):
         with pytest.raises(LiveExecutionError, match="Missing live API key"):
             perform_live_preflight(providers=("openai",))
 

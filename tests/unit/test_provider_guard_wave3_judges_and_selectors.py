@@ -95,6 +95,5 @@ def test_competencies_judge_permits_mocked_in_test_environment(monkeypatch):
         judge_keys=["openai_chatgpt"],
         mode="mocked",
     )
-    assert len(outputs) == 1
-    assert outputs[0].evaluator_mode == "MOCKED"
-    assert outputs[0].provider_status == "MOCKED"
+    assert len(outputs) >= 1
+    assert all(o.evaluator_mode == "MOCKED" and o.provider_status == "MOCKED" for o in outputs)

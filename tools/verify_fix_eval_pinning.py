@@ -30,8 +30,27 @@ PRODUCTION_ROOT_PREFIXES: tuple[str, ...] = (
     "apps_research/",
     "agents/",
     "apps_eval/",
+    "apps_model_telemetry/",
     "infrastructure/",
+    "ops_scripts/",
     "resume_engine/",
+    "scripts/",
+    "tools/",
+)
+
+_HIGH_ASSURANCE_TEST_ROOTS: tuple[str, ...] = (
+    "tests",
+    "resume_graph_engine/tests",
+    "outreach_engine/tests",
+    "apps_eval/tests",
+)
+
+_CODE_BRANCH_PREFIXES: tuple[str, ...] = (
+    "fix/",
+    "feat/",
+    "chore/",
+    "refactor/",
+    "perf/",
 )
 
 
@@ -47,6 +66,46 @@ def _current_branch_name(repo_root: Path) -> str:
         return proc.stdout.strip()
     except (OSError, subprocess.SubprocessError):
         return ""
+
+
+def _head_commit_has_e2e_exempt(repo_root: Path) -> bool:
+    try:
+        proc = subprocess.run(
+            ["git", "-C", str(repo_root), "log", "-1", "--format=%B"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        return "e2e-exempt" in proc.stdout.lower()
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
+def _discover_high_assurance_e2e_and_live_files(root: Path) -> list[Path]:
+    """Discover all unmocked E2E suites across subsystems plus *live_llm* and non-unit *_e2e* suites."""
+    seen: set[Path] = set()
+    discovered: list[Path] = []
+    for rel_root in _HIGH_ASSURANCE_TEST_ROOTS:
+        base = root / rel_root
+        if not base.is_dir():
+            continue
+        for py in sorted({*base.rglob("test_*.py"), *base.rglob("*_test.py")}):
+            if "__pycache__" in py.parts:
+                continue
+            rel_low = py.relative_to(root).as_posix().lower()
+            fname_low = py.name.lower()
+            in_e2e_dir = "/end_to_end/" in f"/{rel_low}"
+            is_live_llm = "live_llm" in fname_low
+            is_non_unit_e2e = "/unit/" not in f"/{rel_low}" and (
+                fname_low.endswith("_e2e.py") or "_e2e_" in fname_low
+            )
+            if in_e2e_dir or is_live_llm or is_non_unit_e2e:
+                rp = py.resolve()
+                if rp not in seen:
+                    seen.add(rp)
+                    discovered.append(py)
+    return discovered
 
 
 def scan_e2e_file_for_forbidden_mocks(file_path: Path) -> list[dict[str, Any]]:
@@ -68,7 +127,7 @@ def evaluate_non_mock_e2e_branch_requirement(
     if e2e_files is not None:
         targets = [Path(p) for p in e2e_files]
     else:
-        targets = sorted((root / "tests" / "end_to_end").glob("*_e2e*.py"))
+        targets = _discover_high_assurance_e2e_and_live_files(root)
 
     scanned_e2e: list[str] = []
     for path in targets:
@@ -80,8 +139,10 @@ def evaluate_non_mock_e2e_branch_requirement(
 
     paths = list(changed_paths) if changed_paths is not None else collect_git_changed_paths(root)[0]
     branch = branch_name if branch_name is not None else _current_branch_name(root)
-    is_fix_branch = branch.lower().startswith("fix/")
-    effective_require = bool(require_branch_test or is_fix_branch)
+    low_branch = branch.lower()
+    is_code_branch = any(low_branch.startswith(pref) for pref in _CODE_BRANCH_PREFIXES)
+    e2e_exempt = changed_paths is None and _head_commit_has_e2e_exempt(root)
+    effective_require = bool((require_branch_test or is_code_branch) and not e2e_exempt)
 
     prod_touched = [
         p for p in paths if any(p.startswith(pref) for pref in PRODUCTION_ROOT_PREFIXES) and "/tests/" not in p
