@@ -139,9 +139,12 @@ def _eval_hold_metrics(
         btext = str(b.get("bullet_text") or "")
         hits = scan_forbidden_metrics_in_text(btext)
         if bid == "bul_ibm_002":
-            hits = [h for h in hits if h != "30%"]
+            hits = [h for h in hits if h.strip().lower() != "30%"]
         elif bid == "bul_ibm_005":
-            hits = [h for h in hits if h not in {"$15m", "$15 m", "15m", "$15M", "15M", "15m incremental"}]
+            hits = [
+                h for h in hits
+                if h.strip().lower() not in {"$15m", "$15 m", "15m", "15m incremental"}
+            ]
         forbidden_hits.extend(hits)
     metrics_obs = {
         "forbidden_absent": not forbidden_hits,

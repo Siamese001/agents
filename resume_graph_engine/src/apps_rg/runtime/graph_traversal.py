@@ -555,3 +555,105 @@ def traverse_journey(
         min_path_confidence=min_path_confidence,
         journey_name=journey_name,
     )
+
+
+def traverse_steiner_bridges(
+    conn: sqlite3.Connection,
+    seed_ids: Sequence[str],
+    *,
+    max_hops: int = 3,
+    max_bridges: int = 50,
+) -> list[dict[str, Any]]:
+    """Find bidirectional multi-seed Steiner bridges connecting distinct capability seeds.
+
+    Uses indexed undirected expansion over traversable=1 edges to discover shared
+    cross-arc bridges (facts, engagements, credentials, pillars, epochs, or continuity edges)
+    connecting two distinct seeds (e.g., actuarial foundation and agentic AI architecture).
+    """
+    clean_seeds = sorted({str(s).strip() for s in seed_ids if str(s).strip()})
+    if len(clean_seeds) < 2:
+        return []
+    hops = max(1, min(3, int(max_hops)))
+    cur = conn.cursor()
+
+    # Load node epochs for cross-epoch scoring
+    node_epoch: dict[str, str] = {
+        str(r[0]): str(r[1] or "")
+        for r in cur.execute("SELECT node_id, career_epoch FROM graph_nodes").fetchall()
+    }
+
+    # Build bounded adjacency per seed via indexed edge lookup
+    frontier_by_seed: dict[str, dict[str, tuple[list[str], list[str], float]]] = {}
+    for seed in clean_seeds:
+        visited: dict[str, tuple[list[str], list[str], float]] = {seed: ([seed], [], 1.0)}
+        layer = [seed]
+        for _ in range(hops):
+            if not layer:
+                break
+            ph = ",".join("?" for _ in layer)
+            rows = cur.execute(
+                f"""
+                SELECT source_node_id, target_node_id, edge_type, COALESCE(confidence_score, 0.90)
+                FROM graph_edges
+                WHERE COALESCE(traversable, 1) = 1
+                  AND (source_node_id IN ({ph}) OR target_node_id IN ({ph}))
+                """,
+                tuple(layer) + tuple(layer),
+            ).fetchall()
+            next_layer: list[str] = []
+            for src, tgt, etype, conf in rows:
+                s_s, t_s, e_s = str(src), str(tgt), str(etype)
+                c_f = max(0.2, float(conf or 0.90))
+                for cur_n, nxt_n in ((s_s, t_s), (t_s, s_s)):
+                    if cur_n in visited and nxt_n not in visited:
+                        p_nodes, p_etypes, p_conf = visited[cur_n]
+                        visited[nxt_n] = (p_nodes + [nxt_n], p_etypes + [e_s], round(p_conf * c_f * 0.95, 4))
+                        next_layer.append(nxt_n)
+            layer = next_layer[:120]
+        frontier_by_seed[seed] = visited
+
+    bridges: list[dict[str, Any]] = []
+    seen_sigs: set[tuple[str, str, str]] = set()
+    for i, seed_a in enumerate(clean_seeds):
+        map_a = frontier_by_seed[seed_a]
+        for seed_b in clean_seeds[i + 1 :]:
+            map_b = frontier_by_seed[seed_b]
+            meetings = set(map_a.keys()) & set(map_b.keys())
+            for mid in meetings:
+                nodes_a, etypes_a, conf_a = map_a[mid]
+                nodes_b, etypes_b, conf_b = map_b[mid]
+                full_nodes = nodes_a + list(reversed(nodes_b[:-1]))
+                if len(full_nodes) != len(set(full_nodes)):
+                    continue
+                full_etypes = etypes_a + list(reversed(etypes_b))
+                sig = (seed_a, seed_b, "->".join(full_nodes))
+                if sig in seen_sigs:
+                    continue
+                seen_sigs.add(sig)
+                ep_a = node_epoch.get(seed_a, "")
+                ep_b = node_epoch.get(seed_b, "")
+                cross_epoch = bool(ep_a and ep_b and ep_a != ep_b)
+                continuity_bonus = 0.25 if any(
+                    et in ("demonstrates_continuity_from", "transfers_quantitative_rigor_to", "credential_validates_domain")
+                    for et in full_etypes
+                ) else 0.0
+                score = round(
+                    (conf_a * conf_b) / max(1, len(full_etypes))
+                    + (0.20 if cross_epoch else 0.0)
+                    + continuity_bonus,
+                    4,
+                )
+                bridges.append(
+                    {
+                        "seed_a": seed_a,
+                        "seed_b": seed_b,
+                        "bridge_hub": mid,
+                        "node_path": full_nodes,
+                        "edge_types": full_etypes,
+                        "hop_count": len(full_etypes),
+                        "cross_epoch": cross_epoch,
+                        "bridge_score": score,
+                    }
+                )
+    bridges.sort(key=lambda b: (-float(b["bridge_score"]), int(b["hop_count"]), b["seed_a"], b["seed_b"]))
+    return bridges[: max(1, int(max_bridges))]

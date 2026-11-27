@@ -282,6 +282,12 @@ def _skill_external_eligible(
 ) -> bool:
     if str(skill_row.get("skill_id") or "") in FORBIDDEN_SKILL_NODE_IDS:
         return False
+    if str(skill_row.get("operator_hold_mode") or "").strip().upper() in (
+        "INTERNAL_ONLY",
+        "PORTFOLIO_ONLY",
+        "RETIRED",
+    ):
+        return False
     if any(
         str(skill_row.get(k) or "").upper() == "BLOCKED"
         for k in ("confidence", "confidence_grade", "confidence_grade_derived", "activation_status", "support_level")

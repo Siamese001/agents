@@ -78,6 +78,7 @@ def apply_topology_enhancements(
     fact_ids = [nid for nid, n in node_rows.items() if n.get("node_type") == "fact"]
     hosting_edges = build_fact_hosting_edges(fact_ids, ts=ts, build_run_id=build_run_id)
     edge_rows.extend(hosting_edges)
+    from .schema import EMPLOYMENT_PHASES, EPOCH_ORDINAL
     for fid in fact_ids:
         fnode = node_rows[fid]
         emp_id = FACT_TO_EMPLOYMENT_MAP.get(fid, "")
@@ -86,11 +87,18 @@ def apply_topology_enhancements(
             fnode["employer"] = emp_meta["employer"]
         if not fnode.get("career_epoch") and emp_id in CANONICAL_EMPLOYMENT_EPOCHS:
             fnode["career_epoch"] = CANONICAL_EMPLOYMENT_EPOCHS[emp_id]
+        if fnode.get("phase_ordinal") is None:
+            ep_ord = EPOCH_ORDINAL.get(str(fnode.get("career_epoch") or ""))
+            if ep_ord is None and emp_id in EMPLOYMENT_PHASES:
+                ep_ord = EMPLOYMENT_PHASES[emp_id][-1]
+            fnode["phase_ordinal"] = ep_ord
         if str(fnode.get("activation_status") or "").upper() not in {"BLOCKED", "DO_NOT_PROMOTE"}:
             fnode["external_eligible"] = 1
 
     # 3. Employment metadata and hierarchy edges (AC3.3, I5)
     for emp_id, emp_meta in EMPLOYMENT_DATES_AND_TITLES.items():
+        emp_phases = EMPLOYMENT_PHASES.get(emp_id)
+        emp_phase_ord = emp_phases[-1] if emp_phases else None
         if emp_id in node_rows:
             node_rows[emp_id].update(emp_meta)
             if not node_rows[emp_id].get("description"):
@@ -106,6 +114,7 @@ def apply_topology_enhancements(
             node_rows[emp_id]["career_epoch"] = CANONICAL_EMPLOYMENT_EPOCHS.get(
                 emp_id, node_rows[emp_id].get("career_epoch", "")
             )
+            node_rows[emp_id]["phase_ordinal"] = emp_phase_ord
         else:
             node_rows[emp_id] = {
                 "node_id": emp_id,
@@ -119,7 +128,7 @@ def apply_topology_enhancements(
                 "confidence_tier": "HIGH",
                 "external_eligible": 1,
                 "career_epoch": CANONICAL_EMPLOYMENT_EPOCHS.get(emp_id, ""),
-                "phase_ordinal": None,
+                "phase_ordinal": emp_phase_ord,
                 "source_authority": "augmented_skills_graph",
                 "origin_kind": "derived_projection",
                 "origin_ref": emp_id,
@@ -181,7 +190,7 @@ def apply_topology_enhancements(
             "source_authority": "augmented_skills_graph",
             "rationale": f"Skill {sid} connects to {mid}.",
             "projection_behavior": "graph_structure",
-            "external_claim_policy": "approved_by_graph_presence",
+            "external_claim_policy": "graph_routing_not_claim_proof",
             "validation_status": "validated",
             "edge_note": "",
             "operator_note": "",
@@ -346,7 +355,7 @@ def apply_topology_enhancements(
                 "source_authority": "augmented_skills_graph",
                 "rationale": f"Skill {sid} is allowed in section {sec_norm}.",
                 "projection_behavior": "section_projection",
-                "external_claim_policy": "approved_by_graph_presence",
+                "external_claim_policy": "graph_routing_not_claim_proof",
                 "validation_status": "validated",
                 "edge_note": "",
                 "operator_note": "",
@@ -489,6 +498,18 @@ def apply_topology_enhancements(
             skill_to_employer[tgt] = engagement_to_employer[src]
         elif et == "metric_outcome_anchors_bundle" and tgt in engagement_to_employer and src not in metric_to_employer:
             metric_to_employer[src] = engagement_to_employer[tgt]
+    employer_to_emp_id = {
+        str(meta.get("employer") or "").strip(): emp_id
+        for emp_id, meta in EMPLOYMENT_DATES_AND_TITLES.items()
+        if meta.get("employer")
+    }
+    metric_to_emp_id: dict[str, str] = {}
+    for e in edge_rows:
+        if str(e.get("edge_type") or "") == "metric_outcome_bound_to_employer":
+            s_id = str(e.get("source_node_id") or "")
+            t_id = str(e.get("target_node_id") or "")
+            if s_id and t_id:
+                metric_to_emp_id[s_id] = t_id
     for nid, nrow in node_rows.items():
         ntype = str(nrow.get("node_type") or "")
         if ntype == "skill" and not str(nrow.get("employer") or "").strip():
@@ -498,10 +519,17 @@ def apply_topology_enhancements(
                 or epoch_to_employer.get(ep)
                 or "Cross-Career"
             )
-        elif ntype == "metric_outcome" and str(nrow.get("employer") or "").strip() == "Unify":
-            nrow["employer"] = "Unify Consulting"
-        elif ntype == "metric_outcome" and not str(nrow.get("employer") or "").strip():
-            nrow["employer"] = metric_to_employer.get(nid) or "Cross-Career"
+        elif ntype == "metric_outcome":
+            if str(nrow.get("employer") or "").strip() == "Unify":
+                nrow["employer"] = "Unify Consulting"
+            elif not str(nrow.get("employer") or "").strip():
+                nrow["employer"] = metric_to_employer.get(nid) or "Cross-Career"
+            emp_id = metric_to_emp_id.get(nid) or employer_to_emp_id.get(str(nrow.get("employer") or "").strip(), "")
+            if emp_id:
+                if not str(nrow.get("career_epoch") or "").strip():
+                    nrow["career_epoch"] = CANONICAL_EMPLOYMENT_EPOCHS.get(emp_id, "")
+                if nrow.get("phase_ordinal") is None and emp_id in EMPLOYMENT_PHASES:
+                    nrow["phase_ordinal"] = EMPLOYMENT_PHASES[emp_id][-1]
 
     connected_nodes = {
         str(e.get("source_node_id") or "").strip() for e in edge_rows
@@ -544,7 +572,7 @@ def apply_topology_enhancements(
             "source_authority": "augmented_skills_graph",
             "rationale": f"Role family {nid} is supported by pillar {target_pillar}.",
             "projection_behavior": "graph_structure",
-            "external_claim_policy": "approved_by_graph_presence",
+            "external_claim_policy": "graph_routing_not_claim_proof",
             "validation_status": "validated",
             "edge_note": "",
             "operator_note": "",

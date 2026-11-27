@@ -1,0 +1,12 @@
+{
+  "wave": "Wave 3",
+  "status": "PASS",
+  "external_skill_count": 223,
+  "distinct_confidence_scores": 50,
+  "confidence_bucket_concentration": 0.1839,
+  "confidence_bucket_concentration_max": 0.35,
+  "quarantined_total": 24,
+  "quarantined_high_confidence_leaks": 0,
+  "quarantined_high_confidence_leak_rate": 0.0,
+  "quarantined_traversable_edges": 0
+}

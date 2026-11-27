@@ -532,6 +532,29 @@ def scan_promotion_readiness(conn: sqlite3.Connection) -> dict[str, Any]:
         else:
             s["triage"] = "KEEP_INTERNAL_UNLINKED"
 
+    cross_arc_and_label_hygiene: list[dict[str, Any]] = []
+    for r in conn.execute(
+        """
+        SELECT node_id, label FROM graph_nodes
+        WHERE node_type = 'skill'
+          AND COALESCE(external_eligible, 0) = 1
+          AND label LIKE '%\\_%' ESCAPE '\\'
+        ORDER BY node_id
+        """
+    ).fetchall():
+        cross_arc_and_label_hygiene.append(
+            {"kind": "snake_case_external_skill_label", "node_id": str(r["node_id"]), "label": str(r["label"])}
+        )
+    legacy_abgp = int(
+        conn.execute(
+            "SELECT COUNT(*) FROM graph_edges WHERE external_claim_policy = 'approved_by_graph_presence'"
+        ).fetchone()[0]
+    )
+    if legacy_abgp > 0:
+        cross_arc_and_label_hygiene.append(
+            {"kind": "legacy_approved_by_graph_presence_edges", "count": legacy_abgp}
+        )
+
     return {
         "draft_structural_nodes": draft_structural,
         "draft_promotable_count": sum(1 for d in draft_structural if int(d["edge_count"]) > 0),
@@ -539,6 +562,7 @@ def scan_promotion_readiness(conn: sqlite3.Connection) -> dict[str, Any]:
         "internal_skills_with_proof_count": sum(
             1 for s in internal_skills if s["triage"] == "PROMOTION_CANDIDATE_WITH_PROOF"
         ),
+        "cross_arc_and_label_hygiene": cross_arc_and_label_hygiene,
     }
 
 
@@ -937,6 +961,25 @@ def build_hitl_clusters(
                 confidence_second=0.66,
                 triage_rationale="Enrich verified live repo_evidence stubs, prune dead missing paths, and cap sibling-link fan-out to top-k peers.",
                 recommended_disposition="ENRICH_STUB_LABELS_AND_CAP_SIBLINGS",
+                high_risk_for_llm_judge=False,
+            )
+        )
+
+    cross_arc_items = list(promo_scan.get("cross_arc_and_label_hygiene") or [])
+    if cross_arc_items:
+        clusters.append(
+            _make_cluster(
+                cluster_id="CLUSTER-08-CROSS-ARC-AND-LABEL-HYGIENE",
+                title="Snake-Case Skill Labels & Legacy Claim Policy Edges",
+                category="assertion_and_label_hygiene",
+                severity="P2",
+                proposed_fix="humanize_skill_labels_and_retire_legacy_policies",
+                items=cross_arc_items,
+                requires_isolated_scrutiny=False,
+                confidence_top=0.92,
+                confidence_second=0.40,
+                triage_rationale="Active external skills must carry canonical humanized labels and zero approved_by_graph_presence legacy edges.",
+                recommended_disposition="HUMANIZE_LABELS_AND_RETIRE_LEGACY_CLAIM_POLICY",
                 high_risk_for_llm_judge=False,
             )
         )

@@ -173,24 +173,37 @@ def allocate_candidate_sets(
             return f"{fact_id}:{root_id}"
         return fact_id
 
+    def _is_row_feasible(row: Mapping[str, Any], slot: _Slot) -> bool:
+        visible = slot.counts_toward_global_uniqueness
+        skill_id = str(row["skill_id"])
+        metric_id = str(row.get("metric_outcome_id") or "")
+        signature = str(row.get("normalized_metric_signature") or "")
+        fp_tokens = tuple(row.get("metric_fingerprint_tokens") or ())
+        fact_key = _fact_reuse_key(row)
+        family = str(row["source_family"])
+        root_id = str(row["root_id"])
+        if (visible and skill_id in used_skills) or (visible and metric_id and metric_id in used_metrics) or (visible and signature and signature in used_signatures):
+            return False
+        if visible and fp_tokens and any(used_fingerprint_tokens[tok] > 0 for tok in fp_tokens):
+            return False
+        if slot.section_id in distinct_root_sections and root_id and root_id in used_section_roots[slot.section_id]:
+            return False
+        if slot.section_id == "executive_summary" and root_id in _AWS_MIGRATION_EXEC_SUMMARY_ROOTS and (used_section_roots["executive_summary"] & _AWS_MIGRATION_EXEC_SUMMARY_ROOTS):
+            return False
+        if (visible and fact_counts[fact_key] >= max_fact_reuse) or (visible and family_counts[family] >= max_family_uses):
+            return False
+        return True
+
+    def has_feasible_row(slot: _Slot) -> bool:
+        return any(_is_row_feasible(row, slot) for row in eligible_by_slot[slot.slot_id])
+
+    def count_feasible_rows(slot: _Slot) -> int:
+        return sum(1 for row in eligible_by_slot[slot.slot_id] if _is_row_feasible(row, slot))
+
     def feasible_rows(slot: _Slot) -> list[dict[str, Any]]:
-        rows: list[dict[str, Any]] = []
-        for row in eligible_by_slot[slot.slot_id]:
-            visible = slot.counts_toward_global_uniqueness
-            skill_id, metric_id, signature = str(row["skill_id"]), str(row.get("metric_outcome_id") or ""), str(row.get("normalized_metric_signature") or "")
-            fp_tokens = tuple(row.get("metric_fingerprint_tokens") or ())
-            fact_key, family, root_id = _fact_reuse_key(row), str(row["source_family"]), str(row["root_id"])
-            if (visible and skill_id in used_skills) or (visible and metric_id and metric_id in used_metrics) or (visible and signature and signature in used_signatures):
-                continue
-            if visible and fp_tokens and any(used_fingerprint_tokens[tok] > 0 for tok in fp_tokens):
-                continue
-            if slot.section_id in distinct_root_sections and root_id and root_id in used_section_roots[slot.section_id]:
-                continue
-            if slot.section_id == "executive_summary" and root_id in _AWS_MIGRATION_EXEC_SUMMARY_ROOTS and (used_section_roots["executive_summary"] & _AWS_MIGRATION_EXEC_SUMMARY_ROOTS):
-                continue
-            if (visible and fact_counts[fact_key] >= max_fact_reuse) or (visible and family_counts[family] >= max_family_uses):
-                continue
-            rows.append(row)
+        rows: list[dict[str, Any]] = [
+            row for row in eligible_by_slot[slot.slot_id] if _is_row_feasible(row, slot)
+        ]
 
         exec_roots = used_section_roots.get("executive_summary", set())
         is_bullet_section = slot.section_id.endswith("_bullets")
@@ -286,11 +299,12 @@ def allocate_candidate_sets(
             budget_exhausted = True
             return False
         unresolved = [slot for slot in slots if slot.slot_id not in chosen]
-        ranked = [(feasible_rows(slot), slot) for slot in unresolved]
-        ranked.sort(key=lambda pair: (0 if len(pair[0]) <= 1 else 1, slot_priority_tier(pair[1]), len(pair[0]), pair[1].slot_id))
-        rows, slot = ranked[0]
-        if not rows:
+        ranked = [(count_feasible_rows(slot), slot) for slot in unresolved]
+        ranked.sort(key=lambda pair: (0 if pair[0] <= 1 else 1, slot_priority_tier(pair[1]), pair[0], pair[1].slot_id))
+        row_count, slot = ranked[0]
+        if row_count == 0:
             return False
+        rows = feasible_rows(slot)
         for row in rows:
             visible = slot.counts_toward_global_uniqueness
             skill_id = str(row["skill_id"])
@@ -314,7 +328,7 @@ def allocate_candidate_sets(
                 fact_counts[fact_key] += 1
                 family_counts[family] += 1
             remaining_feasible = all(
-                bool(feasible_rows(other))
+                has_feasible_row(other)
                 for other in unresolved
                 if other.slot_id != slot.slot_id
             )

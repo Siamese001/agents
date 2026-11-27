@@ -271,7 +271,7 @@ def check_resume_graph_engine_domain(repo_root: Path, *, inject_fault: bool = Fa
         target_role="Chief Data & AI Officer",
         jd_text="Healthcare payer CDAO leading biostatistics, claims analytics, medical loss ratio forecasting, and clinical AI.",
     )
-    if payer_route.selector_profile != "healthcare_payer_data_ai" or "edu_columbia_ms_biostat_001" not in payer_route.credential_elevation_ids:
+    if payer_route.selector_profile != "healthcare_payer_data_ai" or "edu_columbia_ms_001" not in payer_route.credential_elevation_ids:
         failures.append("healthcare_payer_cdao_routing_or_biostatistics_elevation_failed")
     blocking_check = evaluate_v3_judge_response_to_dict(
         {

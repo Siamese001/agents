@@ -83,6 +83,7 @@ FACT_TO_EMPLOYMENT_MAP: dict[str, str] = {
     "fact_quant_act_001": "employment_exp_early_career_001",
     "fact_quant_act_002": "employment_exp_early_career_001",
     "fact_quant_act_003": "employment_exp_early_career_001",
+    "fact_quant_act_004": "employment_exp_early_career_001",
     "fact_quant_hpc_003": "employment_exp_early_career_001",
     # Ernst & Young
     "fact_bcbs239_001": "employment_exp_ey_001",
@@ -100,6 +101,7 @@ FACT_TO_EMPLOYMENT_MAP: dict[str, str] = {
     "fact_data_analytics_001": "employment_exp_ibm_001",
     "fact_data_analytics_002": "employment_exp_ibm_001",
     "fact_data_analytics_003": "employment_exp_ibm_001",
+    "fact_data_analytics_004": "employment_exp_ibm_001",
     "fact_governance_003": "employment_exp_ibm_001",
     "fact_partnerships_gtm_002": "employment_exp_ibm_001",
     "fact_quant_hpc_001": "employment_exp_ibm_001",
@@ -109,7 +111,10 @@ FACT_TO_EMPLOYMENT_MAP: dict[str, str] = {
     "fact_revenue_ops_005": "employment_exp_ibm_001",
     "fact_sales_accounts_002": "employment_exp_ibm_001",
     "fact_sales_accounts_003": "employment_exp_ibm_001",
+    "fact_sales_accounts_004": "employment_exp_ibm_001",
+    "fact_sales_accounts_005": "employment_exp_ibm_001",
     # Unify Consulting
+    "fact_customer_success_001": "employment_exp_unify_001",
     "fact_engineering_platform_001": "employment_exp_unify_001",
     "fact_engineering_platform_002": "employment_exp_unify_001",
     "fact_engineering_platform_003": "employment_exp_unify_001",

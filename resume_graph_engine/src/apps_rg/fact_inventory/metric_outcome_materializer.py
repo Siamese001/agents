@@ -153,6 +153,7 @@ def _metric_outcome_to_node_row(
     if not employer:
         emp_nid = normalize_employment_id(str(metric.get("employer_node_id") or "").strip())
         employer = str((EMPLOYMENT_DATES_AND_TITLES.get(emp_nid) or {}).get("employer") or "")
+    is_quarantined = approval.upper() in ("QUARANTINED_UNVERIFIED_SYNTHETIC", "BLOCKED", "RETIRED")
     return {
         "node_id": metric_id,
         "node_type": "metric_outcome",
@@ -161,8 +162,10 @@ def _metric_outcome_to_node_row(
         "employer": employer,
         "activation_status": approval,
         "support_level": support,
-        "confidence": "",
-        "external_eligible": 1 if bool(metric.get("approved")) else 0,
+        "confidence": "LOW" if is_quarantined else "",
+        "confidence_score": 0.0 if is_quarantined else None,
+        "confidence_tier": "LOW" if is_quarantined else "UNSCORED",
+        "external_eligible": 0 if is_quarantined else (1 if bool(metric.get("approved")) else 0),
         "source_authority": "augmented_skills_graph",
         "origin_kind": "bundle_row",
         "origin_ref": ref,
@@ -191,6 +194,11 @@ def _metric_outcome_to_edge_rows(
     employer_node_id = normalize_employment_id(raw_employer_node_id)
     bundle_bindings = metric.get("bundle_bindings") or []
     section_eligibility = metric.get("section_eligibility") or []
+    approval_up = str(metric.get("approval_status") or "").strip().upper()
+    is_quarantined = (
+        not bool(metric.get("approved"))
+        or approval_up in ("QUARANTINED_UNVERIFIED_SYNTHETIC", "BLOCKED", "RETIRED")
+    )
 
     for bundle_id in bundle_bindings:
         bid = str(bundle_id or "").strip()
@@ -204,12 +212,12 @@ def _metric_outcome_to_edge_rows(
                 "target_node_id": bid,
                 "edge_family": "metric_outcome",
                 "edge_type": "metric_outcome_anchors_bundle",
-                "weight": 1.0,
-                "confidence": "",
+                "weight": 0.0 if is_quarantined else 1.0,
+                "confidence": "LOW" if is_quarantined else "",
                 "directional": 1,
                 "evidence_status": "approved_graph_ssot"
-                if str(metric.get("approval_status") or "") == "APPROVED_GRAPH_SSOT"
-                else "",
+                if approval_up == "APPROVED_GRAPH_SSOT"
+                else ("quarantined_synthetic" if is_quarantined else ""),
                 "section_fit": "",
                 "source_authority": "augmented_skills_graph",
                 "assertion_type": "METRIC_BINDING",
@@ -218,9 +226,9 @@ def _metric_outcome_to_edge_rows(
                 "origin_ref": f"{bid}::{metric_id}",
                 "derivation_rule_id": "rule_bundle_metric_anchor",
                 "canonical_assertion_text": f"Metric {metric_id} anchors bundle {bid}.",
-                "lifecycle_disposition": "ACTIVE_POLICY_GATED",
+                "lifecycle_disposition": "HELD_NON_ACTIVE_ENDPOINT" if is_quarantined else "ACTIVE_POLICY_GATED",
                 "assertion_basis_refs": [f"bundle:{bid}"],
-                "traversable": 1,
+                "traversable": 0 if is_quarantined else 1,
             }
         )
 
@@ -263,10 +271,10 @@ def _metric_outcome_to_edge_rows(
                 "target_node_id": employer_node_id,
                 "edge_family": "metric_outcome",
                 "edge_type": "metric_outcome_bound_to_employer",
-                "weight": 1.0,
-                "confidence": "",
+                "weight": 0.0 if is_quarantined else 1.0,
+                "confidence": "LOW" if is_quarantined else "",
                 "directional": 1,
-                "evidence_status": "",
+                "evidence_status": "quarantined_synthetic" if is_quarantined else "",
                 "section_fit": "",
                 "source_authority": "augmented_skills_graph",
                 "assertion_type": "METRIC_BINDING",
@@ -275,9 +283,9 @@ def _metric_outcome_to_edge_rows(
                 "origin_ref": f"{employer_node_id}::{metric_id}",
                 "derivation_rule_id": "rule_metric_employer_binding",
                 "canonical_assertion_text": f"Metric {metric_id} bound to employer {employer_node_id}.",
-                "lifecycle_disposition": "ACTIVE_POLICY_GATED",
+                "lifecycle_disposition": "HELD_NON_ACTIVE_ENDPOINT" if is_quarantined else "ACTIVE_POLICY_GATED",
                 "assertion_basis_refs": [f"employment:{employer_node_id}"],
-                "traversable": 1,
+                "traversable": 0 if is_quarantined else 1,
             }
         )
 
@@ -482,6 +490,12 @@ def metric_outcome_node_and_edge_rows(
                 mid_s = str(mid).strip()
                 if not mid_s or mid_s not in rows:
                     continue
+                metric_row = rows.get(mid_s) or {}
+                metric_approval = str(metric_row.get("approval_status") or "").strip().upper()
+                is_metric_quarantined = (
+                    not bool(metric_row.get("approved"))
+                    or metric_approval in ("QUARANTINED_UNVERIFIED_SYNTHETIC", "BLOCKED", "RETIRED")
+                )
                 for fid_s in resolved_fids:
                     if bundle_emp and not fact_supports_employment(fid_s, bundle_emp):
                         continue
@@ -500,10 +514,10 @@ def metric_outcome_node_and_edge_rows(
                             "target_node_id": mid_s,
                             "edge_family": "fact_metric",
                             "edge_type": et,
-                            "weight": 1.0,
-                            "confidence": "HIGH",
+                            "weight": 0.0 if is_metric_quarantined else 1.0,
+                            "confidence": "LOW" if is_metric_quarantined else "HIGH",
                             "directional": 1,
-                            "evidence_status": "approved_graph_ssot",
+                            "evidence_status": "quarantined_synthetic" if is_metric_quarantined else "approved_graph_ssot",
                             "section_fit": "ALL",
                             "source_authority": "augmented_skills_graph",
                             "assertion_type": "METRIC_BINDING",
@@ -512,17 +526,12 @@ def metric_outcome_node_and_edge_rows(
                             "origin_ref": f"{reb_id}::{fid_s}->{mid_s}",
                             "derivation_rule_id": rule_id,
                             "canonical_assertion_text": desc,
-                            "lifecycle_disposition": "ACTIVE_POLICY_GATED",
+                            "lifecycle_disposition": "HELD_NON_ACTIVE_ENDPOINT" if is_metric_quarantined else "ACTIVE_POLICY_GATED",
                             "assertion_basis_refs": [f"fact:{fid_s}", f"metric:{mid_s}"],
-                            "traversable": 1,
+                            "traversable": 0 if is_metric_quarantined else 1,
                         }
                     )
-                metric_row = rows.get(mid_s) or {}
-                metric_approval = str(metric_row.get("approval_status") or "").strip().upper()
-                if (
-                    not bool(metric_row.get("approved"))
-                    or metric_approval in ("QUARANTINED_UNVERIFIED_SYNTHETIC", "BLOCKED", "RETIRED")
-                ):
+                if is_metric_quarantined:
                     continue
                 for sid in sids:
                     sid_s = _resolve_skill_redirect(str(sid).strip())
@@ -592,7 +601,8 @@ def metric_outcome_node_and_edge_rows(
                 fid for (sk, fid) in skill_fact_pairs if sk == sid_s and (not m_facts or fid in m_facts)
             )
             if not shared_facts:
-                shared_facts = sorted(fid for (sk, fid) in skill_fact_pairs if sk == sid_s)[:2]
+                # Enforce AC2.4: never emit skill_surfaces_metric_outcome without a matching skill->fact->metric chain
+                continue
             edge_rows.append(
                 {
                     "edge_id": f"edge_skill_surfaces_metric_outcome__{sid_s}__{mid_s}",

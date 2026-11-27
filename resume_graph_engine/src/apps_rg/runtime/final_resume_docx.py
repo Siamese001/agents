@@ -9,11 +9,12 @@ the renderer cannot invent, omit, or reorder resume claims.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import zipfile
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 from xml.etree import ElementTree
 
 from apps_rg.runtime.section_display_labels import (
@@ -297,7 +298,104 @@ _STYLES_XML = b"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 """
 
 
-def export(final_resume_path: Path, out_path: Path) -> Path:
+_CUSTOM_PROPS_NS = "http://schemas.openxmlformats.org/officeDocument/2006/custom-properties"
+_VT_NS = "http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"
+_CUSTOM_PROPS_FMTID = "{D5CDD505-2E9C-101B-9397-08002B2CF9AE}"
+
+ElementTree.register_namespace("vt", _VT_NS)
+
+_CONTENT_TYPES_WITH_CUSTOM_XML = b"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
+  <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
+  <Override PartName="/docProps/custom.xml" ContentType="application/vnd.openxmlformats-officedocument.custom-properties+xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/word/fontTable.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml"/>
+  <Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/>
+  <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
+  <Override PartName="/word/webSettings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.webSettings+xml"/>
+</Types>
+"""
+
+_PACKAGE_RELS_WITH_CUSTOM_XML = b"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
+  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>
+  <Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties" Target="docProps/custom.xml"/>
+</Relationships>
+"""
+
+
+def _collect_lineage_properties(
+    blob: Mapping[str, Any],
+    rendered: str,
+    lineage_metadata: Mapping[str, Any] | None = None,
+) -> dict[str, str]:
+    props: dict[str, str] = {}
+    sources = (
+        blob.get("lineage") if isinstance(blob.get("lineage"), Mapping) else {},
+        blob.get("lineage_metadata") if isinstance(blob.get("lineage_metadata"), Mapping) else {},
+        lineage_metadata if isinstance(lineage_metadata, Mapping) else {},
+    )
+    for src in sources:
+        for key in (
+            "build_run_id",
+            "sqlite_graph_digest",
+            "base_resume_json_hash",
+            "pct_certificate_sha256",
+            "ats_coverage_ratio",
+        ):
+            val = src.get(key)
+            if val is not None and str(val).strip():
+                props[key] = str(val).strip()
+    if "pct_certificate_sha256" not in props and isinstance(blob.get("pct_certificate"), Mapping):
+        pct_canonical = json.dumps(dict(blob["pct_certificate"]), sort_keys=True, ensure_ascii=False)
+        props["pct_certificate_sha256"] = hashlib.sha256(pct_canonical.encode("utf-8")).hexdigest()
+    props.setdefault("rendered_text_sha256", hashlib.sha256(rendered.encode("utf-8")).hexdigest())
+    return props
+
+
+def _custom_props_xml(props: Mapping[str, str]) -> bytes:
+    root = ElementTree.Element(_qname(_CUSTOM_PROPS_NS, "Properties"))
+    for pid, (name, value) in enumerate(sorted(props.items()), start=2):
+        prop_el = ElementTree.SubElement(
+            root,
+            _qname(_CUSTOM_PROPS_NS, "property"),
+            {
+                "fmtid": _CUSTOM_PROPS_FMTID,
+                "pid": str(pid),
+                "name": str(name),
+            },
+        )
+        val_el = ElementTree.SubElement(prop_el, _qname(_VT_NS, "lpwstr"))
+        val_el.text = str(value)
+    return ElementTree.tostring(root, encoding="utf-8", xml_declaration=True)
+
+
+def read_docx_custom_properties(docx_path: Path) -> dict[str, str]:
+    """Read sealed OOXML custom properties (lineage digests) from a DOCX package."""
+    out: dict[str, str] = {}
+    with zipfile.ZipFile(Path(docx_path), "r") as archive:
+        if "docProps/custom.xml" not in archive.namelist():
+            return out
+        root = ElementTree.fromstring(archive.read("docProps/custom.xml"))
+    for prop in root.findall(_qname(_CUSTOM_PROPS_NS, "property")):
+        name = str(prop.attrib.get("name") or "").strip()
+        val_el = prop.find(_qname(_VT_NS, "lpwstr"))
+        if name and val_el is not None and val_el.text is not None:
+            out[name] = val_el.text
+    return out
+
+
+def export(
+    final_resume_path: Path,
+    out_path: Path,
+    *,
+    lineage_metadata: Mapping[str, Any] | None = None,
+) -> Path:
     """Render a validated spine JSON to a self-contained DOCX package."""
 
     source = Path(final_resume_path).resolve()
@@ -309,16 +407,18 @@ def export(final_resume_path: Path, out_path: Path) -> Path:
             "refusing to emit a hollow DOCX"
         )
     rendered = flatten_final_resume_to_text(blob)
+    custom_props = _collect_lineage_properties(blob, rendered, lineage_metadata)
     destination = Path(out_path).resolve()
     destination.parent.mkdir(parents=True, exist_ok=True)
     temporary = destination.with_suffix(destination.suffix + ".tmp")
     temporary.unlink(missing_ok=True)
     try:
         with zipfile.ZipFile(temporary, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-            archive.writestr("[Content_Types].xml", _CONTENT_TYPES_XML)
-            archive.writestr("_rels/.rels", _PACKAGE_RELS_XML)
+            archive.writestr("[Content_Types].xml", _CONTENT_TYPES_WITH_CUSTOM_XML)
+            archive.writestr("_rels/.rels", _PACKAGE_RELS_WITH_CUSTOM_XML)
             archive.writestr("docProps/core.xml", _CORE_PROPS_XML)
             archive.writestr("docProps/app.xml", _APP_PROPS_XML)
+            archive.writestr("docProps/custom.xml", _custom_props_xml(custom_props))
             archive.writestr("word/document.xml", _document_xml(rendered))
             archive.writestr("word/_rels/document.xml.rels", _DOCUMENT_RELS_XML)
             archive.writestr("word/styles.xml", _STYLES_XML)
@@ -335,4 +435,5 @@ __all__ = [
     "_is_spine_shaped",
     "_resolve_final_resume",
     "export",
+    "read_docx_custom_properties",
 ]

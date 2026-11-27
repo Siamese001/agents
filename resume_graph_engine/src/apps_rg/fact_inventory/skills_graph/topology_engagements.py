@@ -6,8 +6,10 @@ from pathlib import Path
 from typing import Any
 
 from apps_rg.repository_layout import repository_root
+from .schema import EMPLOYMENT_PHASES
 from .topology_normalization import (
     CANONICAL_EMPLOYMENT_EPOCHS,
+    EMPLOYMENT_DATES_AND_TITLES,
     FACT_TO_EMPLOYMENT_MAP,
     normalize_employment_id,
 )
@@ -57,6 +59,9 @@ def build_engagement_nodes_and_edges(
             theme = str(b.get("bundle_theme") or title or reb_id).strip()
             claim = str(b.get("claim_text") or context or theme).strip()
             epoch = CANONICAL_EMPLOYMENT_EPOCHS.get(emp_id, "")
+            emp_phases = EMPLOYMENT_PHASES.get(emp_id)
+            emp_phase_ord = emp_phases[-1] if emp_phases else None
+            emp_meta = EMPLOYMENT_DATES_AND_TITLES.get(emp_id) or {}
 
             engagement_nodes[reb_id] = {
                 "node_id": reb_id,
@@ -67,6 +72,10 @@ def build_engagement_nodes_and_edges(
                 "operating_context": context,
                 "employer": employer,
                 "career_epoch": epoch,
+                "phase_ordinal": emp_phase_ord,
+                "start_date": str(emp_meta.get("start_date") or ""),
+                "end_date": str(emp_meta.get("end_date") or ""),
+                "is_current": int(emp_meta.get("is_current") or 0),
                 "activation_status": "ACTIVE",
                 "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
                 "confidence": "HIGH",
@@ -101,7 +110,7 @@ def build_engagement_nodes_and_edges(
                         "source_authority": "augmented_skills_graph",
                         "rationale": f"Engagement {reb_id} performed at {emp_id}.",
                         "projection_behavior": "graph_structure",
-                        "external_claim_policy": "approved_by_graph_presence",
+                        "external_claim_policy": "graph_routing_not_claim_proof",
                         "validation_status": "validated",
                         "edge_note": "",
                         "operator_note": "",
@@ -144,7 +153,7 @@ def build_engagement_nodes_and_edges(
                         "source_authority": "augmented_skills_graph",
                         "rationale": f"Engagement {reb_id} exercises skill {sid}.",
                         "projection_behavior": "graph_structure",
-                        "external_claim_policy": "approved_by_graph_presence",
+                        "external_claim_policy": "graph_routing_not_claim_proof",
                         "validation_status": "validated",
                         "edge_note": "",
                         "operator_note": "",
@@ -191,7 +200,7 @@ def build_engagement_nodes_and_edges(
                         "source_authority": "augmented_skills_graph",
                         "rationale": f"Engagement {reb_id} evidenced by fact {fid}.",
                         "projection_behavior": "graph_structure",
-                        "external_claim_policy": "approved_by_graph_presence",
+                        "external_claim_policy": "graph_routing_not_claim_proof",
                         "validation_status": "validated",
                         "edge_note": "",
                         "operator_note": "",

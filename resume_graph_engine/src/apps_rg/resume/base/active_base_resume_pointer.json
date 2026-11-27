@@ -3,7 +3,7 @@
   "active_base_resume": {
     "file_path": "apps_rg/resume/base/amit_ayer_base_resume_v1.json",
     "base_resume_id": "amit_ayer_base_resume_v1",
-    "base_resume_json_hash": "sha256:pending_calculation_post_ingestion",
+    "base_resume_json_hash": "sha256:be94a54bdee0098ebf723ea3ad49913de2916dbc3d84142490bcc8914c2adb0c",
     "base_resume_schema_version": "base_resume_v1.0",
     "activated_at": "2026-05-14T00:00:00Z",
     "activated_by": "W2A_STOP_1_canonical_json_proof"

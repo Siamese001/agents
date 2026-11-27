@@ -23,6 +23,7 @@ Checks implemented:
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from dataclasses import dataclass, field
@@ -646,6 +647,51 @@ def run_exit_checks(
         _check_support_status(artifact, profile),
         _check_competencies(artifact, profile),
     ]
+
+    ats_receipt = artifact.get("ats_coverage_receipt")
+    if isinstance(ats_receipt, dict):
+        ats_passed = bool(ats_receipt.get("passed"))
+        ratio = float(ats_receipt.get("coverage_ratio") or 0.0)
+        missing = tuple(str(x) for x in (ats_receipt.get("missing_terms") or []))
+        results.append(
+            CheckResult(
+                check_id="H_ATS_COVERAGE",
+                section="ats_coverage",
+                verdict=CheckVerdict.PASS if ats_passed else CheckVerdict.FAIL,
+                decisive_reason=(
+                    f"ATS JD coverage passed ({ratio:.2%})."
+                    if ats_passed
+                    else f"ATS JD coverage failed ({ratio:.2%}); missing={list(missing)}"
+                ),
+                failed_fields=missing if not ats_passed else (),
+                evidence_summary=f"coverage_ratio={ratio:.4f}",
+            )
+        )
+
+    pct_cert = artifact.get("pct_certificate")
+    if isinstance(pct_cert, dict):
+        expected_hash = str(pct_cert.get("text_hash") or "").strip()
+        clean_flag = bool(pct_cert.get("banned_words_clean"))
+        rendered_surface = artifact.get("rendered_text")
+        hash_ok = bool(expected_hash)
+        if isinstance(rendered_surface, str) and rendered_surface:
+            actual_hash = hashlib.sha256(rendered_surface.encode("utf-8")).hexdigest()
+            hash_ok = actual_hash == expected_hash
+        pct_ok = clean_flag and hash_ok
+        results.append(
+            CheckResult(
+                check_id="H_PCT_CERTIFICATE",
+                section="pct_certificate",
+                verdict=CheckVerdict.PASS if pct_ok else CheckVerdict.FAIL,
+                decisive_reason=(
+                    "PCT certificate verified."
+                    if pct_ok
+                    else "PCT certificate hash or banned_words_clean verification failed."
+                ),
+                failed_fields=() if pct_ok else ("pct_certificate",),
+                evidence_summary=f"text_hash={expected_hash[:16]}",
+            )
+        )
 
     hard_fail = any(r.verdict == CheckVerdict.FAIL for r in results)
     unknown_material = any(r.verdict == CheckVerdict.UNKNOWN for r in results)

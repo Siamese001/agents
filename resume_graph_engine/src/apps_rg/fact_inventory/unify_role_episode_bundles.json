@@ -569,12 +569,16 @@
         "skill_llm_judge_packet_design",
         "skill_hitl_escalation_architecture",
         "skill_confidence_based_escalation",
-        "skill_risk_model_risk"
+        "skill_risk_model_risk",
+        "skill_dense_sparse_exact_retrieval_design",
+        "skill_graph_aware_relationship_grounding",
+        "skill_risk_enterprise_risk_controls"
       ],
       "linked_source_fact_ids": [
         "fact_governance_001",
         "fact_governance_002",
-        "fact_governance_005"
+        "fact_governance_005",
+        "fact_rag_insurance_001"
       ],
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
@@ -596,11 +600,12 @@
       "external_claim_policy": "approved_metric_linked",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Grounded in Unify-attributed governance facts fact_governance_001, fact_governance_002, and fact_governance_005.",
+      "notes": "Grounded in Unify-attributed governance and regulated insurance GraphRAG facts fact_governance_001, fact_governance_002, fact_governance_005, and fact_rag_insurance_001.",
       "provenance_source_refs": [
         "fact_governance_001",
         "fact_governance_002",
-        "fact_governance_005"
+        "fact_governance_005",
+        "fact_rag_insurance_001"
       ]
     },
     {

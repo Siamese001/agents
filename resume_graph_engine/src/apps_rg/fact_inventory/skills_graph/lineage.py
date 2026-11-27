@@ -67,11 +67,39 @@ def _canonical_json_sha256(payload: Any) -> str:
     return hashlib.sha256(serialized).hexdigest()
 
 
+def _count_json_records(path: Path, role: str) -> int:
+    """Count domain records in a JSON build input artifact."""
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, ValueError):
+        return 0
+    if not isinstance(data, dict):
+        return len(data) if isinstance(data, list) else 0
+    if role == "canonical_graph_ledger":
+        return len(data.get("skill_rows") or []) + len(data.get("graph_nodes") or [])
+    if role == "candidate_fact_ledger":
+        return len(data.get("candidate_facts") or [])
+    if role == "role_episode_bundle":
+        return len(data.get("bundles") or [])
+    if role == "edge_semantic_contract":
+        return len(data.get("assertion_type_by_edge_type") or {})
+    if role == "base_resume":
+        facts = data.get("facts") or {}
+        if isinstance(facts, dict):
+            return (
+                len(facts.get("employment") or [])
+                + len(facts.get("skills") or [])
+                + len(facts.get("education") or [])
+                + len(facts.get("certifications") or [])
+            )
+    return max(1, len(data))
+
+
 def compute_input_manifest(repo_root: Path | None = None) -> dict[str, Any]:
     """Compute itemized SHA256 manifest and overall digest across all graph inputs."""
     root = repository_root(repo_root or Path(__file__))
 
-    inputs: list[dict[str, str]] = []
+    inputs: list[dict[str, Any]] = []
 
     # 1. Master skills arsenal ledger
     arsenal_path = default_arsenal_ledger_path(root)
@@ -80,6 +108,7 @@ def compute_input_manifest(repo_root: Path | None = None) -> dict[str, Any]:
             "path": str(arsenal_path.relative_to(root)) if arsenal_path.is_relative_to(root) else str(arsenal_path),
             "role": "canonical_graph_ledger",
             "sha256": _file_sha256(arsenal_path),
+            "record_count": _count_json_records(arsenal_path, "canonical_graph_ledger"),
         })
 
     # 2. Candidate skills fact ledger
@@ -89,6 +118,7 @@ def compute_input_manifest(repo_root: Path | None = None) -> dict[str, Any]:
             "path": str(candidate_path.relative_to(root)) if candidate_path.is_relative_to(root) else str(candidate_path),
             "role": "candidate_fact_ledger",
             "sha256": _file_sha256(candidate_path),
+            "record_count": _count_json_records(candidate_path, "candidate_fact_ledger"),
         })
 
     # 3. All role episode bundle files
@@ -98,22 +128,30 @@ def compute_input_manifest(repo_root: Path | None = None) -> dict[str, Any]:
                 "path": str(bundle_path.relative_to(root)) if bundle_path.is_relative_to(root) else str(bundle_path),
                 "role": "role_episode_bundle",
                 "sha256": _file_sha256(bundle_path),
+                "record_count": _count_json_records(bundle_path, "role_episode_bundle"),
             })
 
-    # 4. Semantic contract (v1 or v2)
-    contract_v2 = root / "src/apps_rg/fact_inventory/c03_graph_edge_semantic_contract.v2.json"
-    contract_v1 = root / "src/apps_rg/fact_inventory/c03_graph_edge_semantic_contract.v1.json"
-    contract_path = contract_v2 if contract_v2.is_file() else contract_v1
+    # 4. Semantic contract (v2 preferred, fallback to v1)
+    contract_path = resolve_apps_rg_path(root, "fact_inventory", "c03_graph_edge_semantic_contract.v2.json")
     if not contract_path.is_file():
-        candidate_contract = root / "resume_graph_engine/src/apps_rg/fact_inventory/c03_graph_edge_semantic_contract.v1.json"
-        if candidate_contract.is_file():
-            contract_path = candidate_contract
+        contract_path = resolve_apps_rg_path(root, "fact_inventory", "c03_graph_edge_semantic_contract.v1.json")
 
     if contract_path.is_file():
         inputs.append({
             "path": str(contract_path.relative_to(root)) if contract_path.is_relative_to(root) else str(contract_path),
             "role": "edge_semantic_contract",
             "sha256": _file_sha256(contract_path),
+            "record_count": _count_json_records(contract_path, "edge_semantic_contract"),
+        })
+
+    # 4b. Base resume SSOT
+    base_resume_path = resolve_apps_rg_path(root, "resume", "base", "amit_ayer_base_resume_v1.json")
+    if base_resume_path.is_file():
+        inputs.append({
+            "path": str(base_resume_path.relative_to(root)) if base_resume_path.is_relative_to(root) else str(base_resume_path),
+            "role": "base_resume",
+            "sha256": _file_sha256(base_resume_path),
+            "record_count": _count_json_records(base_resume_path, "base_resume"),
         })
 
     # 5. Canonical confidence scoring & materializer Python modules

@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sqlite3
 import sys
 from pathlib import Path
 from typing import Any
@@ -345,12 +346,111 @@ def audit_fact_provenance(repo_root: Path) -> dict[str, Any]:
     verified_op_metrics = sum(1 for r in metric_rows if r["approved"] and r["support_level"] == "verified_operator_confirmed")
     quarantined_metrics = sum(1 for r in metric_rows if not r["approved"])
 
+    sqlite_provenance: dict[str, Any] = {
+        "checked": False,
+        "quoted_edge_evidence_count": 0,
+        "legacy_approved_by_graph_presence_edges": 0,
+        "quarantined_high_confidence_leaks": 0,
+        "quarantined_traversable_edges": 0,
+    }
+    db_path = (
+        root
+        / "resume_graph_engine"
+        / "artifacts"
+        / "apps_rg"
+        / "fact_inventory"
+        / "augmented_skills_graph.sqlite"
+    )
+    if db_path.is_file():
+        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+        try:
+            tables = {
+                str(r[0])
+                for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+            }
+            sqlite_provenance["checked"] = True
+            if "edge_evidence" in tables:
+                ev_cols = {str(r[1]) for r in conn.execute("PRAGMA table_info(edge_evidence)").fetchall()}
+                if "quote_sha256" in ev_cols:
+                    quoted_ct = conn.execute(
+                        "SELECT COUNT(*) FROM edge_evidence WHERE COALESCE(quote_sha256, '') != ''"
+                    ).fetchone()[0]
+                    sqlite_provenance["quoted_edge_evidence_count"] = int(quoted_ct)
+                    if quoted_ct == 0:
+                        violations.append(
+                            {
+                                "code": "SQLITE_EDGE_EVIDENCE_MISSING_QUOTES",
+                                "file": str(db_path.relative_to(root)),
+                                "entity_id": "edge_evidence",
+                                "message": "SQLite edge_evidence has 0 rows with populated quote_sha256.",
+                            }
+                        )
+            if "graph_edges" in tables:
+                ge_cols = {str(r[1]) for r in conn.execute("PRAGMA table_info(graph_edges)").fetchall()}
+                check_cols = [c for c in ("assertion_basis", "evidence_basis", "validation_status") if c in ge_cols]
+                if check_cols:
+                    where_clause = " OR ".join(
+                        f"LOWER(COALESCE({col}, '')) LIKE '%approved_by_graph_presence%'" for col in check_cols
+                    )
+                    gp_edge_ct = conn.execute(
+                        f"SELECT COUNT(*) FROM graph_edges WHERE {where_clause}"
+                    ).fetchone()[0]
+                else:
+                    gp_edge_ct = 0
+                sqlite_provenance["legacy_approved_by_graph_presence_edges"] = int(gp_edge_ct)
+                if gp_edge_ct > 0:
+                    violations.append(
+                        {
+                            "code": "SQLITE_LEGACY_APPROVED_BY_GRAPH_PRESENCE_EDGE",
+                            "file": str(db_path.relative_to(root)),
+                            "entity_id": "graph_edges",
+                            "message": f"{gp_edge_ct} graph_edges still reference approved_by_graph_presence.",
+                        }
+                    )
+            if "graph_nodes" in tables and "graph_edges" in tables:
+                q_conf_leaks = conn.execute(
+                    "SELECT COUNT(*) FROM graph_nodes "
+                    "WHERE node_type = 'metric_outcome' "
+                    "AND LOWER(COALESCE(support_level, '')) = 'quarantined_unverified_synthetic' "
+                    "AND COALESCE(confidence_score, 0.0) > 0.0"
+                ).fetchone()[0]
+                q_trav_leaks = conn.execute(
+                    "SELECT COUNT(*) FROM graph_edges e "
+                    "JOIN graph_nodes n ON (n.node_id = e.source_node_id OR n.node_id = e.target_node_id) "
+                    "WHERE n.node_type = 'metric_outcome' "
+                    "AND LOWER(COALESCE(n.support_level, '')) = 'quarantined_unverified_synthetic' "
+                    "AND COALESCE(e.traversable, 0) = 1"
+                ).fetchone()[0]
+                sqlite_provenance["quarantined_high_confidence_leaks"] = int(q_conf_leaks)
+                sqlite_provenance["quarantined_traversable_edges"] = int(q_trav_leaks)
+                if q_conf_leaks > 0:
+                    violations.append(
+                        {
+                            "code": "SQLITE_QUARANTINED_METRIC_NONZERO_CONFIDENCE",
+                            "file": str(db_path.relative_to(root)),
+                            "entity_id": "graph_nodes",
+                            "message": f"{q_conf_leaks} quarantined metric node(s) have confidence_score > 0.0.",
+                        }
+                    )
+                if q_trav_leaks > 0:
+                    violations.append(
+                        {
+                            "code": "SQLITE_QUARANTINED_METRIC_TRAVERSABLE_EDGE",
+                            "file": str(db_path.relative_to(root)),
+                            "entity_id": "graph_edges",
+                            "message": f"{q_trav_leaks} traversable edge(s) still touch quarantined metric nodes.",
+                        }
+                    )
+        finally:
+            conn.close()
+
     return {
         "schema_version": "agents.fact_graph_provenance_audit.v1",
         "status": "PASS" if not violations else "FAIL",
         "base_resume_source": base_rel,
         "bundle_files_scanned": len(bundle_files),
         "graph_presence_count": graph_presence_count,
+        "sqlite_provenance": sqlite_provenance,
         "counts": {
             "total_bundles": len(bundle_rows),
             "verified_base_resume_bundles": verified_base_bundles,

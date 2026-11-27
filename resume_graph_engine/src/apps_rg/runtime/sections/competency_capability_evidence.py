@@ -257,10 +257,10 @@ PARTNERSHIP_FIRST_COMPETENCIES_BUNDLE_ORDER: tuple[str, ...] = (
     "ccb_data_governance_security", "ccb_devsecops_delivery_governance", "ccb_insurance_domain_erm",
 )
 INSURANCE_IT_STRATEGY_COMPETENCIES_BUNDLE_ORDER: tuple[str, ...] = (
-    "ccb_agentic_platforms", "ccb_runtime_governance", "ccb_distributed_systems_engineering",
-    "ccb_retrieval_context_engineering", "ccb_engineering_leadership", "ccb_llmops_reliability",
-    "ccb_platform_productization", "ccb_partner_applied_ai_architecture", "ccb_partnerships_ecosystem_execution",
-    "ccb_data_governance_security", "ccb_devsecops_delivery_governance", "ccb_insurance_domain_erm",
+    "ccb_agentic_platforms", "ccb_insurance_domain_erm", "ccb_runtime_governance",
+    "ccb_distributed_systems_engineering", "ccb_retrieval_context_engineering", "ccb_engineering_leadership",
+    "ccb_llmops_reliability", "ccb_platform_productization", "ccb_partner_applied_ai_architecture",
+    "ccb_partnerships_ecosystem_execution", "ccb_data_governance_security", "ccb_devsecops_delivery_governance",
 )
 AGENTIC_ENGINEERING_COMPETENCIES_BUNDLE_ORDER: tuple[str, ...] = (
     "ccb_agentic_platforms", "ccb_runtime_governance", "ccb_retrieval_context_engineering",

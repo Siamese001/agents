@@ -46,9 +46,13 @@ def test_ac4_4_c03_binding_receipts_fields() -> None:
 
 
 def test_ac4_5_selection_rejections_and_metric_usage_rows() -> None:
-    """AC4.5: After one production run, graph_selection_rejections and resume_metric_usage contain >0 rows."""
+    """AC4.5: After one production run, telemetry sidecar has rejections and metric usage while canonical DB stays immutable."""
+    import hashlib
+
     atoms = fetch_c02_evidence_atoms(section_id="competencies", pool=_pool(), repo_root=REPO)["atoms"]
     run_id = "test_ac4_5_audit_run"
+    canonical_db = default_graph_sqlite_path(_repo_root())
+    before_sha = hashlib.sha256(canonical_db.read_bytes()).hexdigest()
     c03 = expand_c03_graph_bindings(
         section_id="competencies",
         atoms=atoms,
@@ -56,8 +60,12 @@ def test_ac4_5_selection_rejections_and_metric_usage_rows() -> None:
         strict_ranked_selection=False,
         run_id=run_id,
     )
-    db_path = c03.get("graph_context_ref") or default_graph_sqlite_path(_repo_root())
-    conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+    after_sha = hashlib.sha256(canonical_db.read_bytes()).hexdigest()
+    assert after_sha == before_sha, "Runtime selection must never mutate canonical augmented_skills_graph.sqlite"
+
+    tel_path = Path(str(c03.get("runtime_telemetry_db_path") or ""))
+    assert tel_path.is_file(), f"Runtime telemetry sidecar missing at {tel_path}"
+    conn = sqlite3.connect(f"file:{tel_path}?mode=ro", uri=True)
     try:
         cur = conn.cursor()
         rejections_count = cur.execute(

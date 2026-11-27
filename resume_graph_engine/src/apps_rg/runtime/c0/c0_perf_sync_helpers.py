@@ -581,7 +581,7 @@ def compute_candidate_alignment_and_independence(
 def diversify_slot_candidates(rows: list[dict[str, Any]], *, required_root_id: str, section_id: str) -> list[dict[str, Any]]:
     if required_root_id or len(rows) <= 32:
         return rows
-    cap = 2 if section_id == "competencies" else (6 if section_id == "ibm_bullets" else 3)
+    cap = 2 if section_id == "competencies" else (6 if section_id in {"ibm_bullets", "ey_bullets"} else 3)
     kept_indices: list[int] = []
     seen_skills_by_root: dict[str, set[str]] = {}
     seen_metrics_by_root: dict[str, set[str]] = {}

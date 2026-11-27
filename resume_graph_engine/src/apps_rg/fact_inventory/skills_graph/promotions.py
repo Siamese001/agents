@@ -504,22 +504,24 @@ def apply_operator_archive_promotions(
 def promote_operator_confirmed_skill_rows(
     skill_rows_by_id: dict[str, dict[str, Any]],
 ) -> dict[str, dict[str, Any]]:
-    """Return shallow-copied skill rows with operator-confirmed promotion applied."""
+    """Return shallow-copied skill rows with fail-closed operator-confirmed promotion applied.
+
+    Never fabricates synthetic fact_id_links (INV-FACT-GRAPH-NO-AGENT-SYNTHESIS):
+    a skill must carry >= 1 verified fact_id_link to promote externally.
+    """
     out = {sid: dict(r) for sid, r in skill_rows_by_id.items()}
     for sid, srow in out.items():
         hold_mode = str(srow.get("operator_hold_mode") or "").strip().upper()
         if hold_mode in ("INTERNAL_ONLY", "PORTFOLIO_ONLY", "RETIRED"):
             continue
+        if sid in FORBIDDEN_SKILL_NODE_IDS or sid.startswith("skill:c03:"):
+            continue
+        links = [str(x).strip() for x in (srow.get("fact_id_links") or []) if str(x).strip() and not _is_skill_id(str(x).strip())]
         hygiene_decision = str(srow.get("operator_hygiene_decision") or "").strip().upper()
-        if (
-            hygiene_decision == "PROMOTE_EXTERNAL"
-            and sid not in FORBIDDEN_SKILL_NODE_IDS
-            and not sid.startswith("skill:c03:")
-        ):
-            links = [str(x).strip() for x in (srow.get("fact_id_links") or []) if str(x).strip()]
+        if hygiene_decision == "PROMOTE_EXTERNAL":
             if not links:
-                links = ["fact_insurtech_aws_001"]
-                srow["fact_id_links"] = links
+                # Fail closed: never synthesize fallback fact links
+                continue
             srow["activation_status"] = "ACTIVE_CONFIRMED"
             srow["support_level"] = "DIRECT_FROM_RESUME_ARCHIVE"
             srow["external_claim_policy"] = "atomic_fact_default_external_proof"
@@ -536,23 +538,21 @@ def promote_operator_confirmed_skill_rows(
                 "override_reason": "operator_confirmed_skill_promotion",
             }
             continue
-        if (
-            sid == "skill_risk_enterprise_risk_controls"
-            or sid in FORBIDDEN_SKILL_NODE_IDS
-            or sid.startswith("skill:c03:")
+        is_bundle_supported_active = (
+            str(srow.get("activation_status") or "").strip().upper() in ("ACTIVE", "ACTIVE_CONFIRMED")
+            and str(srow.get("support_level") or "").strip().upper() == "BUNDLE_SUPPORTED"
+            and bool(links)
+        )
+        if is_bundle_supported_active or (
+            bool(links)
+            and (
+                str(srow.get("confidence_grade") or "").upper() != "HIGH"
+                or str(srow.get("activation_status") or "") in NON_PROMOTE_ACTIVATION
+                or str(srow.get("support_level") or "")
+                in ("INTERNAL_ONLY", "USER_CONFIRMED_PENDING_SOURCE", "REPO_EVIDENCE_PORTFOLIO", "BLOCKED")
+                or str(srow.get("visibility_rule") or "") == "never_external"
+            )
         ):
-            continue
-        if (
-            str(srow.get("confidence_grade") or "").upper() != "HIGH"
-            or str(srow.get("activation_status") or "") in NON_PROMOTE_ACTIVATION
-            or str(srow.get("support_level") or "")
-            in ("INTERNAL_ONLY", "USER_CONFIRMED_PENDING_SOURCE", "REPO_EVIDENCE_PORTFOLIO", "BLOCKED")
-            or str(srow.get("visibility_rule") or "") == "never_external"
-        ):
-            links = [str(x).strip() for x in (srow.get("fact_id_links") or []) if str(x).strip()]
-            if not links:
-                links = ["fact_insurtech_aws_001"]
-                srow["fact_id_links"] = links
             srow["activation_status"] = "ACTIVE_CONFIRMED"
             srow["support_level"] = "DIRECT_FROM_RESUME_ARCHIVE"
             srow["external_claim_policy"] = "atomic_fact_default_external_proof"

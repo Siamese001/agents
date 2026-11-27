@@ -13,6 +13,31 @@ from typing import Any, Iterable
 POLICY_VERSION = "c03_graph_metric_heterogeneity_policy_v2"
 
 METRIC_BUCKETS: dict[str, tuple[str, ...]] = {
+    "insurance_risk": (
+        "actuarial",
+        "solvency",
+        "ag43",
+        "fsa",
+        "guidewire",
+        "claims",
+        "underwriting",
+        "capital",
+        "reserving",
+        "insurer",
+        "policyholder",
+        "p&c",
+    ),
+    "financial_services": (
+        "bank",
+        "basel",
+        "bcbs",
+        "ccar",
+        "wealth",
+        "trading",
+        "derivatives",
+        "hedging",
+        "greek",
+    ),
     "revenue_growth": (
         "revenue",
         "arr",
@@ -29,8 +54,6 @@ METRIC_BUCKETS: dict[str, tuple[str, ...]] = {
     "delivery_velocity": ("delivery", "release", "deployment", "ci/cd", "pipeline"),
     "model_quality": ("accuracy", "precision", "recall", "eval", "quality", "hallucination"),
     "partner_gtm": ("partner", "hyperscaler", "co-sell", "marketplace", "alliance"),
-    "insurance_risk": ("actuarial", "claims", "underwriting", "capital", "reserving"),
-    "financial_services": ("bank", "basel", "ccar", "wealth", "trading", "derivatives"),
 }
 
 MAX_SAME_METRIC_BUCKET_SHARE = 0.34

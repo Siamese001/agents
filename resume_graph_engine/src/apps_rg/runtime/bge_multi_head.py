@@ -260,6 +260,7 @@ def project_multi_head_from_dense_and_text(
     heads: Sequence[str] = VALID_BGE_HEADS,
     model_path: Path | str | None = None,
     max_colbert_tokens: int = 32,
+    use_torch: bool = True,
 ) -> MultiHeadEmbedding:
     """Compute BGE-M3 dense, learned sparse lexical weights, and ColBERT token vectors."""
     from apps_rg.runtime.bge_embedding import BgeEmbeddingContractError, _coerce_vectors
@@ -272,7 +273,7 @@ def project_multi_head_from_dense_and_text(
     coerced_dense, _ = _coerce_vectors([list(dense_vector)], 1)
     unit_dense = coerced_dense[0]
     tokens = _extract_meaningful_tokens(text, max_tokens=max(8, max_colbert_tokens))
-    linear_heads = _get_cached_linear_heads(model_path)
+    linear_heads = _get_cached_linear_heads(model_path) if use_torch else {}
 
     sparse_weights: dict[str, float] = {}
     colbert_vecs: list[list[float]] = []
@@ -286,6 +287,8 @@ def project_multi_head_from_dense_and_text(
                 unique_ordered.append(tok)
 
         try:
+            if not use_torch:
+                raise ImportError("torch skipped for fast deterministic projection")
             import torch
 
             dense_t = torch.tensor(unit_dense, dtype=torch.float32)
@@ -569,6 +572,7 @@ def project_text_multi_head(
         heads=heads,
         model_path=model_path,
         max_colbert_tokens=max_colbert_tokens,
+        use_torch=use_live_bge,
     )
 
 

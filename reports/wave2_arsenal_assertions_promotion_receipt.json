@@ -1,0 +1,11 @@
+{
+  "wave": "Wave 2",
+  "status": "COMPLETED",
+  "node_count": 844,
+  "edge_count": 5548,
+  "skill_lexical_alias_count": 1059,
+  "snake_case_external_skills": 0,
+  "legacy_approved_by_graph_presence_edges": 0,
+  "cross_arc_continuity_edges": 10,
+  "erm_external_eligible": 1
+}

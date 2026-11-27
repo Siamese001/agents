@@ -39,6 +39,11 @@ def run_cross_section_x2_gates(
     final_resume_blob: dict[str, Any],
     fingerprint: dict[str, Any],
     sealed_index: dict[str, Any],
+    jd_text: str | None = None,
+    ats_min_coverage: float = 0.70,
+    pct_certificate: Mapping[str, Any] | None = None,
+    pct_allowed_fact_ids: set[str] | None = None,
+    pct_source_facts: dict[str, str] | None = None,
 ) -> tuple[list[CrossSectionGateResult], list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     gates: list[CrossSectionGateResult] = []
     sections = [s for s in (final_resume_blob.get("sections") or []) if isinstance(s, dict)]
@@ -337,6 +342,62 @@ def run_cross_section_x2_gates(
                     "contract_digest": whole_resume.get("contract_digest"),
                 },
                 evidence_refs=["whole_resume_graph_evidence_contract.json"],
+            ),
+        )
+
+    effective_jd = jd_text if jd_text is not None else final_resume_blob.get("ats_jd_text")
+    if isinstance(effective_jd, str) and effective_jd.strip():
+        from apps_rg.runtime.validators.ats_validator import evaluate_ats_jd_requirement_coverage
+
+        ats_res = evaluate_ats_jd_requirement_coverage(
+            final_resume_blob,
+            effective_jd,
+            min_coverage=ats_min_coverage,
+        )
+        gates.append(
+            CrossSectionGateResult(
+                gate_id="x2_cross_section_ats_jd_coverage",
+                verdict=VERDICT_PASS if ats_res.passed else VERDICT_FAIL,
+                decisive_reason=(
+                    None
+                    if ats_res.passed
+                    else (
+                        f"ATS JD requirement coverage {ats_res.coverage_ratio:.2%} "
+                        f"< {ats_res.min_coverage:.2%}; missing={list(ats_res.missing_terms)}"
+                    )
+                ),
+                observed=ats_res.to_dict(),
+                threshold=ats_min_coverage,
+            ),
+        )
+
+    effective_pct = pct_certificate if pct_certificate is not None else final_resume_blob.get("pct_certificate")
+    if isinstance(effective_pct, Mapping):
+        from apps_rg.runtime.assembly.full_resume_text import flatten_final_resume_to_text
+        from apps_rg.runtime.validators.proof_carrying_text_verifier import verify_pct_certificate
+
+        rendered_text = flatten_final_resume_to_text(final_resume_blob)
+        allowed_ids = (
+            set(pct_allowed_fact_ids)
+            if pct_allowed_fact_ids is not None
+            else _allowed_fact_union(sealed_index, repo=repo)
+        )
+        pct_ok = verify_pct_certificate(
+            rendered_text,
+            dict(effective_pct),
+            allowed_fact_ids=allowed_ids,
+            source_facts=pct_source_facts,
+        )
+        gates.append(
+            CrossSectionGateResult(
+                gate_id="x2_cross_section_pct_certificate",
+                verdict=VERDICT_PASS if pct_ok else VERDICT_FAIL,
+                decisive_reason=None if pct_ok else "Proof-Carrying Text certificate verification failed",
+                observed={
+                    "verified": pct_ok,
+                    "text_hash": str(effective_pct.get("text_hash") or ""),
+                    "span_count": len(effective_pct.get("spans") or []),
+                },
             ),
         )
 

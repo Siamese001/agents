@@ -38,6 +38,7 @@ REQUIRED_POSITIONING_FAMILIES: tuple[str, ...] = (
     "pe_due_diligence_value_creation",
     "enterprise_operating_model",
     "csuite_transformation_advisory",
+    "quantitative_actuarial_ai_governance",
 )
 
 REQUIRED_BUNDLE_FIELDS: frozenset[str] = frozenset({

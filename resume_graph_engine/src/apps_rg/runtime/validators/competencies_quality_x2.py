@@ -33,6 +33,8 @@ REQUIRED_CAPABILITY_FAMILIES: dict[str, frozenset[str]] = {
         "governance", "runtime", "gate", "gates", "policy", "sandbox",
         "deterministic", "guardrail", "guardrails", "c-suite", "board",
         "steering", "committee", "sponsor", "alignment",
+        "actuarial", "solvency", "ag43", "fsa", "erm", "guidewire",
+        "underwriting", "claims", "insurance", "nydfs",
     }),
     "retrieval_context": frozenset({
         "retrieval", "context", "vector", "embedding", "search",
@@ -75,7 +77,7 @@ _BUNDLE_ID_TO_REQUIRED_CAPABILITY_FAMILY: dict[str, str] = {
     "ccb_partnerships_ecosystem_execution": "partner_architecture",
     "ccb_data_governance_security": "runtime_governance",
     "ccb_devsecops_delivery_governance": "runtime_governance",
-    "ccb_insurance_domain_erm": "distributed_infra",
+    "ccb_insurance_domain_erm": "runtime_governance",
     "ccb_executive_transformation": "engineering_leadership",
     "ccb_pe_due_diligence": "productization",
     "ccb_csuite_governance": "runtime_governance",
@@ -99,7 +101,7 @@ _GRAPH_FAMILY_TO_REQUIRED_CAPABILITY_FAMILY: dict[str, str] = {
     "csuite_advisory_governance": "runtime_governance",
     "enterprise_ai_architecture": "retrieval_context",
     "cloud_hpc_modernization": "distributed_infra",
-    "insurance_domain_modernization": "distributed_infra",
+    "insurance_domain_modernization": "runtime_governance",
     "data_governance_security": "runtime_governance",
     "devsecops_delivery_governance": "runtime_governance",
 }

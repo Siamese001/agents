@@ -144,7 +144,7 @@ def build_skill_evidence_clusters(
         skill_id, label, desc, conf_tier, conf_score, epoch, phase, employer, s_date, e_date = s_row
         cursor.execute(
             """
-            SELECT e.edge_id, n.node_id, n.label, n.description
+            SELECT e.edge_id, n.node_id, n.label, n.description, e.confidence_score
             FROM graph_edges e JOIN graph_nodes n ON n.node_id = e.target_node_id
             WHERE e.source_node_id = ?
               AND e.assertion_type = 'EVIDENTIAL_SUPPORT' AND e.confidence_tier IN ('HIGH', 'MEDIUM')
@@ -158,7 +158,7 @@ def build_skill_evidence_clusters(
 
         cursor.execute(
             """
-            SELECT e.edge_id, m.node_id, m.label, m.description
+            SELECT e.edge_id, m.node_id, m.label, m.description, e.confidence_score
             FROM graph_edges e JOIN graph_nodes m ON m.node_id = e.target_node_id
             WHERE e.source_node_id = ? AND e.edge_type = 'skill_surfaces_metric_outcome'
               AND e.confidence_tier IN ('HIGH', 'MEDIUM')
@@ -183,12 +183,12 @@ def build_skill_evidence_clusters(
 
         unit_id = _compute_unit_id("skill_evidence_cluster", skill_id, member_hash_ids)
         members: list[SemanticUnitMember] = [SemanticUnitMember(unit_id, "node", skill_id, "root")]
-        for edge_id, fact_id, _, _ in fact_edges:
+        for edge_id, fact_id, _, _, _ in fact_edges:
             members.append(SemanticUnitMember(unit_id, "node", fact_id, "evidence"))
             members.append(SemanticUnitMember(unit_id, "edge", edge_id, "evidence"))
         for ev in set(ev_refs):
             members.append(SemanticUnitMember(unit_id, "evidence", ev, "evidence"))
-        for edge_id, m_id, _, _ in metric_edges:
+        for edge_id, m_id, _, _, _ in metric_edges:
             members.append(SemanticUnitMember(unit_id, "node", m_id, "outcome"))
             members.append(SemanticUnitMember(unit_id, "edge", edge_id, "outcome"))
         if employer:
@@ -222,6 +222,10 @@ def build_skill_evidence_clusters(
             domain=domain_str,
             confidence_tier=conf_tier or "HIGH",
         )
+        cand_scores = [float(conf_score)] if conf_score is not None else []
+        cand_scores.extend(float(r[4]) for r in fact_edges if r[4] is not None)
+        cand_scores.extend(float(r[4]) for r in metric_edges if r[4] is not None)
+        derived_min_conf = round(min(cand_scores), 4) if cand_scores else 0.85
         units.append(
             SemanticUnit(
                 unit_id=unit_id,
@@ -234,7 +238,7 @@ def build_skill_evidence_clusters(
                 graph_build_run_id=build_run_id,
                 input_manifest_digest=input_manifest_digest,
                 confidence_tier=conf_tier or "HIGH",
-                min_confidence=conf_score if conf_score is not None else 0.90,
+                min_confidence=derived_min_conf,
                 allowed_sections_json=json.dumps(allowed_sections),
                 external_eligible=1,
                 members=tuple(members),

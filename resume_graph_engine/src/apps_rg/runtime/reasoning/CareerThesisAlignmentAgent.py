@@ -352,9 +352,13 @@ class CareerThesisAlignmentAgent:
         route = dict(mandate_route or {})
         cred_ids = list(route.get("credential_elevation_ids") or [])
         cred_map = {
-            "cert_fsa_001": "FSA Actuarial Fellow",
+            "cert_fsa_001": "Fellow of the Society of Actuaries (FSA)",
+            "edu_columbia_ms_001": "Columbia MS Biostatistics",
             "edu_columbia_ms_biostat_001": "Columbia MS Biostatistics",
+            "cert_aws_sa_pro_001": "AWS Solutions Architect Professional",
             "cert_aws_sap_001": "AWS Solutions Architect Professional",
+            "cert_aws_cml_001": "AWS Certified Machine Learning Specialty",
+            "cert_databricks_lakehouse_001": "Databricks Lakehouse Fundamentals",
             "edu_brown_ba_001": "Brown University",
         }
         elevated_creds = [cred_map[c] for c in cred_ids if c in cred_map]

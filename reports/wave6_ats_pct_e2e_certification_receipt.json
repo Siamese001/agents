@@ -1,0 +1,14 @@
+{
+  "wave": "wave6_ats_pct_e2e_certification",
+  "status": "PASS",
+  "provenance_status": "PASS",
+  "sqlite_provenance": {
+    "checked": true,
+    "quoted_edge_evidence_count": 2203,
+    "legacy_approved_by_graph_presence_edges": 0,
+    "quarantined_high_confidence_leaks": 0,
+    "quarantined_traversable_edges": 0
+  },
+  "graph_presence_count": 0,
+  "violation_count": 0
+}

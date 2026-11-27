@@ -52,7 +52,7 @@ EPOCH_TO_TRACK: dict[str, str] = {
     "epoch_actuarial_financial_engineering": "track_actuarial_risk_derivatives",
     "epoch_enterprise_risk_governance": "track_actuarial_risk_derivatives",
     "epoch_cloud_data_platform_engineering": "track_data_tech_cloud_ml",
-    "epoch_ai_platform_commercialization": "track_data_tech_cloud_ml",
+    "epoch_ai_platform_commercialization": "track_genai_agentic",
     "epoch_partner_gtm_revenue_leadership": "track_data_tech_cloud_ml",
     "epoch_agentic_ai_runtime_architecture": "track_genai_agentic",
 }
@@ -76,10 +76,14 @@ PILLAR_TO_TRACK_OVERRIDE: dict[str, str] = {
 }
 
 SECTION_TO_EMPLOYMENT: dict[str, str] = {
+    "slalom_narrative": "exp_slalom_001",
+    "slalom_bullets": "exp_slalom_001",
     "unify_narrative": "exp_unify_001",
     "unify_bullets": "exp_unify_001",
     "ibm_narrative": "exp_ibm_001",
     "ibm_bullets": "exp_ibm_001",
+    "insurtech_narrative": "exp_insurtech_001",
+    "insurtech_bullets": "exp_insurtech_001",
 }
 
 EMPLOYER_SOURCE_TO_EMPLOYMENT: dict[str, str] = {
@@ -93,6 +97,7 @@ CAREER_STAGE_TO_EMPLOYMENT: dict[str, str] = {
     "insurtech": "exp_insurtech_001",
     "ey": "exp_ey_001",
     "unify": "exp_unify_001",
+    "slalom": "exp_slalom_001",
 }
 
 
@@ -117,7 +122,7 @@ EMPLOYMENT_PRIMARY_TRACK: dict[str, tuple[str, list[dict[str, Any]]]] = {
         [{"type": "stint_end_at_track1_track2_boundary", "end": "2009-09"}],
     ),
     "exp_ey_001": (
-        "track_data_tech_cloud_ml",
+        "track_actuarial_risk_derivatives",
         [
             {
                 "type": "stint_start_before_track2_official_year",
@@ -132,6 +137,7 @@ EMPLOYMENT_PRIMARY_TRACK: dict[str, tuple[str, list[dict[str, Any]]]] = {
         [{"type": "stint_end_at_track2_track3_boundary", "end": "2022-10"}],
     ),
     "exp_unify_001": ("track_genai_agentic", []),
+    "exp_slalom_001": ("track_genai_agentic", []),
 }
 
 

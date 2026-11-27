@@ -59,12 +59,41 @@ class VectorCache:
         ).fetchall()
         r_ids: list[str] = []
         vecs: list[tuple[float, ...]] = []
+        seen_ids: set[str] = set()
         for uid, blob in rows:
             raw = bytes(blob)
             if len(raw) == BGE_DENSE_DIM * 4:
-                vec = struct.unpack(f"<{BGE_DENSE_DIM}f", raw)
-                r_ids.append(str(uid))
-                vecs.append(tuple(float(v) for v in vec))
+                vec = tuple(float(v) for v in struct.unpack(f"<{BGE_DENSE_DIM}f", raw))
+                uid_s = str(uid)
+                r_ids.append(uid_s)
+                vecs.append(vec)
+                seen_ids.add(uid_s)
+        # Wave 4: Map skill/engagement/metric root_node_ids onto their unit_vectors so zero skills get 0.0 dense similarity
+        has_su = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE name = 'semantic_unit' LIMIT 1"
+        ).fetchone()
+        if has_su and r_ids:
+            idx_by_uid = {rid: i for i, rid in enumerate(r_ids)}
+            root_rows = conn.execute(
+                """
+                SELECT root_node_id, unit_id
+                FROM semantic_unit
+                WHERE TRIM(COALESCE(root_node_id, '')) <> ''
+                  AND COALESCE(external_eligible, 0) = 1
+                ORDER BY CASE unit_type
+                    WHEN 'skill_evidence_cluster' THEN 0
+                    WHEN 'engagement_episode' THEN 1
+                    WHEN 'metric_outcome_story' THEN 2
+                    ELSE 3
+                END, unit_id
+                """
+            ).fetchall()
+            for root_nid, uid in root_rows:
+                rn = str(root_nid)
+                if rn not in seen_ids and str(uid) in idx_by_uid:
+                    r_ids.append(rn)
+                    vecs.append(vecs[idx_by_uid[str(uid)]])
+                    seen_ids.add(rn)
         self.record_ids = r_ids
         self.id_to_idx = {rid: idx for idx, rid in enumerate(r_ids)}
         self.vectors = vecs
@@ -162,36 +191,49 @@ class PrePaddedColbertCache:
     def __init__(self) -> None:
         self._key: tuple[str, int, str] | None = None
         self.tensors: dict[str, tuple[tuple[float, ...], ...]] = {}
+        self._raw: dict[str, tuple[int, int, str, bytes]] = {}
 
     def ensure_loaded(
         self, conn: sqlite3.Connection, *, db_path: str = ":memory:", digest: str = ""
     ) -> None:
-        """Decode int8 quantized ColBERT token vectors from assertion_colbert_vectors."""
+        """Index quantized ColBERT blobs lazily; decode on demand per admitted ID."""
         cache_key = (str(db_path), _mtime_ns(db_path), str(digest))
-        if self._key == cache_key and self.tensors:
+        if self._key == cache_key and (self._raw or self.tensors):
             return
         has_table = conn.execute(
             "SELECT 1 FROM sqlite_master WHERE name = 'assertion_colbert_vectors' LIMIT 1"
         ).fetchone()
         if not has_table:
-            self.tensors, self._key = {}, cache_key
+            self.tensors, self._raw, self._key = {}, {}, cache_key
             return
         rows = conn.execute(
             "SELECT assertion_id, token_count, dim, scales_json, vectors_int8 "
             "FROM assertion_colbert_vectors ORDER BY assertion_id"
         ).fetchall()
-        decoded: dict[str, tuple[tuple[float, ...], ...]] = {}
+        raw_map: dict[str, tuple[int, int, str, bytes]] = {}
         for aid, t_count, c_dim, scales_json, blob in rows:
-            try:
-                decoded[str(aid)] = decode_colbert_int8(
-                    bytes(blob),
-                    json.loads(str(scales_json or "[]")),
-                    token_count=int(t_count),
-                    dim=int(c_dim),
-                )
-            except (ValueError, TypeError, json.JSONDecodeError):
-                continue
-        self.tensors, self._key = decoded, cache_key
+            raw_map[str(aid)] = (int(t_count), int(c_dim), str(scales_json or "[]"), bytes(blob))
+        self.tensors, self._raw, self._key = {}, raw_map, cache_key
+
+    def _get_decoded(self, rid: str) -> tuple[tuple[float, ...], ...] | None:
+        cached = self.tensors.get(rid)
+        if cached is not None:
+            return cached
+        raw = self._raw.get(rid)
+        if raw is None:
+            return None
+        t_count, c_dim, scales_json, blob = raw
+        try:
+            decoded = decode_colbert_int8(
+                blob,
+                json.loads(scales_json),
+                token_count=t_count,
+                dim=c_dim,
+            )
+        except (ValueError, TypeError, json.JSONDecodeError):
+            return None
+        self.tensors[rid] = decoded
+        return decoded
 
     def score_admitted(
         self,
@@ -209,7 +251,7 @@ class PrePaddedColbertCache:
         step = max(1, int(tile_size))
         for start in range(0, len(admitted_ids), step):
             for rid in admitted_ids[start : start + step]:
-                d_vecs = self.tensors.get(str(rid))
+                d_vecs = self._get_decoded(str(rid))
                 if not d_vecs:
                     scored.append((0.0, str(rid)))
                     continue
@@ -291,6 +333,7 @@ class QuadGraphHybridRetriever:
         rrf_k: int = DEFAULT_RRF_K,
         weights: Mapping[str, float] | None = None,
         include_graph_signals: bool = True,
+        use_live_bge: bool = True,
     ) -> dict[str, Any]:
         """Run Stage-1 (Dense + Sparse + BM25) union, Stage-2 ColBERT MaxSim, and 1-hop graph fusion."""
         meta_row = self.conn.execute(
@@ -350,7 +393,7 @@ class QuadGraphHybridRetriever:
                 "graph_traversal_executed": False,
             }
 
-        q_head = project_text_multi_head(query_text)
+        q_head = project_text_multi_head(query_text, use_live_bge=use_live_bge)
         cap = max(union_limit, len(authority_ids))
         dense_pairs = self.vector_cache.score_query(q_head.dense_vector, allowed_ids=authority_ids, top_k=cap)
         sparse_pairs = self.sparse_cache.score_query(

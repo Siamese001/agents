@@ -107,6 +107,7 @@ def run_resume_graph_traversal_probe(max_paths: int = 200) -> dict[str, Any]:
         integrity == "ok"
         and len(two_hop_paths) > 0
         and len(domain_paths) > 0
+        and len(epoch_paths) > 0
         and research_contract.get("max_hops") == 2
         and archetype_jd_fit_ok
     )
