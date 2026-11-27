@@ -180,3 +180,23 @@ def test_post_merge_quick_hygiene_checkpoints_bloated_wal_and_removes_stale_lock
     assert not stale_tmp.exists()
     assert fresh_tmp.exists()
 
+
+def test_post_merge_quick_hygiene_prunes_pycache_and_preserves_venv(tmp_path: Path) -> None:
+    """Verify --post-merge-quick prunes workspace __pycache__ dirs while skipping .venv."""
+    from tools.storage_worktree_hygiene import run_post_merge_quick_hygiene
+
+    sandbox = _init_sandbox(tmp_path)
+    pkg_pycache = sandbox / "tools" / "__pycache__"
+    pkg_pycache.mkdir(parents=True)
+    (pkg_pycache / "sample.cpython-312.pyc").write_bytes(b"p" * 1024)
+
+    venv_pycache = sandbox / ".venv" / "lib" / "__pycache__"
+    venv_pycache.mkdir(parents=True)
+    (venv_pycache / "keep.cpython-312.pyc").write_bytes(b"v" * 512)
+
+    res = run_post_merge_quick_hygiene(repo_root=sandbox)
+    assert res["status"] == "PASS"
+    assert res["pruned_pycache_count"] == 1
+    assert not pkg_pycache.exists()
+    assert venv_pycache.is_dir()
+

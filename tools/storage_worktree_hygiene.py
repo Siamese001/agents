@@ -598,7 +598,7 @@ def run_six_pillar_hygiene_audit(
 
 
 def run_post_merge_quick_hygiene(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
-    """Fast (<1s) post-merge hygiene: checkpoint bloated WAL sidecars and unlink stale >24h .lock/.tmp files."""
+    """Fast (<1s) post-merge hygiene: checkpoint bloated WAL sidecars, prune __pycache__, and unlink stale >24h .lock/.tmp files."""
     root = repo_root.resolve()
     checkpointed: list[str] = []
     for db_path in _discover_sqlite_dbs(root, include_primary_root=False):
@@ -625,11 +625,22 @@ def run_post_merge_quick_hygiene(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
                 removed_stale.append(rel_file)
             except OSError:  # guardian: allow-silent-swallow -- best-effort stale lock unlink
                 pass
+
+    pruned_pycache_count = 0
+    skip_top = {".git", ".venv", "venv", "node_modules", ".worktrees"}
+    for dirpath, dirnames, _filenames in os.walk(root, followlinks=False):
+        dirnames[:] = [d for d in dirnames if d not in skip_top]
+        if os.path.basename(dirpath) == "__pycache__":
+            shutil.rmtree(dirpath, ignore_errors=True)
+            dirnames[:] = []
+            pruned_pycache_count += 1
+
     return {
         "status": "PASS",
         "is_clean": True,
         "checkpointed_bloated_wals": checkpointed,
         "removed_stale_files": removed_stale,
+        "pruned_pycache_count": pruned_pycache_count,
     }
 
 
