@@ -75,6 +75,7 @@ def scan_extended_construct_validity(
     *,
     is_scanner_file: bool = False,
     is_judge_test: bool = False,
+    is_test_file: bool = False,
 ) -> list[dict[str, Any]]:
     """Run all extended AST construct-validity checks on a Python file."""
     violations: list[dict[str, Any]] = []
@@ -86,7 +87,7 @@ def scan_extended_construct_validity(
         return [{"code": "AST_PARSE_ERROR", "file": str(file_path), "line": 1, "message": str(exc)}]
 
     for node in ast.walk(tree):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+        if not is_test_file and isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             name_l = node.name.lower()
             is_eval_fn = name_l.startswith(("evaluate", "eval_", "grade_", "compute_"))
             body = [stmt for stmt in node.body if not _is_docstring_expr(stmt)]
@@ -167,7 +168,7 @@ def scan_extended_construct_validity(
                                 }
                             )
 
-        # 5 & 6. Tautological asserts & vacuous exit code checks
+        # 5 & 6. Tautological asserts & vacuous exit code / pass-or-fail checks
         elif isinstance(node, ast.Assert):
             test = node.test
             if isinstance(test, ast.Constant) and test.value is True:
@@ -209,11 +210,22 @@ def scan_extended_construct_validity(
                                 "message": "Exit code assertion accepts both 0 (pass) and 1 (fail).",
                             }
                         )
+                    elif ({"PASS", "FAIL"}.issubset(vals) or {True, False}.issubset(vals)) and not any(
+                        k in left_src for k in ("is_current", "flag", "bit")
+                    ):
+                        violations.append(
+                            {
+                                "code": "VACUOUS_PASS_OR_FAIL_ASSERTION",
+                                "file": str(file_path),
+                                "line": node.lineno,
+                                "message": "Assertion accepts both passing and failing boolean/verdict values.",
+                            }
+                        )
 
-        # 7. SILENT_SCANNER_EXCEPT_PASS
+        # 7. SILENT_SCANNER_EXCEPT_PASS & SCANNER_SILENT_SYNTAX_ERROR_SWALLOW
         elif is_scanner_file and isinstance(node, ast.ExceptHandler):
+            line_txt = lines[node.lineno - 1] if 0 < node.lineno <= len(lines) else ""
             if len(node.body) == 1 and isinstance(node.body[0], ast.Pass):
-                line_txt = lines[node.lineno - 1] if 0 < node.lineno <= len(lines) else ""
                 if "guardian:" not in line_txt:
                     violations.append(
                         {
@@ -223,6 +235,19 @@ def scan_extended_construct_validity(
                             "message": "Silent 'except: pass' in scanner/auditor without guardian justification.",
                         }
                     )
+            exc_dump = ast.dump(node.type) if node.type is not None else ""
+            if "SyntaxError" in exc_dump and "guardian:" not in line_txt:
+                for sub in ast.walk(node):
+                    if isinstance(sub, ast.Return) and isinstance(sub.value, ast.List) and len(sub.value.elts) == 0:
+                        violations.append(
+                            {
+                                "code": "SCANNER_SILENT_SYNTAX_ERROR_SWALLOW",
+                                "file": str(file_path),
+                                "line": node.lineno,
+                                "message": "Scanner/linter swallows SyntaxError and returns empty [] (0 violations).",
+                            }
+                        )
+                        break
 
         # 8. UNWIRED_JUDGE_VACUOUS_PASS
         elif isinstance(node, ast.Constant) and isinstance(node.value, str):

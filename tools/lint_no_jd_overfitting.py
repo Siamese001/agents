@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import ast
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any, Sequence
@@ -31,6 +32,10 @@ TARGET_COMPANY_TOKENS: frozenset[str] = frozenset(
         "neo4j",
     }
 )
+_UNAMBIGUOUS_COMPANY_WORD_RE = re.compile(
+    r"\b(?:truist|brown\s*&\s*brown|brown_brown|invesco|citigroup|aveva|neo4j)\b",
+    re.IGNORECASE,
+)
 
 PRODUCTION_SCAN_ROOTS: tuple[str, ...] = (
     "resume_graph_engine/src",
@@ -43,16 +48,15 @@ PRODUCTION_SCAN_ROOTS: tuple[str, ...] = (
 ALLOWLISTED_PATH_FRAGMENTS: tuple[str, ...] = (
     "/config/targeting/",
     "/tests/",
-    "tests/",
-    "fixtures/",
-    "evals/",
+    "/fixtures/",
+    "/evals/",
 )
 
 DEFAULT_BASELINE_RELPATH = "config/governance/jd_overfitting_baseline.json"
 
 
 def _is_allowlisted(relpath: str) -> bool:
-    norm = relpath.replace("\\", "/")
+    norm = "/" + relpath.replace("\\", "/").strip("/") + "/"
     return any(frag in norm for frag in ALLOWLISTED_PATH_FRAGMENTS)
 
 
@@ -63,6 +67,10 @@ def _extract_string_literals(node: ast.AST) -> list[tuple[int, str]]:
             val = sub.value.strip().lower()
             if val in TARGET_COMPANY_TOKENS:
                 hits.append((getattr(sub, "lineno", 1), val))
+            elif 0 < len(val) <= 80:
+                m = _UNAMBIGUOUS_COMPANY_WORD_RE.search(val)
+                if m:
+                    hits.append((getattr(sub, "lineno", 1), m.group(0).lower()))
     return hits
 
 
@@ -78,8 +86,26 @@ def check_file_no_jd_overfitting(file_path: Path, repo_root: Path) -> list[dict[
     try:
         source = file_path.read_text(encoding="utf-8")
         tree = ast.parse(source, filename=rel)
-    except (OSError, SyntaxError):
-        return []
+    except OSError as exc:
+        return [
+            {
+                "code": "JD_OVERFITTING_READ_ERROR",
+                "file": rel,
+                "line": 1,
+                "token": "<os_error>",
+                "message": f"Failed reading production module during JD overfitting scan: {exc}",
+            }
+        ]
+    except SyntaxError as exc:
+        return [
+            {
+                "code": "JD_OVERFITTING_SYNTAX_ERROR",
+                "file": rel,
+                "line": exc.lineno or 1,
+                "token": "<syntax_error>",
+                "message": f"SyntaxError prevents JD overfitting verification: {exc.msg}",
+            }
+        ]
 
     violations: list[dict[str, Any]] = []
     seen: set[tuple[int, str]] = set()

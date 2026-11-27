@@ -298,12 +298,15 @@ def _probe_fail_closed_abstention(repo_root: Path) -> dict[str, Any]:
 
     gaps: list[str] = []
     prior_url = os.environ.pop("SEARXNG_BASE_URL", None)
+    searx_missing_blocked = False
     try:
         try:
             sr_mod._require_base_url()
             gaps.append("_require_base_url succeeded when SEARXNG_BASE_URL was unset")
         except RuntimeError:
-            pass
+            searx_missing_blocked = True
+        if not searx_missing_blocked:
+            gaps.append("_require_base_url did not raise RuntimeError when SEARXNG_BASE_URL was unset")
     finally:
         if prior_url is not None:
             os.environ["SEARXNG_BASE_URL"] = prior_url

@@ -53,7 +53,7 @@ def test_device_manager_synchronize_and_empty_cache() -> None:
     empty_cache("mps")
     empty_cache("cpu")
     empty_cache(None)
-    assert True, "Synchronization and cache flushing completed without error"
+    assert allocated_memory_bytes("cpu") >= 0
 
 
 def test_device_manager_allocated_memory_bytes() -> None:

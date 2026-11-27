@@ -58,7 +58,7 @@ if _BASELINE_PATH.is_file():
         _bdata = _json.loads(_BASELINE_PATH.read_text(encoding="utf-8"))
         _MODEL_BASELINE_COUNTS = _bdata.get("file_counts", {})
     except (OSError, ValueError, TypeError):
-        pass
+        _MODEL_BASELINE_COUNTS = {}
 
 
 def _resolve_model_baseline_bucket(rel: str) -> tuple[str, int]:
@@ -465,7 +465,7 @@ def run_precommit_gate(
             for adv in lane_report.get("advisories", []):
                 print(f"    [ADVISORY:{adv['code']}] {adv['message']}")
         except (OSError, ValueError, KeyError):
-            pass
+            print("  Risk Classification: Lane 2 (High / Critical Risk) (fallback)")
     print("=" * 72)
 
     # 1. File collection

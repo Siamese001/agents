@@ -32,6 +32,21 @@ DEFAULT_SMOKE_HARNESS_PATHS: tuple[str, ...] = (
     "ops_scripts/ci/check_eval_harness_promotion_evidence.py",
 )
 
+DEFAULT_SCANNER_GLOBS: tuple[str, ...] = (
+    "tools/*_auditor.py",
+    "tools/lint_*.py",
+    "tools/verify_*.py",
+)
+
+DEFAULT_TEST_ROOTS: tuple[str, ...] = (
+    "tests",
+    "resume_graph_engine/tests",
+    "outreach_engine/tests",
+    "apps_eval/tests",
+    "scripts/local_llm",
+    "resume_graph_engine/src/apps_rg/evals",
+)
+
 DEFAULT_EVALUATOR_GLOBS: tuple[str, ...] = (
     "tools/eval_shield_core/*.py",
     "tools/run_diff_scoped_eval_shield.py",
@@ -285,6 +300,42 @@ def audit_repository(
         if rel.startswith("apps_eval/"):
             violations.extend(scan_extended_construct_validity(path))
 
+    scanned_scanner: list[str] = []
+    seen_scanner: set[Path] = set()
+    for pattern in DEFAULT_SCANNER_GLOBS:
+        for path in sorted(root.glob(pattern)):
+            resolved = path.resolve()
+            if resolved in seen_scanner or not path.is_file():
+                continue
+            seen_scanner.add(resolved)
+            rel = resolved.relative_to(root).as_posix() if resolved.is_relative_to(root) else str(path)
+            scanned_scanner.append(rel)
+            violations.extend(scan_extended_construct_validity(path, is_scanner_file=True))
+
+    scanned_tests: list[str] = []
+    seen_tests: set[Path] = set()
+    for test_root_rel in DEFAULT_TEST_ROOTS:
+        tbase = root / test_root_rel
+        if not tbase.is_dir():
+            continue
+        for path in sorted({*tbase.rglob("test_*.py"), *tbase.rglob("*_test.py")}):
+            if "__pycache__" in path.parts or ".venv" in path.parts:
+                continue
+            resolved = path.resolve()
+            if resolved in seen_tests or not path.is_file():
+                continue
+            seen_tests.add(resolved)
+            rel = resolved.relative_to(root).as_posix() if resolved.is_relative_to(root) else str(path)
+            scanned_tests.append(rel)
+            if "judge" in path.name.lower():
+                violations.extend(
+                    scan_extended_construct_validity(path, is_judge_test=True, is_test_file=True)
+                )
+            else:
+                violations.extend(
+                    scan_extended_construct_validity(path, is_judge_test=False, is_test_file=True)
+                )
+
     gp_count, gp_ceiling, gp_violations = scan_fact_inventory_graph_presence_ratchet(root)
     violations.extend(gp_violations)
 
@@ -293,6 +344,8 @@ def audit_repository(
         "status": "PASS" if not violations else "FAIL",
         "scanned_smoke_files": sorted(set(scanned_smoke)),
         "scanned_eval_files": sorted(set(scanned_eval)),
+        "scanned_scanner_files": sorted(set(scanned_scanner)),
+        "scanned_test_files": sorted(set(scanned_tests)),
         "grounding_tiers": grounding_tiers,
         "graph_presence_count": gp_count,
         "graph_presence_ceiling": gp_ceiling,

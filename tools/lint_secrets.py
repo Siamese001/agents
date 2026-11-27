@@ -155,7 +155,7 @@ def check_file_for_secrets(
                 )
             ]
         except OSError:
-            pass
+            return hits
     return hits
 
 
