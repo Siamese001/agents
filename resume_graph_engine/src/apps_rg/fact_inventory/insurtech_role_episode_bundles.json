@@ -863,6 +863,9 @@
       "proof_shape": "Proposal/SOW trail tying pilot or assessment to signed work.",
       "provenance_source_refs": [
         "exp_insurtech_001"
+      ],
+      "linked_skill_ids": [
+        "skill_cloud_aws_rehosting"
       ]
     },
     "metric_insurtech_proposals_sows_count": {
@@ -891,6 +894,9 @@
       "proof_shape": "Versioned SOW/proposal archive.",
       "provenance_source_refs": [
         "exp_insurtech_001"
+      ],
+      "linked_skill_ids": [
+        "skill_cloud_aws_rehosting"
       ]
     },
     "metric_insurtech_mvp_to_production_cycle_time": {
@@ -1179,6 +1185,9 @@
       "proof_shape": "Meeting notes, correspondence, or regulator-facing materials.",
       "provenance_source_refs": [
         "exp_insurtech_001"
+      ],
+      "linked_skill_ids": [
+        "skill_cloud_aws_rehosting"
       ]
     },
     "metric_insurtech_cloud_standards_artifacts_count": {
@@ -1231,6 +1240,9 @@
       "proof_shape": "Objection register or approval memo.",
       "provenance_source_refs": [
         "exp_insurtech_001"
+      ],
+      "linked_skill_ids": [
+        "skill_cloud_aws_rehosting"
       ]
     },
     "metric_insurtech_controls_mapped_count": {
@@ -1260,6 +1272,9 @@
       "proof_shape": "Control crosswalk or audit evidence package.",
       "provenance_source_refs": [
         "exp_insurtech_001"
+      ],
+      "linked_skill_ids": [
+        "skill_cloud_aws_rehosting"
       ]
     },
     "metric_insurtech_audit_logging_coverage_pct": {
@@ -1288,6 +1303,9 @@
       "proof_shape": "Logging coverage report and workload inventory.",
       "provenance_source_refs": [
         "exp_insurtech_001"
+      ],
+      "linked_skill_ids": [
+        "skill_cloud_aws_rehosting"
       ]
     },
     "metric_insurtech_sensitive_data_controls_count": {
@@ -1315,6 +1333,9 @@
       "proof_shape": "Architecture decision records and security control evidence.",
       "provenance_source_refs": [
         "exp_insurtech_001"
+      ],
+      "linked_skill_ids": [
+        "skill_cloud_aws_rehosting"
       ]
     },
     "metric_insurtech_guidewire_workflows_mapped_count": {
@@ -1344,6 +1365,9 @@
       "proof_shape": "Workflow mapping and target architecture artifacts.",
       "provenance_source_refs": [
         "exp_insurtech_001"
+      ],
+      "linked_skill_ids": [
+        "skill_cloud_aws_rehosting"
       ]
     },
     "metric_insurtech_core_data_entities_mapped_count": {
@@ -1398,6 +1422,9 @@
       "proof_shape": "BI/reporting benchmark before and after.",
       "provenance_source_refs": [
         "exp_insurtech_001"
+      ],
+      "linked_skill_ids": [
+        "skill_cloud_aws_rehosting"
       ]
     },
     "metric_insurtech_real_time_ingestion_feeds_count": {
@@ -1426,6 +1453,9 @@
       "proof_shape": "Data-flow inventory and production feed evidence.",
       "provenance_source_refs": [
         "exp_insurtech_001"
+      ],
+      "linked_skill_ids": [
+        "skill_cloud_aws_rehosting"
       ]
     },
     "metric_insurtech_decision_cycle_time_reduction": {
@@ -1453,6 +1483,9 @@
       "proof_shape": "Operational metric extract or workflow timestamp analysis.",
       "provenance_source_refs": [
         "exp_insurtech_001"
+      ],
+      "linked_skill_ids": [
+        "skill_cloud_aws_rehosting"
       ]
     },
     "metric_insurtech_rto_rpo_targets_met_count": {

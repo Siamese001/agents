@@ -23,6 +23,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import sqlite3
 import sys
 import tempfile
@@ -824,6 +825,34 @@ def evaluate_hygiene_promotion_jury_v3(
     return receipt
 
 
+_INTERNAL_ID_RE = re.compile(r"\b(?:fact|bul|skill|domain|metric|repo|section)_[a-z0-9_]+\b", re.IGNORECASE)
+_META_EVIDENCE_PHRASES = (
+    "archive-verified",
+    "backed by evidence",
+    "supported by evidence",
+    "tied to archive",
+    "grounded in fact_",
+)
+
+
+def _load_candidate_fact_claims() -> dict[str, str]:
+    try:
+        from apps_rg.fact_inventory.candidate_fact_ledger import load_master_candidate_fact_ledger  # noqa: E402
+
+        raw = load_master_candidate_fact_ledger()
+        out: dict[str, str] = {}
+        for f in (raw.get("candidate_facts") or []) if isinstance(raw, Mapping) else []:
+            if not isinstance(f, Mapping):
+                continue
+            fid = str(f.get("candidate_fact_id") or f.get("fact_id") or "").strip()
+            claim = str(f.get("claim_text") or f.get("summary") or "").strip()
+            if fid and claim:
+                out[fid] = claim
+        return out
+    except (ImportError, OSError, ValueError):
+        return {}
+
+
 def _collect_skill_evidence_packet(
     ledger: Mapping[str, Any],
     skill_ids: Sequence[str],
@@ -839,6 +868,7 @@ def _collect_skill_evidence_packet(
         if isinstance(n, dict) and n.get("node_id")
     }
     edges = [e for e in (ledger.get("graph_edges") or []) if isinstance(e, dict)]
+    candidate_fact_claims = _load_candidate_fact_claims()
 
     packets: list[dict[str, Any]] = []
     for sid in skill_ids:
@@ -856,19 +886,26 @@ def _collect_skill_evidence_packet(
             elif et == "skill_supported_by_locked_bullet" and tgt and tgt not in bullet_ids:
                 bullet_ids.append(tgt)
 
-        fact_texts = [
-            f"{fid}: {str((node_by_id.get(fid) or {}).get('description') or (node_by_id.get(fid) or {}).get('label') or fid).strip()}"
-            for fid in fact_ids[:6]
-        ]
-        bullet_texts = [
-            f"{bid}: {str((node_by_id.get(bid) or {}).get('description') or (node_by_id.get(bid) or {}).get('label') or bid).strip()}"
-            for bid in bullet_ids[:6]
-        ]
+        fact_texts: list[str] = []
+        for fid in fact_ids[:6]:
+            nd = node_by_id.get(fid) or {}
+            text = str(nd.get("description") or nd.get("label") or candidate_fact_claims.get(fid) or "").strip()
+            if text and not _INTERNAL_ID_RE.fullmatch(text):
+                fact_texts.append(text)
+        bullet_texts: list[str] = []
+        for bid in bullet_ids[:6]:
+            nd = node_by_id.get(bid) or {}
+            text = str(nd.get("description") or nd.get("label") or "").strip()
+            if text and not _INTERNAL_ID_RE.fullmatch(text):
+                bullet_texts.append(text)
+        raw_cur_desc = str(node.get("description") or row.get("description") or "").strip()
+        if _INTERNAL_ID_RE.search(raw_cur_desc) or any(p in raw_cur_desc.lower() for p in _META_EVIDENCE_PHRASES):
+            raw_cur_desc = ""
         packets.append(
             {
                 "skill_id": sid,
                 "label": str(node.get("label") or row.get("capability") or sid).strip(),
-                "current_description": str(node.get("description") or row.get("description") or "").strip(),
+                "current_description": raw_cur_desc,
                 "pillar": str(row.get("pillar") or "").strip(),
                 "subpillar": str(row.get("subpillar") or "").strip(),
                 "domain_id": str(row.get("domain_id") or "").strip(),
@@ -878,6 +915,49 @@ def _collect_skill_evidence_packet(
             }
         )
     return packets
+
+
+def _validate_drafted_descriptions(
+    draft_list: list[Any],
+    *,
+    target_ids: Sequence[str],
+    used_descriptions: set[str],
+) -> tuple[dict[str, str], list[str]]:
+    drafted: dict[str, str] = {}
+    errors: list[str] = []
+    seen_norms = set(used_descriptions)
+    for row in draft_list:
+        if not isinstance(row, Mapping):
+            continue
+        sid = str(row.get("skill_id") or "").strip()
+        desc = " ".join(str(row.get("description") or "").replace("\u2014", ": ").replace("\u2013", "-").split())
+        if sid not in target_ids:
+            continue
+        norm = desc.lower()
+        if len(desc) < 36:
+            errors.append(f"{sid}: too short ({len(desc)} chars)")
+            continue
+        if any(norm.startswith(pfx) for pfx in _TEMPLATE_BOILERPLATE_PREFIXES):
+            errors.append(f"{sid}: forbidden template boilerplate prefix")
+            continue
+        id_match = _INTERNAL_ID_RE.search(desc)
+        if id_match:
+            errors.append(f"{sid}: leaked raw internal ID {id_match.group(0)!r}")
+            continue
+        meta_hit = next((p for p in _META_EVIDENCE_PHRASES if p in norm), None)
+        if meta_hit:
+            errors.append(f"{sid}: robotic meta-evidence boilerplate {meta_hit!r}")
+            continue
+        if norm in seen_norms:
+            errors.append(f"{sid}: collided with an existing skill description")
+            continue
+        seen_norms.add(norm)
+        drafted[sid] = desc
+
+    missing = [sid for sid in target_ids if sid not in drafted]
+    if missing:
+        errors.append(f"omitted skill_id(s): {missing}")
+    return drafted, errors
 
 
 def draft_grounded_skill_descriptions(
@@ -918,51 +998,49 @@ def draft_grounded_skill_descriptions(
             }
         },
     }
-    draft_prompt = (
-        "Write one distinct, concrete, evidence-grounded description (1 to 2 sentences, 40 to 260 characters) "
+    base_prompt = (
+        "Write one distinct, concrete, plain-English, evidence-grounded description (1 to 2 sentences, 40 to 260 characters) "
         "for each skill in SKILL_EVIDENCE_PACKETS so that no two skills share identical or near-identical text.\n"
         "RULES:\n"
         "1. Use ONLY capabilities, concepts, tools, and facts explicitly present in each skill's own packet.\n"
         "2. Do NOT invent employers, metrics, dates, certifications, or unmentioned technologies.\n"
-        "3. Do NOT use em-dashes, en-dashes, AI buzzwords, or rigid template openers like 'Applies X across Y in the Z domain'.\n"
-        "4. Return strict JSON matching the schema with an entry for every requested skill_id.\n\n"
+        "3. NEVER cite raw internal IDs (such as fact_*, bul_*, skill_*, domain_*, metric_*) or meta-phrases like "
+        "'archive-verified', 'backed by evidence in', 'supported by evidence in', or 'tied to archive-verified'.\n"
+        "4. Do NOT use em-dashes, en-dashes, AI buzzwords, or rigid template openers like 'Applies X across Y in the Z domain'.\n"
+        "5. Return strict JSON matching the schema with an entry for every requested skill_id.\n\n"
         f"SKILL_EVIDENCE_PACKETS:\n{json.dumps(packets, indent=2, ensure_ascii=False)}\n"
     )
 
-    _, res = _call_with_quota_failover(
-        prompt=draft_prompt,
-        candidate_models=[pins["drafter_primary"], *pins["drafter_backups"]],
-        json_schema=draft_schema,
-        effort="medium",
-        call_fn=draft_call_fn,
-    )
-    raw_obj = res.structured_output if isinstance(res.structured_output, dict) else json.loads(str(res.response))
-    draft_list = raw_obj.get("descriptions") if isinstance(raw_obj, Mapping) else None
-    if not isinstance(draft_list, list):
-        raise ValueError("Grounded clone drafter returned malformed payload missing 'descriptions' list.")
-
     drafted: dict[str, str] = {}
-    seen_norms = set(used_descriptions)
-    for row in draft_list:
-        if not isinstance(row, Mapping):
-            continue
-        sid = str(row.get("skill_id") or "").strip()
-        desc = " ".join(str(row.get("description") or "").replace("\u2014", ": ").replace("\u2013", "-").split())
-        if sid not in target_ids:
-            continue
-        norm = desc.lower()
-        if len(desc) < 36:
-            raise ValueError(f"Drafted description for {sid!r} is too short ({len(desc)} chars).")
-        if any(norm.startswith(pfx) for pfx in _TEMPLATE_BOILERPLATE_PREFIXES):
-            raise ValueError(f"Drafted description for {sid!r} used forbidden template boilerplate prefix.")
-        if norm in seen_norms:
-            raise ValueError(f"Drafted description for {sid!r} collided with an existing skill description.")
-        seen_norms.add(norm)
-        drafted[sid] = desc
-
-    missing = [sid for sid in target_ids if sid not in drafted]
-    if missing:
-        raise ValueError(f"Grounded clone drafter omitted skill_id(s): {missing}")
+    last_errors: list[str] = []
+    for attempt in range(2):
+        prompt = base_prompt
+        if attempt > 0 and last_errors:
+            prompt += (
+                "\nPREVIOUS ATTEMPT REJECTED. Fix every violation below and rewrite cleanly in natural plain English:\n- "
+                + "\n- ".join(last_errors)
+                + "\n"
+            )
+        _, res = _call_with_quota_failover(
+            prompt=prompt,
+            candidate_models=[pins["drafter_primary"], *pins["drafter_backups"]],
+            json_schema=draft_schema,
+            effort="medium",
+            call_fn=draft_call_fn,
+        )
+        raw_obj = res.structured_output if isinstance(res.structured_output, dict) else json.loads(str(res.response))
+        draft_list = raw_obj.get("descriptions") if isinstance(raw_obj, Mapping) else None
+        if not isinstance(draft_list, list):
+            raise ValueError("Grounded clone drafter returned malformed payload missing 'descriptions' list.")
+        drafted, last_errors = _validate_drafted_descriptions(
+            draft_list,
+            target_ids=target_ids,
+            used_descriptions=used_descriptions,
+        )
+        if not last_errors:
+            break
+    if last_errors:
+        raise ValueError(f"Grounded clone drafter failed validation: {'; '.join(last_errors)}")
 
     if verify_with_judge:
         verify_item = {

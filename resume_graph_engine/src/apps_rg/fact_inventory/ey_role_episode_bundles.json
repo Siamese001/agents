@@ -407,6 +407,13 @@
         "exp_early_career_001",
         "fact_bcbs239_001",
         "fact_solvency_001"
+      ],
+      "linked_skill_ids": [
+        "skill_external_egress_control",
+        "skill_provider_and_egress_governance",
+        "skill_risk_data_aggregation_bcbs239",
+        "skill_risk_three_lines_of_defense",
+        "skill_sr_enterprise_portfolio_data_governance"
       ]
     },
     "metric_ey_bcbs239_risk_data_domain_count": {
@@ -437,6 +444,12 @@
         "exp_early_career_001",
         "fact_bcbs239_001",
         "fact_solvency_001"
+      ],
+      "linked_skill_ids": [
+        "skill_finra_sec_regulatory_compliance",
+        "skill_p2_gtm_commercial_validation_pilots",
+        "skill_p2_gtm_presales_delivery_handoff",
+        "skill_svp_it_strategy_innovation"
       ]
     },
     "metric_ey_capital_liquidity_assumption_sets_count": {
@@ -467,6 +480,10 @@
         "exp_early_career_001",
         "fact_bcbs239_001",
         "fact_solvency_001"
+      ],
+      "linked_skill_ids": [
+        "skill_credit_adjudication_default_risk",
+        "skill_risk_three_lines_of_defense"
       ]
     },
     "metric_ey_ccar_stress_scenario_library_count": {
@@ -497,6 +514,10 @@
         "exp_early_career_001",
         "fact_bcbs239_001",
         "fact_solvency_001"
+      ],
+      "linked_skill_ids": [
+        "skill_credit_adjudication_default_risk",
+        "skill_risk_three_lines_of_defense"
       ]
     },
     "metric_ey_core_integration_data_mapping_count": {
@@ -651,6 +672,10 @@
         "exp_early_career_001",
         "fact_bcbs239_001",
         "fact_solvency_001"
+      ],
+      "linked_skill_ids": [
+        "skill_credit_adjudication_default_risk",
+        "skill_risk_three_lines_of_defense"
       ]
     },
     "metric_ey_model_validation_variant_count": {
@@ -681,6 +706,10 @@
         "exp_early_career_001",
         "fact_bcbs239_001",
         "fact_solvency_001"
+      ],
+      "linked_skill_ids": [
+        "skill_credit_adjudication_default_risk",
+        "skill_risk_three_lines_of_defense"
       ]
     },
     "metric_ey_policy_admin_rules_interfaces_count": {
@@ -742,6 +771,13 @@
         "exp_early_career_001",
         "fact_bcbs239_001",
         "fact_solvency_001"
+      ],
+      "linked_skill_ids": [
+        "skill_external_egress_control",
+        "skill_provider_and_egress_governance",
+        "skill_risk_data_aggregation_bcbs239",
+        "skill_risk_three_lines_of_defense",
+        "skill_sr_enterprise_portfolio_data_governance"
       ]
     },
     "metric_ey_regulatory_capital_model_inventory_count": {
@@ -772,6 +808,10 @@
         "exp_early_career_001",
         "fact_bcbs239_001",
         "fact_solvency_001"
+      ],
+      "linked_skill_ids": [
+        "skill_credit_adjudication_default_risk",
+        "skill_risk_three_lines_of_defense"
       ]
     },
     "metric_ey_regulatory_lineage_domains_count": {
@@ -803,6 +843,13 @@
         "exp_early_career_001",
         "fact_bcbs239_001",
         "fact_solvency_001"
+      ],
+      "linked_skill_ids": [
+        "skill_external_egress_control",
+        "skill_provider_and_egress_governance",
+        "skill_risk_data_aggregation_bcbs239",
+        "skill_risk_three_lines_of_defense",
+        "skill_sr_enterprise_portfolio_data_governance"
       ]
     },
     "metric_ey_risk_metric_definition_count": {
@@ -833,6 +880,12 @@
         "exp_early_career_001",
         "fact_bcbs239_001",
         "fact_solvency_001"
+      ],
+      "linked_skill_ids": [
+        "skill_finra_sec_regulatory_compliance",
+        "skill_p2_gtm_commercial_validation_pilots",
+        "skill_p2_gtm_presales_delivery_handoff",
+        "skill_svp_it_strategy_innovation"
       ]
     },
     "metric_ey_three_lines_control_owner_count": {
@@ -863,6 +916,12 @@
         "exp_early_career_001",
         "fact_bcbs239_001",
         "fact_solvency_001"
+      ],
+      "linked_skill_ids": [
+        "skill_finra_sec_regulatory_compliance",
+        "skill_p2_gtm_commercial_validation_pilots",
+        "skill_p2_gtm_presales_delivery_handoff",
+        "skill_svp_it_strategy_innovation"
       ]
     },
     "metric_ey_va_hedge_program_count": {
@@ -925,6 +984,10 @@
         "exp_early_career_001",
         "fact_bcbs239_001",
         "fact_solvency_001"
+      ],
+      "linked_skill_ids": [
+        "skill_credit_adjudication_default_risk",
+        "skill_risk_three_lines_of_defense"
       ]
     },
     "metric_ey_core_conversion_rule_traceability_count": {

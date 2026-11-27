@@ -77,3 +77,38 @@ def test_graph_hygiene_pr_judge_receipt_gate_fail_closed_and_2family_pass(tmp_pa
     res_ok = verify_diff_judge_receipts(changed, tmp_path, surfaces=DEFAULT_JUDGE_GOVERNED_SURFACES)
     assert res_ok["status"] == "PASS", res_ok
     assert res_ok["triggered_surfaces"][0]["surface_id"] == "agents_graph_hygiene"
+
+
+def test_graph_hygiene_stub_label_canonicalizer_and_draft_id_guard() -> None:
+    from tools.apply_graph_hygiene_remediation import _canonicalize_repo_stub_label
+    from tools.graph_hygiene_judge_v3 import _validate_drafted_descriptions
+
+    used: set[str] = set()
+    lbl_root = _canonicalize_repo_stub_label("Agents", relpath="AGENTS.md", node_id="repo_a", used_labels=used)
+    lbl_rg_1 = _canonicalize_repo_stub_label(
+        "Agents", relpath="apps_rg/AGENTS.md", node_id="repo_b", linked_skill_labels=["Overlay Binding"], used_labels=used
+    )
+    lbl_rg_2 = _canonicalize_repo_stub_label(
+        "Agents", relpath="apps_rg/AGENTS.md", node_id="repo_c", linked_skill_labels=["Control Plane"], used_labels=used
+    )
+    lbl_x2 = _canonicalize_repo_stub_label(
+        "Executive Summary X2", relpath="apps_rg/runtime/validators/executive_summary_x2.py", node_id="repo_d", used_labels=used
+    )
+    assert len({lbl_root.lower(), lbl_rg_1.lower(), lbl_rg_2.lower(), lbl_x2.lower()}) == 4
+    assert "Apps Rg" not in lbl_rg_1
+    assert "Gate X2 Validator" in lbl_x2
+
+    _, errs = _validate_drafted_descriptions(
+        [{"skill_id": "s1", "description": "Measures rho hedging supported by archive-verified evidence in fact_quant_hpc_003."}],
+        target_ids=["s1"],
+        used_descriptions=set(),
+    )
+    assert any("fact_quant_hpc_003" in e for e in errs)
+
+    drafted, ok_errs = _validate_drafted_descriptions(
+        [{"skill_id": "s1", "description": "Measures interest-rate sensitivity through rho and applies rho hedging across early-career actuarial portfolios."}],
+        target_ids=["s1"],
+        used_descriptions=set(),
+    )
+    assert not ok_errs
+    assert "s1" in drafted

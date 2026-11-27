@@ -80,6 +80,11 @@
         "exp_ibm_001",
         "bul_ibm_001",
         "fact_bcbs239_001"
+      ],
+      "linked_skill_ids": [
+        "skill_confluent_streaming_platforms",
+        "skill_partner_enterprise_negotiations",
+        "skill_sales_modernization_deals_15m"
       ]
     },
     "metric_ibm_stress_test_cycle_weeks_to_hours": {
@@ -352,6 +357,13 @@
       "provenance_source_refs": [
         "exp_ibm_001",
         "fact_quant_hpc_004"
+      ],
+      "linked_skill_ids": [
+        "skill_agent_to_human_handoff_design",
+        "skill_approval_gated_workflow_design",
+        "skill_capital_regulatory_capital",
+        "skill_exit_disposition_governance",
+        "skill_fail_closed_gate_semantics"
       ]
     },
     "metric_ibm_budget_portfolio_bi_views": {
@@ -408,6 +420,13 @@
         "exp_ibm_001",
         "fact_revenue_ops_005",
         "fact_consulting_002"
+      ],
+      "linked_skill_ids": [
+        "skill_agent_to_human_handoff_design",
+        "skill_approval_gated_workflow_design",
+        "skill_capital_regulatory_capital",
+        "skill_exit_disposition_governance",
+        "skill_fail_closed_gate_semantics"
       ]
     },
     "metric_ibm_value_realization_account_reviews": {
@@ -575,6 +594,9 @@
       "provenance_source_refs": [
         "exp_ibm_001",
         "bul_ibm_001"
+      ],
+      "linked_skill_ids": [
+        "skill_confluent_streaming_platforms"
       ]
     },
     "metric_ibm_deployment_blueprint_repeatability": {
@@ -692,6 +714,10 @@
         "exp_ibm_001",
         "fact_sales_accounts_003",
         "fact_data_analytics_001"
+      ],
+      "linked_skill_ids": [
+        "skill_finance_cost_optimization_dashboards",
+        "skill_ibm_metadata_audit_rbac"
       ]
     }
   },
