@@ -16,10 +16,12 @@ from __future__ import annotations
 
 import argparse
 import ast
+import io
 import json
 import re
 import sys
 import tempfile
+import tokenize
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -247,6 +249,70 @@ def load_guardian_exemption_registry(repo_root: Path) -> dict[str, Any]:
 
     parsed = yaml.safe_load(reg_path.read_text(encoding="utf-8"))
     return parsed if isinstance(parsed, dict) else defaults
+
+
+def validate_python_source_guardian_exemptions(
+    src: str,
+    rel: str,
+    registry: dict[str, Any],
+) -> list[LoopholeFinding]:
+    """Validate real Python `# guardian:` COMMENT tokens (ignoring string literals) against the registry."""
+    allowed_types = set(registry.get("allowed_exemption_types") or ())
+    min_chars = int((registry.get("syntax_contract") or {}).get("min_justification_chars", 8))
+    findings: list[LoopholeFinding] = []
+    try:
+        tokens = list(tokenize.generate_tokens(io.StringIO(src).readline))
+    except (tokenize.TokenError, IndentationError):
+        tokens = []
+
+    for tok in tokens:
+        if tok.type != tokenize.COMMENT:
+            continue
+        m_line = _GUARDIAN_LINE_RE.search(tok.string)
+        if not m_line:
+            continue
+        lineno = tok.start[0]
+        body = m_line.group(1)
+        m_strict = _GUARDIAN_STRICT_RE.match(body)
+        if not m_strict:
+            findings.append(
+                LoopholeFinding(
+                    "R3",
+                    "LH-12",
+                    "MALFORMED_GUARDIAN_EXEMPTION",
+                    "MEDIUM",
+                    rel,
+                    lineno,
+                    f"Malformed guardian exemption syntax (expected `# guardian: allow-<type> -- <justification>`): {body.strip()[:80]}",
+                )
+            )
+            continue
+        g_type, justification = m_strict.group(1), m_strict.group(2).strip()
+        if g_type not in allowed_types:
+            findings.append(
+                LoopholeFinding(
+                    "R3",
+                    "LH-12",
+                    "UNREGISTERED_GUARDIAN_EXEMPTION_TYPE",
+                    "MEDIUM",
+                    rel,
+                    lineno,
+                    f"Guardian exemption type '{g_type}' is not in config/governance/guardian_exemption_registry.yaml.",
+                )
+            )
+        elif len(justification) < min_chars:
+            findings.append(
+                LoopholeFinding(
+                    "R3",
+                    "LH-12",
+                    "EMPTY_GUARDIAN_JUSTIFICATION",
+                    "MEDIUM",
+                    rel,
+                    lineno,
+                    f"Guardian exemption '{g_type}' justification is too short (< {min_chars} chars).",
+                )
+            )
+    return findings
 
 
 def _iter_prod_py_files(repo_root: Path) -> list[Path]:
@@ -624,59 +690,14 @@ def scan_r3_fake_scans_and_guard_theater(repo_root: Path) -> list[LoopholeFindin
 
     # 4. LH-12 (guardian tags): Validate all `# guardian:` comments across production roots against registry
     registry = load_guardian_exemption_registry(root)
-    allowed_types = set(registry.get("allowed_exemption_types") or ())
-    min_chars = int((registry.get("syntax_contract") or {}).get("min_justification_chars", 8))
     self_rel = "tools/loophole_redteam_auditor.py"
 
     for py in _iter_prod_py_files(root):
         rel = py.relative_to(root).as_posix()
         if rel == self_rel:
             continue
-        _src, lines, _tree, _err = _safe_parse_ast(py)
-        for idx, ln in enumerate(lines, 1):
-            m_line = _GUARDIAN_LINE_RE.search(ln)
-            if not m_line:
-                continue
-            body = m_line.group(1)
-            m_strict = _GUARDIAN_STRICT_RE.match(body)
-            if not m_strict:
-                findings.append(
-                    LoopholeFinding(
-                        "R3",
-                        "LH-12",
-                        "MALFORMED_GUARDIAN_EXEMPTION",
-                        "MEDIUM",
-                        rel,
-                        idx,
-                        f"Malformed guardian exemption syntax (expected `# guardian: allow-<type> -- <justification>`): {body.strip()[:80]}",
-                    )
-                )
-                continue
-            g_type, justification = m_strict.group(1), m_strict.group(2).strip()
-            if g_type not in allowed_types:
-                findings.append(
-                    LoopholeFinding(
-                        "R3",
-                        "LH-12",
-                        "UNREGISTERED_GUARDIAN_EXEMPTION_TYPE",
-                        "MEDIUM",
-                        rel,
-                        idx,
-                        f"Guardian exemption type '{g_type}' is not in config/governance/guardian_exemption_registry.yaml.",
-                    )
-                )
-            elif len(justification) < min_chars:
-                findings.append(
-                    LoopholeFinding(
-                        "R3",
-                        "LH-12",
-                        "EMPTY_GUARDIAN_JUSTIFICATION",
-                        "MEDIUM",
-                        rel,
-                        idx,
-                        f"Guardian exemption '{g_type}' justification is too short (< {min_chars} chars).",
-                    )
-                )
+        src, _lines, _tree, _err = _safe_parse_ast(py)
+        findings.extend(validate_python_source_guardian_exemptions(src, rel, registry))
 
     return findings
 

@@ -374,6 +374,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         if str(repo_root) not in sys.path:
             sys.path.insert(0, str(repo_root))
         from tools.audit_multi_ssot_judge_gate_drift import audit_multi_ssot_judge_gate_drift
+        from tools.loophole_redteam_auditor import audit_repository_loopholes, run_counterfactual_self_test
         from tools.verify_fix_eval_pinning import evaluate_non_mock_e2e_branch_requirement
 
         pin_report = evaluate_non_mock_e2e_branch_requirement(repo_root)
@@ -393,6 +394,37 @@ def main(argv: Sequence[str] | None = None) -> int:
                         "file": "tools/audit_multi_ssot_judge_gate_drift.py",
                         "line": 1,
                         "message": str(dv.get("message") or ""),
+                    }
+                )
+            report["violation_count"] = len(report["violations"])
+            report["status"] = "FAIL"
+
+        cf_report = run_counterfactual_self_test()
+        loophole_report = audit_repository_loopholes(repo_root)
+        report["loophole_redteam_report"] = {
+            "status": loophole_report["status"],
+            "total_findings": loophole_report["total_findings"],
+            "counterfactual_status": cf_report["status"],
+        }
+        if cf_report.get("status") != "PASS":
+            report["violations"].append(
+                {
+                    "code": "LOOPHOLE_COUNTERFACTUAL_SELF_TEST_FAILED",
+                    "file": "tools/loophole_redteam_auditor.py",
+                    "line": 1,
+                    "message": f"Counterfactual self-test failed: missed={cf_report.get('missed_loophole_ids')} fp={cf_report.get('clean_control_false_positives')}",
+                }
+            )
+            report["violation_count"] = len(report["violations"])
+            report["status"] = "FAIL"
+        if loophole_report.get("findings"):
+            for lf in loophole_report["findings"]:
+                report["violations"].append(
+                    {
+                        "code": f"REDTEAM_{lf['loophole_id']}_{lf['code']}",
+                        "file": lf["file"],
+                        "line": lf["line"],
+                        "message": lf["message"],
                     }
                 )
             report["violation_count"] = len(report["violations"])

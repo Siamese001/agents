@@ -258,6 +258,15 @@ def _analyze_single_python_file(
         mock_visitor.visit(tree)
         for mv in mock_visitor.violations:
             purity_errs.append(f"[Mock Reachability] {mv}")
+        if "fixtures" not in f.parts and norm_rel != "tools/loophole_redteam_auditor.py":
+            from tools.loophole_redteam_auditor import (
+                load_guardian_exemption_registry,
+                validate_python_source_guardian_exemptions,
+            )
+
+            g_reg = load_guardian_exemption_registry(repo_root)
+            for gf in validate_python_source_guardian_exemptions(content, norm_rel, g_reg):
+                gov_errs.append(f"[Guardian Registry:{gf.code}] {norm_rel}:{gf.line}: {gf.message}")
 
     # 7. Fast AST test hygiene on touched pytest modules (skip/xfail & zero-assertion guard)
     if is_test_module and ("tests" in f.parts or "/evals/" in f"/{norm_rel}" or "scripts/local_llm" in norm_rel):
