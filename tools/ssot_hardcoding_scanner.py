@@ -13,9 +13,11 @@ from __future__ import annotations
 
 import argparse
 import ast
+import io
 import json
 import re
 import sys
+import tokenize
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -533,9 +535,16 @@ def scan_ast_hygiene_and_env_sprawl(
 
             g_entry = _GLOBAL_AST_CACHE.get(py)
             raw_text = g_entry[1] if g_entry is not None else py.read_text(encoding="utf-8", errors="replace")
-            for lineno, line_txt in enumerate(raw_text.splitlines(), start=1):
-                m_guard = re.search(r"#\s*guardian:\s*(.+)$", line_txt)
+            try:
+                tok_stream = list(tokenize.generate_tokens(io.StringIO(raw_text).readline))
+            except (tokenize.TokenError, IndentationError):
+                tok_stream = []
+            for tok in tok_stream:
+                if tok.type != tokenize.COMMENT:
+                    continue
+                m_guard = re.search(r"#\s*guardian:\s*(.+)$", tok.string)
                 if m_guard and "--" not in m_guard.group(1):
+                    lineno = tok.start[0]
                     findings.append({
                         "category": "GUARDIAN_MISSING_RATIONALE", "file": rel, "line": lineno,
                         "detail": f"{rel}:{lineno} contains '# guardian:' comment without '-- <rationale>'",

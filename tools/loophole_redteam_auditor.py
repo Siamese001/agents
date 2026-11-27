@@ -688,7 +688,7 @@ def scan_r3_fake_scans_and_guard_theater(repo_root: Path) -> list[LoopholeFindin
                         )
                     )
 
-    # 4. LH-12 (guardian tags): Validate all `# guardian:` comments across production roots against registry
+    # 4. LH-12 (guardian tags): Validate all guardian exemption comments across production roots against registry
     registry = load_guardian_exemption_registry(root)
     self_rel = "tools/loophole_redteam_auditor.py"
 
