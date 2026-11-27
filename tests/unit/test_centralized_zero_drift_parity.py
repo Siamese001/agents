@@ -49,3 +49,26 @@ def test_core_governance_bridges_preload_atomic_concurrency_in_clean_process() -
         shell=False,
     )
     assert proc.returncode == 0, proc.stderr or proc.stdout
+
+
+def test_eval_flywheel_bridge_loads_from_eval_flywheel_plugin_not_core_governance() -> None:
+    """Verify apps_eval._core_governance_bridge resolves eval_flywheel_* from eval-flywheel/mcp."""
+    code = (
+        "import sys; "
+        "from pathlib import Path; "
+        "import apps_eval._core_governance_bridge as b; "
+        "pol = b.load_universal_flywheel_policy(); "
+        "assert pol.get('shield_sla_seconds') == b.SHIELD_SLA_SECONDS; "
+        "mods = ['eval_flywheel_lifecycle', 'eval_flywheel_longitudinal', 'eval_flywheel_store', "
+        "'eval_flywheel_harvester', 'eval_flywheel_shield_core']; "
+        "assert all(Path(sys.modules[m].__file__).parent.parent.name == 'eval-flywheel' for m in mods)"
+    )
+    proc = subprocess.run(
+        [sys.executable, "-c", code],
+        cwd=_REPO_ROOT,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        shell=False,
+    )
+    assert proc.returncode == 0, proc.stderr or proc.stdout
